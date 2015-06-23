@@ -1,0 +1,116 @@
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+# Author: jiyin@redhat.com
+# This is a test run monitor.
+
+lappend ::auto_path /usr/local/lib /usr/lib64
+package require tdom
+package require sqlite3
+package require runtestlib
+package require getOpt
+namespace import ::getOpt::* ::runtestlib::*
+
+# global var
+array set Opt {}
+array set InvalidOpt {}
+set Args [list]
+set OptionList {
+	help   {arg n	help {#Print this usage}}	h {link help}
+	lsjob  {arg n	help {#list the job}}
+	lsrun  {arg n	help {#list the run}}
+	jobchk {arg n	help {#TBD: check if the job was delete, but the status is not completed}}
+}
+
+proc Usage {progname} {
+	puts "Usage: $progname \[options\]"
+	getUsage $::OptionList
+}
+
+# _parse_ argument
+getOptions $OptionList $::argv Opt InvalidOpt Args
+#puts "Debug: Args{$Args}"
+#parray InvalidOpt
+#parray Opt
+
+if [info exist Opt(help)] {
+	Usage $argv0
+	exit 0
+}
+
+cd [dbroot]
+sqlite3 db testrun.db
+#===============================================================================
+set pkgQ "select DISTINCT ti.pkgName from testinfo ti"
+set pkgList [db eval $pkgQ]
+set runList {}
+foreach pkg $pkgList {
+	set distroQ "
+		select DISTINCT trun.distro_rgset
+		from testrun trun
+		join testinfo ti on
+			trun.testid = ti.testid
+		where ti.pkgName LIKE '$pkg' and trun.res != ''
+	"
+	foreach key [db eval $distroQ] {
+		lappend runList "$pkg $key"
+	}
+	set runList [lsort -decreasing $runList]
+}
+#===============================================================================
+
+# puts "==========================================> Vertical search"
+if [info exist Opt(lsrun)] {
+	foreach key $runList {
+		puts "$key"
+	}
+} elseif [info exist Opt(lsjob)] {
+	foreach key $runList {
+		set pkg [lindex $key 0]
+		set run [lrange $key 1 end]
+		set jobQ "
+			select DISTINCT trun.jobid
+			from testrun trun
+			join testinfo ti on
+				trun.testid = ti.testid
+			where ti.pkgName LIKE '$pkg' and trun.distro_rgset == '$run' and trun.res != ''
+		"
+		set jobList [db eval $jobQ]
+		puts "\033\[1;34m$key\033\[0m:"
+		puts "\t$jobList"
+	}
+} else {
+	db eval {
+	    select
+		trun.distro_rgset as distro_rgset,
+		trun.jobid as jobid,
+		trun.testStat as tstat,
+		trun.rstat as rstat,
+		trun.res as res,
+		trun.abortedCnt as abortedCnt,
+		ti.test as test,
+		trun.testid as testid,
+		ti.pkgName as pkgName
+	    from testrun trun
+	    join testinfo ti on
+		trun.testid = ti.testid
+	    ORDER by ti.test
+	} {
+		set tname [lindex $test 0]
+		set tinfo "$tname [testinfo param $test] {[concat {*}[testinfo gset $test]]}"
+		set shortcat "[file tail [file dirname $tinfo]]/[file tail $tinfo]"
+		set tattr [lrange $test 1 end]
+
+		set testobj [format "{%s} {%s} {%s} {%s} {%s} %s {%s} %s" $distro_rgset $jobid $tstat $rstat $res $abortedCnt $shortcat $pkgName]
+		lappend runGroup($pkgName\ $distro_rgset) $testobj
+	}
+
+	foreach key [lsort -dictionary [array names runGroup]] {
+		puts "${key} :"
+		foreach K $runGroup($key) {
+			puts "  $K"
+		}
+	}
+}

@@ -1,0 +1,75 @@
+#!/bin/bash
+
+parse_yaml() {
+	local ys="$*"
+	echo "$ys" | awk 'BEGIN {FS=""; P=0; S=0}
+	{
+		for(n=1;n<=NF;n++) {
+			if ($n==" " && $(n-1)==" " && P==0 && S==0)
+				continue
+			if ($n=="," && P==0 && S==0) {
+				print gensub("^ ", "", 1, s); s=""
+			} else {
+				s=s$n;
+				if(S==0 && $n=="\"" && $(n-1)!="\\")
+					P=(P+1)%2;
+				if(P==0 && $n=="'"'"'")
+					S=(S+1)%2
+			}
+		}
+	}
+	END {print gensub("^ ", "", 1, s)}'
+}
+
+ployConf=$1
+[ -z "$ployConf" ] && {
+	ployConf=~/.bkr.recipe.matrix.conf
+	[ ! -f $ployConf ] && ployConf=/etc/bkr.recipe.matrix.conf
+}
+testList=$(cat -)
+[ ! -f "$ployConf" ] && {
+	echo "$testList"
+	exit
+}
+ployList=$(egrep -v '^ *#|^$' $ployConf)
+
+while read testinfo; do
+	gsetup_orig=$(parse_yaml "$testinfo"|sed -n '/^GlobalSetup: */{s///;p;q}')
+	condition=$(parse_yaml "$testinfo"|sed -n '/^Condition: */{s///;p;q}')
+	testinfo=${testinfo%, Condition:*}
+	if [[ "$condition" =~ expand=no ]]; then
+	        echo "$testinfo"
+	        continue
+	fi
+
+	noarch=$(eval set -- $condition; for c; do [[ "$c" =~ ^--noarch= ]] && echo -n "${c#--noarch=}"; done)
+	testinfo=${testinfo%, GlobalSetup:*}
+	gsetup_list=
+	while read gsetup; do
+		for arch in $noarch; do [[ $gsetup =~ arch=$arch ]] && continue 2; done
+		# get gsetup from ploy.conf
+		gsetup=$(eval set -- $gsetup; for a; do echo -n "'--$a' "; done)
+
+		# merge all gsetup items from subtest.desc and ploy.conf
+		# gsetup from subtest.desc has higher priority
+		key_curr=
+		key_list=
+		gsetup="$gsetup_orig $gsetup"
+		gsetup_tmp=
+		for i in $(echo $gsetup | tr ' ' '\n'); do
+			key_curr=$(echo $i |sed 's/.*--\([0-9,a-z,A-Z,_,-]*\)=.*/\1/')
+			\grep -q "$key_curr" <<< "$key_list" || {
+				gsetup_tmp+="$i "
+				key_list+="$key_curr"
+			}
+		done
+		gsetup="$gsetup_tmp"
+
+		# skip duplicate expanded items
+		\grep -q "$gsetup" <<< "$gsetup_list" || {
+			gsetup_list+="$gsetup "
+			echo "$testinfo, GlobalSetup: $gsetup"
+		}
+	done <<<"$ployList"
+done <<<"${testList}"
+

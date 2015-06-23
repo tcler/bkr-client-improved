@@ -1,0 +1,19 @@
+#!/bin/bash
+
+sortV() {
+	if echo | sort -V &>/dev/null; then
+		cat - | sort -V "$@"
+	else
+		if ! echo "$@" | egrep -q '( |^)-r( |$)'; then
+			cat - | sed -r -e 's/^/k-/' -e "s/-([0-9]+\.)/.\1/" -e "s/-([0-9]+\.)/-.\1/" |
+			sort -t . -k1,1 -k2,2n -k3,3n -k4,4n -k5,5n -k6,6n |
+			sed -r -e "s/\./-/" -e "s/-\./-/" -e 's/^k.//'
+		else
+			cat - | sed -r -e 's/^/k-/' -e "s/-([0-9]+\.)/.\1/" -e "s/-([0-9]+\.)/-.\1/" |
+			sort -t . -k1,1 -k2,2n -k3,3n -k4,4n -k5,5n -k6,6n | tac |
+			sed -r -e "s/\./-/" -e "s/-\./-/" -e 's/^k.//'
+		fi
+	fi
+}
+
+sortV "$@"

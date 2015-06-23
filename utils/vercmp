@@ -1,0 +1,34 @@
+#!/bin/bash
+#author: jiyin@redhat.com
+
+usage() {
+	echo "usage: $0  <ver1> < =  | '>' | '<' | '>=' | '<=' >  <ver2>" >&2
+	echo "       $0  <ver1> < eq | gt  | lt  |  ge  |  le  >  <ver2>" >&2
+	echo "       $0  <ver1> < match >  <'pattern'>" >&2
+}
+
+vercmp() {
+	[ $# != 3 ] && {
+		usage
+		return 1
+	}
+	vl=$1
+	cmpType=$2
+	vr=$3
+	res=1
+
+	[ "$vl" = "$vr" ] && eq=1
+	vmax=$(echo -e "$vl\n$vr" | sortV | tail -n 1)
+
+	case "$cmpType" in
+	=|eq) [ "$eq" = 1 ] && res=0;;
+	\>|gt) [ "$eq" != 1 -a "$vl" = "$vmax" ] && res=0;;
+	\<|lt) [ "$eq" != 1 -a "$vr" = "$vmax" ] && res=0;;
+	\>=|lt) [ "$vl" = "$vmax" ] && res=0;;
+	\<=|lt) [ "$vr" = "$vmax" ] && res=0;;
+	*) echo "$vl" | egrep -q "$vr"; res=$?;;
+	esac
+
+	return $res
+}
+vercmp "$@"

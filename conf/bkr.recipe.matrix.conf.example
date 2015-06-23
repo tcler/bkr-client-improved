@@ -1,0 +1,14 @@
+# The recipes matrix desc config file example.
+# Used by lstest -p or expand_testlist, to extend/create full platform covered test list
+
+arch=i386.AuthenticAMD   dr="arch!=x86_64" kv=CPUFLAGS=pae hr=cpu_count=1 hr=hypervisor=
+arch=i386.GenuineIntel   dr="arch=x86_64" kv=CPUFLAGS=pae hr="cpu_count>1" hr=hypervisor=
+
+arch=x86_64              hr="cpu_count>1" hr=hypervisor=  k-opts-post="fips=1"
+arch=x86_64.GenuineIntel hr="cpu_count>1" hr=hypervisor=  dbgk
+arch=x86_64.AuthenticAMD hr="cpu_count>1" hr=hypervisor=  dbgk
+arch=x86_64.GenuineIntel kv=HVM=1 kv="DISKSPACE>=75000" hr="memory>=4096" hr="cpu_count>=4" hr=hypervisor=
+arch=x86_64.AuthenticAMD kv=HVM=1 kv="DISKSPACE>=75000" hr="memory>=4096" hr="cpu_count>=4" hr=hypervisor=
+
+arch=ppc64               dbgk
+arch=s390x               dbgk

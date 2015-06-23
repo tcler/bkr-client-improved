@@ -1,0 +1,274 @@
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+# Author: jiyin@redhat.com
+# This is a test run monitor.
+# tdom usage: http://wiki.tcl.tk/8984
+
+lappend ::auto_path /usr/local/lib /usr/lib64
+package require tdom
+package require sqlite3
+package require runtestlib
+package require getOpt
+namespace import ::getOpt::* ::runtestlib::*
+
+set conf_file /etc/bkr-autorun.conf
+source $conf_file
+foreach {key val} [array get HostAvilable] { set HostMax($key) [expr ($val+5)/10] }
+
+#parray HostMax
+array set HostUsed {}
+set alone {}
+
+proc getXML {jobID} {
+	set xml [exec bkr job-results --prettyxml $jobID]
+	regsub {<\?xml .*?\?>} $xml {}
+}
+
+proc limitSubmitJobs {distro rgset arch testlist limitNum} {
+	foreach file [glob -nocomplain *.xml] { file delete -force $file }
+	set testNum [llength $testlist]
+	if {$testNum == 0 || $limitNum < 0} {
+		puts "\[bkr-autorun-monitor\]: {$testNum/$limitNum}limitSubmit($arch) -> testlist nil or no host available($limitNum)"
+		return 0
+	}
+
+	# call runtest.tcl -n, and submit xml
+	set cnt 0
+	global alone
+	set alone {}
+	if {![catch {set fp [open "|runtest.tcl -n $distro - ${alone} -- $rgset --kdump" w]} err]} {
+		foreach T $testlist { puts $fp $T }
+		close $fp
+		foreach xml [glob -nocomplain *.xml] {
+			if {$cnt >= $limitNum} break
+			puts "\[bkr-autorun-monitor\]: {$cnt/$limitNum} limitSubmit($arch) -> submit '$xml'"
+			#exec sh -c mykinit.sh
+			set rc [catch {exec bkr job-submit $xml >>&jobsubmit.log} msg]
+			if {$rc == 1} {
+				puts "{Warn} bkr job-submit fail:\n$msg"
+				exec bash -c {cat jobsubmit.log >>jobsubmit.err.log}
+				continue
+			}
+			if [regexp {^job_[0-9]{8}_[0-9]{2}_[0-9]{2}_[-_A-Za-z0-9]+_S_[0-9]+_.*\.xml$} $xml] {
+				incr cnt
+			} else {
+				lassign [regsub {.*--servers=([0-9]+).*--clients=([0-9]+).*} $xml {\1 \2}] s c
+				incr cnt [expr $s + $c]
+			}
+		}
+	} else {
+		puts "{WARN} limitSubmitJobs open|-> $err"
+	}
+	return $cnt
+}
+
+proc updateJobTask {jobid distro_rgset} {
+	set XML [getXML $jobid]
+	set doc [dom parse $XML]
+	set root [$doc documentElement]
+	set paramNodeList [$root selectNodes {//param[@name="TestID"]}]
+	set testIDList {}
+	foreach paramNode $paramNodeList {
+		lappend testIDList [$paramNode @value]
+	}
+	set testIDList [lsort -unique $testIDList]
+
+	foreach testID $testIDList {
+		set tstat   {running}
+		set rstat   {}
+		set tres    {}
+		set taskuri {}
+		foreach paramNode [$root selectNodes {//param[@value=$testID]}] {
+			set taskNode [[$paramNode parentNode] parentNode]
+			set recipeNode [$taskNode parentNode]
+			set recipeid [$recipeNode @id]
+
+			set res [$taskNode @result]
+			set stat [$taskNode @status]
+			lappend tres "$res\([string range $stat 0 2])"
+			lappend rstat $stat
+			lappend taskuri "${recipeid}#task[$taskNode @id]"
+		}
+		set updateTestrun {
+			update testrun
+			set jobid=$jobid, testStat=$tstat, res=$tres, rstat=$rstat, taskuri=$taskuri
+			where testid = $testID and distro_rgset = $distro_rgset
+		}
+		db eval $updateTestrun
+	}
+}
+
+#_main_
+set rc [catch {exec ps axf | grep -v grep | grep -v "^ *[pid] " | grep {tclsh.*bkr-autorun-monitor}} msg]
+if {$rc == 0} {
+	puts "{Warn} bkr-autorun-monitor is running! $msg"
+	exit 0
+}
+cd [dbroot]
+sqlite3 db testrun.db
+
+#Get running test list
+array set runingTest {}
+db eval {
+    select
+	trun.jobid as jobid,
+	trun.testid as tid,
+	trun.distro_rgset as distro_rgset,
+	trun.abortedCnt as abortedCnt
+    from testrun trun
+    where trun.testStat = 'running' or trun.res LIKE '%New%'
+} {
+	lappend runningTest($jobid) [list $tid $distro_rgset $abortedCnt]
+}
+
+#Update test status and result
+foreach {jobID taskList} [array get runningTest] {
+	set XML [getXML $jobID]
+	set doc [dom parse $XML]
+	set root [$doc documentElement]
+	set recipeNodeList [$root selectNodes {//recipe}]
+	set recipeNum [llength $recipeNodeList]
+	set completeStr [lrepeat $recipeNum Completed]
+	foreach recipeNode $recipeNodeList {
+		set arch [$recipeNode @arch]
+		incr HostUsed($arch)
+		#puts "$jobID incr HostUsed($arch) = $HostUsed($arch)"
+	}
+
+	foreach taskinfo $taskList {
+		lassign $taskinfo testID distro_rgset abortedCnt
+		set tstat   {running}
+		set rstat   {}
+		set tres    {}
+		set tresdetail {}
+		foreach paramNode [$root selectNodes {//param[@value=$testID]}] {
+			set taskNode [[$paramNode parentNode] parentNode]
+			set recipeNode [$taskNode parentNode]
+
+			set res  [$taskNode @result]
+			set stat [$taskNode @status]
+
+			set recipeid [$recipeNode @id]
+			set taskid [$taskNode @id]
+			set role [$taskNode @role]
+			set name [$taskNode @name]
+			set arch [$recipeNode @arch]
+
+			# process res
+			set resdetailHead "Pass:"
+			set resdetailTail ""
+			if {$res != "Pass"} {
+				set resdetailHead "Pass-:"
+				if {$res == "Warn"} {
+					set resdetailHead "Warn:"
+				}
+				set taskResults [$taskNode selectNodes results]
+				if {$taskResults != ""} {
+					foreach taskResNode [$taskResults childNodes] {
+						set _res [$taskResNode @result]
+						set _path [$taskResNode @path]
+						if {![string match */avc $_path] && $_res == "Fail"} {
+							set resdetailHead "Fail:"
+						}
+						set path "  $_path $_res"
+						append resdetailTail "$path\n"
+					}
+				}
+			}
+
+			#if just avc fail, set res pass
+			if [string match Pass* $resdetailHead] { set res "Pass" }
+
+			append tresdetail "$resdetailHead\n$resdetailTail"
+
+			set tasklog [exec bkr job-logs T:$taskid]
+			if {$stat == "Aborted" && $tasklog != ""} {
+				set stat "Completed"
+			}
+
+			# process stat
+			if {$stat != "Completed"} {
+				set res "$res\([string range $stat 0 2])"
+			}
+			lappend rstat $stat
+			lappend tres  $res
+
+			# if not pass get log
+			if {$stat == "Completed"} {
+				if {$res != "Pass"} {
+					set logpath "log/[string map {{ } _} $distro_rgset]/$name-$arch-$testID/$jobID-$role-$recipeid-$res"
+					set rc [catch {exec bash -c "mkdir -p $logpath; cd $logpath; wget -N $tasklog; :"} msg]
+				}
+				# fix me wget special log file, and save to treddetail
+			}
+		}
+		if {$rstat == $completeStr && [regexp {New} $tres] != 1} {
+			set tstat completed
+			set abortedCnt 0
+		}
+		if {"Aborted" in [concat $rstat]} {
+			set tstat aborted
+			incr abortedCnt 
+		}
+		if {"Cancelled" in [concat $rstat]} {
+			set tstat cancelled
+		}
+		set updateTestrun {
+			update testrun
+			set testStat=$tstat, res=$tres, rstat=$rstat, abortedCnt=$abortedCnt, resdetail=$tresdetail
+			where testid = $testID and distro_rgset = $distro_rgset
+		}
+		db eval $updateTestrun
+	}
+}
+
+#Get the test list that not submitted and aborted
+parray HostUsed
+array set waitSubmitedTest {}
+db eval {
+    select
+	trun.distro_rgset as distro_rgset, ti.test as test, trun.testid as testid, trun.abortedCnt as abrtCnt
+    from testrun trun
+    join testinfo ti on
+	trun.testid = ti.testid and (trun.testStat = '' or trun.testStat = 'aborted' or trun.testStat = 'cancelled') and trun.abortedCnt < 10
+} {
+	if {$abrtCnt > 5} {set alone {-alone}}
+	if ![regexp -- {-arch=([^ \"']+)} $test _arch arch] {
+		set arch x86_64
+	}
+	if {$arch == "auto"} {set arch x86_64}
+	set distro [lindex $distro_rgset 0]
+	set rgset  [lrange $distro_rgset 1 end]
+	set distro_arch_rgset "$distro $arch $rgset"
+	lappend waitSubmitedTest($distro_arch_rgset) "$test, Param: TestID=$testid"
+}
+
+#Submit the test list to beaker: limitSubmitJobs
+foreach {distro_arch_rgset testList} [array get waitSubmitedTest] {
+	set distro [lindex $distro_arch_rgset 0]
+	set arch [lindex $distro_arch_rgset 1]
+	set rgset [lrange $distro_arch_rgset 2 end]
+	if {$arch == "auto"} {set arch x86_64}
+
+	puts "\n\[bkr-autorun-monitor\]: Submit {Distro arch rgset: ($distro) ($arch) ($rgset)}"
+
+	close [open jobsubmit.log w+]
+
+	if ![info exist HostUsed($arch)] { set HostUsed($arch) 0 }
+	set limitNum [expr $HostMax($arch) - $HostUsed($arch)]
+
+	set N [limitSubmitJobs $distro $rgset $arch $testList $limitNum]
+	if {$N < 0} {set N 0}
+	set HostUsed($arch) [expr $HostUsed($arch) + $N]
+
+	set JobList [list {*}[exec bash -c {egrep -o J:[0-9]+ jobsubmit.log; :}]]
+	db transaction {
+		foreach jobid $JobList {
+			updateJobTask $jobid "$distro $rgset"
+		}
+	}
+}
+

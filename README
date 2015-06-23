@@ -1,0 +1,9 @@
+
+Install:
+	- make softinstall
+	  the 'softinstall' will just create soft links files that
+	  linked to real file in src dir
+
+	- make hardinstall
+	  real install, copy the binary/script files to system paths
+

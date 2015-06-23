@@ -1,0 +1,34 @@
+#!/bin/bash
+# vim: sts=4 sw=4 et
+# Kerberos ticket will never be expired
+# author: zhchen@redhat.com
+
+export KRB5CCNAME=/tmp/krb5cc_$(id -u)
+username=$1
+read -s -p "Password: " password
+echo
+
+_kinit() {
+    echo $password | kinit $username &>/dev/null || { echo "Password incorrect"; exit 1; }
+}
+
+forever_kinit() {
+    while : ; do
+        _kinit || exit 1
+        sleep 28800 # 8 hour
+    done
+}
+
+# make sure password is correct
+_kinit
+
+# then function can run in background forever, untill you kill it
+trap "" HUP
+forever_kinit & pid=$!
+
+# save pid, in case you want to kill it easily
+echo -n "Succeed! running forever_kinit in background, pid is: "
+echo $pid | tee /tmp/klogin.pid
+
+# and the script can exit.
+exit 0

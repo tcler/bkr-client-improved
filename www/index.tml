@@ -1,0 +1,617 @@
+[
+lappend ::auto_path /usr/local/lib /usr/lib64
+package require tdom
+package require sqlite3
+package require runtestlib
+package require getOpt
+namespace import ::getOpt::* ::runtestlib::*
+
+cd [dbroot]
+sqlite3 db testrun.db
+
+#===============================================================================
+# require view
+array set RUN {}
+set pkgQ "select DISTINCT ti.pkgName from testinfo ti"
+set pkgList [db eval $pkgQ]
+
+set pkgListx {}
+if [dict exists $req -query] {
+	set query [dict get $req -query]
+	lassign [Query qparse $query 0] xquery
+	if [dict exists $xquery pkg] {
+		set pkgListx [dict get $xquery pkg]
+	}
+}
+set pkgx [lindex $pkgListx 0]
+if {$pkgx == "" || $pkgx ni $pkgList} {
+	set pkgx [lindex $pkgList 0]
+}
+
+foreach pkg $pkgList {
+	set distroQ "
+		select DISTINCT trun.distro_rgset
+		from testrun trun
+		join testinfo ti on
+			trun.testid = ti.testid
+		where ti.pkgName LIKE '$pkg' and trun.res != ''
+	"
+	set distroList [db eval $distroQ]
+	set distroList [lsort -decreasing $distroList]
+	set distroListLE [lsearch -all -inline $distroList RHEL-LE-*]
+	set distroListFedora [lsearch -all -inline $distroList Fedora-*]
+	set distroList [concat $distroListFedora [lsearch -regexp -all -inline $distroList RHEL\[0-9\]?-\[0-9\]*] $distroListLE]
+	if ![info exists RUN($pkg)] {set RUN($pkg) {}}
+	lappend RUN($pkg) {*}$distroList
+}
+
+set distroListTmp {}
+set distroGsetList {}
+if [dict exists $req -query] {
+	set query [dict get $req -query]
+	lassign [Query qparse $query 0] xquery
+	if [dict exists $xquery run-$pkgx] {
+		set tmp [dict get $xquery run-$pkgx]
+		if {$tmp != ""} {
+			set distroListTmp [dict keys $tmp]
+		}
+	}
+}
+foreach v [lsort -decreasing $distroListTmp] {
+	if {$v in $RUN($pkgx)} {lappend distroGsetList $v}
+}
+if {$distroGsetList == ""} {
+	set distroGsetList $RUN($pkgx)
+}
+set distroNum [llength $distroGsetList]
+
+set SQL "select
+    ti.testid,
+    ti.test,\n"
+foreach distro_rgset [lrange $distroGsetList 0 end] {
+    append SQL "    group_concat (case when trun.distro_rgset = '$distro_rgset' then trun.res||' '||trun.taskuri else NULL end),\n"
+}
+foreach distro_rgset [lrange $distroGsetList 0 end] {
+    append SQL "    group_concat (case when trun.distro_rgset = '$distro_rgset' then trun.resdetail else NULL end),\n"
+}
+set SQL "[string range $SQL 0 end-2]
+from testinfo ti
+join testrun trun on
+	trun.testid = ti.testid
+where ti.pkgName LIKE '$pkgx'
+group by ti.testid, ti.test
+ORDER by ti.tier asc, ti.test asc"
+
+#puts $SQL
+set x [concat {TestID {Test_Info}} $distroGsetList $distroGsetList]
+set columnNum [llength $x]
+
+set X {}
+lappend X {*}[db eval $SQL]
+set num [llength $X]
+set row {}
+set matrix {}
+for {set i 0} {$i < $num} {incr i} {
+	lappend row [lindex $X $i]
+	if {$i%$columnNum == $columnNum-1} {
+		lappend matrix $row
+		set row {}
+	}
+}
+]
+
+<!DOCTYPE html>
+<html>
+
+<head>
+<style>
+table {
+    width:100%;
+    white-space: nowrap;
+}
+table, th, td {
+    border: 0.1px solid #ccc;
+    border-style: double;
+    border-collapse: separate;
+}
+th, td {
+    padding: 5px;
+    text-align: left;
+    vertical-align: text-top;
+}
+table#t01 tr:nth-child(even) {
+    background-color: #efe;
+}
+table#t01 tr:nth-child(odd) {
+    background-color: #fff;
+}
+table#t01 th {
+    background-color: #777;
+    color: white;
+}
+div.detail {
+    background-color: #e3edcd;
+    position: fixed;
+    margin:0 auto;
+    align: center;
+    overflow: scroll;
+    border:5px;
+    padding:5px;
+    left: 3%;
+    width: 94%;
+    top: 3%;
+    height: 94%;
+    display: none;
+    z-index: -1
+    filter:alpha(Opacity=98); -moz-opacity:0.98; opacity: 0.98
+}
+span.hideDetail {
+    background-color: #00ff00;
+    font-weight: bold;
+}
+div.controlPanel {
+    position: fixed;
+    top: 30pt;
+    right: 100pt;
+    background-color: #CD7F32;
+    background-color: #454;
+    filter:alpha(Opacity=80); -moz-opacity:0.8; opacity: 0.8;
+    border: solid 3px;
+    border-color: #cd7f32;
+    border-color: #D9D919;
+}
+input.selectTest {
+    visibility: hidden;
+    vertical-align: middle;
+    width: 0.9em;
+    height: 0.9em;
+    padding: 0px;
+    margin: 0px;
+}
+div.pkgQuery {
+    background-color: #efd;
+    margin:0 auto;
+    margin-left: 0;
+    width: 80%;
+    overflow: auto;
+    white-space:nowrap;
+    border:1px;
+    padding:1px;
+    display: none;
+    z-index: -1
+    filter:alpha(Opacity=98); -moz-opacity:0.98; opacity: 0.98
+}
+</style>
+
+<META 
+     HTTP-EQUIV="Refresh"
+     CONTENT="1800">
+</head>
+
+[
+set tmp {
+<script type="text/javascript">
+function showDetail(id) {
+	var cell = document.getElementById(id);
+	var testid = cell.getAttribute("id");
+	var divid = "div" + testid;
+	var div = document.getElementById(divid);
+	div.style.zIndex="100";
+	div.style.display="block";
+}
+function hideDetail(id) {
+	var div = document.getElementById(id);
+	div.style.zIndex=-1;
+	div.style.display="none";
+}
+
+function checkall() {
+	var chkall = document.getElementById("selectAll");
+	var chkItem = document.getElementsByClassName("selectTest");
+	for (var i=0; i < chkItem.length; i++) {
+		if (chkall.checked == true) {
+			chkItem[i].style.visibility="visible";
+		} else {
+			chkItem[i].style.visibility="hidden";
+			chkItem[i].checked=false;
+		}
+	}
+}
+
+function selectCol(id) {
+	var col = document.getElementsByClassName("checkCol")[id];
+	var chkItem = document.getElementsByClassName("selectTest");
+
+	for (var i=0; i < chkItem.length; i++) {
+		var testid = chkItem[i].id.split(" ");
+		if (testid[1] != col.id) {
+			continue;
+		}
+		if (col.checked == true) {
+			chkItem[i].style.visibility="visible";
+			chkItem[i].checked=true;
+		} else {
+			chkItem[i].style.visibility="hidden";
+			chkItem[i].checked=false;
+		}
+	}
+}
+
+function post(path, params, method) {
+	method = method || "post"; // Set method to post by default if not specified.
+
+	// The rest of this code assumes you are not using a library.
+	// It can be made less wordy if you use one.
+	var form = document.createElement("form");
+	form.setAttribute("method", method);
+	form.setAttribute("action", path);
+	form.setAttribute("id", "UpdateDB");
+
+	for(var key in params) {
+		if(params.hasOwnProperty(key)) {
+			var hiddenField = document.createElement("input");
+			hiddenField.setAttribute("type", "hidden");
+			hiddenField.setAttribute("name", key);
+			hiddenField.setAttribute("value", params[key]);
+
+			form.appendChild(hiddenField);
+		}
+	}
+
+	document.body.appendChild(form);
+	form.submit();
+	document.body.removeChild(form);
+}
+
+function reSubmit(testid, distroIdx) {
+	//alert(distroArrayx[distroIdx] + ' ' + testid);
+	//alert(document.URL);
+	var path = document.URL;
+	var path2 = path.replace(/index.tml/, "resubmit.tml");
+	var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/resubmit.tml?");
+	var r = confirm("Are you sure resubmit this test?\n"+testid+' '+distroArrayx[distroIdx]);
+	if (r != true) {
+		return 0;
+	}
+	post(path2, {resubmit: testid + ' ' + distroArrayx[distroIdx]});
+}
+
+function delTestCase(testid) {
+	//alert(testid);
+	//alert(document.URL);
+	var path = document.URL;
+	var path2 = path.replace(/index.tml/, "delTestCase.tml");
+	var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/delTestCase.tml?");
+	var r = confirm("Are you sure delete this test case?\n"+testid);
+	if (r != true) {
+		return 0;
+	}
+	post(path2, {delTestCase: testid});
+}
+
+function reSubmitList() {
+	//alert(distroArrayx[distroIdx] + ' ' + testid);
+	//alert(document.URL);
+	var path = document.URL;
+	var path2 = path.replace(/index.tml/, "resubmit-list.tml");
+	var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/resubmit-list.tml?");
+
+	var testlist = "";
+	var chkItem = document.getElementsByClassName('selectTest');
+	for (var i=0; i<chkItem.length; i++) {
+		if (chkItem[i].checked == true) {
+			var testobj = chkItem[i].id.split(" ");
+			testid = testobj[0];
+			j = testobj[1];
+			testlist += testid + ' ' + distroArrayx[j] + ';';
+		}
+	}
+	//var r = confirm(path2+"\nAre you sure resubmit these test?\n"+testlist);
+	var r = confirm("Are you sure resubmit these test?\n"+testlist);
+	if (r != true) {
+		return 0;
+	}
+	post(path2, {testlist: testlist});
+}
+
+function cloneToNewRun() {
+	//alert(distroArrayx[distroIdx] + ' ' + testid);
+	//alert(document.URL);
+	var path = document.URL;
+	var path2 = path.replace(/index.tml/, "clone.tml");
+	var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/clone.tml?");
+
+	var testlist = "";
+	var chkItem = document.getElementsByClassName('selectTest');
+	for (var i=0; i<chkItem.length; i++) {
+		if (chkItem[i].checked == true) {
+			var testobj = chkItem[i].id.split(" ");
+			testid = testobj[0];
+			testlist += testid + ';';
+		}
+	}
+	var name = prompt("distro gset(e.g RHEL-X.Y -nvr=kernel-x.y.z-abc.elX)", "");
+	if (!name) {
+		return 0;
+	}
+	post(path2, {testlist: testlist, distro: name});
+}
+
+function delList() {
+	//alert(distroArrayx[distroIdx] + ' ' + testid);
+	//alert(document.URL);
+	var path = document.URL;
+	var path2 = path.replace(/index.tml/, "deltest.tml");
+	var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/deltest.tml?");
+
+	var testlist = ""
+	var chkItem = document.getElementsByClassName('selectTest');
+	for (var i=0; i<chkItem.length; i++) {
+		if (chkItem[i].checked == true) {
+			var testobj = chkItem[i].id.split(" ");
+			testid = testobj[0];
+			j = testobj[1];
+			testlist += testid + ' ' + distroArrayx[j] + ';';
+		}
+	}
+	//var r = confirm(path2+"\nAre you sure delete these test?\n"+testlist);
+	var r = confirm("Are you sure delete these test?\n"+testlist);
+	if (r != true) {
+		return 0;
+	}
+	post(path2, {testlist: testlist});
+}
+
+var curPkg;
+function pkgQuery(pkg) {
+	var obj = document.getElementById('Q-' + pkg);
+	obj.style.zIndex="100";
+	obj.style.display="block";
+	if (curPkg != null) {
+		curPkg.style.zIndex="-1";
+		curPkg.style.display="none";
+	}
+	curPkg = obj;
+}
+
+function getUrlParameter(a) {
+	a = a.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+	a = RegExp("[\\?&]" + a + "=([^&#]*)").exec(location.search);
+	return null === a ? "" : decodeURIComponent(a[1].replace(/\+/g, " "))
+} 
+
+window.onload = function qformload() {
+	var objs = document.getElementsByName('pkg');
+	var pkgObj = objs[0];
+
+	var pkgvalue = getUrlParameter('pkg');
+	if (pkgvalue != "") {
+		for (var i=0; i<objs.length; i++) {
+			if (objs[i].value == pkgvalue) {
+				pkgObj = objs[i];
+				break;
+			}
+		}
+	}
+	pkgObj.checked = "checked";
+	pkgQuery(pkgObj.value);
+}
+
+</script>
+}
+]
+
+[
+package require json::write
+set accumulate {}
+set accumulatex {}
+foreach item $distroList {
+    lappend accumulate [json::write string $item]
+}
+foreach item $distroGsetList {
+    lappend accumulatex [json::write string $item]
+}
+set theJsonArray [json::write array {*}$accumulate]
+set theJsonArrayx [json::write array {*}$accumulatex]
+
+set tmp "<script type=\"text/javascript\">
+var distroArray = $theJsonArray
+var distroArrayx = $theJsonArrayx
+</script>
+"
+]
+
+<body>
+
+<!--
+[set req]
+-->
+[
+set hostinfo [::runtestlib::hostUsed]
+
+set host {}
+if [dict exists $req -host] { set host [dict get $req -host] }
+set ipaddr {}
+if [dict exists $req -ipaddr] { set ipaddr [dict get $req -ipaddr] }
+set forward {}
+if [dict exists $req -x-forwarded-for] { set forward /[dict get $req -x-forwarded-for] }
+set tmp "<b style=\"color:red; font:bold 28px/10px Papyrus,TimesNewRoman,times,serif;\">\[Bkr Testbot\]</b> | RecipeUse($hostinfo) -- | serv($host) clnt($ipaddr$forward) | "
+append tmp {<a href="orig.index.tml">wub doc</a>}
+]
+
+<hr style="height:1px" />
+
+[
+set input {}
+append input "<form action=\"[dict get $req -uri]\" style=\"font-size:80%;\" >"
+append input {<fieldset style="border-style:solid;border-bottom-width:2px;border-top-width:2px;border-left-width:1px;">}
+#append input {<legend style="font-size:90%;font-weight:500;"> [Component/Run Select] </legend>}
+foreach pkg $pkgList {
+	append input "<input type=\"radio\" name=\"pkg\" value=\"$pkg\" onchange=\"pkgQuery('$pkg');\" /> $pkg"
+}
+append input { <input type="submit" value="Query"/>}
+foreach pkg $pkgList {
+	append input "<div class=\"pkgQuery\" id=\"Q-$pkg\">"
+	foreach distro $RUN($pkg) {
+		set D [string map {RHEL- {} {-nvr=kernel-} {+} {-nvr=} {+} {-install=} {+}} $distro]
+		set D [regsub -all {\+[0-9]+\.[0-9]+\.[0-9]+-} $D {}]
+		append input "<input type=\"checkbox\" name=\"run-$pkg\" value=\"$distro\" />$D\n"
+	}
+	append input {</div>}
+}
+append input "</fieldset>"
+append input {</form>}
+set input
+]
+
+<!--
+<hr/>
+#maybe we need this: http://jsfiddle.net/jmosbech/stFcx/ http://jsfiddle.net/stFcx/72/
+#and http://stackoverflow.com/questions/1030043/html-table-headers-always-visible-at-top-of-window-when-viewing-a-large-table
+-->
+<form action="[dict get $req -uri]">
+  <div class="controlPanel">
+    <input type="checkbox" id="selectAll" onclick="checkall();" />
+    <span style="font-weight:bold; color: #bfb;"> Show/UnselectAll </span>
+    <hr/>
+    <input type="button" value="Delete" onclick="delList();"/>
+    <input type="button" value="\[Re\]Run" onclick="reSubmitList();"/>
+    <input type="button" value="Clone" onclick="cloneToNewRun();"/>
+  </div>
+
+<table id="t01">
+  <thead>
+    <tr>
+      <th class="head">Idx</th>
+      <th class="head">[lindex $x 1]</th>
+	[
+	set i 0
+	set thlist {}
+	foreach run [lrange $x 2 end-$distroNum] {
+		set runx [string map {RHEL- {} {-nvr=kernel-} {+} {-nvr=} {+} {-install=} {+}} $run]
+		append thlist "      <th class=\"head\"> <input class=\"checkCol\" type=\"checkbox\" id=\"$i\" onclick=\"selectCol($i);\"> [string map {{ } "<br>"} $runx] </th>\n"
+		incr i
+	}
+	set thlist
+	]
+    </tr>
+  </thead>
+
+  <tbody>
+[
+set idx 0
+set tbody {}
+foreach row $matrix {
+	set testid [lindex $row 0]
+	set test [lindex $row 1]
+	set tname [lindex $test 0]
+	set tnames "..[string range $tname end-32 end]"
+	set tattr [lrange $test 1 end]
+	set resList [lrange $row 2 end-$distroNum]
+	set tinfo "$tname [testinfo param $test] {[concat {*}[testinfo gset $test]]}"
+	append tbody "    <tr id=\"$testid\" ondblclick=\"showDetail('$testid')\">\n"
+	append tbody "      <td>[incr idx]</td>\n"
+	set shortcat "[file tail [file dirname $tinfo]]/[file tail $tinfo]"
+	set test [lindex $shortcat 0]
+	set gset [lindex $shortcat end]
+	set args [lrange $shortcat 1 end-1]
+	# fix me, if gset is too long, add <abbr> tag
+	if {[string length $gset] > 16} {
+		set gset "<abbr title=\"$gset\">GSET</abbr>"
+	}
+	set delButton "<input type=\"button\" value=\"D\" onclick=\"delTestCase('$testid');\"/>"
+	append tbody "      <td>[string range $test 0 32] $args {$gset} $delButton</td>\n"
+	set j 0
+	foreach res $resList {
+		set restd {}
+		if {[string trim $res] in {{-} {o} {}}} {
+			set restd "<span style=\"color:gray;\">$res<span>"
+		} else {
+			set len [expr [llength $res] / 2]
+			for {set i 0} {$i < $len} {incr i} {
+				set addr [lindex $res [expr $i+$len]]
+				set word [lindex $res $i]
+				if {$word == "Fail"} {set word "<span style=\"color:red;\">$word<span>"}
+				if {$word == "Warn"} {set word "<span style=\"color:green;\">$word<span>"}
+				append restd " <a href=\"https://beaker.engineering.redhat.com/recipes/$addr\">$word</a>"
+			}
+		}
+		set img /jquery/images/grid-loading-done.gif
+		set flag [<img> id sticky title "click to resubmit this test" src $img onclick "reSubmit('$testid', '$j')"]
+		if {[string match *(*)* $restd] || [string trim $res] in {{-} {o}}} {
+			set img /jquery/images/grid-loading.gif
+			set flag [<img> id sticky title "this test is running" src $img]
+		}
+		if {[string trim $res] in {{}}} {
+			append tbody "      <td><input class=\"selectTest\" type=\"checkbox\" id=\"$testid $j\"> </td>\n"
+		} else {
+			append tbody "      <td><input class=\"selectTest\" type=\"checkbox\" id=\"$testid $j\"> $restd $flag </td>\n"
+		}
+		incr j
+	}
+	append tbody "    </tr>\n"
+}
+set tbody
+]
+  </tbody>
+
+  <tfoot>
+    <tr>
+      <th class="head">Idx</th>
+	[
+	set thlist {}
+	foreach th [lrange $x 1 end-$distroNum] {
+		set th [string map {RHEL- {} {-nvr=kernel-} {+} {-nvr=} {+} {-install=} {+}} $th]
+		append thlist "      <th class=\"head\">[string map {{ } "<br>"} $th]</th>\n"
+	}
+	set thlist
+	]
+    </tr>
+  </tfoot>
+</table>
+</form>
+
+<hr/>
+
+<address><a href='mailto:jiyin@redhat.com'>Jianhong Yin</a></address>
+Last modified: [exec date]
+
+<hr/>
+
+[
+#div
+set detailDiv {}
+foreach row $matrix {
+	set testid [lindex $row 0]
+	set test [lindex $row 1]
+	set tname [lindex $test 0]
+	set tinfo "$tname [testinfo param $test][testinfo gset $test]"
+	set resList [lrange $row end-[expr $distroNum-1] end]
+	append detailDiv "<div class=\"detail\" id=\"div$testid\">\n"
+	append detailDiv "<span class=\"hideDetail\" id=\"div$testid\" onclick=\"hideDetail('div$testid')\"><button type=\"button\">X</button> - \[Close me\]</span>\n"
+	append detailDiv "<p>$tinfo</p>\n"
+	append detailDiv {    <table class="detail">} "\n"
+	append detailDiv {        <tr>} "\n"
+	foreach distro $distroGsetList {
+		set distro [string map {RHEL- {} {-nvr=kernel-} {+} {-nvr=} {+} {-install=} {+}} $distro]
+		append detailDiv "            <td>[string map {{ } "<br>"} $distro]</td>\n"
+	}
+	append detailDiv {        </tr>} "\n"
+	append detailDiv {        <tr>} "\n"
+	foreach res $resList {
+		#puts "            <td>[regsub -all {\n} $res {<br>}]</td>"
+		append detailDiv "            <td>[string map {
+						"Fail\n" "<span style=\"color:red;\">Fail</span><br>"
+						"Warn\n" "<span style=\"color:green;\">Warn</span><br>"
+						"\n" <br>} $res]</td>\n"
+	}
+	append detailDiv {        </tr>} "\n"
+	append detailDiv {    </table>} "\n"
+	append detailDiv "</div>\n"
+}
+set detailDiv
+]
+
+</body>
+</html>
+

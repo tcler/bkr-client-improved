@@ -1,0 +1,153 @@
+#!/bin/bash
+#author jiyin@redhat.com
+
+Usage() {
+	echo "Usage: $0 [--updatedb] <pkgName|pattern> [distroName|pattern]" >&2
+}
+_at=`getopt -o hu \
+	--long help \
+	--long updatedb \
+    -n 'vershow' -- "$@"`
+eval set -- "$_at"
+while true; do
+	case "$1" in
+	-h|--help)      Usage; shift 1; exit 0;;
+	-u|--updatedb)  [ -z "$Update" ] && Update=yes || Update=YES; shift 1;;
+	--) shift; break;;
+	esac
+done
+
+[ "${#}" = 0 -a "$Update" != yes -a "$Update" != YES ] && {
+	Usage
+	exit 1
+}
+
+baseUrl="http://download.devel.redhat.com/"
+baseUrl="http://download.eng.bos.redhat.com/"
+distro_rel_eng() {
+	curl -k -L -u: ${baseUrl}rel-eng/  2>/dev/null |
+		awk -F'[<>]' '/"RHEL[-0-9.]+/&&/alt=".DIR."/{print "rel-eng/" $5}' |sed 's;/$;;'|egrep -v -i Supplementary;
+}
+distro_nightly() {
+	curl -k -L -u: ${baseUrl}nightly/  2>/dev/null |
+		awk -F'[<>]' '/"(latest-)?RHEL[-0-9.]+/&&/alt=".DIR."/{print "nightly/" $5}' |sed 's;/$;;'|egrep -v -i '(Supplementary|DSRV-)';
+}
+distro_released5() {
+	curl -k -L -u: ${baseUrl}released/RHEL-5-Server  2>/dev/null |
+		awk -F'[<>]' '/"U[-0-9.]+.*\//&&/alt=".DIR."/{print "released/RHEL-5-Server/" $5}' |sed 's;/$;;'|egrep -v -i Supplementary;
+}
+distro_released6() {
+	curl -k -L -u: ${baseUrl}released/RHEL-6  2>/dev/null |
+		awk -F'[<>]' '/"[0-9]+\.[0-9.]+.*\//&&/alt=".DIR."/{print "released/RHEL-6/" $5}' |sed 's;/$;;'|egrep -v -i Supplementary;
+}
+distro_released7() {
+	curl -k -L -u: ${baseUrl}released/RHEL-7  2>/dev/null |
+		awk -F'[<>]' '/"[0-9]+\.[0-9.]+.*\//&&/alt=".DIR."/{print "released/RHEL-7/" $5}' |sed 's;/$;;'|egrep -v -i Supplementary;
+}
+
+UpdateDB() {
+	local arch=$ARCH
+	local deepup=
+
+	[ "$1" = YES ] && deepup=1
+	cd $dbRoot
+
+	rpm -q procmail >/dev/null || yum install -y procmail &>/dev/null
+	lockfile /tmp/distroDB.w.lock || return 0
+	#Update distro list
+	distro_rel_eng   >distro.list.tmp
+	distro_nightly   >>distro.list.tmp
+	distro_released5 >>distro.list.tmp
+	distro_released6 >>distro.list.tmp
+	distro_released7 >>distro.list.tmp
+	if [ ! -f distro.list ]; then
+		touch distro.list
+	fi
+	diff -pNu distro.list distro.list.tmp >distro.list.diff
+	\cp distro.list.tmp distro.list
+	sed -n '/^+[^+]/{s/^+//; p}' distro.list.diff >distro.list.up
+	[ -n "$deepup" ] && \cp distro.list distro.list.up
+
+	#Update pkg list
+	compose=compose/
+	while read distro _nil; do
+		arch=$ARCH
+		[[ "$distro" =~ RHEL-(PPC64)?LE ]] && arch=ppc64le
+		rpath=Server/${arch}/os/Packages/
+		rhel5rpath=tree-${arch}/
+
+		cachefile=.curl.${distro//\//:}.${arch}.cache
+		[ -f $cachefile ] && continue
+
+		_rpath=$rhel5rpath$(echo $distro|egrep -o 'Server|Client') || {
+			_rpath=$compose$rpath
+		}
+		echo "$distro"|grep -q released/ && _rpath=$rpath
+		echo "$distro"|grep -q released/RHEL-5 && _rpath=$arch/os/Server/
+
+		curl -k -L -u: ${baseUrl}${distro}/${_rpath}  >$cachefile.tmp  2>/dev/null
+		grep -q 'was not found on this server' $cachefile.tmp && {
+			curl -k -L -u: ${baseUrl}${distro}/${compose}${rpath}  >$cachefile.tmp  2>/dev/null
+		}
+		grep -q 'was not found on this server' $cachefile.tmp && {
+			c=$(echo $distro|sed -r -e 's/^.*\/(latest-)?RHEL-?//' -e 's/-.*$//')
+			curl -k -L -u: ${baseUrl}${distro}/${c}/${rpath}  >$cachefile.tmp  2>/dev/null
+		}
+
+		if grep -q 'kernel-' $cachefile.tmp; then
+			echo "# {${baseUrl}$(sed -r -n 's;^[ \t]*<title>Index of /(.*)</title>;\1;p' $cachefile.tmp)}" >$cachefile
+			awk -F'[<>]' '/alt=/{printf("%s\n", $5)}' $cachefile.tmp >>$cachefile
+			# enable other user can modify these cachefile
+			chmod a+w $cachefile 2>/dev/null
+		fi
+		\rm -f $cachefile.tmp
+	done < distro.list.up
+	rm -f /tmp/distroDB.w.lock
+}
+
+ARCH=x86_64
+case $ARCH in  x86_64|i386|ppc64|s390x) :;;  *) ARCH=x86_64;;  esac
+dbRoot=/var/cache/distroInfoDB
+
+if [ "$Update" = yes -o "$Update" = YES ]; then 
+	[ `id -u` != 0 ] && {
+		echo "{Warn} Update database need root. try 'sudo /usr/local/bin/vershow --updatedb'" >&2
+		exit 1
+	}
+	egrep -q "/usr/local/bin/vershow" /etc/crontab || echo "  10 05 *  *  * root       /usr/local/bin/vershow -uu;" >>/etc/crontab
+	mkdir -p $dbRoot
+	echo "{Info} $(test $Update = YES && echo Deep\ )Updating distro database..."
+	UpdateDB $Update
+else
+	[ ! -d $dbRoot -o ! -f $dbRoot/distro.list ] && {
+		echo "{Warn} distro database is nil. try 'sudo /usr/local/bin/vershow --updatedb' to create database first" >&2
+		exit 1
+	}
+fi
+
+[ -z "$1" ] && exit
+
+cd $dbRoot
+# do search
+pkgPart=${1}
+mydistro=${2}
+list=$(egrep -i -- "$mydistro" distro.list)
+while read distro _nil; do
+	cachefile=.curl.${distro//\//:}.${ARCH}.cache
+	[[ "$distro" =~ RHEL-LE ]] && cachefile=.curl.${distro//\//:}.ppc64le.cache
+	[ -f $cachefile ] || continue
+	result=$(egrep -- "$pkgPart" $cachefile)
+	[ $? = 0 ] && {
+		echo -e "=> \033[1;34m$distro\033[0m"
+		echo "$result"
+	}
+done <<<"$list"
+
+if ! egrep -q "/usr/local/bin/vershow" /etc/crontab; then
+	if [ `id -u` = 0 ]; then
+		echo "  10 05 *  *  * root       /usr/local/bin/vershow -uu;" >>/etc/crontab
+	else
+		echo "{Notice} distro database auto update is disabled. try 'sudo /usr/local/bin/vershow --updatedb'" >&2
+		exit 0
+	fi
+fi

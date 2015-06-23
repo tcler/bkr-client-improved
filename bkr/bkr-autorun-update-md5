@@ -1,0 +1,89 @@
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+# Author: jiyin@redhat.com
+# This is a tool for update test md5sum of the test run database.
+
+lappend ::auto_path /usr/local/lib /usr/lib64
+package require getOpt
+package require runtestlib
+package require tdom
+package require sqlite3
+package require md5
+namespace import ::getOpt::* ::runtestlib::*
+
+cd [dbroot]
+sqlite3 db testrun.db
+
+db eval {CREATE TABLE if not exists testrun(testid,
+	distro_rgset default '',
+	jobid default '',
+	testStat default '',
+	abortedCnt default 0,
+	rstat default '',
+	res default '',
+	taskuri default '',
+	resdetail default '',
+	comment default '',
+	primary key(testid, distro_rgset) )}
+db eval {CREATE TABLE if not exists testinfo(testid primary key,
+	test default '',
+	tier default '1',
+	pkgName default '' )}
+
+#Backward compatibility: add column comment, tier
+if {"tier" ni [db eval {PRAGMA table_info(testinfo)}]} {
+	db eval {ALTER TABLE testinfo ADD tier default('1')}
+}
+if {"comment" ni [db eval {PRAGMA table_info(testrun)}]} {
+	db eval {ALTER TABLE testrun ADD comment default('')}
+}
+
+#Backward compatibility: rename column
+if {"testplanName" in [db eval {PRAGMA table_info(testinfo)}]} {
+	db eval {
+		ALTER TABLE testinfo RENAME TO testinfo_old;
+		CREATE TABLE testinfo(testid primary key, test default '', tier default '1', pkgName default '' );
+		INSERT INTO testinfo(testid, test, pkgName)
+			SELECT testid, test, tier, testplanName FROM testinfo_old;
+		DROP TABLE testinfo_old
+	}
+}
+
+db eval {
+	select ti.tier as tier, ti.test as testobj, ti.testid as testid from testinfo ti
+} {
+	lappend TestList [list $testid $testobj $tier]
+}
+
+# insert transaction
+db transaction {
+	foreach testobj $TestList {
+		lassign $testobj testid test tier
+		set key [testinfo md5sum $test]
+		set newtestid [::md5::md5 -hex [string trim $key]]
+
+if {$key == $test} {
+	puts "Assert: $test"
+}
+
+		if {$newtestid != $testid} {
+			set updateTestInfo {
+				UPDATE OR IGNORE testinfo
+				set testid=$newtestid
+				WHERE test = $test
+			}
+			db eval $updateTestInfo
+
+			set updateTestRun {
+				UPDATE OR IGNORE testrun
+				set testid=$newtestid
+				WHERE testid = $testid
+			}
+			db eval $updateTestRun
+		}
+	}
+}
+

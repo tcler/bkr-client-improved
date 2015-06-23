@@ -1,0 +1,41 @@
+[
+lappend ::auto_path /usr/local/lib /usr/lib64
+package require tdom
+package require sqlite3
+package require runtestlib
+package require getOpt
+namespace import ::getOpt::* ::runtestlib::*
+
+set permission yes
+
+cd [dbroot]
+sqlite3 db testrun.db
+
+#===============================================================================
+if {[dict get $req -host] != "localhost"} {
+	#set permission no
+}
+
+if {$permission != yes} {
+	set warn {<span style="font-size:400%;">You have no permission to do this!<br>retrun ...</span>}
+} elseif [dict exists $req -entity] {
+	set entity [dict get $req -entity]
+	lassign [Query qparse $entity 0] xentity
+	if [dict exists $xentity delTestCase] {
+		set testid [lindex [dict get $xentity delTestCase] 0]
+		set testid_ [lindex $testid 0]
+		db eval "DELETE FROM testrun WHERE testid = '$testid_'"
+	}
+	set info {<span style="font-size:400%;">Update ... Done!<br>return ...</span>}
+}
+]
+
+<head>
+<META 
+     HTTP-EQUIV="Refresh"
+     CONTENT="0; URL=[string map {delTestCase.tml index.tml} [dict get $req -uri]]">
+</head>
+
+<body>
+</body>
+

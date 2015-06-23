@@ -1,0 +1,23 @@
+#!/usr/bin/expect
+# auto ssh login beaker machine with root
+# Author: Zhenjie Chen <zhchen@redhat.com>
+
+set timeout 120
+# use the real passwd replace the 'xxxxxx'
+set PASSWD {xxxxxx}
+set USER root
+set SERVER [lindex $argv 0]
+
+spawn bash -c "TERM=xterm ssh -X -l $USER $SERVER \
+-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+
+expect {
+"password:" { send "${PASSWD}\r" }
+"*#" {send "\r"}
+}
+expect {
+"password:" { send "redhat\r" }
+"*#" {send "\r"}
+}
+interact
+

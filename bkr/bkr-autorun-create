@@ -1,0 +1,215 @@
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+# Author: jiyin@redhat.com
+# This is a test run creater.
+
+lappend ::auto_path /usr/local/lib /usr/lib64
+package require getOpt
+package require runtestlib
+package require tdom
+package require sqlite3
+package require md5
+namespace import ::getOpt::* ::runtestlib::*
+
+# global var
+array set Opt {}
+array set InvalidOpt {}
+set Args [list]
+set OptionList {
+	help   {arg n	help {#Print this usage}}	h {link help}
+	name   {arg y	help {#Package/Component name}}
+	gset   {arg y	help {#global setup options to runtest. e.g. --dbgk --nvr=$NVR}}
+	force  {arg n	help {#Add new or overwrite existed testrun items}}
+	update {arg n	help {#Just overwrite existed test run items}}
+	r      {arg n	help {#Do not parse subtest.desc when lstest casedir}}
+	e      {arg o	help {#Call `expand_testlist [ployConf]` to expand testList}}
+}
+
+proc Usage {progname} {
+	puts "Usage: $progname <distro> <testfile|casedir|-> <--name pkgname> \[options\]"
+	getUsage $::OptionList
+}
+
+# _parse_ argument
+getOptions $OptionList $::argv Opt InvalidOpt Args
+puts "Debug: Args{$Args}"
+parray InvalidOpt
+parray Opt
+
+if [info exist Opt(help)] {
+	Usage $argv0
+	exit 0
+}
+
+if {[llength $Args] < 2} {
+	Usage $argv0
+	exit 1
+}
+
+if ![info exist Opt(name)] {
+	Usage $argv0
+	exit 1
+}
+
+# Get the package/component name
+set pkgName $Opt(name)
+
+# Get lstest opts
+set lstest_opts {}
+if [info exist Opt(r)] {
+	append lstest_opts " -r"
+}
+if [info exist Opt(e)] {
+	append lstest_opts " -e"
+	if {$Opt(e) != ""} {
+		append lstest_opts " -p $Opt(e)"
+	}
+}
+
+# Get distro and gset info
+set Gset {}
+set Distro [lindex $Args 0]
+set Distro [expandDistro $Distro]   ;#If Distro is short format
+if [info exist Opt(gset)] {
+	foreach e $Opt(gset) {lappend Gset [regsub {^--} $e {-}]}
+}
+if ![regexp -- {-nvr=} $Gset] {
+	set nvr [exec bash -c "vershow ^kernel-\[0-9\] /$Distro$|sed -rn '/^kernel-/{s/\.\[^.\]+\.\[^.\]+$//;p;q}'"]
+	if {$nvr == ""} {
+		set nvr [exec bash -c "vershow ^kernel-\[0-9\] /[string map {RHEL- {}} $Distro]$|sed -rn '/^kernel-/{s/\.\[^.\]+\.\[^.\]+$//;p;q}'"]
+	}
+	set Gset [concat "-nvr=$nvr" $Gset]
+}
+
+set Distro_ [concat $Distro {*}$Gset]
+if {$Distro_ == ""} {
+	puts "WARN: distro info is nil, something is wrong!"
+	Usage $argv0
+	exit 1
+}
+
+# Get the test list
+set TestList {}
+set TestArgList [lrange $Args 1 end]
+foreach f $TestArgList {
+	if {$f in "-"} {
+		set fp stdin
+		while {-1 != [gets $fp line]} {
+			lappend TestList $line
+		}
+	} elseif [file isdirectory $f] {
+		if {![catch {set fp [open "|lstest $f $lstest_opts" r]} err]} {
+			while {-1 != [gets $fp line]} {
+				lappend TestList $line
+			}
+			close $fp
+		}
+	} elseif [file isfile $f] {
+		if {![catch {set fp [open $f]} err]} {
+			while {-1 != [gets $fp line]} {
+				if { ! [regexp {^#} $line]} {
+					lappend TestList $line
+				}
+			}
+		}
+	}
+}
+
+# __main__
+puts "Create/update run {$Distro_} ..."
+# if dbroot dir not exist, create it.
+file mkdir [dbroot]
+cd [dbroot]
+sqlite3 db testrun.db
+
+#Create table testrun
+db eval {CREATE TABLE if not exists testrun(testid,
+	distro_rgset default '',
+	jobid default '',
+	testStat default '',
+	abortedCnt default 0,
+	rstat default '',
+	res default '',
+	taskuri default '',
+	resdetail default '',
+	comment default '',
+	primary key(testid, distro_rgset) )}
+#Create table testinfo
+db eval {CREATE TABLE if not exists testinfo(testid primary key,
+	test default '',
+	tier default '1',
+	pkgName default '' )}
+
+#Backward compatibility: add column comment, tier
+if {"tier" ni [db eval {PRAGMA table_info(testinfo)}]} {
+	db eval {ALTER TABLE testinfo ADD tier default('')}
+}
+if {"comment" ni [db eval {PRAGMA table_info(testrun)}]} {
+	db eval {ALTER TABLE testrun ADD comment default('')}
+}
+
+#Backward compatibility: rename column
+if {"testplanName" in [db eval {PRAGMA table_info(testinfo)}]} {
+	db eval {
+		ALTER TABLE testinfo RENAME TO testinfo_old;
+		CREATE TABLE testinfo(testid primary key, test default '', tier default '1', pkgName default '' );
+		INSERT INTO testinfo(testid, test, pkgName)
+			SELECT testid, test, tier, testplanName FROM testinfo_old;
+		DROP TABLE testinfo_old
+	}
+}
+
+# insert transaction
+db transaction {
+	foreach test $TestList {
+		# fix me verify distro info, if distronin or distronotin specify
+		#if ![verify_test $Distro] {continue}
+
+		set tier [testinfo tier $test]
+		set key [testinfo md5sum $test]
+		set testid [::md5::md5 -hex [string trim $key]]
+
+		# verify the arch
+		set arch [testinfo arch $test]
+		if {[regexp {RHEL-7} $Distro_] && [regexp {i386} $arch]} {
+			continue
+		}
+		if {[regexp {RHEL-LE} $Distro_] && ![regexp {ppc64le} $arch]} {
+			continue
+		}
+
+		set testInsert {INSERT OR REPLACE INTO testinfo (testid, test, tier, pkgName) VALUES($testid, $test, $tier, $pkgName)}
+		db eval $testInsert
+#puts "$tier $test"
+
+		if [info exist Opt(force)] {
+			set testrunInsert {INSERT OR REPLACE INTO testrun (testid, distro_rgset, abortedCnt, res) VALUES($testid, $Distro_, 0, '-')}
+		} elseif [info exist Opt(update)] {
+			set testrunInsert {
+				UPDATE OR IGNORE testrun
+				set jobid='', testStat='', res='o', rstat='', taskuri='', abortedCnt=0, resdetail=''
+				WHERE testid = $testid and distro_rgset = $Distro_
+			}
+		} else {
+			set testrunInsert {INSERT OR IGNORE INTO testrun (testid, distro_rgset, abortedCnt, res) VALUES($testid, $Distro_, 0, '-')}
+		}
+		db eval $testrunInsert
+	}
+}
+
+# create cron task for bkr-autorun-monitor
+exec bash -c {
+	crontab -l|grep -q "/usr/local/bin/bkr-autorun-monitor" || {
+		(
+		 echo "SHELL=/bin/bash"
+		 echo "PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
+		 crontab -l|sed -r '/^(SHELL|PATH)=/d'
+		 echo "02,32 *  *  *  *    /usr/local/bin/bkr-autorun-monitor &>/tmp/bkr-autorun.log;"
+		) | crontab -
+	}
+	:
+}
+
