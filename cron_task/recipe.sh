@@ -24,7 +24,7 @@ recipeCheck() {
 	echo -e "\033[1;34m$arch host usage status\033[0m:\n$I"
 }
 
-users="^(jiyin|yoyang|xifeng|xzhou|xuw|zorro)$"
+users="^(jiyin|userA|userB)$"
 recipeCheck x86_64  "$users"
 recipeCheck ppc64   "$users"
 recipeCheck s390x   "$users"

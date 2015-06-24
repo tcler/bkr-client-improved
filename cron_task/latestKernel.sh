@@ -4,6 +4,8 @@
 mkdir -p /var/cache/kernelnvrDB
 pushd /var/cache/kernelnvrDB  >/dev/null
 
+mailTo=fff@redhat.com
+mailCc=kkk@redhat.com
 kgitDir=/home/yjh/ws/code.repo
 VLIST="5 6 7"
 DVLIST=$(echo $VLIST|sed -e 's/5/5c 5s/g')
@@ -62,12 +64,6 @@ for f in $kfList; do
 		sed -n '1p;q' changeLog
 		grep '^-' changeLog | sort -k2,2
 		echo
-: <<COMM
-		covscan mock-build --nowait --config=rhel-${v%[sc]}-x86_64 -l \
-			--brew-build "kernel-${tagr/kernel-/}" \
-			--email-to=fs-qe-dev@redhat.com \
-			--email-to=jiyin@redhat.com >>Covscan.$v
-COMM
 	done >>$p
 
 	echo -e "\n\n#===============================================================================" >>$p
@@ -77,7 +73,7 @@ COMM
 	echo -e "\n\n# the Covsan task info:" >>$p; cat Covscan.$v >>$p
 
 	[ $available = 1 ] && {
-		sendmail.sh -p '[Notice] ' -t "fs-qe-dev@redhat.com" -c "kernel-qa@redhat.com" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
+		sendmail.sh -p '[Notice] ' -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
 		#cat $p
 		mv ${f}.tmp ${f}
 	}
