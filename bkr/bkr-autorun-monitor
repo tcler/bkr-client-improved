@@ -158,19 +158,18 @@ foreach {jobID taskList} [array get runningTest] {
 			set arch [$recipeNode @arch]
 
 			# process res
-			set resdetailHead "Pass:"
+			set resdetailHead "${res}:"
 			set resdetailTail ""
 			if {$res != "Pass"} {
-				set resdetailHead "Pass-:"
-				if {$res == "Warn"} {
-					set resdetailHead "Warn:"
+				if {$res == "Fail"} {
+					set resdetailHead "Pass-:"
 				}
 				set taskResults [$taskNode selectNodes results]
 				if {$taskResults != ""} {
 					foreach taskResNode [$taskResults childNodes] {
 						set _res [$taskResNode @result]
 						set _path [$taskResNode @path]
-						if {![string match */avc $_path] && $_res == "Fail"} {
+						if {![string match */avc $_path] && $_res == "Fail" && $resdetailHead == "Pass-:"} {
 							set resdetailHead "Fail:"
 						}
 						set path "  $_path $_res"
@@ -180,7 +179,9 @@ foreach {jobID taskList} [array get runningTest] {
 			}
 
 			#if just avc fail, set res pass
-			if [string match Pass* $resdetailHead] { set res "Pass" }
+			if {[string match Pass* $resdetailHead] && $res == "Fail"} {
+				set res "Pass"
+			}
 
 			append tresdetail "$resdetailHead\n$resdetailTail"
 
