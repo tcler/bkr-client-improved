@@ -4,14 +4,18 @@
 testList="/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12h ssched=yes type=Functioal"
 Usage()
 {
-	echo -e "Wrap runtest, will run:\n"
-	echo -e "    echo '$testList' | runtest <distro> - -- [bkr-workflow options]"
+	echo -e "Usage: bkr-reservesys <distro> [-- bkr-workflow options]"
+	echo -e "Call runtest to submit a /distribution/reservesys job to beaker"
 }
 
 [ "$#" = 0 ] && { Usage; exit 1; }
 [ "$1" = "-h" ] && { Usage; exit 0; }
 
 run_option=$(sed 's#\(^.*\)-- \(.*$\)#\1#' <<< "$@")
-bkr_option=$(sed 's#'"$run_option"'##' <<< "$@")
+[ -z "$run_option" ] && {
+	echo "Error: no distro specified"
+	Usage; exit 1
+}
 
+bkr_option=$(sed 's#'"$run_option"'##' <<< "$@")
 echo "$testList" | runtest $run_option - $bkr_option
