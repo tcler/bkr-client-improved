@@ -5,6 +5,8 @@ mkdir -p /var/cache/distroDB
 pushd /var/cache/distroDB  >/dev/null
 baseurl=http://download.devel.redhat.com/rel-eng
 supath=compose/metadata/composeinfo.json
+mailTo=fff@redhat.com
+mailCc=kkk@redhat.com
 
 kgitDir=/home/yjh/ws/code.repo
 VLIST="6 7"
@@ -84,16 +86,15 @@ for f in $dfList; do
 	echo -e "\n#cur:" >>$p; cat $f.tmp >>$p
 
 	[ $available = 1 ] && {
-		sendmail.sh -p '[Notice] ' -t "fs-qe-dev@redhat.com" -c "kernel-qa@redhat.com" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
+		sendmail.sh -p '[Notice] ' -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
 		#cat $p
 		mv ${f}.tmp ${f}
 	}
 
 	#if there is a stable version released, create testplan run
 	[[ "${stbVersion#+}" =~ ^RHEL-(6.7|7.1) ]] && {
-		#tp_create ${stbVersion#+} /home/yjh/ws/case.repo/nfs-utils/autofs.testlist --name autofs.testplan
-		#tp_create ${stbVersion#+} /home/yjh/ws/case.repo/nfs-utils/nfs-utils.testlist --name nfs-utils.testplan
-		: #tp_create ${stbVersion#+} /home/yjh/ws/case.repo/kernel/filesystems/nfs/nfs.testlist --name nfs.testplan
+		#bkr-autorun-create ${stbVersion#+} /home/yjh/ws/case.repo/nfs-utils/nfs-utils.testlist --name nfs-utils.testplan
+		: #bkr-autorun-create ${stbVersion#+} /home/yjh/ws/case.repo/kernel/filesystems/nfs/nfs.testlist --name nfs.testplan
 	}
 
 	rm -f $p
