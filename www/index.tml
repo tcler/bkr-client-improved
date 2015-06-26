@@ -330,7 +330,7 @@ function cloneToNewRun() {
 			testlist += testid + ';';
 		}
 	}
-	var name = prompt("distro gset(e.g RHEL-X.Y kernel-x.y.z-abc.elX ...)", "");
+	var name = prompt("Input the distro and params, e.g\nRHEL-7.2  kernel-3.10.0-282.el7 -dbgk -cc=k@r.com", "");
 	if (!name) {
 		return 0;
 	}
