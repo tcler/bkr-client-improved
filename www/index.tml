@@ -330,7 +330,7 @@ function cloneToNewRun() {
 			testlist += testid + ';';
 		}
 	}
-	var name = prompt("distro gset(e.g RHEL-X.Y -nvr=kernel-x.y.z-abc.elX)", "");
+	var name = prompt("distro gset(e.g RHEL-X.Y kernel-x.y.z-abc.elX ...)", "");
 	if (!name) {
 		return 0;
 	}

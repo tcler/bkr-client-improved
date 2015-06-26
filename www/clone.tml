@@ -24,7 +24,21 @@ if {$permission != yes} {
 	if {[dict exists $xentity testlist] && [dict exists $xentity distro]} {
 		set testList [lindex [dict get $xentity testlist] 0]
 		set distro_gset [lindex [dict get $xentity distro] 0]
-		set distro_gset_ [lrange $distro_gset 0 end]
+		set distro [lindex $distro_gset 0]
+		set gset {}
+		foreach v [lrange $distro_gset 1 end] {
+			if [regexp -- {^-} $v] {
+				lappend gset $v
+				continue
+			} else {
+				if {[regexp -- {^kernel-} $v]} {
+					lappend gset -nvr=$v
+				} else {
+					lappend gset -install=$v
+				}
+			}
+		}
+		set distro_gset_ [concat $distro $gset]
 
 		db transaction {
 		foreach testid_ [split $testList ";"] {
@@ -50,8 +64,10 @@ if {$permission != yes} {
      CONTENT="1;
      URL=[
 	set uri [dict get $req -uri]
-	set pkg [regsub -all {.*\?pkg=([-_a-zA-Z0-9]+)&.*} $uri {\1}]
-	set uri "${uri}&run-${pkg}=[string map {= %3D { } +} $distro_gset_]"
+	set pkg [regsub -all {.*\?pkg=([-_a-zA-Z0-9]+)($|&.*)} $uri {\1}]
+	if [regexp -- {.*&.*} $uri] {
+		set uri "${uri}&run-${pkg}=[string map {= %3D { } +} $distro_gset_]"
+	}
 	string map {clone.tml index.tml} $uri]">
 </head>
 
