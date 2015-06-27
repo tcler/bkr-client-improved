@@ -10,8 +10,6 @@
 # The next line is executed by /bin/sh, but not tcl \
 exec tclsh "$0" ${1+"$@"}
 
-package require yaml
-
 namespace eval ::runtestlib {
 	namespace export dbroot testinfo genWhiteboard expandDistro hostUsed
 }
