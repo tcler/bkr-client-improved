@@ -22,7 +22,7 @@ set OptionList {
 	merge  {arg n	help {#Merge all recipeSets in one job XML}}	m {link merge}
 	raw    {arg n	help {#Do not parse subtest.desc}}	r {link raw}
 	e      {arg o	help {#Call `expand_testlist [ployConf]` to expand testList}}
-	alone  {arg n	help {#alone}}
+	alone  {arg n	help {#Submit all tests separately, one case one recipe}}
 }
 
 # _parse_ argument
@@ -33,8 +33,14 @@ parray Opt
 
 # Usage
 proc Usage {} {
-	puts "Usage: $::argv0 <distro> \[options\] \[-|testfile|casedir ...\] \[-- gen_job_xml options\] "
+	puts "Usage: $::argv0 <distro> \[options\] \[-|testList|caseDir ...\] \[-- gen_job_xml options\] "
+	puts "Genarate job xml files from test case dir, test list file or stdin, then grouped submit to beaker\n"
+	puts "Example 1: runtest RHEL-6.6 -n ~/git/test/kernel/filesystems/nfs/function/"
+	puts "Example 1: runtest RHEL-6.6 -n ~/git/test/kernel/networking/bonding/failover -- --nay-nic-driver=tg3 --nay-nic-num=2"
+	puts "Example 2: echo '/distribution/reservesys' | runtest RHEL-6.6 - -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6"
+	puts ""
 	getUsage $::OptionList
+	puts "Info: exec `gen_job_xml.tcl -h` to check bkr workflow options"
 }
 if [info exist Opt(help)] {
 	Usage

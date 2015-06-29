@@ -28,6 +28,7 @@ array set Opt {}
 array set InvalidOpt {}
 set NotOptions [list]
 set OptionList {
+	help          {arg n	help {#Print this usage}}	h {link help}
 	f             {arg y	help {#Specify a test list file}}
 	cc            {arg m	help {#Notify additional e-mail address on job completion}}
 	task          {arg m	help {#taskname(can specify more than one times)}}
@@ -84,12 +85,24 @@ set OptionList {
 	leap-second   {arg n	help {#leap second test}}
 }
 
+proc Usage {} {
+	puts "Usage: $::argv0 --distro=<DISTRO> \[options\]"
+	puts "Generates a Beaker job XML file, like `bkr workflow-simple`, but have many improvements and unofficial options"
+	puts "Example:  gen_job_xml.tcl --distro RHEL-6.6 --task=/distribution/reservesys --arch=x86_64\n"
+	getUsage $::OptionList
+}
+
 # _parse_ argument
 getOptions $OptionList $::argv Opt InvalidOpt NotOptions
 proc debug {} {
 	puts "NotOptions: $NotOptions"
 	parray InvalidOpt
 	parray Opt
+}
+
+if [info exist Opt(help)] {
+	Usage
+	exit 0
 }
 
 # process --param= option
@@ -114,7 +127,7 @@ if [info exist Opt(distro)] {
 }
 if {[llength $DISTRO_L] == 0} {
 	puts stderr "Warning: no distro specified, use --distro= option"
-	getUsage $OptionList
+	Usage
 	exit 1
 }
 
@@ -133,7 +146,7 @@ if [info exist Opt(f)] {
 }
 if {[llength $TestList] == 0} {
 	puts stderr "Warning: no task specified, use -f or --task= option"
-	getUsage $OptionList
+	Usage
 	exit 1
 }
 foreach T $TestList {
@@ -533,4 +546,3 @@ job retention_tag=Scratch $jobCtl {
 	}
 }
 puts ""
-
