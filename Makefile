@@ -31,6 +31,7 @@ install_require: isroot
 { yum install -y tcllib || ./utils/tcllib_install.sh; }
 	@-! tclsh <<<"lappend ::auto_path /usr/local/lib /usr/lib64; package require tdom" 2>&1|grep -q 'can.t find' || \
 { yum install -y tdom || ./utils/tdom_install.sh; }
+	@ps axf|grep -v grep|grep -q vershow || vershow -uu &
 
 rpm: isroot
 	./build_rpm.sh
