@@ -1,5 +1,6 @@
 #!/bin/bash
 
+which gcc || yum install -y gcc
 pkg=tcl8.6.4-src.tar.gz
 #wget http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/$pkg
 wget http://prdownloads.sourceforge.net/tcl/tcl8.6.4-src.tar.gz

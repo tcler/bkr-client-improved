@@ -1,5 +1,6 @@
 #!/bin/bash
 
+which gcc || yum install -y gcc
 pkg=tDOM-0.8.3.tgz
 
 #wget http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/$pkg

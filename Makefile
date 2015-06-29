@@ -19,7 +19,7 @@ install_wub: isroot install_tclsh8.6
 	tar jxf /opt/wub.tar.bz2 -C /opt; }
 
 install_tclsh8.6: isroot
-	@which tclsh8.6 || { yum install gcc && ./utils/tcl8.6_install.sh && ./utils/tcllib_install.sh && ./utils/tdom_install.sh; }
+	@which tclsh8.6 || { ./utils/tcl8.6_install.sh && ./utils/tcllib_install.sh && ./utils/tdom_install.sh; }
 
 install_require: isroot
 	@rpm -q tcl || yum install -y tcl #package that in default RHEL repo
@@ -27,8 +27,10 @@ install_require: isroot
 	@rpm -q sqlite || yum install -y sqlite #package that in default RHEL repo
 	@rpm -q procmail || yum install -y procmail #package that in default RHEL repo
 	@rpm -q sqlite-tcl || { yum install -y sqlite-tcl; exit 0; } #package that in default RHEL repo
-	@yum install -y tcllib || [ -d /usr/lib/tcllib[0-9]* ] || { yum install -y gcc && ./utils/tcllib_install.sh; }
-	@yum install -y tdom   || [ -d /usr/local/lib/tdom[0-9]* ] || { yum install -y gcc && ./utils/tdom_install.sh; }
+	@-! tclsh <<<"lappend ::auto_path /usr/lib /usr/lib64; package require md5" 2>&1|grep -q 'can.t find' || \
+{ yum install -y tcllib || ./utils/tcllib_install.sh; }
+	@-! tclsh <<<"lappend ::auto_path /usr/local/lib /usr/lib64; package require tdom" 2>&1|grep -q 'can.t find' || \
+{ yum install -y tdom || ./utils/tdom_install.sh; }
 
 rpm: isroot
 	./build_rpm.sh

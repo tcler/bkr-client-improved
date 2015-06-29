@@ -1,5 +1,6 @@
 #!/bin/bash
 
+which gcc || yum install -y gcc
 pkg=Tcllib-1.16.tar.bz2
 
 #wget http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/$pkg
