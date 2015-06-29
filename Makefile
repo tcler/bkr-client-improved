@@ -19,7 +19,7 @@ install_wub: isroot install_tclsh8.6
 	tar jxf /opt/wub.tar.bz2 -C /opt; }
 
 install_tclsh8.6: isroot
-	@which tclsh8.6 || { ./utils/tcl8.6_install.sh && ./utils/tcllib_install.sh && ./utils/tdom_install.sh; }
+	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; }
 
 install_require: isroot
 	@rpm -q tcl || yum install -y tcl #package that in default RHEL repo
