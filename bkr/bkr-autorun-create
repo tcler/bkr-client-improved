@@ -19,13 +19,13 @@ array set Opt {}
 array set InvalidOpt {}
 set Args [list]
 set OptionList {
-	help   {arg n	help {#Print this usage}}	h {link help}
-	name   {arg y	help {#Package/Component name}}
-	gset   {arg y	help {#global setup options to runtest. e.g. --dbgk --nvr=$NVR}}
-	force  {arg n	help {#Add new or overwrite existed testrun items}}
-	update {arg n	help {#Just overwrite existed test run items}}
-	r      {arg n	help {#Do not parse subtest.desc when lstest casedir}}
-	e      {arg o	help {#Call `expand_testlist [ployConf]` to expand testList}}
+	help   {arg n	help {Print this usage}}	h {link help}
+	name   {arg y	help {Package/Component name}}
+	gset   {arg y	help {global setup options to runtest. e.g. --dbgk --nvr=$NVR}}
+	force  {arg n	help {Add new or overwrite existed testrun items}}
+	update {arg n	help {Just overwrite existed test run items}}
+	r      {arg n	help {Do not parse subtest.desc when lstest casedir}}
+	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList}}
 }
 
 proc Usage {progname} {
