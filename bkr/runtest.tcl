@@ -17,12 +17,12 @@ array set Opt {}
 array set InvalidOpt {}
 set Args [list]
 set OptionList {
-	help   {arg n	help {#Print this usage}}	h {link help}
-	dryrun {arg n	help {#Just generate XML file(s), not submit job to beaker}}	n {link dryrun}
-	merge  {arg n	help {#Merge all recipeSets in one job XML}}	m {link merge}
-	raw    {arg n	help {#Do not parse subtest.desc}}	r {link raw}
-	e      {arg o	help {#Call `expand_testlist [ployConf]` to expand testList}}
-	alone  {arg n	help {#Submit all tests separately, one case one recipe}}
+	help   {arg n	help {Print this usage}}	h {link help}
+	dryrun {arg n	help {Just generate XML file(s), not submit job to beaker}}	n {link dryrun}
+	merge  {arg n	help {Merge all recipeSets in one job XML}}	m {link merge}
+	raw    {arg n	help {Do not parse subtest.desc}}	r {link raw}
+	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList}}
+	alone  {arg n	help {Submit all tests separately, one case one recipe}}
 }
 
 # _parse_ argument
