@@ -9,7 +9,7 @@ Usage()
 }
 
 [ "$#" = 0 ] && { Usage; exit 1; }
-[ "$1" = "-h" ] && { Usage; exit 0; }
+[ "$1" = "-h" -o "$1" = "--help" ] && { Usage; exit 0; }
 
 run_option=$(sed 's#\(^.*\)-- \(.*$\)#\1#' <<< "$@")
 [ -z "$run_option" ] && {
