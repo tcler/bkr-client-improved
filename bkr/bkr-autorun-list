@@ -18,10 +18,10 @@ array set Opt {}
 array set InvalidOpt {}
 set Args [list]
 set OptionList {
-	help   {arg n	help {#Print this usage}}	h {link help}
-	lsjob  {arg n	help {#list the job}}
-	lsrun  {arg n	help {#list the run}}
-	jobchk {arg n	help {#TBD: check if the job was delete, but the status is not completed}}
+	help   {arg n	help {Print this usage}}	h {link help}
+	lsjob  {arg n	help {list the job}}
+	lsrun  {arg n	help {list the run}}
+	jobchk {arg n	help {TBD: check if the job was delete, but the status is not completed}}
 }
 
 proc Usage {progname} {

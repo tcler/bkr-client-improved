@@ -28,60 +28,83 @@ array set Opt {}
 array set InvalidOpt {}
 set NotOptions [list]
 set OptionList {
-	f             {arg y	help {#Specify a test list file}}
-	cc            {arg m	help {#Notify additional e-mail address on job completion}}
-	task          {arg m	help {#taskname(can specify more than one times)}}
-	param         {arg m	help {#taskparam(can specify more than one times), use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
-	taskparam     {link param}
-	distro        {arg m	help {#distroname(can specify more than one for multihost)}}
-	variant       {arg y	help {#variant type}}
-	wb            {arg y	help {#job whiteboard info}}
-	whiteboard    {link wb}
-	rwb           {arg y	help {#recipe whiteboard info}}
-	arch          {arg y	help {#arch name}}
-	repo          {arg m	help {#repo(can specify more than one times)}}
-	install       {arg m	help {#pkgname(can specify more than one times)}}
-	nvr           {arg m	help {#kernel pkg name(can specify more than one for multihost)}}
-	dbgk          {arg n	help {#Use the debug kernel}}
-	servers       {arg y	help {#acount of servers(for multihost)}}
-	clients       {arg y	help {#acount of clients(for multihost)}}
-	dr            {arg m	help {#distrorequire -dr=key="value"}}
-	distrorequire {link dr}
-	hr            {arg m	help {#hostrequire -hr=labcontroller="lab.example.com"}}
-	hostrequire   {link hr}
-	kv            {arg m	help {#keyvalue -kv=DISKSPACE>=100000, -kv=NETWORK=e1000}}
-	keyvalue      {link kv}
-	machine       {arg m	help {#Same as --hostrequire=hostname="$name", more than one for multi}}
-	systype       {arg y	help {#system type (Machine, Laptop ...)}}
-	part          {arg m	help {#partition: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
-	partition     {link part}
-	ormachine     {arg m	help {#beaker auto pick in specified machine list.}}
+	help          {arg n	help {Print this usage}}	h {link help}
+	opts-macro          {arg y	help {exec the "cmd [arg]" in run time to generate options}}
+	f             {arg y	help {Specify a test list file
 
-	nay-nic-driver  {arg o  help {#nic-driver condition for parse_nay_nic_info.sh to get network-qe hostnames in NAY lab}}
-	nay-nic-model   {arg o  help {#nic-model condition for parse_nay_nic_info.sh to get network-qe hostnames in NAY lab}}
-	nay-nic-speed   {arg o  help {#nic-speed condition for parse_nay_nic_info.sh to get network-qe hostnames in NAY lab}}
-	nay-nic-pattern {arg o  help {#nic-pattern condition for parse_nay_nic_info.sh to get network-qe hostnames in NAY lab}}
-	nay-nic-num     {arg o  help {#nic-num condition for parse_nay_nic_info.sh to get network-qe hostnames in NAY lab}}
+  Options for job configuration:}}
+	restraint		{arg o	help {Use restraint harness instead of beach}}
+	cc			{arg m	help {Notify additional e-mail address on job completion}}
+	wb			{arg y	help {Set the whiteboard for this job}}
+	whiteboard		{link wb}
+	repo			{arg m	help {Configure repo at <URL> in the kickstart for installation}}
+	recipe			{arg n	help {Just generate recipeSet node, internal use for runtest -merge}}
+	rwb			{arg y	help {Set the whiteboard for the recipe
 
-	nay-driver    {link nay-nic-driver}
-	nic-num       {link nay-nic-num}
+  Options for selecting distro tree(s):}}
+	distro			{arg m	help {Use named distro for job)}}
+	variant			{arg y	help {Specify the distro variant}}
+	arch			{arg y	help {Specify the distro arch}}
+	distrorequire		{link dr}
+	dr			{arg m	help {distrorequire -dr=key="value"
 
-	kcov          {arg n	help {#insert kcov task for do the kernel test coverage check}}
-	kdump         {arg o	help {#insert kdump task for get core dump file if panic happen}}
-	ks            {arg m	help {#Pass kickstart metadata OPTIONS when generating kickstart}}
-	ks-meta       {link ks}
-	ksf           {arg m	help {#Similar -ks, read kickstart data from file}}
-	cmd           {arg m	help {#run command}}
-	cmdb          {arg m	help {#run command before kernel install}}
-	k-opts              {arg m	help {#Pass OPTIONS to kernel during installation}}
-	kernel-options      {link k-opts}
-	k-opts-post         {arg m	help {#Pass OPTIONS to kernel after installation}}
-	kernel-options-post {link k-opts-post}
-	opts-macro          {arg y	help {#exec the "cmd [arg]" in run time to generate options}}
-	reserve-if-fail     {arg o	help {#Reserve the machine if test fail; time scope [1,356400]s accept m/h/d}}
-	recipe        {arg n	help {#Just generate recipeSet node,for runtest -merge}}
-	restraint     {arg o	help {#Use restraint test}}
-	leap-second   {arg n	help {#leap second test}}
+  Options for selecting system(s):}}
+	servers			{arg y	help {Include NUMBER server hosts for multi-host test}}
+	clients			{arg y	help {Include NUMBER client hosts for multi-host test}}
+	hr			{arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
+	hostrequire		{link hr}
+	kv			{arg m	help {Require system with matching legacy key-value, example: --keyvalue=NETWORK=e1000}}
+	keyvalue		{link kv}
+	machine			{arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
+	systype			{arg y	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
+	ormachine		{arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3
+
+
+  Options for selecting special system(s) of networ-qe in NAY lab:}}
+	nay-driver		{link nay-nic-driver}
+	nic-num			{link nay-nic-num}
+	nay-nic-driver		{arg o help ""}
+	nay-nic-num		{arg o help ""}
+	nay-nic-model		{arg o help ""}
+	nay-nic-speed		{arg o help ""}
+	nay-nic-pattern		{arg o help {These options together generate the machine pool which match required NIC num/driver/model/speed
+				Example: --nay-nic-driver=e1000e --nay-nic-num=2
+				Use comma-separated values for different machine pool of multihost
+				Example: --nay-nic-driver=e1000e,any --nay-nic-num=2 --nay-nic-speed=1g
+				Refer `parse_nay_nic_info.sh` for deep study, witch is the engine for the translating.
+
+  Options for setting tasks:}}
+	task			{arg m	help {Include named task in job, can use multiple times}}
+	param			{arg m	help {Set task params, can use multiple times.
+				Use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
+	taskparam		{link param}
+	install			{arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
+	nvr			{arg m	help {Specify the kernel(Name-Version-Release) to be installed}}
+	dbgk			{arg n	help {Use the debug kernel}}
+	kcov			{arg n	help {Enable kcov for coverage data collection}}
+	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
+	cmd			{arg m	help {Add /distribution/command before test task}}
+	cmdb			{arg m	help {Add /distribution/command before install kernel}}
+	leap-second		{arg n	help {Add leap-second task}}
+	reserve-if-fail		{arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h
+
+  Options for installation:}}
+	part			{arg m	help {Additional <partitions/> for job, example: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
+	partition		{link part}
+	ks			{arg m	help {Pass kickstart metadata OPTIONS when generating kickstart}}
+	ks-meta			{link ks}
+	ksf			{arg m	help {Similar -ks, pass kickstart data from file}}
+	k-opts			{arg m	help {Pass OPTIONS to kernel during installation}}
+	kernel-options		{link k-opts}
+	k-opts-post		{arg m	help {Pass OPTIONS to kernel after installation}}
+	kernel-options-post	{link k-opts-post}
+}
+
+proc Usage {} {
+	puts "Usage: $::argv0 --distro=<DISTRO> \[options\]"
+	puts "Generates a Beaker job XML file, like `bkr workflow-simple`, but have many improvements and unofficial options"
+	puts "Example:  gen_job_xml.tcl --distro RHEL-6.6 --task=/distribution/reservesys --arch=x86_64\n"
+	getUsage $::OptionList
 }
 
 # _parse_ argument
@@ -90,6 +113,11 @@ proc debug {} {
 	puts "NotOptions: $NotOptions"
 	parray InvalidOpt
 	parray Opt
+}
+
+if [info exist Opt(help)] {
+	Usage
+	exit 0
 }
 
 # process --param= option
@@ -114,7 +142,7 @@ if [info exist Opt(distro)] {
 }
 if {[llength $DISTRO_L] == 0} {
 	puts stderr "Warning: no distro specified, use --distro= option"
-	getUsage $OptionList
+	Usage
 	exit 1
 }
 
@@ -133,7 +161,7 @@ if [info exist Opt(f)] {
 }
 if {[llength $TestList] == 0} {
 	puts stderr "Warning: no task specified, use -f or --task= option"
-	getUsage $OptionList
+	Usage
 	exit 1
 }
 foreach T $TestList {
@@ -533,4 +561,3 @@ job retention_tag=Scratch $jobCtl {
 	}
 }
 puts ""
-
