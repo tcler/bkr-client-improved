@@ -4,7 +4,6 @@ softinstall install: isroot install_require install_wub
 	(cd lib; for d in *; do rm -rf /usr/local/lib/$$d; ln -sf -T $$PWD/$$d /usr/local/lib/$$d; done)
 	(cd bkr; for f in *; do ln -sf -T $$PWD/$$f /usr/local/bin/$$f; done)
 	(cd utils; for f in *; do ln -sf -T $$PWD/$$f /usr/local/bin/$$f; done)
-	(cd www; for f in *; do ln -sf -T $$PWD/$$f /opt/wub/docroot/$$f; done)
 
 hardinstall: isroot install_require install_wub
 	cp -an conf/* /etc/.
@@ -16,6 +15,7 @@ hardinstall: isroot install_require install_wub
 install_wub: isroot install_tclsh8.6
 	[ -d /opt/wub ] || { \
 	svn export https://github.com/tcler/wub/trunk /opt/wub &>/dev/null; }
+	(cd www; for f in *; do ln -sf -T $$PWD/$$f /opt/wub/docroot/$$f; done)
 
 install_tclsh8.6: isroot
 	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; }
