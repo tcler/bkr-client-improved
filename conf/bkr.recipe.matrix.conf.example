@@ -1,6 +1,18 @@
 # The recipes matrix desc config file example.
 # Used by lstest -p or expand_testlist, to extend/create full platform covered test list
+# Comment:
+#   arch=   the cpu arch
+#   dr=     distro require
+#   hr=     host require
+#   ...     please refer the gen_job_xml.tcl --help info
 
+## Simple matrix
+arch=x86_64
+arch=ppc64
+arch=s390x
+
+
+## Complex matrix
 arch=i386.AuthenticAMD   dr="arch!=x86_64" kv=CPUFLAGS=pae hr=cpu_count=1 hr=hypervisor=
 arch=i386.GenuineIntel   dr="arch=x86_64" kv=CPUFLAGS=pae hr="cpu_count>1" hr=hypervisor=
 
