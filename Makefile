@@ -14,9 +14,8 @@ hardinstall: isroot install_require install_wub
 	cp -afl www/* /opt/wub/docroot/.
 
 install_wub: isroot install_tclsh8.6
-	@[ -d /opt/wub ] || { \
-	wget http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/wub.tar.bz2 -O /opt/wub.tar.bz2; \
-	tar jxf /opt/wub.tar.bz2 -C /opt; }
+	[ -d /opt/wub ] || { \
+	svn export https://github.com/tcler/wub/trunk /opt/wub &>/dev/null; }
 
 install_tclsh8.6: isroot
 	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; }
