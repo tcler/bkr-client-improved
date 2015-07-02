@@ -1,12 +1,12 @@
 
 softinstall install: isroot install_require install_wub
-	cp -an conf/* /etc/.
+	mkdir -p /etc/bkr-client-improved && cp -an conf/* /etc/bkr-client-improved/.
 	(cd lib; for d in *; do rm -rf /usr/local/lib/$$d; ln -sf -T $$PWD/$$d /usr/local/lib/$$d; done)
 	(cd bkr; for f in *; do ln -sf -T $$PWD/$$f /usr/local/bin/$$f; done)
 	(cd utils; for f in *; do ln -sf -T $$PWD/$$f /usr/local/bin/$$f; done)
 
 hardinstall: isroot install_require install_wub
-	cp -an conf/* /etc/.
+	mkdir -p /etc/bkr-client-improved && cp -an conf/* /etc/bkr-client-improved/.
 	cd lib; for d in *; do rm -fr /usr/local/lib/$$d; done
 	cp -arf lib/* /usr/local/lib/.
 	cp -afl bkr/* utils/* /usr/local/bin/.

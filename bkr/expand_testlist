@@ -23,8 +23,9 @@ parse_yaml() {
 
 ployConf=$1
 [ -z "$ployConf" ] && {
-	ployConf=~/.bkr.recipe.matrix.conf
-	[ ! -f $ployConf ] && ployConf=/etc/bkr.recipe.matrix.conf
+	ployConf=/etc/bkr-client-improved/bkr.recipe.matrix.conf
+	ployConfPrivate=~/.bkr-client-improved/bkr.recipe.matrix.conf
+	[ -f $ployConfPrivate ] && ployConf=$ployConfPrivate
 }
 testList=$(cat -)
 [ ! -f "$ployConf" ] && {

@@ -11,10 +11,12 @@
 exec tclsh "$0" ${1+"$@"}
 
 namespace eval ::runtestlib {
-	namespace export dbroot testinfo genWhiteboard expandDistro hostUsed
+	namespace export dbroot testinfo genWhiteboard expandDistro hostUsed conf_file
 }
 
-set conf_file /etc/bkr-autorun.conf
+set conf_file /etc/bkr-client-improved/bkr-autorun.conf
+set conf_file_private $::env(HOME)/.bkr-client-improved/bkr-autorun.conf
+if [file exists $conf_file_private] { set conf_file $conf_file_private }
 
 proc ::runtestlib::dbroot {} {
 	source $::conf_file
