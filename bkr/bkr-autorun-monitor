@@ -45,7 +45,7 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 		foreach xml [glob -nocomplain *.xml] {
 			if {$cnt >= $limitNum} break
 			puts "\[bkr-autorun-monitor\]: {$cnt/$limitNum} limitSubmit($arch) -> submit '$xml'"
-			#exec sh -c mykinit.sh
+			exec sh -c "mykinit.sh 2>/dev/null; :"
 			set rc [catch {exec bkr job-submit $xml >>&jobsubmit.log} msg]
 			if {$rc == 1} {
 				puts "{Warn} bkr job-submit fail:\n$msg"
