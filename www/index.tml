@@ -435,7 +435,7 @@ set ipaddr {}
 if [dict exists $req -ipaddr] { set ipaddr [dict get $req -ipaddr] }
 set forward {}
 if [dict exists $req -x-forwarded-for] { set forward /[dict get $req -x-forwarded-for] }
-set tmp "<b style=\"color:red; font:bold 28px/10px Papyrus,TimesNewRoman,times,serif;\">\[Bkr Testbot\]</b> | RecipeUse($hostinfo) -- | serv($host) clnt($ipaddr$forward) | "
+set tmp "<b style=\"color:red; font:bold 28px/10px Papyrus,TimesNewRoman,times,serif;\">\[Bkr Test Robot\]</b> | RecipeUse($hostinfo) -- | serv($host) clnt($ipaddr$forward) | "
 append tmp {<a href="orig.index.tml">wub doc</a>}
 ]
 
