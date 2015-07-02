@@ -3,8 +3,20 @@
 # Author: Zhenjie Chen <zhchen@redhat.com>
 
 set timeout 120
-# use the real passwd replace the 'xxxxxx'
-set PASSWD {xxxxxx}
+set conf ~/.bkr_prefs.tcl
+
+if ![file exist $conf] {
+	puts "Could not find config file to read password"
+	exec echo "set PASSWD {xxxxx}" > $conf
+	puts "Initialized $conf, please modify it and retry"
+	exit 1
+}
+
+source $conf
+# read password setting from "~/.bkr_prefs.tcl"
+# config file might look like:
+#	set PASSWD {xxxxxx}
+
 set USER root
 set SERVER [lindex $argv 0]
 
@@ -20,4 +32,3 @@ expect {
 "*#" {send "\r"}
 }
 interact
-
