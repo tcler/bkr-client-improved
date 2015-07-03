@@ -151,7 +151,7 @@ span.hideDetail {
 }
 div.controlPanel {
     position: fixed;
-    top: 30pt;
+    top: 20pt;
     right: 100pt;
     background-color: #CD7F32;
     background-color: #454;
@@ -161,6 +161,14 @@ div.controlPanel {
     border-color: #D9D919;
 }
 input.selectTest {
+    visibility: hidden;
+    vertical-align: middle;
+    width: 0.9em;
+    height: 0.9em;
+    padding: 0px;
+    margin: 0px;
+}
+input.selectTestNil {
     visibility: hidden;
     vertical-align: middle;
     width: 0.9em;
@@ -207,7 +215,7 @@ function hideDetail(id) {
 
 function checkall() {
 	var chkall = document.getElementById("selectAll");
-	var chkItem = document.getElementsByClassName("selectTest");
+	var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
 	for (var i=0; i < chkItem.length; i++) {
 		if (chkall.checked == true) {
 			chkItem[i].style.visibility="visible";
@@ -220,7 +228,8 @@ function checkall() {
 
 function selectCol(id) {
 	var col = document.getElementsByClassName("checkCol")[id];
-	var chkItem = document.getElementsByClassName("selectTest");
+	var chkItem = document.querySelectorAll("input.selectTest");
+	var chkItemNil = document.querySelectorAll("input.selectTestNil");
 
 	for (var i=0; i < chkItem.length; i++) {
 		var testid = chkItem[i].id.split(" ");
@@ -235,6 +244,12 @@ function selectCol(id) {
 			chkItem[i].checked=false;
 		}
 	}
+	/*
+	for (var i=0; i < chkItemNil.length; i++) {
+		if (col.checked != true) {
+			chkItemNil[i].checked=false;
+		}
+	} */
 }
 
 function post(path, params, method) {
@@ -284,7 +299,7 @@ function reSubmitList() {
 	var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/resubmit-list.tml?");
 
 	var testlist = "";
-	var chkItem = document.getElementsByClassName('selectTest');
+	var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
 	for (var i=0; i<chkItem.length; i++) {
 		if (chkItem[i].checked == true) {
 			var testobj = chkItem[i].id.split(" ");
@@ -309,7 +324,7 @@ function cloneToNewRun() {
 	var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/clone.tml?");
 
 	var testlist = "";
-	var chkItem = document.getElementsByClassName('selectTest');
+	var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
 	for (var i=0; i<chkItem.length; i++) {
 		if (chkItem[i].checked == true) {
 			var testobj = chkItem[i].id.split(" ");
@@ -332,7 +347,7 @@ function delList() {
 	var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/deltest.tml?");
 
 	var testlist = ""
-	var chkItem = document.getElementsByClassName('selectTest');
+	var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
 	for (var i=0; i<chkItem.length; i++) {
 		if (chkItem[i].checked == true) {
 			var testobj = chkItem[i].id.split(" ");
@@ -557,7 +572,7 @@ foreach row $matrix {
 			set flag [<img> id sticky title "this test is running" src $img]
 		}
 		if {[string trim $res] in {{}}} {
-			append tbody "      <td><input class=\"selectTest\" type=\"checkbox\" id=\"$testid $j\"> </td>\n"
+			append tbody "      <td><input class=\"selectTestNil\" type=\"checkbox\" id=\"$testid $j\"> </td>\n"
 		} else {
 			append tbody "      <td><input class=\"selectTest\" type=\"checkbox\" id=\"$testid $j\"> $restd $flag </td>\n"
 		}
