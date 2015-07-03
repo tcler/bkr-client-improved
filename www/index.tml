@@ -276,19 +276,6 @@ function reSubmit(testid, distroIdx) {
 	post(path2, {resubmit: testid + ' ' + distroArrayx[distroIdx]});
 }
 
-function delTestCase(testid) {
-	//alert(testid);
-	//alert(document.URL);
-	var path = document.URL;
-	var path2 = path.replace(/index.tml/, "delTestCase.tml");
-	var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/delTestCase.tml?");
-	var r = confirm("Are you sure delete this test case?\n"+testid);
-	if (r != true) {
-		return 0;
-	}
-	post(path2, {delTestCase: testid});
-}
-
 function reSubmitList() {
 	//alert(distroArrayx[distroIdx] + ' ' + testid);
 	//alert(document.URL);
@@ -357,6 +344,31 @@ function delList() {
 	//var r = confirm(path2+"\nAre you sure delete these test?\n"+testlist);
 	var r = confirm("Are you sure delete these test?\n"+testlist);
 	if (r != true) {
+		return 0;
+	}
+	post(path2, {testlist: testlist});
+}
+
+function delTestCase() {
+	//alert(document.URL);
+	var path = document.URL;
+	var path2 = path.replace(/index.tml/, "delTestCase.tml");
+	var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/delTestCase.tml?");
+
+	var testlist = ""
+	var chkItem = document.getElementsByClassName('selectTestCase');
+	for (var i=0; i<chkItem.length; i++) {
+		if (chkItem[i].checked == true) {
+			var testid = chkItem[i].id;
+			testlist += testid + ';';
+		}
+	}
+	if (testlist == "") {
+		return 0;
+	}
+	//var r = confirm(path2+"\nAre you sure delete these test?\n"+testlist);
+	var r = confirm("Are you sure delete these test cases?\n"+testlist);
+	if (r != true || testlist == "") {
 		return 0;
 	}
 	post(path2, {testlist: testlist});
@@ -477,6 +489,8 @@ set input
     <input type="button" value="Delete" onclick="delList();"/>
     <input type="button" value="\[Re\]Run" onclick="reSubmitList();"/>
     <input type="button" value="Clone" onclick="cloneToNewRun();"/>
+    <br>
+    <input type="button" value="Delete Test Cases" onclick="delTestCase();"/>
   </div>
 
 <table id="t01">
@@ -519,8 +533,8 @@ foreach row $matrix {
 	if {[string length $gset] > 16} {
 		set gset "<abbr title=\"$gset\">GSET</abbr>"
 	}
-	set delButton "<input type=\"button\" value=\"D\" onclick=\"delTestCase('$testid');\"/>"
-	append tbody "      <td>[string range $test 0 32] $args {$gset} $delButton</td>\n"
+	set caseChkbox "<input class=\"selectTestCase\" type=\"checkbox\" id=\"$testid\">"
+	append tbody "      <td>[string range $test 0 32] $args {$gset} $caseChkbox</td>\n"
 	set j 0
 	foreach res $resList {
 		set restd {}
