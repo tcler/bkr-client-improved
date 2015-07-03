@@ -21,10 +21,14 @@ if {$permission != yes} {
 } elseif [dict exists $req -entity] {
 	set entity [dict get $req -entity]
 	lassign [Query qparse $entity 0] xentity
-	if [dict exists $xentity delTestCase] {
-		set testid [lindex [dict get $xentity delTestCase] 0]
-		set testid_ [lindex $testid 0]
-		db eval "DELETE FROM testrun WHERE testid = '$testid_'"
+	if [dict exists $xentity testlist] {
+		set testList [lindex [dict get $xentity testlist] 0]
+		db transaction {
+		foreach testid [split $testList ";"] {
+			if {$testid == ""} continue
+			db eval "DELETE FROM testrun WHERE testid = '$testid'"
+		}
+		}
 	}
 	set info {<span style="font-size:400%;">Update ... Done!<br>return ...</span>}
 }
