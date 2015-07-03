@@ -204,7 +204,7 @@ $(if [ -n "$multihost" ]; then
     echo 'BZ=bugid-$RANDOM  #suffix to show distinction with other cases'
   fi
 )
-expdir=/exportDir-\$BZ #fix me:
+expdir=/exportdir-\$BZ #fix me:
 nfsmp=/mnt/nfsmp-\$BZ  #fix me:
 
 $(if test -z "$multihost"; then
@@ -233,8 +233,8 @@ else
     rlPhaseEnd
 
     rlPhaseStartTest do-$role-Test-
-	rhts-sync-set -s <eventName> #fix me:
-	rhts-sync-block -s <eventName> <hostname ...> #fix me:
+	run 'rhts-sync-set -s <eventName>' #fix me:
+	run 'rhts-sync-block -s <eventName> <hostname ...>' #fix me:
     rlPhaseEnd
 
     rlPhaseStartCleanup do-$role-Cleanup-
