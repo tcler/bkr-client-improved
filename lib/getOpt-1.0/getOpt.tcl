@@ -1,6 +1,6 @@
 ########################################################################
 #
-#  getOpt -- similar as getopt(3)
+#  getOpt -- similar as getopt_long_only(3)
 #
 # (C) 2014 Jianhong Yin <yin-jianhong@163.com>
 #
