@@ -168,7 +168,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 	lassign [genWhiteboard $Distro $tkey $tvalue] WB gset
 	if {[string length $SubcmdOpt]>0} {append WB " {$SubcmdOpt}"}
 
-	set jobinfo job_[regsub -all {[^-,=_a-zA-Z0-9]} $WB {_}]; # substitute special characters
+	set jobinfo job_[regsub -all {[^-?,=_a-zA-Z0-9]} $WB {_}]; # substitute special characters
 	set jobinfo [regsub -all {_+} $jobinfo {_}];		  # merge duplicate underlines
 	set xmlf [string range $jobinfo 0 128].[expr {int(rand()*10000)}].xml; # limit filename length
 
