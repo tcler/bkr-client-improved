@@ -143,8 +143,8 @@ foreach test $TestList {
 
 	# get key {pkg= ssched= topo= GlobalSetup}
 	set key [testinfo recipekey $test]
-	if {$key == ""} {
-		puts stderr "Warn: recipekey is nil!"
+	if ![regexp -- {.+ ssched=.* topo=.*} $key] {
+		puts stderr "Warn: recipekey($key) is not standard([lindex $test 0])!"
 		continue
 	}
 	if [info exist Opt(alone)] {regsub {ssched=no} $key {ssched=yes} key}
@@ -175,7 +175,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 	if {![catch {set fp \
 	  [open "|gen_job_xml.tcl -distro=$Distro -f - $SubcmdOpt {-wb=$WB} $gset >$xmlf" w]} err]} {
 		foreach t $tvalue { puts $fp "$t" }
-		close $fp
+		catch {close $fp} err
 
 		puts "INFO: processing GlobalSetup: {$gset}"
 		puts "Generate job XML ==> '$xmlf'"
