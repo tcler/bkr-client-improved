@@ -15,7 +15,7 @@ namespace import ::xmlgen::* ::getOpt::* ::runtestlib::*
 
 declaretags job whiteboard notify cc
 declaretags recipeSet recipe and or not
-declaretags distroRequires distro_name distro_variant distro_method distro_arch
+declaretags distroRequires distro_name distro_family distro_tag distro_variant distro_method distro_arch
 declaretags hostRequires hostname arch system_type key_value
 declaretags repos repo
 declaretags partitions partition
@@ -42,6 +42,8 @@ set OptionList {
 	rwb			{arg y	help {Set the whiteboard for the recipe
 
   Options for selecting distro tree(s):}}
+	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
+	tag			{arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE)}}
 	distro			{arg m	help {Use named distro for job)}}
 	variant			{arg y	help {Specify the distro variant}}
 	arch			{arg y	help {Specify the distro arch}}
@@ -126,7 +128,11 @@ if [info exist Opt(param)] { lappend GlobalParam {*}$Opt(param) }
 
 # process --distro= option
 set DISTRO_L {}
+set FAMILY_L {}
+set TAG_L {}
 set _ldistro {}
+set _lfamily {}
+set _ltag {STABLE}
 if [info exist Opt(distro)] {
 	foreach e $Opt(distro) {lappend _ldistro {*}[split $e ", "]}
 	set prev {}
@@ -139,9 +145,33 @@ if [info exist Opt(distro)] {
 		}
 	}
 	lappend GlobalParam "DISTRO_BUILD=$DISTRO_L"
+} elseif [info exist Opt(family)] {
+	foreach e $Opt(family) {lappend _lfamily {*}[split $e ", "]}
+	set prev {}
+	foreach f $_lfamily {
+		if {[string length $f] > 0} {
+			lappend FAMILY_L $f
+			set prev $f
+		} elseif {[string length $prev] > 0} {
+			lappend FAMILY_L $prev
+		}
+	}
 }
-if {[llength $DISTRO_L] == 0} {
-	puts stderr "Warning: no distro specified, use --distro= option"
+if [info exist Opt(tag)] {
+	foreach e $Opt(tag) {lappend _ltag {*}[split $e ", "]}
+	set prev {}
+	foreach t $_ltag {
+		if {[string length $t] > 0} {
+			lappend TAG_L $t
+			set prev $t
+		} elseif {[string length $prev] > 0} {
+			lappend TAG_L $prev
+		}
+	}
+}
+
+if {[llength $DISTRO_L] == 0 && [llength $FAMILY_L] == 0} {
+	puts stderr "Warning: no distro specified, use --distro= or --family= option"
 	Usage
 	exit 1
 }
@@ -274,11 +304,21 @@ job retention_tag=Scratch $jobCtl {
 	}
 	recipeSet priority=Normal ! {
 		set DISTRO {}
+		set FAMILY {}
+		set TAG {STABLE}
 		set R {0};	# Role index
 		foreach role ${ROLE_LIST} {
 			if [llength $DISTRO_L] {
 				set DISTRO [lindex $DISTRO_L 0]
 				set DISTRO_L [lrange $DISTRO_L 1 end]
+			}
+			if [llength $FAMILY_L] {
+				set FAMILY [lindex $FAMILY_L 0]
+				set FAMILY_L [lrange $FAMILY_L 1 end]
+			}
+			if [llength $TAG_L] {
+				set TAG [lindex $TAG_L 0]
+				set TAG_L [lrange $TAG_L 1 end]
 			}
 			if [llength $ARCH_L] {
 				set ARCH [lindex $ARCH_L 0]
@@ -292,7 +332,12 @@ job retention_tag=Scratch $jobCtl {
 			recipe kernel_options=$Opt(k-opts) kernel_options_post=$Opt(k-opts-post) whiteboard=$Opt(wb) ks_meta=$recipe_ks_meta ! {
 				distroRequires ! {
 					and ! {
-						distro_name op== value=${DISTRO} -
+						if {$DISTRO != ""} {
+							distro_name op== value=${DISTRO} -
+						} else {
+							distro_family op== value=${FAMILY} -
+							distro_tag op== value=${TAG} -
+						}
 						if [info exist Opt(variant)] {
 							distro_variant op== value=$Opt(variant) -
 						}
