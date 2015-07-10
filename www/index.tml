@@ -146,6 +146,7 @@ div.detail {
     filter:alpha(Opacity=98); -moz-opacity:0.98; opacity: 0.98
 }
 span.hideDetail {
+    position: fixed;
     background-color: #00ff00;
     font-weight: bold;
 }
@@ -618,6 +619,7 @@ foreach row $matrix {
 	set resList [lrange $row end-[expr $distroNum-1] end]
 	append detailDiv "<div class=\"detail\" id=\"div$testid\">\n"
 	append detailDiv "<span class=\"hideDetail\" id=\"div$testid\" onclick=\"hideDetail('div$testid')\"><button type=\"button\">X</button> - \[Close me\]</span>\n"
+	append detailDiv "<br>\n"
 	append detailDiv "<p>$tinfo</p>\n"
 	append detailDiv {    <table class="detail">} "\n"
 	append detailDiv {        <tr>} "\n"
