@@ -82,6 +82,8 @@ set OptionList {
 	taskparam		{link param}
 	install			{arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
 	nvr			{arg m	help {Specify the kernel(Name-Version-Release) to be installed}}
+	upstream		{arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d][#tag]
+				default: git://git.app.eng.bos.redhat.com/linux.git#master}}
 	dbgk			{arg n	help {Use the debug kernel}}
 	kcov			{arg n	help {Enable kcov for coverage data collection}}
 	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
@@ -167,6 +169,17 @@ if [info exist Opt(tag)] {
 		} elseif {[string length $prev] > 0} {
 			lappend TAG_L $prev
 		}
+	}
+}
+
+if [info exist Opt(upstream)] {
+	set upstreamUrl git://git.app.eng.bos.redhat.com/linux.git
+	set upstreamTag master
+	if {$Opt(upstream) != ""} {
+		set url [regsub {#.*} $Opt(upstream) {}]
+		set tag [regsub {[^#]*(#|$)} $Opt(upstream) {}]
+		if {[string trim $url] != ""} {set upstreamUrl $url}
+		if {[string trim $tag] != ""} {set upstreamTag $tag}
 	}
 }
 
@@ -472,8 +485,8 @@ job retention_tag=Scratch $jobCtl {
 					if [regexp {^RHEL-[0-9]\.[0-9]$} $reg] {
 						regsub RHEL-([0-9]+\.[0-9]+) $reg RHEL-./\1 reg
 					}
-					set res [exec vershow {^kernel-[2-4]+[-.0-9]+\.} $reg]
-					regsub {.*(kernel-[2-4]+[-.0-9]+\.[^.]+).*} $res {\1} Opt(nvr)
+					set res [exec vershow {^kernel-[2-6]+[-.0-9]+\.} $reg]
+					regsub {.*(kernel-[2-6]+[-.0-9]+\.[^.]+).*} $res {\1} Opt(nvr)
 				}
 				if {[info exist Opt(nvr)] && $Opt(nvr) != "" && $Opt(nvr) != "{}"} {
 					set NVR $Opt(nvr)
@@ -485,6 +498,15 @@ job retention_tag=Scratch $jobCtl {
 						}
 					}
 				}
+				if [info exist Opt(upstream)] {
+					task name=/kernel/distribution/upstream-kernel/install role=$role ! {
+						params ! {
+							param name=KERNEL_GIT_REPO value=$upstreamUrl -
+							param name=KERNEL_GIT_COMMIT value=$upstreamTag -
+						}
+					}
+				}
+
 				# command after kernelinstall
 				if [info exist Opt(cmd)] {
 					foreach cmd $Opt(cmd) {
