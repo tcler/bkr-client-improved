@@ -180,7 +180,7 @@ P=${0##*/}
 FORMAT=std
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [--fmt=<raw|pol> | -e [-p /etc/bkr.recipe.matrix.conf*] | -t <maxtime>] [\$dir ...]"
+	echo "Usage: $P [--fmt=<raw|pol> | -e [-p /etc/bkr-client-improved/bkr.recipe.matrix.conf*] | -t <maxtime>] [\$dir ...]"
 }
 _at=`getopt -o hret:p: \
 	--long help \
