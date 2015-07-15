@@ -147,7 +147,8 @@ if [info exist Opt(distro)] {
 		}
 	}
 	lappend GlobalParam "DISTRO_BUILD=$DISTRO_L"
-} elseif [info exist Opt(family)] {
+}
+if [info exist Opt(family)] {
 	foreach e $Opt(family) {lappend _lfamily {*}[split $e ", "]}
 	set prev {}
 	foreach f $_lfamily {
@@ -345,7 +346,7 @@ job retention_tag=Scratch $jobCtl {
 			recipe kernel_options=$Opt(k-opts) kernel_options_post=$Opt(k-opts-post) whiteboard=$Opt(wb) ks_meta=$recipe_ks_meta ! {
 				distroRequires ! {
 					and ! {
-						if {$DISTRO != ""} {
+						if {$DISTRO ni {"" "family"}} {
 							distro_name op== value=${DISTRO} -
 						} else {
 							distro_family op== value=${FAMILY} -
