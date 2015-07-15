@@ -4,6 +4,7 @@ softinstall install: isroot install_require install_wub
 	(cd lib; for d in *; do rm -rf /usr/local/lib/$$d; ln -sf -T $$PWD/$$d /usr/local/lib/$$d; done)
 	(cd bkr; for f in *; do ln -sf -T $$PWD/$$f /usr/local/bin/$$f; done)
 	(cd utils; for f in *; do ln -sf -T $$PWD/$$f /usr/local/bin/$$f; done)
+	@ps axf|grep -v grep|grep -q vershow || vershow -uu &
 
 hardinstall: isroot install_require install_wub
 	mkdir -p /etc/bkr-client-improved && cp -an conf/* /etc/bkr-client-improved/.
@@ -11,6 +12,7 @@ hardinstall: isroot install_require install_wub
 	cp -arf lib/* /usr/local/lib/.
 	cp -afl bkr/* utils/* /usr/local/bin/.
 	cp -afl www/* /opt/wub/docroot/.
+	@ps axf|grep -v grep|grep -q vershow || vershow -uu &
 
 install_wub: isroot install_tclsh8.6
 	[ -d /opt/wub ] || { \
@@ -30,7 +32,6 @@ install_require: isroot
 { yum install -y tcllib || ./utils/tcllib_install.sh; }
 	@-! tclsh <<<"lappend ::auto_path /usr/local/lib /usr/lib64; package require tdom" 2>&1|grep -q 'can.t find' || \
 { yum install -y tdom || ./utils/tdom_install.sh; }
-	@ps axf|grep -v grep|grep -q vershow || vershow -uu &
 
 rpm: isroot
 	./build_rpm.sh
