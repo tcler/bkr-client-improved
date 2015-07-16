@@ -233,8 +233,8 @@ else
     rlPhaseEnd
 
     rlPhaseStartTest do-$role-Test-
-	run 'rhts-sync-set -s <eventName>' #fix me:
-	run 'rhts-sync-block -s <eventName> <hostname ...>' #fix me:
+	run "rhts-sync-set -s <eventName>" #fix me:
+	run "rhts-sync-block -s <eventName> <hostname ...>" #fix me:
     rlPhaseEnd
 
     rlPhaseStartCleanup do-$role-Cleanup-
