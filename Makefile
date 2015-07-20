@@ -1,10 +1,12 @@
 
+export PATH:=${PATH}:/usr/local/bin
+
 softinstall install: isroot install_require install_wub
 	mkdir -p /etc/bkr-client-improved && cp -an conf/* /etc/bkr-client-improved/.
 	(cd lib; for d in *; do rm -rf /usr/local/lib/$$d; ln -sf -T $$PWD/$$d /usr/local/lib/$$d; done)
 	(cd bkr; for f in *; do ln -sf -T $$PWD/$$f /usr/local/bin/$$f; done)
 	(cd utils; for f in *; do ln -sf -T $$PWD/$$f /usr/local/bin/$$f; done)
-	@ps axf|grep -v grep|grep -q vershow || vershow -uu &
+	@ps axf|grep -v grep|grep -q vershow || vershow -uu >/dev/null &
 
 hardinstall: isroot install_require install_wub
 	mkdir -p /etc/bkr-client-improved && cp -an conf/* /etc/bkr-client-improved/.
@@ -12,11 +14,12 @@ hardinstall: isroot install_require install_wub
 	cp -arf lib/* /usr/local/lib/.
 	cp -afl bkr/* utils/* /usr/local/bin/.
 	cp -afl www/* /opt/wub/docroot/.
-	@ps axf|grep -v grep|grep -q vershow || vershow -uu &
+	@ps axf|grep -v grep|grep -q vershow || vershow -uu >/dev/null &
 
 install_wub: isroot install_tclsh8.6
 	[ -d /opt/wub ] || { \
-	svn export https://github.com/tcler/wub/trunk /opt/wub &>/dev/null; }
+	yum install svn &>/dev/null; \
+	svn export https://github.com/tcler/wub/trunk /opt/wub >/dev/null; }
 	(cd www; for f in *; do ln -sf -T $$PWD/$$f /opt/wub/docroot/$$f; done)
 
 install_tclsh8.6: isroot
