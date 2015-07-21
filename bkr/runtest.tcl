@@ -217,7 +217,11 @@ if [info exist xmlf_merged] {
 	regsub {<!--(<notify>)} $XML {\1} XML
 	regsub {(</notify>)-->} $XML {\1} XML
 	regsub -linestop {<!--(</job>)-->$} $XML {\1} XML
-	puts [open ${xmlf_merged} w+] $XML
+
+	set fp [open $xmlf_merged w]
+	puts $fp $XML
+	close $fp
+
 	if ![info exist Opt(dryrun)] {
 		set status [catch {exec bkr job-submit $xmlf_merged} result]
 		puts "$result"
