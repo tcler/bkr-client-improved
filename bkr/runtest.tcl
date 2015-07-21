@@ -33,14 +33,13 @@ parray Opt
 
 # Usage
 proc Usage {} {
-	puts "Usage: $::argv0 <distro\[,distro,...\]> \[options\] \[-|testList|caseDir ...\] \[-- gen_job_xml options\] "
+	puts "Usage0: $::argv0 <distro\[,distro,...\]> \[options\] \[-|testList|caseDir ...\] \[-- gen_job_xml options\] "
+	puts "Usage1: $::argv0 family \[options\] \[-|testList|caseDir ...\] -- --family=<distroFamily> \[other gen_job_xml options\]"
 	puts "Genarate job xml files from test case dir, test list file or stdin, then grouped submit to beaker\n"
 	puts "Example 1: runtest RHEL-6.6 -n ~/git/test/kernel/filesystems/nfs/function/"
 	puts "Example 2: runtest RHEL-6.6 -n ~/git/test/kernel/networking/bonding/failover -- --nay-nic-driver=tg3 --nay-nic-num=2"
 	puts "Example 3: runtest Fedora-22,RHEL-7.2,RHEL-7.2 ~/git/test/nfs-utils/function/pnfs/blklayout"
 	puts "Example 4: echo '/distribution/reservesys' | runtest RHEL-6.6 - -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6"
-	puts "\n*Info: If wantn't a specified distroname, just use 'family' and use -family= option specify the Family"
-	puts "Example 5: runtest family testlist -- -family=RedHatEnterpriseLinux6"
 	puts ""
 	getUsage $::OptionList
 	puts "Info: exec `gen_job_xml.tcl -h` to check bkr workflow options"
