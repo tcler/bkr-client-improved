@@ -36,7 +36,8 @@ _caseInfo() {
 
     pushd $casepath >/dev/null;
         unlink testinfo.desc 2>/dev/null
-        make testinfo.desc >/dev/null || {
+        make testinfo.desc &>/dev/null
+        [ -f testinfo.desc ] || {
             echo "{ERROR} [$casepath/] make testinfo.desc fail, please fix the Makefile." >&2
             popd >/dev/null; return 1
         }
