@@ -26,6 +26,8 @@ install_tclsh8.6: isroot
 	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; }
 
 install_require: isroot
+	@sed -i '/^Defaults *secure_path/{/.usr.local.bin/! {s; *$$;:/usr/local/bin;}}' /etc/sudoers
+	@rpm -q redhat-lsb || yum install -y redhat-lsb #package that in default RHEL repo
 	@rpm -q tcl || yum install -y tcl #package that in default RHEL repo
 	@rpm -q tcl-devel || yum install -y tcl-devel #package that in default RHEL repo
 	@rpm -q sqlite || yum install -y sqlite #package that in default RHEL repo

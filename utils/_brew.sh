@@ -28,7 +28,7 @@ topdir = /mnt/redhat/brewroot
 weburl = http://brewweb.devel.redhat.com/brew
 topurl = http://download.devel.redhat.com/brewroot
 END
-	ln -s /usr/bin/koji /usr/local/bin/brew
+	ln -s /usr/bin/koji /usr/bin/brew
 }
 
 progname=${0##*/}
