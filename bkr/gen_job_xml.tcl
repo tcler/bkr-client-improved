@@ -403,6 +403,7 @@ job retention_tag=Scratch $jobCtl {
 				}
 				repos ! {
 					if [info exist Opt(repo)] {
+						set i 0
 						foreach url $Opt(repo) {
 							repo name=myrepo_[incr i] url=$url -
 						}
