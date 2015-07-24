@@ -21,7 +21,6 @@ set Args [list]
 set OptionList {
 	help   {arg n	help {Print this usage}}	h {link help}
 	name   {arg y	help {Package/Component name}}
-	gset   {arg y	help {global setup options to runtest. e.g. --dbgk --nvr=$NVR}}
 	force  {arg n	help {Add new or overwrite existed testrun items}}
 	update {arg n	help {Just overwrite existed test run items}}
 	r      {arg n	help {Do not parse subtest.desc when lstest casedir}}
@@ -29,7 +28,7 @@ set OptionList {
 }
 
 proc Usage {progname} {
-	puts "Usage: $progname <distro> <testfile|casedir|-> <--name pkgname> \[options\]"
+	puts "Usage: $progname <distro> <testfile|casedir|-> <--name pkgname> \[-- gen_job_xml options\]"
 	getUsage $::OptionList
 }
 
@@ -69,13 +68,23 @@ if [info exist Opt(e)] {
 	}
 }
 
+# Get subcmd options
+set SubcmdOpt [list]
+set TestArgList {}
+set Idx [lsearch $Args {--}]
+if {$Idx == -1} {
+	set TestArgList [lrange $Args 1 end]
+} else {
+	set TestArgList [lrange $Args 1 [expr $Idx-1]]
+	set SubcmdOpt [lrange $Args [expr $Idx+1] end]
+}
+
 # Get distro and gset info
-set Gset {}
 set Distro [lindex $Args 0]
 set Distro [expandDistro $Distro]   ;#If Distro is short format
-if [info exist Opt(gset)] {
-	foreach e $Opt(gset) {lappend Gset [regsub {^--} $e {-}]}
-}
+set Gset {}
+foreach e $SubcmdOpt {lappend Gset [regsub {^--} $e {-}]}
+
 if ![regexp -- {-nvr=} $Gset] {
 	set nvr [exec bash -c "vershow ^kernel-\[0-9\] /$Distro$|sed -rn '/^kernel-/{s/\.\[^.\]+\.\[^.\]+$//;p;q}'"]
 	if {$nvr == ""} {
@@ -92,8 +101,6 @@ if {$Distro_ == ""} {
 }
 
 # Get the test list
-set TestList {}
-set TestArgList [lrange $Args 1 end]
 foreach f $TestArgList {
 	if {$f in "-"} {
 		set fp stdin

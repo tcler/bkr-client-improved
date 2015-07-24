@@ -55,7 +55,7 @@ foreach pkg $pkgList {
 		where ti.pkgName LIKE '$pkg' and trun.res != ''
 	"
 	foreach key [db eval $distroQ] {
-		lappend runList "$pkg $key"
+		lappend runList "pkg {$pkg} run {$key}"
 	}
 	set runList [lsort -decreasing $runList]
 }

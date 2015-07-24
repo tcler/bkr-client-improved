@@ -20,17 +20,17 @@ array set InvalidOpt {}
 set Args [list]
 set OptionList {
 	help     {arg n	help {Print this usage}}	h {link help}
-	gset     {arg y	help {global setup options to runtest. e.g. --dbgk --nvr=$NVR}}
 	y        {arg n	help {yes}}
-	nonvr    {arg n	help {no auto added nvr}}
-	delpkg   {arg n	help {delete all tests that along the pkg and all related run info}}
+	delpkg   {arg y	help {delete all tests that along the pkg and all related run info}}
 }
 set deltype run
 
 proc Usage {progname} {
-	puts "Usage: $progname <pkgname> <distro> \[-gset 'xxx'\] \[other options\]"
+	puts "Usage: $progname <pkgname> <autotest name> \[options\]"
 	puts "Usage: $progname <pkgname> -delpkg"
+
 	getUsage $::OptionList
+	puts "Info: You can use bkr-autorun-stat --lsrun to list all autotest name"
 }
 
 # _parse_ argument
@@ -49,6 +49,7 @@ if {[llength $Args] < 1} {
 	exit 1
 }
 
+set pkgName {}
 if [info exist Opt(delpkg)] {
 	set deltype pkg
 }
@@ -58,33 +59,14 @@ if {$deltype == "run" && [llength $Args] < 2} {
 	exit 1
 }
 
-# Get test package name
+# Get test package name and autorun name
 set pkgName [lindex $Args 0]
-
-# Get distro and gset info
-set Gset {}
-set Distro [lindex $Args 1]
-if [info exist Opt(gset)] {
-	foreach e $Opt(gset) {lappend Gset [regsub {^--} $e {-}]}
-}
-if {![regexp -- {-nvr=} $Gset] && ![info exists Opt(nonvr)]} {
-	set nvr [exec bash -c "vershow ^kernel-\[0-9\] /$Distro$|sed -rn '/^kernel-/{s/\.\[^.\]+\.\[^.\]+$//;p;q}'"]
-	if {$nvr == ""} {
-		set nvr [exec bash -c "vershow ^kernel-\[0-9\] /[string map {RHEL- {}} $Distro]$|sed -rn '/^kernel-/{s/\.\[^.\]+\.\[^.\]+$//;p;q}'"]
-	}
-	set Gset [concat "-nvr=$nvr" $Gset]
-}
-lappend Distro {*}$Gset
-if {$Distro == ""} {
-	puts "WARN: distro info is nil, something is wrong!"
-	Usage $argv0
-	exit 1
-}
+set Distro_Gset [lindex $Args 1]
 
 if [info exists Opt(y)] {
 	set ans {y}
 } else {
-	puts "Will Delete $pkgName/$Distro"
+	puts "Will Delete {${Distro_Gset}}/$pkgName"
 	puts -nonewline "***(Are you sure)\[y/n\] "
 	flush stdout
 	gets stdin ans
@@ -97,14 +79,14 @@ if {[string match -nocase y* $ans]} {
 	if {$deltype == "run"} {
 		db transaction {
 			db eval "DELETE FROM testrun
-				WHERE distro_rgset = '$Distro' and testid in (
+				WHERE distro_rgset = '$Distro_Gset' and testid in (
 					select testid
 					from testinfo
 					where testrun.testid = testinfo.testid and testinfo.pkgName = '$pkgName'
 				)
 			"
 		}
-		#exec "rm -rf log/[string map {{ } _} $Distro]"
+		#exec "rm -rf log/[string map {{ } _} $Distro_Gset]"
 	}
 	if {$deltype == "pkg"} {
 		db transaction {
