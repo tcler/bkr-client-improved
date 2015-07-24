@@ -144,7 +144,7 @@ proc ::getOpt::getOptions {optList argv validOptionVar invalidOptionVar notOptio
 		if {$err == 3} {
 			continue
 		} elseif {$err == 2} {
-			lappend notOption {*}$optarg
+			lappend notOption $optarg
 		} elseif {$err == 1} {
 			#known options
 			set type [dict get $optList $opt arg]
