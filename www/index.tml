@@ -354,7 +354,7 @@ function delList() {
 			var testobj = chkItem[i].id.split(" ");
 			testid = testobj[0];
 			j = testobj[1];
-			testlist += testid + ' ' + distroArrayx[j] + ';';
+			testlist += testid + ' ' + distroArrayx[j] + "&";
 		}
 	}
 	//var r = confirm(path2+"\nAre you sure delete these test?\n"+testlist);

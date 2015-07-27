@@ -24,7 +24,7 @@ if {$permission != yes} {
 	if [dict exists $xentity testlist] {
 		set testList [lindex [dict get $xentity testlist] 0]
 		db transaction {
-		foreach test [split $testList ";"] {
+		foreach test [split $testList "&"] {
 			if {$test == ""} continue
 			set testid_ [lindex $test 0]
 			set distro_gset_ [lrange $test 1 end]
