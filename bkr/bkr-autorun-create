@@ -93,7 +93,7 @@ if ![regexp -- {-nvr=} $Gset] {
 	set Gset [concat "-nvr=$nvr" $Gset]
 }
 
-set Distro_ [concat $Distro {*}$Gset]
+set Distro_ [concat $Distro $Gset]
 if {$Distro_ == ""} {
 	puts "WARN: distro info is nil, something is wrong!"
 	Usage $argv0
