@@ -19,8 +19,10 @@ array set Opt {}
 array set InvalidOpt {}
 set Args [list]
 set OptionList {
-	help   {arg n	help {Print this usage}}	h {link help}
-	name   {arg y	help {Package/Component name}}
+	help   {arg n	help {Print this usage}}
+	h      {link help}
+	pkg    {arg y	help {Package/Component name}}
+	name   {link pkg hide y}
 	force  {arg n	help {Add new or overwrite existed testrun items}}
 	update {arg n	help {Just overwrite existed test run items}}
 	r      {arg n	help {Do not parse subtest.desc when lstest casedir}}
@@ -28,7 +30,7 @@ set OptionList {
 }
 
 proc Usage {progname} {
-	puts "Usage: $progname <distro> <testfile|casedir|-> <--name pkgname> \[-- gen_job_xml options\]"
+	puts "Usage: $progname <distro> <testfile|casedir|-> <--pkg pkgname> \[-- gen_job_xml options\]"
 	getUsage $::OptionList
 }
 
@@ -48,13 +50,13 @@ if {[llength $Args] < 2} {
 	exit 1
 }
 
-if ![info exist Opt(name)] {
+if ![info exist Opt(pkg)] {
 	Usage $argv0
 	exit 1
 }
 
 # Get the package/component name
-set pkgName $Opt(name)
+set pkgName $Opt(pkg)
 
 # Get lstest opts
 set lstest_opts {}
