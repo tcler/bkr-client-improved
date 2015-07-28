@@ -185,14 +185,14 @@ proc ::getOpt::getUsage {optList} {
 
 	#merge the options that means same(e.g. -h --help)
 	foreach key [dict keys $optDict] {
-		if [dict exist $optDict $key link] {
+		if [dict exist $optDict $key hide] {
+			dict unset optDict $key
+		} elseif [dict exist $optDict $key link] {
 			set lnk [dict get $optDict $key link]
 			if [dict exist $optDict $lnk] {
 				dict set optDict $lnk [concat [dict get $optDict $lnk] "keys {$lnk,$key}"]
 				dict unset optDict $key
 			}
-		} elseif [dict exist $optDict $key hide] {
-			dict unset optDict $key
 		}
 	}
 
