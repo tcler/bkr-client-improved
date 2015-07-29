@@ -1,5 +1,4 @@
 #!/bin/bash
-# vim: sts=4 sw=4 et
 # Kerberos ticket will never be expired
 # author: zhchen@redhat.com
 
@@ -9,18 +8,18 @@ read -s -p "Password: " password
 echo
 
 _kinit() {
-    echo $password | kinit $username &>/dev/null || { echo "Password incorrect"; exit 1; }
+	echo $password | kinit $username
 }
 
 forever_kinit() {
-    while : ; do
-        _kinit || exit 1
-        sleep 28800 # 8 hour
-    done
+	while : ; do
+		sleep 8h
+		_kinit || exit 1
+	done
 }
 
 # make sure password is correct
-_kinit
+_kinit || exit 1
 
 # then function can run in background forever, untill you kill it
 trap "" HUP
