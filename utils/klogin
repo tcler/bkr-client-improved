@@ -2,13 +2,12 @@
 # Kerberos ticket will never be expired
 # author: zhchen@redhat.com
 
-export KRB5CCNAME=/tmp/krb5cc_$(id -u)
 username=$1
 read -s -p "Password: " password
 echo
 
 _kinit() {
-	echo $password | kinit $username
+	echo $password | kinit $username >/dev/null
 }
 
 forever_kinit() {
