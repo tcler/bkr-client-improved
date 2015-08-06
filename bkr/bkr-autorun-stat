@@ -19,13 +19,14 @@ array set InvalidOpt {}
 set Args [list]
 set OptionList {
 	help   {arg n	help {Print this usage}}	h {link help}
-	lsjob  {arg n	help {list the job}}
-	lsrun  {arg n	help {list the run}}
-	jobchk {arg n	help {TBD: check if the job was delete, but the status is not completed}}
+	lsjob  {arg n	help {list the job}}	j {link lsjob}
+	lsrun  {arg n	help {list the run}}	r {link lsrun}
+	lsprogress {}	p {link lsprogress}	s {link lsprogress}
+	jobchk {arg n	help {TBD: check if the job was delete, but the status is not completed} hide {}}
 }
 
 proc Usage {progname} {
-	puts "Usage: $progname \[options\]"
+	puts "Usage: $progname \[options\] \[pkg \[run\]\]"
 	getUsage $::OptionList
 }
 
@@ -46,6 +47,7 @@ sqlite3 db testrun.db
 set pkgQ "select DISTINCT ti.pkgName from testinfo ti"
 set pkgList [db eval $pkgQ]
 set runList {}
+
 foreach pkg $pkgList {
 	set distroQ "
 		select DISTINCT trun.distro_rgset
@@ -61,15 +63,23 @@ foreach pkg $pkgList {
 }
 #===============================================================================
 
-# puts "==========================================> Vertical search"
+set pkg [lindex $Args 0]
+if {$pkg != {}} {
+	set runList [lsearch -all -inline $runList "pkg {$pkg} *"]
+}
+set run [lindex $Args 1]
+if {$run != {}} {
+	set runList [lsearch -all -inline $runList "* run {$run}"]
+}
+
 if [info exist Opt(lsrun)] {
 	foreach key $runList {
 		puts "$key"
 	}
 } elseif [info exist Opt(lsjob)] {
 	foreach key $runList {
-		set pkg [lindex $key 0]
-		set run [lrange $key 1 end]
+		set pkg [lindex $key 1]
+		set run [lindex $key 3]
 		set jobQ "
 			select DISTINCT trun.jobid
 			from testrun trun
@@ -82,35 +92,52 @@ if [info exist Opt(lsrun)] {
 		puts "\t$jobList"
 	}
 } else {
-	db eval {
-	    select
-		trun.distro_rgset as distro_rgset,
-		trun.jobid as jobid,
-		trun.testStat as tstat,
-		trun.rstat as rstat,
-		trun.res as res,
-		trun.abortedCnt as abortedCnt,
-		ti.test as test,
-		trun.testid as testid,
-		ti.pkgName as pkgName
-	    from testrun trun
-	    join testinfo ti on
-		trun.testid = ti.testid
-	    ORDER by ti.test
-	} {
-		set tname [lindex $test 0]
-		set tinfo "$tname [testinfo param $test] {[concat {*}[testinfo gset $test]]}"
-		set shortcat "[file tail [file dirname $tinfo]]/[file tail $tinfo]"
-		set tattr [lrange $test 1 end]
+	foreach key $runList {
+		set pkg [lindex $key 1]
+		set run [lindex $key 3]
+		array unset count
+		array set count {}
+		set testQ "
+		    select
+			trun.distro_rgset as distro_rgset,
+			trun.jobid as jobid,
+			trun.testStat as tstat,
+			trun.rstat as rstat,
+			trun.res as res,
+			trun.abortedCnt as abortedCnt,
+			ti.test as test,
+			trun.testid as testid,
+			ti.pkgName as pkgName
+		    from testrun trun
+		    join testinfo ti on
+			trun.testid = ti.testid
+		    where ti.pkgName LIKE '$pkg' and trun.distro_rgset == '$run' and trun.res != ''
+		    ORDER by ti.test
+		"
+		db eval $testQ {
+			set tname [lindex $test 0]
+			set tinfo "$tname [testinfo param $test] {[concat {*}[testinfo gset $test]]}"
+			set shortcat "[file tail [file dirname $tinfo]]/[file tail $tinfo]"
+			set tattr [lrange $test 1 end]
 
-		set testobj [format "{%s} {%s} {%s} {%s} {%s} %s {%s} %s" $distro_rgset $jobid $tstat $rstat $res $abortedCnt $shortcat $pkgName]
-		lappend runGroup($pkgName\ $distro_rgset) $testobj
-	}
+			if {$tstat == {}} {set tstat nil}
+			if ![info exist count($tstat)] {set count($tstat) 0}
+			set count($tstat) [incr count($tstat)]
 
-	foreach key [lsort -dictionary [array names runGroup]] {
-		puts "${key} :"
-		foreach K $runGroup($key) {
-			puts "  $K"
+			if ![info exist Opt(lsprogress)] {
+				set testobj [format "{%s} {%s} {%s} {%s} {%s} %s {%s} %s" $distro_rgset $jobid $tstat $rstat $res $abortedCnt $shortcat $pkgName]
+				puts "$testobj"
+			}
+		}
+		if [info exist Opt(lsprogress)] {
+			set sum 0
+			foreach {stat cnt} [array get count] { set sum [incr sum $cnt] }
+
+			puts "$pkgName $distro_rgset"
+			foreach {stat cnt} [array get count] {
+				puts "\t($stat)\t$cnt\t[expr $cnt.0 / $sum * 100]%"
+			}
+			puts ""
 		}
 	}
 }
