@@ -1,5 +1,5 @@
 
-export PATH:=${PATH}:/usr/local/bin
+export PATH:=${PATH}:/usr/local/bin:~/bin
 
 softinstall install: isroot install_require install_wub
 	mkdir -p /etc/bkr-client-improved && cp -an conf/* /etc/bkr-client-improved/.
