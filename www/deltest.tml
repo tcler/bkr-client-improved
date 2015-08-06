@@ -1,5 +1,5 @@
 [
-lappend ::auto_path $env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require tdom
 package require sqlite3
 package require runtestlib

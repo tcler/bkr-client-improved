@@ -7,7 +7,7 @@ exec tclsh "$0" ${1+"$@"}
 # This is a test run monitor.
 # tdom usage: http://wiki.tcl.tk/8984
 
-lappend ::auto_path $env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require tdom
 package require sqlite3
 package require runtestlib

@@ -6,7 +6,7 @@ exec tclsh "$0" ${1+"$@"}
 # Author: jiyin@redhat.com
 # Used to delete specified test run.
 
-lappend ::auto_path $env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require getOpt
 package require runtestlib
 package require tdom

@@ -7,7 +7,7 @@ exec tclsh "$0" ${1+"$@"}
 # Like but better than "bkr workflow-xxx --dryrun", more functional and flexible
 # gen_job_xml --help for detail
 
-lappend ::auto_path $env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require xmlgen
 package require getOpt
 package require runtestlib
