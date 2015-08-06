@@ -73,7 +73,7 @@ for f in $dfList; do
 	url=https://home.corp.redhat.com/wiki/rhel${v%[cs]}changelog
 	url=http://patchwork.lab.bos.redhat.com/status/rhel${v%[cs]}/changelog.html
 	echo "#$url" >>$p
-	tagr=`awk '$1 ~ /^+/ && $2 ~ /kernel-/ {print $2}' $p`.el${v%[cs]}
+	tagr=$(awk '$1 ~ /^+/ && $2 ~ /kernel-/ {print $2}' $p|head -n1|sed s/$/.el${v%[cs]}/)
 	(echo -e "\n{Info} ${tagr} change log:"
 
 	sed -n '/\*.*\['"${tagr/kernel-/}"'\]/,/^$/{p}' /var/cache/kernelnvrDB/changeLog${v%[cs]} >changeLog
