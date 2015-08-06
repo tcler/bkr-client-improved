@@ -190,7 +190,12 @@ proc ::getOpt::getUsage {optList} {
 		} elseif [dict exist $optDict $key link] {
 			set lnk [dict get $optDict $key link]
 			if [dict exist $optDict $lnk] {
-				dict set optDict $lnk [concat [dict get $optDict $lnk] "keys {$lnk,$key}"]
+				if ![dict exist $optDict $lnk keys] {
+					dict set optDict $lnk [concat [dict get $optDict $lnk] "keys {$key,$lnk}"]
+				} else {
+					set keysv [dict get $optDict $lnk keys]
+					dict set optDict $lnk [concat [dict get $optDict $lnk] "keys {$key,$keysv}"]
+				}
 				dict unset optDict $key
 			}
 		}
