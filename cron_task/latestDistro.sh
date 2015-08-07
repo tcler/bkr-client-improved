@@ -16,11 +16,11 @@ dfList=$(eval echo $latestDistroF{${DVLIST// /,}})
 #echo $dfList
 
 #getLatestRHEL all >.distroListr
-distro-list.sh all | egrep '^RHEL-?(-LE-)?[678]' >.distroListr
+distro-list.sh all | egrep '^RHEL-?[678]' >.distroListr
 while read d; do
 	pkgList=$(awk -v d=$d 'BEGIN{ret=1} $1 == d {$1=""; print; ret=0} END{exit ret}' .distroList.orig) || {
 		r=$d
-		[[ "$r" =~ ^RHEL-?(-LE-)?[0-9]\.[0-9]$ ]] && r=${r%%-*}-./${r##*-}
+		[[ "$r" =~ ^RHEL-?[0-9]\.[0-9]$ ]] && r=${r%%-*}-./${r##*-}
 		pkgList=$(vershow '^(kernel|nfs-utils|autofs|rpcbind|.*fs-?progs)-[0-9]+\..*' "/$r$" |
 			grep -v ^= | sed -r 's/\..?el[0-9]+.?\.(x86_64|i686|noarch|ppc64le)\.rpm//g' |
 			uniq | xargs | sed -r 's/(.*)(\<kernel-[^ ]* )(.*)/\2\1\3/')
@@ -39,7 +39,7 @@ done <.distroListr >.distroList
 test -n "`cat .distroList`" &&
 	for V in $DVLIST; do
 	    v=${V//[cs]/} t=${V//[0-9]/}
-	    egrep -i "^RHEL-?(-LE-)?${v}.[0-9]+-${t}" .distroList >${latestDistroF}$V.tmp
+	    egrep -i "^RHEL-?${v}.[0-9]+-${t}" .distroList >${latestDistroF}$V.tmp
 	done
 
 for f in $dfList; do
