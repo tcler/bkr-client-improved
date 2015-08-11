@@ -70,7 +70,7 @@ Notes:
     - `newcase.sh`: create a new test case template
 	- `vershow`: show the version of the package in special distro
 	- `getLatestRHEL`: get the latest distro name which can install in beaker
-	- `earchBrewBuild/downloadBrewBuild/installBrewPkg`: search/download/install package build from brew
+	- `searchBrewBuild/downloadBrewBuild/installBrewPkg`: search/download/install package build from brew
 	- `parse_nay_nic_info.sh`: Get NAY lab's network-qe machine name by NIC driver/model/num/...
 
       (Check utils dir to get more)
