@@ -57,7 +57,7 @@ for f in $kfList; do
 		[ -f kernel-${tagr/kernel-/}.src.rpm ] || {
 			available=0
 		}
-		rpm -qp --changelog kernel-${tagr/kernel-/}.src.rpm >changeLog$v
+		LANG=C rpm -qp --changelog kernel-${tagr/kernel-/}.src.rpm >changeLog$v
 		\rm kernel-${tagr/kernel-/}.src.rpm
 
 		sed -n "/\*.*\[${tagr/kernel-/}\]/,/^$/{p}" changeLog$v >changeLog
