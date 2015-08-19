@@ -90,7 +90,7 @@ if [info exist Opt(lsrun)] {
 			where ti.pkgName LIKE '$pkg' and trun.distro_rgset == '$run' and trun.res != ''
 		"
 		set jobList [db eval $jobQ]
-		puts "\033\[1;34m$key\033\[0m:"
+		puts "\033\[1;34m$pkg '$run'\033\[0m:"
 		puts "\t$jobList"
 	}
 } else {
