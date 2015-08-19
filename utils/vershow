@@ -105,8 +105,8 @@ UpdateDB() {
 	rm -f /tmp/distroDB.w.lock
 }
 
-ARCH=x86_64
-case $ARCH in  x86_64|i386|ppc64|s390x) :;;  *) ARCH=x86_64;;  esac
+ARCH=${ARCH:-x86_64}
+case "$ARCH" in  x86_64|i386|ppc64*|s390x) :;;  *) ARCH=x86_64;;  esac
 dbRoot=/var/cache/distroInfoDB
 
 if [ "$Update" = yes -o "$Update" = YES ]; then 
