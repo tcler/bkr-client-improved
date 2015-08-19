@@ -74,7 +74,9 @@ if {$run != {}} {
 
 if [info exist Opt(lsrun)] {
 	foreach key $runList {
-		puts "$key"
+		set pkg [lindex $key 1]
+		set run [lindex $key 3]
+		puts "$pkg  '$run'"
 	}
 } elseif [info exist Opt(lsjob)] {
 	foreach key $runList {
@@ -133,7 +135,7 @@ if [info exist Opt(lsrun)] {
 			set sum 0
 			foreach {stat cnt} [array get count] { set sum [incr sum $cnt] }
 
-			puts "$pkgName $distro_rgset"
+			puts "$pkgName '$distro_rgset'"
 			foreach {stat cnt} [array get count] {
 				puts "\t($stat)\t$cnt\t[expr $cnt.0 / $sum * 100]%"
 			}
