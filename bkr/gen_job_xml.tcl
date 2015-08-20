@@ -499,13 +499,6 @@ job retention_tag=Scratch $jobCtl {
 							param name=KERNELARGVARIANT value=$KVARIANT -
 						}
 					}
-					task name=/distribution/reservesys role=$role ! {
-						params ! {
-							param name=RESERVE_IF_FAIL value=1 -
-							param name=ESERVETIME value=1 -
-						}
-
-					}
 				}
 				if [info exist Opt(upstream)] {
 					task name=/kernel/distribution/upstream-kernel/install role=$role ! {
@@ -513,13 +506,6 @@ job retention_tag=Scratch $jobCtl {
 							param name=KERNEL_GIT_REPO value=$upstreamUrl -
 							param name=KERNEL_GIT_COMMIT value=$upstreamTag -
 						}
-					}
-					task name=/distribution/reservesys role=$role ! {
-						params ! {
-							param name=RESERVE_IF_FAIL value=1 -
-							param name=ESERVETIME value=1 -
-						}
-
 					}
 				}
 
