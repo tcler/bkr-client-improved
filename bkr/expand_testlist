@@ -102,7 +102,7 @@ while read testinfo; do
 	[[ "${param%,*}" =~ [^\ ]+ ]] && testattr="$casen $attr , Param: $param"
 	if [[ "$condition" =~ expand=no ]]; then
 		if distroMatch "$condition" $distro; then
-			echo "$testattr"
+			echo "$testattr , GlobalSetup: $gsetup_orig"
 		fi
 		continue
 	fi
