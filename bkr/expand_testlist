@@ -21,6 +21,61 @@ parse_yaml() {
 	END {print gensub("^ ", "", 1, s)}'
 }
 
+distroMatch() {
+	condition=$1
+	distro=$2
+	[[ -z "$distro" ]] && return 0
+
+
+	case $distro in
+		RHEL-6*) family=el6;;
+		RHEL-7*) family=el7;;
+		Fedora*) family=el7;;
+		*)	family=;;
+	esac
+	[[ -z "$family" ]] && return 0
+
+
+	nodistrof=$(eval set -- $condition; for c; do [[ "$c" =~ ^nodistro= ]] && echo -n "${c#*nodistro=}"; done)
+	distrof=$(eval set -- $condition; for c; do [[ "$c" =~ ^distro= ]] && echo -n "${c#*distro=}"; done)
+	[[ -z "$distrof" && -z "$nodistrof" ]] && return 0
+
+	#white list
+	if [[ -n "$distrof" ]]; then
+		if [[ "$distrof" =~ $family ]]; then
+			return 0
+		else
+			return 1
+		fi
+	fi
+
+	#black list
+	if [[ -n "$nodistrof" && "$nodistrof" =~ $family ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
+# __main__
+#===============================================================================
+export LANG=C
+P=${0##*/}
+#-------------------------------------------------------------------------------
+Usage() {
+	echo "Usage: $P [-d distroName] [/etc/bkr-client-improved/bkr.recipe.matrix.conf*]"
+}
+_at=`getopt -o hd: \
+    -n 'expand_testlist' -- "$@"`
+eval set -- "$_at"
+while true; do
+	case "$1" in
+	-h)	Usage; shift 1; exit 0;;
+	-d)	distro=$2; shift 2;;
+	--) shift; break;;
+	esac
+done
+
 ployConf=$1
 [ -z "$ployConf" ] && {
 	ployConf=/etc/bkr-client-improved/bkr.recipe.matrix.conf
@@ -35,19 +90,32 @@ testList=$(cat -)
 ployList=$(egrep -v '^ *#|^$' $ployConf)
 
 while read testinfo; do
-	gsetup_orig=$(parse_yaml "$testinfo"|sed -n '/^GlobalSetup: */{s///;p;q}')
-	condition=$(parse_yaml "$testinfo"|sed -n '/^Condition: */{s///;p;q}')
-	testinfo=${testinfo%, Condition:*}
+	[[ "$testinfo" =~ ^\ *$ ]] && continue
+	echo "$testinfo" | grep -q "^ *#" && continue
+
+	read casen testattr <<< "$testinfo"
+	gsetup_orig=$(parse_yaml "$testattr"|sed -n '/^GlobalSetup: */{s///;p;q}')
+	condition=$(parse_yaml "$testattr"|sed -n '/^Condition: */{s///;p;q}')
+	attr=$(parse_yaml "$testattr"|sed -n '/^Attr: */{p;q}')
+	param=$(parse_yaml "$testattr"|sed -n '/^Param: */{s///;p;q}')
+	testattr="$casen $attr"
+	[[ "${param%,*}" =~ [^\ ]+ ]] && testattr="$casen $attr , Param: $param"
 	if [[ "$condition" =~ expand=no ]]; then
-	        echo "$testinfo"
-	        continue
+		if distroMatch "$condition" $distro; then
+			echo "$testattr"
+		fi
+		continue
 	fi
 
-	noarch=$(eval set -- $condition; for c; do [[ "$c" =~ ^--noarch= ]] && echo -n "${c#--noarch=}"; done)
-	testinfo=${testinfo%, GlobalSetup:*}
+	if ! distroMatch "$condition" $distro; then
+		continue
+	fi
+
+	noarch=$(eval set -- $condition; for c; do [[ "$c" =~ ^noarch= ]] && echo -n "${c#*noarch=}"; done)
+	archl=$(eval set -- $condition; for c; do [[ "$c" =~ ^arch= ]] && echo -n "${c#*arch=}"; done)
 	gsetup_list=
 	while read gsetup; do
-		for arch in $noarch; do [[ $gsetup =~ arch=$arch ]] && continue 2; done
+		for archb in $noarch; do [[ $gsetup =~ arch=$archb ]] && continue 2; done
 		# get gsetup from ploy.conf
 		gsetup=$(eval set -- $gsetup; for a; do echo -n "'--$a' "; done)
 
@@ -58,8 +126,8 @@ while read testinfo; do
 		gsetup="$gsetup_orig $gsetup"
 		gsetup_tmp=
 		for i in $(echo $gsetup | tr ' ' '\n'); do
-			key_curr=$(echo $i |sed 's/.*--\([0-9,a-z,A-Z,_,-]*\)=.*/\1/')
-			\grep -q "$key_curr" <<< "$key_list" || {
+			key_curr=$(echo $i |sed 's/.*-\([0-9,a-z,A-Z,_,-]*\)=.*/\1/')
+			\grep -q -- "$key_curr" <<< "$key_list" || {
 				gsetup_tmp+="$i "
 				key_list+="$key_curr"
 			}
@@ -67,9 +135,9 @@ while read testinfo; do
 		gsetup="$gsetup_tmp"
 
 		# skip duplicate expanded items
-		\grep -q "$gsetup" <<< "$gsetup_list" || {
+		\grep -q -- "$gsetup" <<< "$gsetup_list" || {
 			gsetup_list+="$gsetup "
-			echo "$testinfo, GlobalSetup: $gsetup"
+			echo "$testattr , GlobalSetup: $gsetup"
 		}
 	done <<<"$ployList"
 done <<<"${testList}"
