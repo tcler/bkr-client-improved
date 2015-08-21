@@ -18,7 +18,7 @@ hardinstall: isroot install_require install_wub
 
 install_wub: isroot install_tclsh8.6
 	[ -d /opt/wub ] || { \
-	yum install svn &>/dev/null; \
+	yum install -y svn &>/dev/null; \
 	svn export https://github.com/tcler/wub/trunk /opt/wub >/dev/null; }
 	(cd www; for f in *; do ln -sf -T $$PWD/$$f /opt/wub/docroot/$$f; done)
 
