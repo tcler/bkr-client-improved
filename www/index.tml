@@ -535,22 +535,27 @@ foreach row $matrix {
 	set testid [lindex $row 0]
 	set test [lindex $row 1]
 	set tname [lindex $test 0]
-	set tnames "..[string range $tname end-32 end]"
 	set tattr [lrange $test 1 end]
 	set resList [lrange $row 2 end-$distroNum]
-	set tinfo "$tname [testinfo param $test] {[concat {*}[testinfo gset $test]]}"
 	append tbody "    <tr id=\"$testid\" ondblclick=\"showDetail('$testid')\">\n"
 	append tbody "      <td>[incr idx]</td>\n"
-	set shortcat "[file tail [file dirname $tinfo]]/[file tail $tinfo]"
-	set test [lindex $shortcat 0]
-	set gset [lindex $shortcat end]
-	set args [lrange $shortcat 1 end-1]
-	# fix me, if gset is too long, add <abbr> tag
-	if {[string length $gset] > 16} {
-		set gset "<abbr title=\"$gset\">GSET</abbr>"
-	}
+
+	set tnames "[file tail [file dirname $tname]]/[file tail $tname]"
+	set Tnames $tnames
+	if {[string length $tnames] > 32} {set Tnames "<abbr title=\"$tnames\">[string range $tnames 0 30]..</abbr>"}
+
+	set param [string map {TEST_PARAM_ * FSTYPE {} FSTYP {} NFS_VERSION VER SOCKET_TYPE SOCK TEST_ {} MKFS_OPTS {}} [testinfo param $test]]
+	set Param $param
+	if {[string length $param] > 32} {set Param "<abbr title=\"$param\">[string range $param 0 30]..</abbr>"}
+
+	set gset [string map {-part=fs= {} name= {} size= {} type= {} --arch= {} -arch= {}} [testinfo gset $test]]
+	set Gset $gset
+	if {[string length $gset] > 20} {set Gset "<abbr title=\"$gset\">[string range $gset 0 20]..</abbr>"}
+
+	set tinfo "$Tnames|$Param|$Gset"
+
 	set caseChkbox "<input class=\"selectTestCase\" type=\"checkbox\" id=\"$testid\">"
-	append tbody "      <td>[string range $test 0 32] $args {$gset} $caseChkbox</td>\n"
+	append tbody "      <td>$tinfo $caseChkbox</td>\n"
 	set j 0
 	foreach res $resList {
 		set restd {}
@@ -615,7 +620,7 @@ foreach row $matrix {
 	set testid [lindex $row 0]
 	set test [lindex $row 1]
 	set tname [lindex $test 0]
-	set tinfo "$tname [testinfo param $test][testinfo gset $test]"
+	set tinfo "$tname | [testinfo param $test] | [testinfo gset $test]"
 	set resList [lrange $row end-[expr $distroNum-1] end]
 	append detailDiv "<div class=\"detail\" id=\"div$testid\">\n"
 	append detailDiv "<span class=\"hideDetail\" id=\"div$testid\" onclick=\"hideDetail('div$testid')\"><button type=\"button\">X</button> - \[Close me\]</span>\n"
