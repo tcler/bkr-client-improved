@@ -30,27 +30,27 @@ set NotOptions [list]
 set OptionList {
 	help          {arg n	help {Print this usage}}	h {link help}
 	opts-macro          {arg y	help {exec the "cmd [arg]" in run time to generate options}}
-	f             {arg y	help {Specify a test list file
+	f             {arg y	help {Specify a test list file}}
 
-  Options for job configuration:}}
+  *0 {Dummy "\n  Options for job configuration:"}
 	restraint		{arg o	help {Use restraint harness instead of beach}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
 	wb			{arg y	help {Set the whiteboard for this job}}
 	whiteboard		{link wb}
 	repo			{arg m	help {Configure repo at <URL> in the kickstart for installation}}
 	recipe			{arg n	help {Just generate recipeSet node, internal use for runtest -merge}}
-	rwb			{arg y	help {Set the whiteboard for the recipe
+	rwb			{arg y	help {Set the whiteboard for the recipe}}
 
-  Options for selecting distro tree(s):}}
+  *1 {Dummy "\n  Options for selecting distro tree(s):"}
 	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
 	tag			{arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE)}}
 	distro			{arg m	help {Use named distro for job)}}
 	variant			{arg y	help {Specify the distro variant}}
 	arch			{arg y	help {Specify the distro arch}}
 	distrorequire		{link dr}
-	dr			{arg m	help {distrorequire -dr=key="value"
+	dr			{arg m	help {distrorequire -dr=key="value"}}
 
-  Options for selecting system(s):}}
+  *2 {Dummy "\n  Options for selecting system(s):"}
 	servers			{arg y	help {Include NUMBER server hosts for multi-host test}}
 	clients			{arg y	help {Include NUMBER client hosts for multi-host test}}
 	hr			{arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
@@ -59,10 +59,9 @@ set OptionList {
 	keyvalue		{link kv}
 	machine			{arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
 	systype			{arg y	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
-	ormachine		{arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3
+	ormachine		{arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
 
-
-  Options for selecting special system(s) of networ-qe in NAY lab:}}
+  *3 {Dummy "\n  Options for selecting special system(s) of networ-qe in NAY lab:"}
 	nay-driver		{link nay-nic-driver}
 	nic-num			{link nay-nic-num}
 	nay-nic-driver		{arg o help ""}
@@ -73,9 +72,9 @@ set OptionList {
 				Example: --nay-nic-driver=e1000e --nay-nic-num=2
 				Use comma-separated values for different machine pool of multihost
 				Example: --nay-nic-driver=e1000e,any --nay-nic-num=2 --nay-nic-speed=1g
-				Refer `parse_nay_nic_info.sh` for deep study, witch is the engine for the translating.
+				Refer `parse_nay_nic_info.sh` for deep study, witch is the engine for the translating.}}
 
-  Options for setting tasks:}}
+  *4 {Dummy "\n  Options for setting tasks:"}
 	task			{arg m	help {Include named task in job, can use multiple times}}
 	param			{arg m	help {Set task params, can use multiple times.
 				Use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
@@ -90,9 +89,9 @@ set OptionList {
 	cmd			{arg m	help {Add /distribution/command before test task}}
 	cmdb			{arg m	help {Add /distribution/command before install kernel}}
 	leap-second		{arg n	help {Add leap-second task}}
-	reserve-if-fail		{arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h
+	reserve-if-fail		{arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h}}
 
-  Options for installation:}}
+  *5 {Dummy "\n  Options for installation:"}
 	part			{arg m	help {Additional <partitions/> for job, example: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
 	partition		{link part}
 	ks			{arg m	help {Pass kickstart metadata OPTIONS when generating kickstart}}
