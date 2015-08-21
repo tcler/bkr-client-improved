@@ -128,7 +128,7 @@ if [info exist Opt(e)] {
 	close $fp
 
 	set TestList {}
-	if {![catch {set fp [open "|cat $TestList_tmp | expand_testlist $ployConf" r]} err]} {
+	if {![catch {set fp [open "|cat $TestList_tmp | expand_testlist $ployConf -d $Distro" r]} err]} {
 		while {-1 != [gets $fp line]} {
 			lappend TestList $line
 		}

@@ -167,7 +167,7 @@ _getTestList() {
         [ -z "$info" ] && continue
 
         if [ "$EXP" = yes ]; then
-            echo "$info" | expand_testlist $CONFF
+            echo "$info" | expand_testlist $CONFF -d "$distro"
         else
             echo "$info"
         fi
@@ -183,7 +183,7 @@ FORMAT=std
 Usage() {
 	echo "Usage: $P [--fmt=<raw|pol> | -e [-p /etc/bkr-client-improved/bkr.recipe.matrix.conf*] | -t <maxtime>] [\$dir ...]"
 }
-_at=`getopt -o hret:p: \
+_at=`getopt -o hred:t:p: \
 	--long help \
 	--long raw \
 	--long fmt: \
@@ -197,6 +197,7 @@ while true; do
 	-e)		EXP=yes; shift 1;;
 	-p)		CONFF=$2; shift 2;;
 	-t)		maxtime=$2; shift 2;;
+	-d)		distro=$2; shift 2;;
 	--) shift; break;;
 	esac
 done
