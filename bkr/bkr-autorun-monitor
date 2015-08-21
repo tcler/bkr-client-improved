@@ -40,7 +40,7 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 	set alone {}
 	if {![catch {set fp [open "|runtest.tcl -n $distro - ${alone} -- $rgset --kdump" w]} err]} {
 		foreach T $testlist { puts $fp $T }
-		close $fp
+		catch {close $fp} err
 		foreach xml [glob -nocomplain *.xml] {
 			if {$cnt >= $limitNum} break
 			puts "\[bkr-autorun-monitor\]: {$cnt/$limitNum} limitSubmit($arch) -> submit '$xml'"

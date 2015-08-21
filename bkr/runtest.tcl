@@ -140,7 +140,7 @@ if [info exist Opt(e)] {
 # Group the test list
 set sschedCnt 0
 foreach test $TestList {
-	if {[regexp {^ *#} $test] == 1} continue
+	if {[regexp -- {^ *#} $test] == 1} continue
 	if {[string trim $test] == ""} continue
 
 	# get key {pkg= ssched= topo= GlobalSetup}
