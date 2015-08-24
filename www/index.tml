@@ -568,6 +568,7 @@ foreach row $matrix {
 				set word [lindex $res $i]
 				if {$word == "Fail"} {set word "<span style=\"color:red;\">$word<span>"}
 				if {$word == "Warn"} {set word "<span style=\"color:green;\">$word<span>"}
+				if {$word == "Panic"} {set word "<span style=\"color:blue;\">$word<span>"}
 				append restd " <a href=\"https://beaker.engineering.redhat.com/recipes/$addr\">$word</a>"
 			}
 		}
@@ -639,6 +640,7 @@ foreach row $matrix {
 		append detailDiv "            <td>[string map {
 						"Fail\n" "<span style=\"color:red;\">Fail</span><br>"
 						"Warn\n" "<span style=\"color:green;\">Warn</span><br>"
+						"Panic\n" "<span style=\"color:blue;\">Panic</span><br>"
 						"\n" <br>} $res]</td>\n"
 	}
 	append detailDiv {        </tr>} "\n"
