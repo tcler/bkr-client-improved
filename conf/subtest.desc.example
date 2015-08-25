@@ -16,7 +16,9 @@
 #     --machine=v              #same as bkr-workflow/gen_job_xml.sh option
 #     ...
 # - Condition
-#     --noarch                 #Exclude specified arch
+#     noarch=                  #arch black list
+#     distro=                  #distro white list
+#     nodistro=                #distro black list
 #
 # Example:
 #    Attr: 
