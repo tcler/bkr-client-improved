@@ -1,7 +1,8 @@
 #!/bin/bash
 # zhchen@redhat.com
 
-testList="/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12h ssched=yes type=Functioal"
+testList='/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12h ssched=no type=Functioal'
+
 Usage()
 {
 	echo -e "Usage: bkr-reservesys <distro> [-- bkr-workflow options]"
@@ -18,4 +19,4 @@ run_option=$(sed 's#\(^.*\)-- \(.*$\)#\1#' <<< "$@")
 }
 
 bkr_option=$(sed 's#'"$run_option"'##' <<< "$@")
-echo "$testList" | runtest $run_option - $bkr_option
+echo "$testList" | runtest $run_option - -- ${bkr_option#-- } -cmd='echo -e "redhat\nredhat"|passwd'
