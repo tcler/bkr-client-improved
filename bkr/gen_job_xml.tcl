@@ -546,12 +546,12 @@ job retention_tag=Scratch $jobCtl {
 						set NFSSERVER "ibm-x3250m4-02.rhts.eng.pek2.redhat.com"
 					}
 					if { [ string length $VMCOREPATH ] == 0 } {
-						set VMCOREPATH "home/kdump/vmcore/"
+						set VMCOREPATH "/home/kdump/vmcore/"
 					}
 					task name=/kernel/kdump/setup-nfsdump role=$role ! {
 						params ! {
 							param name=NFSSERVER value=${NFSSERVER} -
-							param name=VMCOREPATH value=/${VMCOREPATH} -
+							param name=VMCOREPATH value=${VMCOREPATH} -
 							param name=NO_COMPRESS value=1
 						}
 					}
