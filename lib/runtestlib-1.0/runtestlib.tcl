@@ -86,7 +86,10 @@ proc ::runtestlib::testinfo {subcmd testobj} {
 	set ret ""
 	switch -exact -- $subcmd {
 		"recipekey" {
-			regsub  {.*pkg=([^ ]*).*(topo=[^ ]*).*(ssched=..).*} $tattr {\1 {\3} {\2}} key
+			regsub {.*pkg=([^ ]*).*} $tattr {\1} _pkg
+			regsub {.*(ssched=..).*} $tattr {\1} _ssched
+			regsub {.*(topo=[^ ]*).*} $tattr {\1} _topo
+			set key "$_pkg $_ssched $_topo"
 			lappend key $gset
 			set ret $key
 		}
