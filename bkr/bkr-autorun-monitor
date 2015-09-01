@@ -15,7 +15,6 @@ package require getOpt
 namespace import ::getOpt::* ::runtestlib::*
 
 source $conf_file
-if ![info exist KDUMP_ADDR] {set KDUMP_ADDR ""}
 foreach {key val} [array get HostAvilable] { set HostMax($key) [expr ($val+5)/10] }
 
 #parray HostMax
@@ -28,6 +27,7 @@ proc getXML {jobID} {
 }
 
 proc limitSubmitJobs {distro rgset arch testlist limitNum} {
+	if ![info exist KDUMP_ADDR] {set KDUMP_ADDR ""}
 	foreach file [glob -nocomplain *.xml] { file delete -force $file }
 	set testNum [llength $testlist]
 	if {$testNum == 0 || $limitNum < 0} {
