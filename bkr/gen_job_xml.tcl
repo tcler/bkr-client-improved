@@ -90,6 +90,7 @@ set OptionList {
 	cmdb			{arg m	help {Add /distribution/command before install kernel}}
 	leap-second		{arg n	help {Add leap-second task}}
 	reserve-if-fail		{arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h}}
+	fips                    {arg n  help {enable fips}}
 
   *5 {Dummy "\n  Options for installation:"}
 	part			{arg m	help {Additional <partitions/> for job, example: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
@@ -505,6 +506,13 @@ job retention_tag=Scratch $jobCtl {
 							param name=KERNEL_GIT_REPO value=$upstreamUrl -
 							param name=KERNEL_GIT_COMMIT value=$upstreamTag -
 						}
+					}
+				}
+
+				# enable fips
+				if [info exist Opt(fips)] {
+					task name=/distribution/fips/setup-fips-enabled role=$role ! {
+						params -
 					}
 				}
 
