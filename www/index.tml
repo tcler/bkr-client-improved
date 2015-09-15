@@ -154,8 +154,8 @@ div.controlPanel {
     position: fixed;
     top: 20pt;
     right: 100pt;
-    background-color: #CD7F32;
     background-color: #454;
+    background-color: #CD7F32;
     filter:alpha(Opacity=80); -moz-opacity:0.8; opacity: 0.8;
     border: solid 3px;
     border-color: #cd7f32;
@@ -499,7 +499,7 @@ set input
 -->
 <form action="[dict get $req -uri]">
   <div class="controlPanel">
-    <input type="checkbox" id="selectAll" onclick="checkall();" />
+    <input type="checkbox" id="selectAll" style="color: white;" onclick="checkall();" />
     <span style="font-weight:bold; color: #bfb;"> Show/UnselectAll </span>
     <hr/>
     <input type="button" value="Delete" onclick="delList();"/>
