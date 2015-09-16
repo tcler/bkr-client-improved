@@ -29,7 +29,7 @@ array set InvalidOpt {}
 set NotOptions [list]
 set OptionList {
 	help          {arg n	help {Print this usage}}	h {link help}
-	opts-macro          {arg y	help {exec the "cmd [arg]" in run time to generate options}}
+	opts-macro    {arg y	help {exec the "cmd [arg]" in run time to generate options}}
 	f             {arg y	help {Specify a test list file}}
 
   *0 {Dummy "\n  Options for job configuration:"}
@@ -60,6 +60,7 @@ set OptionList {
 	machine			{arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
 	systype			{arg y	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
 	ormachine		{arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
+	random                  {arg n  help {autopick type}}
 
   *3 {Dummy "\n  Options for selecting special system(s) of networ-qe in NAY lab:"}
 	nay-driver		{link nay-nic-driver}
@@ -344,6 +345,9 @@ job retention_tag=Scratch $jobCtl {
 			if ![info exist Opt(k-opts)] {set Opt(k-opts) ""}
 			if ![info exist Opt(k-opts-post)] {set Opt(k-opts-post) ""}
 			recipe kernel_options=$Opt(k-opts) kernel_options_post=$Opt(k-opts-post) whiteboard=$Opt(wb) ks_meta=$recipe_ks_meta ! {
+				set pick "false"
+				if ![info exist Opt(random)] {set pick "true"}
+				doTag autopick random $pick -
 				distroRequires ! {
 					and ! {
 						if {$DISTRO ni {"" "family"}} {
