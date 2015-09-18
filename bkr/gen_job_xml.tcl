@@ -346,7 +346,7 @@ job retention_tag=Scratch $jobCtl {
 			if ![info exist Opt(k-opts-post)] {set Opt(k-opts-post) ""}
 			recipe kernel_options=$Opt(k-opts) kernel_options_post=$Opt(k-opts-post) whiteboard=$Opt(wb) ks_meta=$recipe_ks_meta ! {
 				set pick "false"
-				if ![info exist Opt(random)] {set pick "true"}
+				if [info exist Opt(random)] {set pick "true"}
 				doTag autopick random $pick -
 				distroRequires ! {
 					and ! {
