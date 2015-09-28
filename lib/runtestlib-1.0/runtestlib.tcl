@@ -124,7 +124,7 @@ proc ::runtestlib::testinfo {subcmd testobj} {
 	return $ret
 }
 
-proc ::runtestlib::genWhiteboard {distro testkey testList} {
+proc ::runtestlib::genWhiteboard {distro testkey testList comment} {
 	lassign $testkey pkg ssched topo gset
 	set gset [string trimleft $gset]
 	set tnum [llength $testList]
@@ -156,7 +156,10 @@ proc ::runtestlib::genWhiteboard {distro testkey testList} {
 		set testSumm [string range $testSumm 1 end]
 	}
 
-	set WB "\[[clock format [clock seconds] -format %Y%m%d~%H:%M]\] $pkg $topoDesc\\$tnum/$testSumm@$distro $gset"
+	if {$comment != ""} {
+		set comment "$comment:"
+	}
+	set WB "\[[clock format [clock seconds] -format %Y%m%d~%H:%M]\] $pkg $topoDesc\\$tnum $comment/$testSumm@$distro $gset"
 
 	return [list $WB $gset]
 }
