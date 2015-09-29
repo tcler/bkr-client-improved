@@ -157,9 +157,9 @@ proc ::runtestlib::genWhiteboard {distro testkey testList comment} {
 	}
 
 	if {$comment != ""} {
-		set comment "$comment:"
+		set comment "\[$comment\]:"
 	}
-	set WB "\[[clock format [clock seconds] -format %Y%m%d~%H:%M]\] $pkg $topoDesc\\$tnum $comment/$testSumm@$distro $gset"
+	set WB "\[[clock format [clock seconds] -format %Y%m%d~%H:%M]\] \[$pkg@$distro $topoDesc:$tnum\] $comment/$testSumm $gset"
 
 	return [list $WB $gset]
 }
