@@ -125,6 +125,27 @@ proc ::runtestlib::testinfo {subcmd testobj} {
 }
 
 proc ::runtestlib::genWhiteboard {distro testkey testList comment} {
+
+	proc pop {varname} {
+		upvar 1 $varname var
+		set var [lassign $var head]
+		return $head
+	}
+
+	# Find common directory path
+	proc common_prefix {dirs {separator "/"}} {
+		set parts [split [pop dirs] $separator]
+		while {[llength $dirs]} {
+			set r {}
+			foreach cmp $parts elt [split [pop dirs] $separator] {
+				if {$cmp ne $elt} break
+				lappend r $cmp
+			}
+			set parts $r
+		}
+		return [join $parts $separator]
+	}
+
 	lassign $testkey pkg ssched topo gset
 	set gset [string trimleft $gset]
 	set tnum [llength $testList]
@@ -137,29 +158,74 @@ proc ::runtestlib::genWhiteboard {distro testkey testList comment} {
 		set gset [concat --servers=$servNum --clients=$clntNum $gset]
 	} else {}
 
-	set testSumm {}
-	set testSummMaxLen 30
+	# get common directory path as test summary prefix
+	set tnameList {}
+	set testSummPrefix {}
 	foreach t $testList {
 		set tname [lindex $t 0]
-		set tail [file tail $tname]
-		set maxlen [expr $testSummMaxLen/($tnum>5?5:$tnum)]
-		if {[string length $tail] > $maxlen} {
-			set tail [string range $tail 0 $maxlen].
+		append tnameList " $tname"
+	}
+	set testSummPrefix [common_prefix $tnameList]
+
+	# handle each test tail name for test summary
+	# and aggregate them like bash brace expansion
+	set tcnt 0
+	set tccnt 0
+	set tcurr {}
+	set tprev {}
+	set testSumm {}
+	set testSummMaxLen 80
+	set maxlen [expr $testSummMaxLen/($tnum>5?5:$tnum)]
+	foreach t $testList {
+		set tname [lindex $t 0]
+		set ttail [string range $tname [string length $testSummPrefix] end]
+		set ttail [string trimleft $ttail '/']
+
+		if {$ttail == ""} {
+			set ttail [file tail $testSummPrefix]
+			set testSummPrefix [file dir $testSummPrefix]
 		}
-		append testSumm ,$tail
+
+		if {[string length $ttail] > $maxlen} {
+			set ttail [string range $ttail 0 $maxlen].
+		}
+
+		set tcurr $ttail
+		if {$tcurr == $tprev} {
+			set tccnt [expr $tccnt + 1]
+			if {$tccnt == 1} {
+				append testSumm /.
+			}
+			if {$tccnt <= 5} {
+				append testSumm .
+			}
+			continue
+		}
+
+		set tcnt [expr $tcnt + 1]
+		if {$tcnt > 1} {
+			append testSumm ,
+		}
+
+		append testSumm $tcurr
 		if {[string length $testSumm] > $testSummMaxLen} {
-			set testSumm [string range $testSumm 0 $testSummMaxLen]...
+			append testSumm ,...
 			break
 		}
+
+		set tprev $tcurr
+		set tccnt 0
 	}
-	if {[string index $testSumm 0] == ","} {
-		set testSumm [string range $testSumm 1 end]
+	if {$tcnt > 1} {
+		set testSumm \{$testSumm
+		append testSumm \}
 	}
 
 	if {$comment != ""} {
 		set comment "\[$comment\]:"
 	}
-	set WB "\[[clock format [clock seconds] -format %Y%m%d~%H:%M]\] \[$pkg@$distro $topoDesc:$tnum\] $comment/$testSumm $gset"
+
+	set WB "\[[clock format [clock seconds] -format %Y%m%d~%H:%M]\] \[$pkg@$distro $topoDesc:$tnum\] $comment$testSummPrefix/$testSumm $gset"
 
 	return [list $WB $gset]
 }
