@@ -6,16 +6,17 @@ exitcode=0
 
 DRIVER=".*"
 MODEL=".*"
-PATTERN=".*"
+MATCH=".*"
+UNMATCH=""
 SPEED=".*"
 NUM=1
 OUTPUT=hostname
 
-serch_nic_info()
+search_nic_info()
 {
 	echo "$DRIVER"  | grep -qi "any" && DRIVER=".*"
 	echo "$MODEL"   | grep -qi "any" && MODEL=".*"
-	echo "$PATTERN" | grep -qi "any" && PATTERN=".*"
+	echo "$MATCH"	| grep -qi "any" && MATCH=".*"
 
 	case "$SPEED" in
 		any|ANY)	SPEED=".*" ;;
@@ -24,19 +25,35 @@ serch_nic_info()
 		40g|40G)	SPEED="40000" ;;
 	esac
 
-	awk 'BEGIN{IGNORECASE=1}; $0~/'"$PATTERN"'/ &&
+	awk 'BEGIN{IGNORECASE=1}; $0~/'"$MATCH"'/ &&
 	$4~/\<'"$DRIVER"'\>/ && $6~/'"$MODEL"'/ && $7~/'"${SPEED}Mb"'/ '
 }
 
+filter_nic_match()
+{
+	# remove the item if the machine contains unwished match
+	search_result=`cat -`
+	if [ -n "$UNMATCH" ]; then
+		matched_hostname=$(awk 'BEGIN{IGNORECASE=1}; $0 ~/'"$UNMATCH"'/ {printf "%s|", $3}' <<< "$search_result")
+		matched_hostname_pattern="${matched_hostname%|}"
+		if [ -n "$matched_hostname_pattern" ]; then
+			search_result=$(egrep -v "$matched_hostname_pattern" <<< "$search_result")
+		fi
+	fi
+	echo "$search_result"
+}
+
+
 filter_nic_num()
 {
+	# remove the item if the machine's matched NIC count is less than required
 	search_result=`cat -`
 	matched_hostname=$(awk '{print $3}' <<< "$search_result" | uniq -c | awk '{if ($1 >= '"$NUM"') printf "%s|", $2; }')
 	matched_hostname_pattern="${matched_hostname%|}"
 	[ ${#matched_hostname_pattern} -ne 0 ] && {
 		egrep "$matched_hostname_pattern" <<< "$search_result"
 	} || {
-		>&2 echo "Error: no matched machine have $NUM required NICs"
+		>&2 echo "Error: no matched machine have $NUM required NIC(s)"
 		let exitcode++
 		exit $exitcode
 	}
@@ -91,7 +108,8 @@ Usage()
 	Search options:
 	  -d, --driver		NIC driver
 	  -m, --model		NIC model
-	  -p, --pattern		customer pattern to search nic_info, use extended regexp
+	  -p, --match		customer pattern which match the regex (emulates "egrep")
+	  -v, --unmatch		customer pattern which does NOT match the regex (emulates "egrep -v")
 	  -s, --speed		NIC speed
 	  -c, --num		at least how many matched NICs that the machine have
 	  The results is the intersection of all specified conditions.
@@ -105,9 +123,10 @@ Usage()
 	  --help		display this help text and exit
 
 	Examples:
+	  $progname --hostname --speed 10g --num 2 --match 'hp.*driver-Prototype' --unmatch 'cisco|mlx4|4550-xe'
 	  $progname --hostname --driver mlx4_en --speed 10g
 	  $progname --hostname --model bcm5719
-	  $progname --hostname --pattern ibm
+	  $progname --hostname --match ibm
 	  $progname --raw --driver "sfc|be2net"
 	  $progname --table --speed 10g
 	  $progname --field model --driver tg3
@@ -115,10 +134,11 @@ Usage()
 	END
 }
 
-_at=`getopt -o d:s:m:p:c:h \
+_at=`getopt -o d:s:m:p:v:c:h \
 	--long driver: \
 	--long model: \
-	--long pattern: \
+	--long match: \
+	--long unmatch: \
 	--long speed: \
 	--long num: \
 	--long field: \
@@ -133,7 +153,8 @@ while true; do
 	case "$1" in
 	-d|--driver)	DRIVER="$2"; shift 2;;
 	-m|--model)	MODEL="$2"; shift 2;;
-	-p|--pattern)	PATTERN="$2"; shift 2;;
+	-p|--match)	MATCH="$2"; shift 2;;
+	-v|--unmatch)	UNMATCH="$2"; shift 2;;
 	-s|--speed)	SPEED="$2"; shift 2;;
 	-c|--num)	NUM="$2"; shift 2;;
 	--field)	OUTPUT=field; FIELD="$2"; shift 2;;
@@ -152,6 +173,6 @@ done
 }
 
 set -o pipefail
-sed 's/^#.*$//; /^$/d' $NIC_INFO | serch_nic_info | filter_nic_num | output_result
+sed 's/^#.*$//; /^$/d' $NIC_INFO | search_nic_info | filter_nic_match | filter_nic_num | output_result
 [ $? -ne 0 ] && { echo "NULL"; let exitcode++; }
 exit $exitcode
