@@ -175,7 +175,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 		set TestCmnt $Opt(wb)
 	}
 	if {$TestListFile != ""} {
-		append TestCmnt "$TestListFile"
+		lappend TestCmnt "$TestListFile"
 	}
 	lassign [genWhiteboard $Distro $tkey $tvalue "$TestCmnt"] WB gset
 
