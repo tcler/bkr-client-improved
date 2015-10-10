@@ -22,6 +22,7 @@ set OptionList {
 	merge  {arg n	help {Merge all recipeSets in one job XML}}	m {link merge}
 	raw    {arg n	help {Do not parse subtest.desc}}	r {link raw}
 	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList}}
+	wb     {arg o	help {Add customer string in the whiteboard}}
 	alone  {arg n	help {Submit all tests separately, one case one recipe}}
 }
 
@@ -82,6 +83,7 @@ set Distro [expandDistro $Distro]
 
 # Get the test list
 set TestList {}
+set TestListFile {}
 if {[llength $TestArgList]==0} {
 	if {![catch {set fp [open "|lstest . $lstest_opts" r]} err]} {
 		while {-1 != [gets $fp line]} {
@@ -105,6 +107,7 @@ if {[llength $TestArgList]==0} {
 				close $fp
 			}
 		} elseif [file isfile $f] {
+			set TestListFile $f
 			if {![catch {set fp [open $f]} err]} {
 				while {-1 != [gets $fp line]} {
 					lappend TestList $line
@@ -161,13 +164,21 @@ foreach test $TestList {
 # Gen job xml[s] and submit
 set TestCnt 0
 set TestSumm {}
+set TestCmnt {}
 set gen_opts {}
 if [info exist Opt(merge)] {
 	set xmlf_merged "job_merged.[clock format [clock seconds] -format %Y%m%d_%H%M].[expr {int(rand()*10000)}].xml"
 	lappend SubcmdOpt {-recipe}
 }
 foreach {tkey tvalue} [array get TestGroup] {
-	lassign [genWhiteboard $Distro $tkey $tvalue] WB gset
+	if [info exist Opt(wb)] {
+		set TestCmnt $Opt(wb)
+	}
+	if {$TestListFile != ""} {
+		lappend TestCmnt "$TestListFile"
+	}
+	lassign [genWhiteboard $Distro $tkey $tvalue "$TestCmnt"] WB gset
+
 	if {[string length $SubcmdOpt]>0} {append WB " {$SubcmdOpt}"}
 
 	set jobinfo job_[regsub -all {[^-?,=_a-zA-Z0-9]} $WB {_}]; # substitute special characters

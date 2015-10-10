@@ -63,17 +63,19 @@ set OptionList {
 	random                  {arg n  help {autopick type}}
 
   *3 {Dummy "\n  Options for selecting special system(s) of networ-qe in NAY lab:"}
-	nay-driver		{link nay-nic-driver}
-	nic-num			{link nay-nic-num}
+	nay-driver		{link nay-nic-driver hide y}
+	nic-num			{link nay-nic-num hide y}
 	nay-nic-driver		{arg o help ""}
 	nay-nic-num		{arg o help ""}
 	nay-nic-model		{arg o help ""}
 	nay-nic-speed		{arg o help ""}
-	nay-nic-pattern		{arg o help {These options together generate the machine pool which match required NIC num/driver/model/speed
-				Example: --nay-nic-driver=e1000e --nay-nic-num=2
-				Use comma-separated values for different machine pool of multihost
-				Example: --nay-nic-driver=e1000e,any --nay-nic-num=2 --nay-nic-speed=1g
-				Refer `parse_nay_nic_info.sh` for deep study, witch is the engine for the translating.}}
+	nay-nic-pattern		{link nay-nic-match hide y}
+	nay-nic-match		{arg o help ""}
+	nay-nic-unmatch	{arg o help {These options together generate the machine pool which match required NIC num/driver/model/speed
+				- Refer `parse_nay_nic_info.sh -h`, which is the engine for the translating.
+				  Example: --nay-nic-driver=e1000e --nay-nic-num=2
+				- Use comma-separated values for different machine pool of multihost
+				  Example: --nay-nic-driver=e1000e,any --nay-nic-num=2 --nay-nic-speed=1g }}
 
   *4 {Dummy "\n  Options for setting tasks:"}
 	task			{arg m	help {Include named task in job, can use multiple times}}
@@ -258,7 +260,7 @@ if [info exist Opt(clients)] { lappend ROLE_LIST {*}[lrepeat $Opt(clients) CLIEN
 if {[llength $ROLE_LIST] == 0} { set ROLE_LIST STANDALONE }
 
 # handle NAY NIC machines
-set nay_nic_opts {driver model speed pattern num}
+set nay_nic_opts {driver model speed match unmatch num}
 foreach i $nay_nic_opts {
 	if [info exist Opt(nay-nic-$i)] {
 		set NAY_NIC_OPTS_DICT($i) [split $Opt(nay-nic-$i) ", "]
@@ -283,11 +285,12 @@ foreach role $ROLE_LIST {
 		if {$driver==""} {set driver any}
 		if {$model==""} {set model any}
 		if {$speed==""} {set speed any}
-		if {$pattern==""} {set pattern any}
+		if {$match==""} {set match any}
+		if {$unmatch ==""} {set unmatch ''}
 		if {$num==""} {set num 1}
 
 		# get ormachine_list for each role
-		set NAY_NIC_MACHINE($role) [exec parse_nay_nic_info.sh -d "$driver" -m "$model" -s "$speed" -p "$pattern" -c "$num"]
+		set NAY_NIC_MACHINE($role) [exec parse_nay_nic_info.sh -d "$driver" -m "$model" -s "$speed" -p "$match" -v "$unmatch" -c "$num"]
 		incr M 1
 	} {
 		set NAY_NIC_MACHINE($role) {}
