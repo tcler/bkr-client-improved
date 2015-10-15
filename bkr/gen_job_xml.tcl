@@ -98,9 +98,10 @@ set OptionList {
   *5 {Dummy "\n  Options for installation:"}
 	part			{arg m	help {Additional <partitions/> for job, example: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
 	partition		{link part}
-	ks			{arg m	help {Pass kickstart metadata OPTIONS when generating kickstart}}
-	ks-meta			{link ks}
-	ksf			{arg m	help {Similar -ks, pass kickstart data from file}}
+	ks-meta			{arg m  help {Pass kickstart metadata OPTIONS when generating kickstart}}
+	ks-append		{arg m	help {Specify additional kickstart commands to add to the base kickstart file}}
+	ks			{link ks-append hide y}
+	ksf			{arg m	help {Similar to --ks-append, but pass the content of a specified file}}
 	k-opts			{arg m	help {Pass OPTIONS to kernel during installation}}
 	kernel-options		{link k-opts}
 	k-opts-post		{arg m	help {Pass OPTIONS to kernel after installation}}
@@ -239,12 +240,14 @@ if [info exist Opt(arch)] {
 	foreach e $Opt(arch) {lappend ARCH_L {*}[split $e ", "]}
 }
 
+set recipe_ks_meta {}
+if [info exist Opt(ks-meta)] { set recipe_ks_meta $Opt(ks-meta) }
+
 set restraint {}
 set restraint_git "git://pkgs.devel.redhat.com/tests"
-set recipe_ks_meta {}
 if [info exist Opt(restraint)] {
 	set restraint "yes"
-	set recipe_ks_meta {harness='restraint-rhts beakerlib'}
+	lappend recipe_ks_meta harness='restraint-rhts beakerlib'
 	if {$Opt(restraint) != ""} {
 		if [regexp {^\?} $Opt(restraint)] {
 			append restraint_git $Opt(restraint)
@@ -453,11 +456,11 @@ job retention_tag=Scratch $jobCtl {
 						if {![catch {set fp [open $Opt(ksf)]} err]} {
 							set data [read $fp]
 							close $fp
-							lappend Opt(ks) $data
+							lappend Opt(ks-append) $data
 						}
 					}
-					if [info exist Opt(ks)] {
-						foreach ks $Opt(ks) {
+					if [info exist Opt(ks-append)] {
+						foreach ks $Opt(ks-append) {
 							ks_append ! {
 								puts {<![CDATA[}
 								puts {%post}
