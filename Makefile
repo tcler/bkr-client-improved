@@ -8,7 +8,7 @@ softinstall install: isroot install_require install_wub
 	(cd utils; for f in *; do ln -sf -T $$PWD/$$f /usr/local/bin/$$f; done)
 	@ps axf|grep -v grep|grep -q vershow || vershow -uu >/dev/null &
 	@rm -f /etc/yum.repos.d/{qatools.repo,bkr-test-utils.repo,bkr-testrobot.repo}
-	@rpm -e --nodeps bkr-client-plugins-qe &>/dev/null
+	@-rpm -e --nodeps bkr-client-plugins-qe &>/dev/null || :
 
 hardinstall: isroot install_require install_wub
 	mkdir -p /etc/bkr-client-improved && cp -an conf/* /etc/bkr-client-improved/.
