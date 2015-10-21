@@ -42,7 +42,7 @@ cp -arf lib/*  sysroot/usr/local/lib/.
 cp -af bkr/* utils/* cron_task/* sysroot/usr/local/bin/.
 cp -af conf/* sysroot/etc/.
 
-rpmBild  ${pkgName}-0.12.129.tar.gz,usr,etc,var,opt
+rpmBild  ${pkgName}-0.96.tar.gz,usr,etc,var,opt
 
 rm -rf sysroot
 cp ~/rpmbuild/RPMS/*/${pkgName}*.rpm $OPWD/.
