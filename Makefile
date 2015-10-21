@@ -1,7 +1,7 @@
 
 export PATH:=${PATH}:/usr/local/bin:~/bin
 
-softinstall install: isroot install_require install_wub
+softinstall: isroot install_require install_wub
 	mkdir -p /etc/bkr-client-improved && cp -an conf/* /etc/bkr-client-improved/.
 	(cd lib; for d in *; do rm -rf /usr/local/lib/$$d; ln -sf -T $$PWD/$$d /usr/local/lib/$$d; done)
 	(cd bkr; for f in *; do ln -sf -T $$PWD/$$f /usr/local/bin/$$f; done)
@@ -10,7 +10,7 @@ softinstall install: isroot install_require install_wub
 	@rm -f /etc/yum.repos.d/{qatools.repo,bkr-test-utils.repo,bkr-testrobot.repo}
 	@-rpm -e --nodeps bkr-client-plugins-qe &>/dev/null || :
 
-hardinstall: isroot install_require install_wub
+hardinstall install: isroot install_require install_wub
 	mkdir -p /etc/bkr-client-improved && cp -an conf/* /etc/bkr-client-improved/.
 	cd lib; for d in *; do rm -fr /usr/local/lib/$$d; done
 	cp -arf lib/* /usr/local/lib/.
