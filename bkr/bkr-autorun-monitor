@@ -14,6 +14,8 @@ package require runtestlib
 package require getOpt
 namespace import ::getOpt::* ::runtestlib::*
 
+exec bash -c {recipe.sh $(klist | awk -F'[ :@]+' '/Default principal/{print $3}') >/dev/null}
+
 source $conf_file
 foreach {key val} [array get HostAvilable] { set HostMax($key) [expr ($val+5)/10] }
 
@@ -52,14 +54,17 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 				exec bash -c {cat jobsubmit.log >>jobsubmit.err.log}
 				continue
 			}
-			if [regexp {^job_[0-9]{8}_[0-9]{2}_[0-9]{2}_[-?_A-Za-z0-9]+_S_[0-9]+_.*\.xml$} $xml] {
-				incr cnt
-			} else {
+			incr cnt
+			if ![regexp {^job_[0-9]{8}_[0-9]{2}_[0-9]{2}_[-?_A-Za-z0-9]+_S_[0-9]+_.*\.xml$} $xml] {
 				lassign [regsub {.*--servers=([0-9]+).*--clients=([0-9]+).*} $xml {\1 \2}] s c
 				if {$s==""||$c==""} {
 					lassign [regsub {^job_[0-9]{8}_[0-9]{2}_[0-9]{2}_[-?_A-Za-z0-9]+_M_([0-9]+)_([0-9]+)_.*} $xml {\1 \2}] s c
 				}
-				incr cnt [expr $s + $c]
+				if {$s==""||$c==""} {
+					incr cnt 1
+				} else {
+					incr cnt [expr $s + $c - 1]
+				}
 			}
 		}
 	} else {
