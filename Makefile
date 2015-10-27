@@ -13,9 +13,11 @@ softinstall: isroot install_require install_wub
 hardinstall install: isroot install_require install_wub
 	mkdir -p /etc/bkr-client-improved && cp -an conf/* /etc/bkr-client-improved/.
 	cd lib; for d in *; do rm -fr /usr/local/lib/$$d; done
+	cd bkr; for f in *; do rm -fr /usr/local/bin/$$f; done
+	cd www; for f in *; do rm -fr /opt/wub/docroot/$$f; done
 	cp -arf lib/* /usr/local/lib/.
-	cp -afl bkr/* utils/* /usr/local/bin/.
-	cp -afl www/* /opt/wub/docroot/.
+	cp -af bkr/* utils/* /usr/local/bin/.
+	cp -af www/* /opt/wub/docroot/.
 	@ps axf|grep -v grep|grep -q vershow || vershow -uu >/dev/null &
 
 install_wub: isroot install_tclsh8.6
