@@ -14,6 +14,7 @@ hardinstall install: isroot install_require install_wub
 	mkdir -p /etc/bkr-client-improved && cp -an conf/* /etc/bkr-client-improved/.
 	cd lib; for d in *; do rm -fr /usr/local/lib/$$d; done
 	cd bkr; for f in *; do rm -fr /usr/local/bin/$$f; done
+	cd utils; for f in *; do rm -fr /usr/local/bin/$$f; done
 	cd www; for f in *; do rm -fr /opt/wub/docroot/$$f; done
 	cp -arf lib/* /usr/local/lib/.
 	cp -af bkr/* utils/* /usr/local/bin/.
