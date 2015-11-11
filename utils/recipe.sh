@@ -31,6 +31,7 @@ recipeCheck() {
 users="${users:-^(jiyin)$}"
 recipeCheck x86_64  "$users"
 recipeCheck ppc64   "$users"
+recipeCheck ppc64le "$users"
 recipeCheck s390x   "$users"
 recipeCheck i386    "$users"
 

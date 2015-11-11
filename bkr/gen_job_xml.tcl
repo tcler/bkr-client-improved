@@ -507,6 +507,7 @@ job retention_tag=Scratch $jobCtl {
 							param name=KERNELARGNAME value=kernel -
 							param name=KERNELARGVERSION value=[regsub ^kernel- $NVR {}] -
 							param name=KERNELARGVARIANT value=$KVARIANT -
+							param name=NoDeps value=--nodeps -
 						}
 					}
 				}

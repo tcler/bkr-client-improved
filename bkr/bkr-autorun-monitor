@@ -66,6 +66,7 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 					incr cnt [expr $s + $c - 1]
 				}
 			}
+			#incr cnt [exec bash -c "grep -c '</recipe>' $xml; :"]
 		}
 	} else {
 		puts "{WARN} limitSubmitJobs open|-> $err"
