@@ -7,7 +7,7 @@ Unofficial tools for [beaker-project](https://beaker-project.org/) with improved
 - Implement `newcase.sh` to replace `beaker-wizard`, which works better for multi-level directory and mutli-host.
 - Implement `gen_job_xml` to support complicated options setting for each role or recipeset.
 - Add `subtest.desc` to define each test's attribution/parameter/requirement. User don't need to read the code to study how to run it, and easy to extend one test case to multiple test items.
-- Implement `lstest/runtest` to submit test jobs to beaker from git dir, the action is convenient, fast, grouped and hardware resources saving. User don't need maintain tedious job XML and parameters.
+- Implement `lstest/bkr-runtest` to submit test jobs to beaker from git dir, the action is convenient, fast, grouped and hardware resources saving. User don't need maintain tedious job XML and parameters.
 - Implement `bkr-autorun-*` to submit test jobs, monitor job status, report test results, and save results in database for easy querying and comparing.
 - Supply some useful scripts for QE.
 
@@ -43,19 +43,19 @@ Notes:
 	```
 	(Use `gen_job_xml.tcl -h` to check all available options)
 
-*   ***runtest*** - Genarate job XML files from test items (by `lstest` and `gen_job_xml`), then group them (by haredware requirement) and submit to beaker
+*   ***bkr-runtest*** - Genarate job XML files from test items (by `lstest` and `gen_job_xml`), then group them (by haredware requirement) and submit to beaker
 
 	```
-	Usage0: runtest <distro[,distro,...]> [options] [-|testList|caseDir ...] [-- gen_job_xml options]
-	Usage1: runtest family [options] [-|testList|caseDir ...] -- --family=<distroFamily> [other gen_job_xml options]
+	Usage0: bkr-runtest <distro[,distro,...]> [options] [-|testList|caseDir ...] [-- gen_job_xml options]
+	Usage1: bkr-runtest family [options] [-|testList|caseDir ...] -- --family=<distroFamily> [other gen_job_xml options]
 
-	Example 1: runtest RHEL-6.6 -n ~/git/test/kernel/filesystems/nfs/function/
-	Example 2: runtest RHEL-6.6 -n ~/git/test/kernel/networking/bonding/failover -- --nay-nic-driver=tg3 --nay-nic-num=2
-	Example 3: runtest Fedora-22,RHEL-7.2,RHEL-7.2 ~/git/test/nfs-utils/function/pnfs/blklayout
-	Example 4: echo '/distribution/reservesys' | runtest RHEL-6.6 - -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6
+	Example 1: bkr-runtest RHEL-6.6 -n ~/git/test/kernel/filesystems/nfs/function/
+	Example 2: bkr-runtest RHEL-6.6 -n ~/git/test/kernel/networking/bonding/failover -- --nay-nic-driver=tg3 --nay-nic-num=2
+	Example 3: bkr-runtest Fedora-22,RHEL-7.2,RHEL-7.2 ~/git/test/nfs-utils/function/pnfs/blklayout
+	Example 4: echo '/distribution/reservesys' | bkr-runtest RHEL-6.6 - -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6
 
 	```
-	(Use `runtest -h` to get more helps)
+	(Use `bkr-runtest -h` to get more helps)
 
 *   ***bkr-autorun-**** - Utils to automatically submit test jobs, monitor test status, save and report test results
 

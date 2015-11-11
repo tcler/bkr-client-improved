@@ -6,7 +6,7 @@ testList='/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12
 Usage()
 {
 	echo -e "Usage: bkr-reservesys <distro> [-- bkr-workflow options]"
-	echo -e "Call runtest to submit a /distribution/reservesys job to beaker"
+	echo -e "Call bkr-runtest to submit a /distribution/reservesys job to beaker"
 }
 
 [ "$#" = 0 ] && { Usage; exit 1; }
@@ -19,4 +19,4 @@ run_option=$(sed 's#\(^.*\)-- \(.*$\)#\1#' <<< "$@")
 }
 
 bkr_option=$(sed 's#'"$run_option"'##' <<< "$@")
-echo "$testList" | runtest $run_option - -- ${bkr_option#-- } -cmd='echo -e "redhat\nredhat"|passwd'
+echo "$testList" | bkr-runtest $run_option - -- ${bkr_option#-- } -cmd='echo -e "redhat\nredhat"|passwd'

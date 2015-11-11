@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Traversal all cases in specified dir and format output the testlist
-# runtest can parse the testlist, and submit them to beaker
+# bkr-runtest can parse the testlist, and submit them to beaker
 #
 # Author: jiyin@redhat.com
 
