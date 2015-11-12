@@ -4,46 +4,39 @@
 
 OPWD=$PWD
 cd $(dirname ${0})
-pkgName="bkr-client-improved"
-
-configToCompatRhel5() {
-	local ni=i p=
-	[ $# -gt 0 ] && { ni=n; p=p; }
-	sed -r -$ni -e '/#+%_(source|binary)_payload/{s/#+//g;'$p'}' /usr/lib/rpm/macros
-	sed -r -$ni -e '/^%_(source|binary)_.*_algorithm/{s/^/#/;'$p'}' -e '/^%_binary_payload/{s/^/#/g;'$p'}' /usr/lib/rpm/redhat/macros
+fspec=$1
+[ -z "$fspec" ] && fspec=$(ls *.spec|head -n1)
+[ ! -r $fspec ] && {
+	echo "[Err] Can't find the spec file" >&2
+	exit 1
 }
-unconfigToCompatRhel5() {
-	local ni=i p=
-	[ $# -gt 0 ] && { ni=n; p=p; }
-	sed -r -$ni -e '/^%_(source|binary)_payload/{s/^/#/g;'$p'}' /usr/lib/rpm/macros
-	sed -r -$ni -e '/#+%_(source|binary)_.*_algorithm/{s/#+//g;'$p'}' -e '/#+%_binary_payload/{s/#+//g;'$p'}' /usr/lib/rpm/redhat/macros
-}
-rpmBild() {
-	local ftar=${1%%,*}
-	local dirList=${1#*,}
+pkgName=$(awk -F'[: ]+' '$1=="Name"{print $2}' $fspec)
+version=$(awk -F'[: ]+' '$1=="Version"{print $2}' $fspec)
 
-    configToCompatRhel5
+genTarFile() {
+	local ftar=${1}
+	local dirList=${2}
+
 	pushd sysroot >/dev/null
-
 	tar zcf $ftar ${dirList//,/ }
-	chmod +x ./usr/local/bin/tgz2rpm.sh
-	echo -e "#========> Delete old version rpm <========#\n"
-	echo -e "#========> Begin  build  new  rpm <========#"
-	rm -f ~/rpmbuild/RPMS/*/${ftar%-*}-*.rpm
-	./usr/local/bin/tgz2rpm.sh $ftar
 	mv $ftar ../.; cd ..
-
 	popd >/dev/null
-    unconfigToCompatRhel5
 }
 
-mkdir -p sysroot/usr/local/{src,lib,bin} sysroot/etc
+mkdir -p sysroot/usr/local/{src,lib,bin} sysroot/etc/bkr-client-improved
 cp -arf lib/*  sysroot/usr/local/lib/.
-cp -af bkr/* utils/* cron_task/* sysroot/usr/local/bin/.
-cp -af conf/* sysroot/etc/.
-
-rpmBild  ${pkgName}-0.96.tar.gz,usr,etc,var,opt
+cp -af bkr*/* utils/* cron_task/* sysroot/usr/local/bin/.
+cp -af conf/* sysroot/etc/bkr-client-improved/.
+FTAR=${pkgName}-$version.tar.gz
+genTarFile ${FTAR} usr,etc,var,opt
+[ $? = 0 ] && {
+	mkdir -p ~/rpmbuild/{SPECS,SOURCES}
+	find ~/rpmbuild/RPMS/ -name "${pkgName}-*.rpm"|xargs rm -f
+	cp ${FTAR} ~/rpmbuild/SOURCES/.
+	rpmbuild -bb bkr-client-improved.spec 
+}
 
 rm -rf sysroot
 cp ~/rpmbuild/RPMS/*/${pkgName}*.rpm $OPWD/.
-rm ${pkgName}*.tar.gz
+rm ${FTAR}
+
