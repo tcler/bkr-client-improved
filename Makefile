@@ -17,7 +17,7 @@ install install_runtest: _isroot
 
 install_all install_robot: _isroot install_runtest _install_tclsh8.6 _install_require
 	#install test robot
-	cd bkr-test-robot; for f in *; do [ -d $$f ] && continue; rm -fr $(_bin)/$$f; done
+	cd bkr-test-robot; for f in *; do [ -d $$f ] && continue; cp -fd $$f $(_bin)/$$f; done
 	#install webfront
 	[ -d /opt/wub ] || { \
 	yum install -y svn &>/dev/null; \
