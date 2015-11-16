@@ -18,13 +18,13 @@ install install_runtest: _isroot
 install_all install_robot: _isroot install_runtest _install_tclsh8.6 _install_require
 	#install test robot
 	cd bkr-test-robot; for f in *; do [ -d $$f ] && continue; rm -fr $(_bin)/$$f; done
-	cd bkr-test-robot/www; for f in *; do rm -fr /opt/wub/docroot/$$f; done
-	cp -rf -d bkr-test-robot/www/* /opt/wub/docroot/.
 	#install webfront
 	[ -d /opt/wub ] || { \
 	yum install -y svn &>/dev/null; \
 	svn export https://github.com/tcler/wub/trunk /opt/wub >/dev/null; }
 	(cd bkr-test-robot/www; for f in *; do ln -sf -T $$PWD/$$f /opt/wub/docroot/$$f; done)
+	cd bkr-test-robot/www; for f in *; do rm -fr /opt/wub/docroot/$$f; done
+	cp -rf -d bkr-test-robot/www/* /opt/wub/docroot/.
 
 _install_tclsh8.6: _isroot
 	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; }
