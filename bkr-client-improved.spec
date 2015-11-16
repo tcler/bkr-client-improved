@@ -43,6 +43,7 @@ which tclsh8.6 >/dev/null || {
 	/usr/local/bin/tcllib_install.sh
 	/usr/local/bin/tdom_install.sh
 }
+chmod u+s /usr/local/bin/wub-service.sh
 
 %postun
 
