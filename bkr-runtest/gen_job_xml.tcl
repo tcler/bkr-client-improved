@@ -87,7 +87,7 @@ set OptionList {
 	upstream		{arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d][#tag]
 				default: git://git.app.eng.bos.redhat.com/linux.git#master}}
 	dbgk			{arg n	help {Use the debug kernel}}
-	kcov			{arg n	help {Enable kcov for coverage data collection}}
+	kcov			{arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs, drivers/net"}}
 	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
 	cmd			{arg m	help {Add /distribution/command before test task}}
 	cmdb			{arg m	help {Add /distribution/command before install kernel}}
@@ -545,13 +545,19 @@ job retention_tag=Scratch $jobCtl {
 				}
 				# --kcov task
 				if [info exist Opt(kcov)] {
+					if {$Opt(kcov) != ""} {
+						set kdir $Opt(kcov)
+					} else {
+						set kdir "fs, net, drivers/net"
+					}
+
 					task name=/distribution/pkginstall role=$role ! {
 						params ! { param name=PKGARGNAME value=lcov - }
 					}
 					task name=/kernel/kcov/prepare role=$role ! {
 						params ! {
 							param name=MODE value=KA -
-							param name=KDIR {value=fs, net/sunrpc} -
+							param name=KDIR value=${kdir} -
 						}
 					}
 					task name=/kernel/kcov/start role=$role ! {
