@@ -622,7 +622,9 @@ job retention_tag=Scratch $jobCtl {
 				# --kcov task
 				if [info exist Opt(kcov)] {
 					task name=/kernel/kcov/end role=$role ! {
-						params -
+						params ! {
+							param name=KILLTIMEOVERRIDE value=345600
+						}
 					}
 					task name=/kernel/kcov/finalize role=$role ! {
 						params -
