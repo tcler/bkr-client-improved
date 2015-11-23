@@ -90,16 +90,25 @@ proc updateJobTask {jobid distro_rgset} {
 		set rstat   {}
 		set tres    {}
 		set taskuri {}
+		set recipeIdx 0
 		foreach paramNode [$root selectNodes {//param[@value=$testID]}] {
 			set taskNode [[$paramNode parentNode] parentNode]
 			set recipeNode [$taskNode parentNode]
 			set recipeid [$recipeNode @id]
+			set endNodes [$recipeNode selectNodes {//task[@name="/kernel/kcov/end"]}]
 
-			set res [$taskNode @result]
-			set stat [$taskNode @status]
+			if {$endNodes != {}} {
+				set endNode [lindex $endNodes $recipeIdx]
+				set res [$endNode @result]
+				set stat [$endNode @status]
+			} else {
+				set res [$taskNode @result]
+				set stat [$taskNode @status]
+			}
 			lappend tres "$res\([string range $stat 0 2])"
 			lappend rstat $stat
 			lappend taskuri "${recipeid}#task[$taskNode @id]"
+			incr recipeIdx
 		}
 		set updateTestrun {
 			update testrun
@@ -153,9 +162,16 @@ foreach {jobID taskList} [array get runningTest] {
 		set rstat   {}
 		set tres    {}
 		set tresdetail {}
+		set recipeIdx 0
 		foreach paramNode [$root selectNodes {//param[@value=$testID]}] {
 			set taskNode [[$paramNode parentNode] parentNode]
+			set name [$taskNode @name]
 			set recipeNode [$taskNode parentNode]
+
+			set endNodes [$recipeNode selectNodes {//task[@name="/kernel/kcov/end"]}]
+			if {$endNodes != {}} {
+				set taskNode [lindex $endNodes $recipeIdx]
+			}
 
 			set res  [$taskNode @result]
 			set stat [$taskNode @status]
@@ -163,7 +179,6 @@ foreach {jobID taskList} [array get runningTest] {
 			set recipeid [$recipeNode @id]
 			set taskid [$taskNode @id]
 			set role [$taskNode @role]
-			set name [$taskNode @name]
 			set arch [$recipeNode @arch]
 
 			# process res
@@ -214,10 +229,11 @@ foreach {jobID taskList} [array get runningTest] {
 			if {$stat == "Completed"} {
 				if {$res != "Pass"} {
 					set logpath "log/[string map {{ } _} $distro_rgset]/$name-$arch-$testID/$jobID-$role-$recipeid-$res"
-					set rc [catch {exec bash -c "mkdir -p $logpath; cd $logpath; wget -N $tasklog; :"} msg]
+					#set rc [catch {exec bash -c "mkdir -p $logpath; cd $logpath; wget -N $tasklog; :"} msg]
 				}
 				# fix me wget special log file, and save to treddetail
 			}
+			incr recipeIdx
 		}
 		if {$rstat == $completeStr && [regexp {New} $tres] != 1} {
 			set tstat completed

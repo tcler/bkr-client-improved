@@ -115,6 +115,20 @@ proc Usage {} {
 	getUsage $::OptionList
 }
 
+proc getDefaultNVR {_distro} {
+	set reg $_distro
+	if [regexp {^RHEL-[0-9]\.[0-9]$} $reg] {
+		regsub {RHEL-([0-9]+\.[0-9]+)} $reg RHEL-./\1 reg
+	}
+
+	set _NVR [exec vershow {^kernel-[2-6]+[-.0-9]+\.} $reg]
+	if [regsub {.*(kernel-[2-6]+[-.0-9]+\.[^.]+).*} $_NVR {\1} _defaultNVR] {
+		return $_defaultNVR
+	} else {
+		return {}
+	}
+}
+
 # _parse_ argument
 getOptions $OptionList $::argv Opt InvalidOpt NotOptions
 proc debug {} {
@@ -492,22 +506,20 @@ job retention_tag=Scratch $jobCtl {
 					}
 				}
 				# kernelinstall
-				if {$KVARIANT in "debug" && ![info exist Opt(nvr)]} {
-					set reg $DISTRO
-					if [regexp {^RHEL-[0-9]\.[0-9]$} $reg] {
-						regsub RHEL-([0-9]+\.[0-9]+) $reg RHEL-./\1 reg
-					}
-					set res [exec vershow {^kernel-[2-6]+[-.0-9]+\.} $reg]
-					regsub {.*(kernel-[2-6]+[-.0-9]+\.[^.]+).*} $res {\1} Opt(nvr)
+				if {$KVARIANT == "debug" && ![info exist Opt(nvr)]} {
+					set Opt(nvr) [getDefaultNVR $DISTRO]
 				}
 				if {[info exist Opt(nvr)] && $Opt(nvr) != "" && $Opt(nvr) != "{}"} {
+					set defaultNVR [getDefaultNVR $DISTRO]
 					set NVR $Opt(nvr)
-					task name=/distribution/kernelinstall role=$role ! {
-						params ! {
-							param name=KERNELARGNAME value=kernel -
-							param name=KERNELARGVERSION value=[regsub ^kernel- $NVR {}] -
-							param name=KERNELARGVARIANT value=$KVARIANT -
-							param name=NoDeps value=--nodeps -
+					if {$NVR != $defaultNVR || $KVARIANT == "debug"} {
+						task name=/distribution/kernelinstall role=$role ! {
+							params ! {
+								param name=KERNELARGNAME value=kernel -
+								param name=KERNELARGVERSION value=[regsub ^kernel- $NVR {}] -
+								param name=KERNELARGVARIANT value=$KVARIANT -
+								param name=NoDeps value=--nodeps -
+							}
 						}
 					}
 				}

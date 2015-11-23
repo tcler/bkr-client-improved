@@ -79,8 +79,8 @@ if [regexp -- {^RH[A-Z]{2}-[0-9]{4}:[0-9]+} $Distro] {
 	lappend SubcmdOpt $pkgOpt=$pkgBuild
 }
 
-if [regexp -all -inline -- {-kcov} $SubcmdOpt] {
-	set Opt(alone) 1}
+if [regexp -- {-kcov} $SubcmdOpt] {
+	set Opt(alone) 1
 }
 
 #If Distro is short format
@@ -213,7 +213,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 		}
 		puts ""
 	} else {
-		puts "Error: fail to write $xmlf"
+		puts "Error: fail to write $xmlf\n\n$err"
 	}
 }
 
