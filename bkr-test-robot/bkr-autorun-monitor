@@ -263,7 +263,7 @@ db eval {
 	trun.distro_rgset as distro_rgset, ti.test as test, trun.testid as testid, trun.abortedCnt as abrtCnt
     from testrun trun
     join testinfo ti on
-	trun.testid = ti.testid and (trun.testStat = '' or trun.testStat = 'aborted' or trun.testStat = 'cancelled') and trun.abortedCnt < 10
+	trun.testid = ti.testid and (trun.testStat = '' or trun.testStat = 'aborted' or trun.testStat = 'cancelled' or trun.jobid = '') and trun.abortedCnt < 10
 } {
 	if {$abrtCnt > 5} {set alone {-alone}}
 	if ![regexp -- {-arch=([^ \"']+)} $test _arch arch] {

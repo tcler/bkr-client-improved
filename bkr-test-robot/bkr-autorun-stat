@@ -87,7 +87,7 @@ if [info exist Opt(lsrun)] {
 			from testrun trun
 			join testinfo ti on
 				trun.testid = ti.testid
-			where ti.pkgName LIKE '$pkg' and trun.distro_rgset == '$run' and trun.res != ''
+			where ti.pkgName LIKE '$pkg' and trun.distro_rgset == '$run' and trun.res != '' and trun.jobid != ''
 		"
 		set jobList [db eval $jobQ]
 		puts "\033\[1;34m$pkg '$run'\033\[0m:"
