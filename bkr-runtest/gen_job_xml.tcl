@@ -82,10 +82,11 @@ set OptionList {
 	param			{arg m	help {Set task params, can use multiple times.
 				Use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
 	taskparam		{link param}
-	install			{arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
 	nvr			{arg m	help {Specify the kernel(Name-Version-Release) to be installed}}
+	install			{arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
 	upstream		{arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d][#tag]
 				default: git://git.app.eng.bos.redhat.com/linux.git#master}}
+	scratch			{arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times}}
 	dbgk			{arg n	help {Use the debug kernel}}
 	kcov			{arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs, drivers/net"}}
 	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
@@ -528,6 +529,15 @@ job retention_tag=Scratch $jobCtl {
 						params ! {
 							param name=KERNEL_GIT_REPO value=$upstreamUrl -
 							param name=KERNEL_GIT_COMMIT value=$upstreamTag -
+						}
+					}
+				}
+				if [info exist Opt(scratch)] {
+					foreach bid $Opt(scratch) {
+						task name=/distribution/scratch-build-install role=$role ! {
+							params ! {
+								param name=BUILDID value=$bid -
+							}
 						}
 					}
 				}
