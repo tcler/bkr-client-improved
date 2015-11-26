@@ -16,7 +16,7 @@ Unofficial tools for [beaker-project](https://beaker-project.org/) with improved
 ```bash
 git clone https://github.com/tcler/bkr-client-improved
 cd bkr-client-improved
-sudo make install
+sudo make install  # or "sudo make install_all" to install the beaker-test-robot tools
 ```
 
 Notes:
