@@ -573,9 +573,6 @@ job retention_tag=Scratch $jobCtl {
 						set kdir "fs, net, drivers/net"
 					}
 
-					task name=/distribution/pkginstall role=$role ! {
-						params ! { param name=PKGARGNAME value=lcov - }
-					}
 					task name=/kernel/kcov/prepare role=$role ! {
 						params ! {
 							param name=MODE value=KA -
