@@ -40,7 +40,8 @@ foreach pkg $pkgList {
 	set distroList [lsort -decreasing $distroList]
 	set distroListLE [lsearch -all -inline $distroList RHEL-LE-*]
 	set distroListFedora [lsearch -all -inline $distroList Fedora-*]
-	set distroList [concat $distroListFedora [lsearch -regexp -all -inline $distroList RHEL\[0-9\]?-\[0-9\]*] $distroListLE]
+	set distroListFamily [lsearch -all -inline $distroList family*]
+	set distroList [concat $distroListFamily $distroListFedora [lsearch -regexp -all -inline $distroList RHEL\[0-9\]?-\[0-9\]*] $distroListLE]
 	if ![info exists RUN($pkg)] {set RUN($pkg) {}}
 	lappend RUN($pkg) {*}$distroList
 }
