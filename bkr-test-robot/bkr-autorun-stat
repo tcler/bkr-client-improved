@@ -122,9 +122,17 @@ if [info exist Opt(lsrun)] {
 			set shortcat "[file tail [file dirname $tinfo]]/[file tail $tinfo]"
 			set tattr [lrange $test 1 end]
 
-			if {$tstat == {}} {set tstat nil}
-			if ![info exist count($tstat)] {set count($tstat) 0}
-			set count($tstat) [incr count($tstat)]
+			set Stat $tstat
+			if {$tstat == ""} {set Stat "nil"}
+			if {$Stat == "completed"} {
+				set Res "pass"
+				if {[string map {Pass {} { } {}} $res] != ""} {
+					set Res "notpass"
+				}
+				append Stat "-$Res"
+			}
+			if ![info exist count($Stat)] {set count($Stat) 0}
+			set count($Stat) [incr count($Stat)]
 
 			if ![info exist Opt(lsprogress)] {
 				set testobj [format "{%s} {%s} {%s} {%s} {%s} %s {%s} %s" $distro_rgset $jobid $tstat $rstat $res $abortedCnt $shortcat $pkgName]
