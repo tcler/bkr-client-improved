@@ -76,7 +76,7 @@ while true; do
 	esac
 done
 
-ployConf=$1
+eval ployConf=$1
 [ -z "$ployConf" ] && {
 	ployConf=/etc/bkr-client-improved/bkr.recipe.matrix.conf
 	ployConfPrivate=~/.bkr-client-improved/bkr.recipe.matrix.conf
