@@ -643,6 +643,7 @@ job retention_tag=Scratch $jobCtl {
 					task name=/kernel/kcov/end role=$role ! {
 						params ! {
 							param name=KILLTIMEOVERRIDE value=345600
+							param name=KILLTIMEOVERRIDE value=345600 -
 						}
 					}
 					task name=/kernel/kcov/finalize role=$role ! {
