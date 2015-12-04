@@ -4,7 +4,7 @@
 #   arch=   the cpu arch
 #   dr=     distro require
 #   hr=     host require
-#   ...     please refer the gen_job_xml.tcl --help info
+#   ...     please refer the gen_job_xml --help info
 
 ## Simple matrix
 arch=x86_64

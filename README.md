@@ -37,11 +37,11 @@ Notes:
 *   ***gen_job_xml*** - Generate Beaker job XML file, like `bkr workflow-simple`, but have many improvements and unofficial options support
 
     ```
-	Usage: gen_job_xml.tcl --distro=<DISTRO> [options]
-	Example: gen_job_xml.tcl --distro RHEL-6.6 --task=/distribution/reservesys --arch=x86_64
+	Usage: gen_job_xml --distro=<DISTRO> [options]
+	Example: gen_job_xml --distro RHEL-6.6 --task=/distribution/reservesys --arch=x86_64
 
 	```
-	(Use `gen_job_xml.tcl -h` to check all available options)
+	(Use `gen_job_xml -h` to check all available options)
 
 *   ***bkr-runtest*** - Genarate job XML files from test items (by `lstest` and `gen_job_xml`), then group them (by haredware requirement) and submit to beaker
 

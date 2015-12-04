@@ -74,7 +74,7 @@ chmod u+s /usr/local/bin/wub-service.sh
 /usr/local/bin/errata2distro_and_pkg
 /usr/local/bin/errataInfo
 /usr/local/bin/expand_testlist
-/usr/local/bin/gen_job_xml.tcl
+/usr/local/bin/gen_job_xml
 /usr/local/bin/getDefaultIp
 /usr/local/bin/getDefaultNic
 /usr/local/bin/getIp
