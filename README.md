@@ -50,7 +50,7 @@ Notes:
 	Usage1: bkr-runtest family [options] [-|testList|caseDir ...] -- --family=<distroFamily> [other gen_job_xml options]
 
 	Example 1: bkr-runtest RHEL-6.6 -n ~/git/test/kernel/filesystems/nfs/function/
-	Example 2: bkr-runtest RHEL-6.6 -n ~/git/test/kernel/networking/bonding/failover -- --nay-nic-driver=tg3 --nay-nic-num=2
+	Example 2: bkr-runtest RHEL-6.6 -n ~/git/test/kernel/networking/bonding/failover -- --netqe-nic-driver=tg3 --nay-nic-num=2
 	Example 3: bkr-runtest Fedora-22,RHEL-7.2,RHEL-7.2 ~/git/test/nfs-utils/function/pnfs/blklayout
 	Example 4: echo '/distribution/reservesys' | bkr-runtest RHEL-6.6 - -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6
 
@@ -71,7 +71,7 @@ Notes:
 	- `vershow`: show the version of the package in special distro
 	- `getLatestRHEL`: get the latest distro name which can install in beaker
 	- `searchBrewBuild/downloadBrewBuild/installBrewPkg`: search/download/install package build from brew
-	- `parse_nay_nic_info.sh`: Get NAY lab's network-qe machine name by NIC driver/model/num/...
+	- `parse_netqe_nic_info.sh`: Get network-qe special machines by NIC driver/model/num/...
 
       (Check utils dir to get more)
 

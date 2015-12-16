@@ -62,20 +62,25 @@ set OptionList {
 	ormachine		{arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
 	random                  {arg n  help {autopick type}}
 
-  *3 {Dummy "\n  Options for selecting special system(s) of networ-qe in NAY lab:"}
-	nay-driver		{link nay-nic-driver hide y}
-	nic-num			{link nay-nic-num hide y}
-	nay-nic-driver		{arg o help ""}
-	nay-nic-num		{arg o help ""}
-	nay-nic-model		{arg o help ""}
-	nay-nic-speed		{arg o help ""}
-	nay-nic-pattern		{link nay-nic-match hide y}
-	nay-nic-match		{arg o help ""}
-	nay-nic-unmatch	{arg o help {These options together generate the machine pool which match required NIC num/driver/model/speed
-				- Refer `parse_nay_nic_info.sh -h`, which is the engine for the translating.
-				  Example: --nay-nic-driver=e1000e --nay-nic-num=2
+  *3 {Dummy "\n  Options for selecting special system(s) of networ-qe:"}
+	nay-driver		{link netqe-nic-driver	hide y}
+	nic-num			{link netqe-nic-num	hide y}
+	nay-nic-driver		{link netqe-nic-driver	hide y}
+	nay-nic-num		{link netqe-nic-num	hide y}
+	nay-nic-model		{link netqe-nic-model	hide y}
+	nay-nic-speed		{link netqe-nic-speed	hide y}
+	nay-nic-match		{link netqe-nic-match	hide y}
+	nay-nic-unmatch		{link netqe-nic-unmatch hide y}
+	netqe-nic-driver	{arg o help ""}
+	netqe-nic-num		{arg o help ""}
+	netqe-nic-model		{arg o help ""}
+	netqe-nic-speed		{arg o help ""}
+	netqe-nic-match		{arg o help ""}
+	netqe-nic-unmatch	{arg o help {These options together generate the machine pool which match required NIC num/driver/model/speed
+				- Refer `parse_netqe_nic_info.sh -h`, which is the engine for the translating.
+				  Example: --netqe-nic-driver=e1000e --netqe-nic-num=2
 				- Use comma-separated values for different machine pool of multihost
-				  Example: --nay-nic-driver=e1000e,any --nay-nic-num=2 --nay-nic-speed=1g }}
+				  Example: --netqe-nic-driver=e1000e,any --netqe-nic-num=2 --netqe-nic-speed=1g }}
 
   *4 {Dummy "\n  Options for setting tasks:"}
 	task			{arg m	help {Include named task in job, can use multiple times}}
@@ -278,29 +283,29 @@ if [info exist Opt(servers)] { lappend ROLE_LIST {*}[lrepeat $Opt(servers) SERVE
 if [info exist Opt(clients)] { lappend ROLE_LIST {*}[lrepeat $Opt(clients) CLIENTS] }
 if {[llength $ROLE_LIST] == 0} { set ROLE_LIST STANDALONE }
 
-# handle NAY NIC machines
-set nay_nic_opts {driver model speed match unmatch num}
-foreach i $nay_nic_opts {
-	if [info exist Opt(nay-nic-$i)] {
-		set NAY_NIC_OPTS_DICT($i) [split $Opt(nay-nic-$i) ", "]
+# handle network-qe private NIC machines
+set netqe_nic_opts {driver model speed match unmatch num}
+foreach i $netqe_nic_opts {
+	if [info exist Opt(netqe-nic-$i)] {
+		set NETQE_NIC_OPTS_DICT($i) [split $Opt(netqe-nic-$i) ", "]
 	}
 }
 
 set M 0
 foreach role $ROLE_LIST {
-	# set nay-nic machine list for different role
-	if [info exist NAY_NIC_OPTS_DICT] {
-		# init each params for parse_nay_nic_info.sh
-		foreach i $nay_nic_opts { set $i {} }
+	# set netqe-nic machine list for different role
+	if [info exist NETQE_NIC_OPTS_DICT] {
+		# init each params for parse_netqe_nic_info.sh
+		foreach i $netqe_nic_opts { set $i {} }
 
-		# get nay-nic-* options key-val for each role
-		foreach key [array names NAY_NIC_OPTS_DICT] {
-			set $key [lindex $NAY_NIC_OPTS_DICT($key) $M]
+		# get netqe-nic-* options key-val for each role
+		foreach key [array names NETQE_NIC_OPTS_DICT] {
+			set $key [lindex $NETQE_NIC_OPTS_DICT($key) $M]
 			eval set val $$key
-			if {$val==""} {set $key [lindex $NAY_NIC_OPTS_DICT($key) 0]}
+			if {$val==""} {set $key [lindex $NETQE_NIC_OPTS_DICT($key) 0]}
 		}
 
-		# set default values for parse_nay_nic_info.sh params
+		# set default values for parse_netqe_nic_info.sh params
 		if {$driver==""} {set driver any}
 		if {$model==""} {set model any}
 		if {$speed==""} {set speed any}
@@ -309,10 +314,10 @@ foreach role $ROLE_LIST {
 		if {$num==""} {set num 1}
 
 		# get ormachine_list for each role
-		set NAY_NIC_MACHINE($role) [exec parse_nay_nic_info.sh -d "$driver" -m "$model" -s "$speed" -p "$match" -v "$unmatch" -c "$num"]
+		set NETQE_NIC_MACHINE($role) [exec parse_netqe_nic_info.sh -d "$driver" -m "$model" -s "$speed" -p "$match" -v "$unmatch" -c "$num"]
 		incr M 1
 	} {
-		set NAY_NIC_MACHINE($role) {}
+		set NETQE_NIC_MACHINE($role) {}
 	}
 }
 
@@ -419,7 +424,7 @@ job retention_tag=Scratch $jobCtl {
 						}
 					}
 					or ! {
-						foreach m "$ORMACHINE_L $NAY_NIC_MACHINE($role)" {
+						foreach m "$ORMACHINE_L $NETQE_NIC_MACHINE($role)" {
 							hostname op== value=${m} -
 						}
 					}
