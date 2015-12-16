@@ -88,7 +88,7 @@ chmod u+s /usr/local/bin/wub-service.sh
 /usr/local/bin/newcase.sh
 /usr/local/bin/nolimit.sh
 /usr/local/bin/packInstalledRpm.sh
-/usr/local/bin/parse_nay_nic_info.sh
+/usr/local/bin/parse_netqe_nic_info.sh
 /usr/local/bin/pushcase.sh
 /usr/local/bin/recipe.sh
 /usr/local/bin/runtest

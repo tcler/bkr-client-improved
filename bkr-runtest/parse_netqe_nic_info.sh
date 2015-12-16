@@ -63,7 +63,7 @@ output_result()
 {
 	case "$OUTPUT" in
 		hostname)
-			awk '{print $3".rhts.eng.nay.redhat.com"}' | sort -u
+			awk '{print $3}' | sort -u
 			;;
 		raw)
 			cat -
@@ -94,6 +94,7 @@ output_result()
 				driver)			field='$4' ;;
 				model)			field='$6' ;;
 				speed)			field='$7' ;;
+				mac|MAC)                field='$1' ;;
 			esac
 			awk '{print '"$field"'}' | sort -u
 			;;
