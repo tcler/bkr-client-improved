@@ -105,6 +105,12 @@ for {set i 0} {$i < $num} {incr i} {
 <html>
 
 <head>
+<!--
+<link rel="shortcut icon" href="./robot-x.gif" type="image/gif">
+<link rel="icon" href="./robot-x.gif" type="image/gif">
+-->
+<link rel="shortcut icon" href="./robot.png" type="image/png">
+<link rel="icon" href="./robot.png" type="image/png">
 <style>
 table {
     width:100%;
