@@ -21,9 +21,9 @@ install_all install_robot: _isroot install_runtest _install_tclsh8.6 _install_re
 	[ -d /opt/wub ] || { \
 	yum install -y svn &>/dev/null; \
 	svn export https://github.com/tcler/wub/trunk /opt/wub >/dev/null; }
-	(cd bkr-test-robot/www2; for f in *; do ln -sf -T $$PWD/$$f /opt/wub/docroot/$$f; done)
-	cd bkr-test-robot/www2; for f in *; do rm -fr /opt/wub/docroot/$$f; done
-	cp -rf -d bkr-test-robot/www2/* /opt/wub/docroot/.
+	(cd bkr-test-robot/www; for f in *; do ln -sf -T $$PWD/$$f /opt/wub/docroot/$$f; done)
+	cd bkr-test-robot/www; for f in *; do rm -fr /opt/wub/docroot/$$f; done
+	cp -rf -d bkr-test-robot/www/* /opt/wub/docroot/.
 	@chmod o+w /opt/wub/CA
 
 _install_tclsh8.6: _isroot
