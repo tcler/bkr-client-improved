@@ -43,7 +43,7 @@ Notes:
 	```
 	(Use `gen_job_xml -h` to check all available options)
 
-*   ***bkr-runtest*** - Genarate job XML files from test items (by `lstest` and `gen_job_xml`), then group them (by haredware requirement) and submit to beaker
+*   ***bkr-runtest*** - Genarate job XML files from test items (by `lstest` and `gen_job_xml`), then group them (by hardware requirement) and submit to beaker
 
 	```
 	Usage0: bkr-runtest <distro[,distro,...]> [options] [-|testList|caseDir ...] [-- gen_job_xml options]
@@ -62,7 +62,7 @@ Notes:
     1. To create/delete test items for the monitor: `bkr-autorun-create/bkr-autorun-del`
     2. To monitor test items' status and save results: `bkr-autorun-monitor` (It will automatically be triggered by crontab)
     3. To check the content and result of the monitor (by CLI): `bkr-autorun-stat`
-    4. To check the content and result of the moniter (by Web page): `wub-service.sh start` then check `http://localhost:8080`
+    4. To check the content and result of the moniter (by Web page): `wub-service.sh start` then check `http://localhost:$port`
 
       (Use `-h` option to study each tool's usage)
 
