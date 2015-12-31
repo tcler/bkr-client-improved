@@ -1,4 +1,3 @@
-
 export PATH:=${PATH}:/usr/local/bin:~/bin
 _bin=/usr/local/bin
 
