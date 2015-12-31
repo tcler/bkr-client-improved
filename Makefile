@@ -28,7 +28,8 @@ install_all install_robot: _isroot install_runtest _install_tclsh8.6 _install_re
 	@chmod o+w /opt/wub/CA
 
 _install_tclsh8.6: _isroot
-	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; }
+	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; \
+	./utils/tcllib_install.sh; }
 
 _install_require: _isroot
 	@sed -i '/^Defaults *secure_path/{/.usr.local.bin/! {s; *$$;:$(_bin);}}' /etc/sudoers
