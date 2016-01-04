@@ -299,7 +299,7 @@ set tbody
         </div>
       </div>
     </div>
-    <!-- <div class="text-center"> -->
+
     <div class="text-center">
       | RecipeUse($hostinfo) | serv($host) clnt($ipaddr$forward) |
       <br>
@@ -354,5 +354,6 @@ set tbody
           </div>
         </div>
       </div>
+    </div>
   </body>
 </html>
