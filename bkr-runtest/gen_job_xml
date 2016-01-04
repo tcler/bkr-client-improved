@@ -332,7 +332,7 @@ if [info exist Opt(recipe)] {
 }
 
 set jobOwner {}
-if [info exist Opt(arch)] {
+if [info exist Opt(job-owner)] {
 	set jobOwner $Opt(job-owner)
 }
 
