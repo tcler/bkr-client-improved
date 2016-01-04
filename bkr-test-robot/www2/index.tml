@@ -1,0 +1,358 @@
+[
+lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+package require tdom
+package require sqlite3
+package require runtestlib
+package require getOpt
+namespace import ::getOpt::* ::runtestlib::*
+
+cd [dbroot]
+sqlite3 db testrun.db
+
+#===============================================================================
+# require view
+array set RUN {}
+set pkgQ "select DISTINCT ti.pkgName from testinfo ti"
+set pkgList [db eval $pkgQ]
+
+set pkgListx {}
+if [dict exists $req -query] {
+	set query [dict get $req -query]
+	lassign [Query qparse $query 0] xquery
+	if [dict exists $xquery pkg] {
+		set pkgListx [dict get $xquery pkg]
+	}
+}
+set pkgx [lindex $pkgListx 0]
+if {$pkgx == "" || $pkgx ni $pkgList} {
+	set pkgx [lindex $pkgList 0]
+}
+
+foreach pkg $pkgList {
+	set distroQ "
+		select DISTINCT trun.distro_rgset
+		from testrun trun
+		join testinfo ti on
+			trun.testid = ti.testid
+		where ti.pkgName LIKE '$pkg' and trun.res != ''
+	"
+	set distroList [db eval $distroQ]
+	set distroList [lsort -decreasing $distroList]
+	set distroListLE [lsearch -all -inline $distroList RHEL-LE-*]
+	set distroListFedora [lsearch -all -inline $distroList Fedora-*]
+	set distroListFamily [lsearch -all -inline $distroList family*]
+	set distroList [concat $distroListFamily $distroListFedora [lsearch -regexp -all -inline $distroList RHEL\[0-9\]?-\[0-9\]*] $distroListLE]
+	if ![info exists RUN($pkg)] {set RUN($pkg) {}}
+	lappend RUN($pkg) {*}$distroList
+}
+
+set distroListTmp {}
+set distroGsetList {}
+if [dict exists $req -query] {
+	set query [dict get $req -query]
+	lassign [Query qparse $query 0] xquery
+	if [dict exists $xquery run-$pkgx] {
+		set tmp [dict get $xquery run-$pkgx]
+		if {$tmp != ""} {
+			set distroListTmp [dict keys $tmp]
+		}
+	}
+}
+foreach v [lsort -decreasing $distroListTmp] {
+	if {$v in $RUN($pkgx)} {lappend distroGsetList $v}
+}
+if {$distroGsetList == ""} {
+	set distroGsetList $RUN($pkgx)
+}
+set distroNum [llength $distroGsetList]
+
+set SQL "select
+    ti.testid,
+    ti.test,\n"
+foreach distro_rgset [lrange $distroGsetList 0 end] {
+    append SQL "    group_concat (case when trun.distro_rgset = '$distro_rgset' then trun.res||' '||trun.taskuri else NULL end),\n"
+}
+foreach distro_rgset [lrange $distroGsetList 0 end] {
+    append SQL "    group_concat (case when trun.distro_rgset = '$distro_rgset' then trun.resdetail else NULL end),\n"
+}
+set SQL "[string range $SQL 0 end-2]
+from testinfo ti
+join testrun trun on
+	trun.testid = ti.testid
+where ti.pkgName LIKE '$pkgx'
+group by ti.testid, ti.test
+ORDER by ti.tier asc, ti.test asc"
+
+#puts $SQL
+set x [concat {TestID {Test_Info}} $distroGsetList $distroGsetList]
+set columnNum [llength $x]
+
+set X {}
+lappend X {*}[db eval $SQL]
+set num [llength $X]
+set row {}
+set matrix {}
+for {set i 0} {$i < $num} {incr i} {
+	lappend row [lindex $X $i]
+	if {$i%$columnNum == $columnNum-1} {
+		lappend matrix $row
+		set row {}
+	}
+}
+
+#
+set hostinfo [::runtestlib::hostUsed]
+set host {}
+if [dict exists $req -host] { set host [dict get $req -host] }
+set ipaddr {}
+if [dict exists $req -ipaddr] { set ipaddr [dict get $req -ipaddr] }
+set forward {}
+if [dict exists $req -x-forwarded-for] { set forward /[dict get $req -x-forwarded-for] }
+]
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="./favicon.png">
+    <title>bkr improved</title>
+
+    <!-- Load css -->
+    <link href="./css/bootstrap.min.css" rel="stylesheet">
+    <!-- 
+    -->
+    <link href="./css/index.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="./css/jquery.dataTables.min.css" />
+
+    <!-- Load JavaScript -->
+    <script src="./js/jquery.min.js"></script>
+    <script src="./js/bootstrap.min.js"></script>
+    <script src="./js/jquery.dataTables.min.js"></script>
+    <script src="./js/dataTables.fixedColumns.min.js"></script>
+    <script src="./js/index.js"></script>
+    <script type="text/javascript">
+	[
+	package require json::write
+	set accumulate {}
+	set accumulatex {}
+	foreach item $distroList {
+	    lappend accumulate [json::write string $item]
+	}
+	foreach item $distroGsetList {
+	    lappend accumulatex [json::write string $item]
+	}
+	set theJsonArray [json::write array {*}$accumulate]
+	set theJsonArrayx [json::write array {*}$accumulatex]
+
+	set tmp "
+	var distroArray = $theJsonArray
+	var distroArrayx = $theJsonArrayx"
+	]
+    </script>
+    <script src="./js/robot.js"></script>
+  </head>
+  <!--<body style="font-family: wqy-microhei; background: #2c3e50">-->
+  <body style="font-family: wqy-microhei; background: #e3edcd">
+    <nav class="navbar navbar-fixed-top navbar-inverse">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="#">Bkr Test Robot </a>
+        </div>
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-nav navbar-right">
+            <ul class="nav navbar-nav">
+              <li class=""><a data-toggle="modal" href="#QueryForm">PackageQuery<span class="sr-only">(current)</span></a></li>
+            </ul>
+            <li class="dropdown">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Action <span class="caret"></span></a>
+              <ul class="dropdown-menu">
+                <li><a href="#">Clone</a></li>
+                <li><a href="#">ReRun</a></li>
+                <li><a href="#">Delete</a></li>
+                <li role="separator" class="divider"></li>
+                <li><a href="#">DeleteTestCase</a></li>
+              </ul>
+            <li><a href="#">Help</a></li>
+            <li><a href="#">About</a></li>
+            </li>
+          </ul>
+        </div><!-- /.navbar-collapse -->
+      </div><!-- /.container-fluid -->
+    </nav>
+    <div class="main-container">
+      <div class="controlPanel">
+        <input type="checkbox" id="selectAll" style="color: white;" onclick="checkall();" />
+        <span style="font-weight:bold; color: #bfb;"> Show/UnselectAll </span>
+        <br/>
+        <input type="button" value="Delete" onclick="delList();"/>
+        <input type="button" value="\[Re\]Run" onclick="reSubmitList();"/>
+        <input type="button" value="Clone" onclick="cloneToNewRun();"/>
+        <br>
+        <input type="button" value="Delete Test Cases" onclick="delTestCase();"/>
+      </div>
+
+      <form action="[dict get $req -uri]" style="font-size:80%;" >
+        <fieldset style="border-style:solid;border-bottom-width:2px;border-top-width:2px;border-left-width:1px;">
+          [
+          set input {}
+          foreach pkg $pkgList {
+          	append input "<input type=\"radio\" name=\"pkg\" value=\"$pkg\" onchange=\"pkgQuery('$pkg');\" /> $pkg"
+          }
+          append input { <input type="submit" value="Query"/>}
+          foreach pkg $pkgList {
+          	append input "<div class=\"pkgQuery\" id=\"Q-$pkg\">"
+          	foreach distro $RUN($pkg) {
+          		set D [string map {RHEL- {} {-nvr=kernel-} {+} {-nvr=} {+} {-install=} {+}} $distro]
+          		set D [regsub -all {\+[0-9]+\.[0-9]+\.[0-9]+-} $D {}]
+          		append input "<input type=\"checkbox\" name=\"run-$pkg\" value=\"$distro\" />$D\n"
+          	}
+          	append input {</div>}
+          }
+          set input
+          ]
+        </fieldset>
+      </form>
+
+      <div class="container-fluid">
+        <div class="row-fluid">
+          <table id="table01" class="fancyTable stripe row-border order-column" cellspacing="0" width="100%">
+            <thead>
+              <tr>
+	        <th class="head"></th>
+	        <th class="head">[lindex $x 1]</th>
+		[
+		set i 0
+		set thlist {}
+		foreach run [lrange $x 2 end-$distroNum] {
+			set runx [string map {RHEL- {} {-nvr=kernel-} {+} {-nvr=} {+} {-install=} {+}} $run]
+			append thlist "      <th class=\"head\"> <input class=\"checkCol\" type=\"checkbox\" id=\"$i\" onclick=\"selectCol($i);\"> [string map {{ } "<br>"} $runx] </th>\n"
+			incr i
+		}
+		set thlist
+		]
+              </tr>
+            </thead>
+            <tbody>
+[
+set tbody {}
+foreach row $matrix {
+	set testid [lindex $row 0]
+	set test [lindex $row 1]
+	set tname [lindex $test 0]
+	set tattr [lrange $test 1 end]
+	set resList [lrange $row 2 end-$distroNum]
+	append tbody "    <tr id=\"$testid\" ondblclick=\"showDetail('$testid')\">\n"
+	append tbody "      <td></td>\n"
+
+	set tnames "[file tail [file dirname $tname]]/[file tail $tname]"
+	set Tnames $tnames
+	if {[string length $tnames] > 32} {set Tnames "<abbr title=\"$tnames\">[string range $tnames 0 30]..</abbr>"}
+
+	set param [string map {TEST_PARAM_ * FSTYPE {} FSTYP {} NFS_VERSION VER SOCKET_TYPE SOCK TEST_ {} MKFS_OPTS {}} [testinfo param $test]]
+	set Param $param
+	if {[string length $param] > 32} {set Param "<abbr title=\"$param\">[string range $param 0 30]..</abbr>"}
+
+	set gset [string map {-part=fs= {} name= {} size= {} type= {} --arch= {} -arch= {}} [testinfo gset $test]]
+	set Gset $gset
+	if {[string length $gset] > 20} {set Gset "<abbr title=\"$gset\">[string range $gset 0 20]..</abbr>"}
+
+	set tinfo "$Tnames|$Param|$Gset"
+
+	set caseChkbox "<input class=\"selectTestCase\" type=\"checkbox\" id=\"$testid\">"
+	append tbody "      <td>$tinfo $caseChkbox</td>\n"
+	set j 0
+	foreach res $resList {
+		set restd {}
+		if {[string trim $res] in {{-} {o} {}}} {
+			set restd "<span style=\"color:gray;\">$res<span>"
+		} else {
+			set len [expr [llength $res] / 2]
+			for {set i 0} {$i < $len} {incr i} {
+				set addr [lindex $res [expr $i+$len]]
+				set word [lindex $res $i]
+				if {$word == "Fail"} {set word "<span style=\"color:red;\">$word<span>"}
+				if {$word == "Warn"} {set word "<span style=\"color:green;\">$word<span>"}
+				if {$word == "Panic"} {set word "<span style=\"color:blue;\">$word<span>"}
+				append restd " <a href=\"https://beaker.engineering.redhat.com/recipes/$addr\">$word</a>"
+			}
+		}
+		set img /jquery/images/grid-loading-done.gif
+		set flag [<img> id sticky title "click to resubmit this test" src $img onclick "reSubmit('$testid', '$j')"]
+		if {[string match *(*)* $restd] || [string trim $res] in {{-} {o}}} {
+			set img /jquery/images/grid-loading.gif
+			set flag [<img> id sticky title "this test is running" src $img]
+		}
+		if {[string trim $res] in {{}}} {
+			append tbody "      <td><input class=\"selectTestNil\" type=\"checkbox\" id=\"$testid $j\"> </td>\n"
+		} else {
+			append tbody "      <td><input class=\"selectTest\" type=\"checkbox\" id=\"$testid $j\"> $restd $flag </td>\n"
+		}
+		incr j
+	}
+	append tbody "    </tr>\n"
+}
+set tbody
+]
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- <div class="text-center"> -->
+    <div class="text-center">
+      | RecipeUse($hostinfo) | serv($host) clnt($ipaddr$forward) |
+      <br>
+      <strong>
+        Powered by <a href="https://github.com/tcler/bkr-client-improved">bkr-client-improved</a> and
+        <a href="https://github.com/tcler/wub">wub</a>
+      </strong>
+      |
+      <a href="mailto:yin-jianhong@163.com">@JianhongYin</a>
+      <a href="mailto:nzjachen@gmail.com">@ZhenjieChen</a>
+    </div>
+
+    <div class="modal fade" id="QueryForm">
+      <div class="modal show">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-body">
+              <form class="form-horizontal">
+                <fieldset>
+                  <!-- Form Name -->
+                  <legend>Package Select</legend>
+
+                  <!-- Select Basic -->
+                  <div class="form-group">
+                    <label class="col-md-4 control-label" for="selectbasic">Name</label>
+                    <div class="col-md-4">
+                      <select id="selectbasic" name="selectbasic" class="form-control">
+                        <option value="NFS">NFS</option>
+                        <option value="CIFS">CIFS</option>
+                        <option value="nfs-utils">NFS-UTILS</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Select Multiple -->
+                  <div class="form-group">
+                    <label class="col-md-4 control-label" for="Version">Version</label>
+                    <div class="col-md-4">
+                      <select id="Version" name="Version" class="form-control" multiple="multiple">
+                        <option value="1">beta 1</option>
+                        <option value="2">rc 2</option>
+                      </select>
+                    </div>
+                  </div>
+                </fieldset>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary">Query</button>
+              <button type="button" class="btn btn-info" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+  </body>
+</html>
