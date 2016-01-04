@@ -35,6 +35,7 @@ set OptionList {
   *0 {Dummy "\n  Options for job configuration:"}
 	restraint		{arg o	help {Use restraint harness instead of beach}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
+	job-owner		{arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
 	wb			{arg y	help {Set the whiteboard for this job}}
 	whiteboard		{link wb}
 	repo			{arg m	help {Configure repo at <URL> in the kickstart for installation}}
@@ -330,8 +331,13 @@ if [info exist Opt(recipe)] {
 	set notifyCtl {C}
 }
 
+set jobOwner {}
+if [info exist Opt(arch)] {
+	set jobOwner $Opt(job-owner)
+}
+
 # start generate xml
-job retention_tag=Scratch $jobCtl {
+job retention_tag=Scratch user=$jobOwner $jobCtl {
 	if ![info exist Opt(wb)] {
 		set Time [clock format [clock seconds] -format %Y-%m-%d~%H:%M]
 		set Opt(wb) "\[$Time\] $DISTRO_L \\[llength $TaskList]/[file tail [lindex [lindex $TaskList 0] 0]],... arch=$ARCH_L "
