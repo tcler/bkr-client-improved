@@ -108,6 +108,7 @@ set ipaddr {}
 if [dict exists $req -ipaddr] { set ipaddr [dict get $req -ipaddr] }
 set forward {}
 if [dict exists $req -x-forwarded-for] { set forward /[dict get $req -x-forwarded-for] }
+puts ""
 ]
 
 <html lang="en">

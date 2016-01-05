@@ -401,10 +401,24 @@
         background-color: #00ff00;
         font-weight: bold;
     }
-    table.detail tr td {
+    table.detail, tr, td {
         border: 0.1px solid #ccc;
         border-style: double;
         border-collapse: separate;
     }
+    div.pkgQuery {
+        background-color: #efd;
+        margin:0 auto;
+        margin-left: 0;
+        width: 1000px;
+        overflow: auto;
+        white-space:nowrap;
+        border:1px;
+        padding:1px;
+        display: none;
+        z-index: -1
+        filter:alpha(Opacity=98); -moz-opacity:0.98; opacity: 0.98
+    }
+
 
 /* BackGround and Default Font */
