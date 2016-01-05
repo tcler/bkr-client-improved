@@ -355,5 +355,42 @@ set tbody
         </div>
       </div>
     </div>
+
+
+[
+#div
+set detailDiv {}
+foreach row $matrix {
+	set testid [lindex $row 0]
+	set test [lindex $row 1]
+	set tname [lindex $test 0]
+	set tinfo "$tname | [testinfo param $test] | [testinfo gset $test]"
+	set resList [lrange $row end-[expr $distroNum-1] end]
+	append detailDiv "<div class=\"detail\" id=\"div$testid\">\n"
+	append detailDiv "<span class=\"hideDetail\" id=\"div$testid\" onclick=\"hideDetail('div$testid')\"><button type=\"button\">X</button> - \[Close me\]</span>\n"
+	append detailDiv "<br>\n"
+	append detailDiv "<p>$tinfo</p>\n"
+	append detailDiv {    <table class="detail">} "\n"
+	append detailDiv {        <tr>} "\n"
+	foreach distro $distroGsetList {
+		set distro [string map {RHEL- {} {-nvr=kernel-} {+} {-nvr=} {+} {-install=} {+}} $distro]
+		append detailDiv "            <td>[string map {{ } "<br>"} $distro]</td>\n"
+	}
+	append detailDiv {        </tr>} "\n"
+	append detailDiv {        <tr>} "\n"
+	foreach res $resList {
+		#puts "            <td>[regsub -all {\n} $res {<br>}]</td>"
+		append detailDiv "            <td>[string map {
+						"Fail\n" "<span style=\"color:red;\">Fail</span><br>"
+						"Warn\n" "<span style=\"color:green;\">Warn</span><br>"
+						"Panic\n" "<span style=\"color:blue;\">Panic</span><br>"
+						"\n" <br>} $res]</td>\n"
+	}
+	append detailDiv {        </tr>} "\n"
+	append detailDiv {    </table>} "\n"
+	append detailDiv "</div>\n"
+}
+set detailDiv
+]
   </body>
 </html>

@@ -367,7 +367,7 @@
         border-top: 1px solid white !important;
     }
 
-    /* controlPanel */
+/* controlPanel */
     div.controlPanel {
         position: fixed;
         z-index: 100;
@@ -379,6 +379,32 @@
         border: solid 3px;
         border-color: #D9D919;
         border-color: #cd7f32;
+    }
+    div.detail {
+        background-color: #d3ddbd;
+        position: fixed;
+        margin:0 auto;
+        align: center;
+        overflow: scroll;
+        border:5px;
+        padding:5px;
+        top: 96pt;
+        left: 10%;
+        width: 80%;
+        height: 80%;
+        display: none;
+        z-index: -1
+        filter:alpha(Opacity=98); -moz-opacity:0.98; opacity: 0.98
+    }
+    span.hideDetail {
+        position: fixed;
+        background-color: #00ff00;
+        font-weight: bold;
+    }
+    table.detail tr td {
+        border: 0.1px solid #ccc;
+        border-style: double;
+        border-collapse: separate;
     }
 
 /* BackGround and Default Font */
