@@ -79,7 +79,7 @@
 
 	function reSubmit(testid, distroIdx) {
 		//alert(distroArrayx[distroIdx] + ' ' + testid);
-		alert(document.URL);
+		//alert(document.URL);
 		var path = document.URL;
 		var path2 = path.replace(/index.tml/, "resubmit.tml");
 		var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/resubmit.tml?");
