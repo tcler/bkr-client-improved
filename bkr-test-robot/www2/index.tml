@@ -65,6 +65,10 @@ if {$distroGsetList == ""} {
 	set distroGsetList $RUN($pkgx)
 }
 set distroNum [llength $distroGsetList]
+if {$distroNum > 5} {
+	set distroGsetList [lrange $distroGsetList 0 4]
+	set distroNum [llength $distroGsetList]
+}
 
 set SQL "select
     ti.testid,
