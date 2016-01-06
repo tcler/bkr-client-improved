@@ -23,6 +23,8 @@ declaretags ks_appends ks_append
 declaretags watchdog
 declaretags task params param
 
+source $::conf_file
+
 # global var
 array set Opt {}
 array set InvalidOpt {}
@@ -331,7 +333,9 @@ if [info exist Opt(recipe)] {
 	set notifyCtl {C}
 }
 
-set jobOwner {}
+if ![info exist jobOwner] {
+	set jobOwner {}
+}
 if [info exist Opt(job-owner)] {
 	set jobOwner $Opt(job-owner)
 }
