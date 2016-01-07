@@ -281,8 +281,8 @@ foreach row $matrix {
 				if {$word == "Warn"} {set word "<span style=\"color:green;\">$word<span>"; set tagChk 1}
 				if {$word == "Panic"} {set word "<span style=\"color:blue;\">$word<span>"; set tagChk 1}
 				append restd " <a href=\"https://beaker.engineering.redhat.com/recipes/$addr\">$word</a>"
-				if {$tagChk == 1} {append restd " !"}
 			}
+			if {$tagChk == 1} {append restd " !"}
 		}
 		set img /jquery/images/grid-loading-done.gif
 		set flag [<img> id sticky title "click to resubmit this test" src $img onclick "reSubmit('$testid', '$j')"]
