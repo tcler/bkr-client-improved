@@ -272,14 +272,16 @@ foreach row $matrix {
 		if {[string trim $res] in {{-} {o} {}}} {
 			set restd "<span style=\"color:gray;\">$res<span>"
 		} else {
+			set tagChk 0
 			set len [expr [llength $res] / 2]
 			for {set i 0} {$i < $len} {incr i} {
 				set addr [lindex $res [expr $i+$len]]
 				set word [lindex $res $i]
-				if {$word == "Fail"} {set word "<span style=\"color:red;\">$word<span>"}
-				if {$word == "Warn"} {set word "<span style=\"color:green;\">$word<span>"}
-				if {$word == "Panic"} {set word "<span style=\"color:blue;\">$word<span>"}
+				if {$word == "Fail"} {set word "<span style=\"color:red;\">$word<span>"; set tagChk 1}
+				if {$word == "Warn"} {set word "<span style=\"color:green;\">$word<span>"; set tagChk 1}
+				if {$word == "Panic"} {set word "<span style=\"color:blue;\">$word<span>"; set tagChk 1}
 				append restd " <a href=\"https://beaker.engineering.redhat.com/recipes/$addr\">$word</a>"
+				if {$tagChk == 1} {append restd " !"}
 			}
 		}
 		set img /jquery/images/grid-loading-done.gif
