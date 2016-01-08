@@ -121,7 +121,7 @@ proc updateJobTask {jobid distro_rgset} {
 
 #_main_
 set USER $tcl_platform(user)
-set rc [catch {exec ps -U $USER -u $USER -o pid,user:20,cmd | grep -v grep | grep -v "^[pid] " | grep {tclsh.*bkr-autorun-monitor}} msg]
+set rc [catch {exec ps -U $USER -u $USER -o pid,user:20,cmd | grep -v grep | grep -wv ^[pid] | grep {tclsh.*bkr-autorun-monitor}} msg]
 if {$rc == 0} {
 	puts "{Warn} bkr-autorun-monitor is running! $msg"
 	exit 0
