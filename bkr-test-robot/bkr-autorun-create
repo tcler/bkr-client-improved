@@ -211,12 +211,12 @@ db transaction {
 
 # create cron task for bkr-autorun-monitor
 exec bash -c {
-	crontab -l|grep -q "/usr/local/bin/bkr-autorun-monitor" || {
+	crontab -l 2>/dev/null|grep -q "/usr/local/bin/bkr-autorun-monitor" || {
 		(
 		 echo "SHELL=/bin/bash"
 		 echo "PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin"
 		 crontab -l|sed -r '/^(SHELL|PATH)=/d'
-		 echo "02,32 *  *  *  *    /usr/local/bin/bkr-autorun-monitor &>/tmp/bkr-autorun.log;"
+		 echo "05,35 *  *  *  *    /usr/local/bin/bkr-autorun-monitor &>/tmp/bkr-autorun-$USER.log;"
 		) | crontab -
 	}
 	:
