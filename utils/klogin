@@ -26,7 +26,7 @@ forever_kinit & pid=$!
 
 # save pid, in case you want to kill it easily
 echo -n "Succeed! running forever_kinit in background, pid is: "
-echo $pid | tee /tmp/klogin.pid
+echo $pid | tee /tmp/klogin-$USER.pid
 
 # and the script can exit.
 exit 0
