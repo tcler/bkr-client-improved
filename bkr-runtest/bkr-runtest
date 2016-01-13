@@ -170,13 +170,13 @@ foreach test $TestList {
 # Gen job xml[s] and submit
 set TestCnt 0
 set TestSumm {}
-set TestCmnt {}
 set gen_opts {}
 if [info exist Opt(merge)] {
 	set xmlf_merged "job_merged.[clock format [clock seconds] -format %Y%m%d_%H%M].[expr {int(rand()*10000)}].xml"
 	lappend SubcmdOpt {-recipe}
 }
 foreach {tkey tvalue} [array get TestGroup] {
+	set TestCmnt {}
 	if [info exist Opt(wb)] {
 		set TestCmnt $Opt(wb)
 	}
