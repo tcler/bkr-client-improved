@@ -340,6 +340,10 @@
 	text-shadow: 0 1px 1px #e8ebee;
 	}
 
+.fancyTable tbody tr td {
+	font-size: 12px;
+}
+
 /* Ensure that the demo table scrolls */
     th, td { white-space: nowrap; }
     div.dataTables_wrapper {
