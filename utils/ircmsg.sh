@@ -71,16 +71,22 @@ done
 
 if [[ -n "$I" ]]; then
 	#Fix me
-	while read line <&100; do echo $line; done &
+	while read line <&100; do
+		if [[ "$line" =~ PING ]]; then
+			echo "$head ${line/PING/PONG}" >&100
+		else
+			echo -e "< $line"
+		fi
+	done &
 	while :; do
 		echo -n "msg:> "
 		read msg
 		[[ $msg =~ ^\ *$ ]] && continue
-		[[ "$msg" = quit ]] && {
-			echo "$head QUIT" >&100
-			kill $$; exit 0
-		}
-		echo "$head PRIVMSG ${chan:-$CHANNEL} " :$msg >&100
+		case "$msg" in
+		/quit)   echo "$head QUIT" >&100; kill $$; exit 0;;
+		/nick*)  echo "$head ${msg/?nick/NICK}" >&100;;
+		*)      echo "$head PRIVMSG ${chan:-$CHANNEL} " :$msg >&100
+		esac
 	done
 else
 	echo "$head PRIVMSG ${chan:-$CHANNEL} " :$msg >&100
