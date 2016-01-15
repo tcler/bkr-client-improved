@@ -62,7 +62,7 @@ while read line <&100; do
 	read _serv _time _nick _tag _chan nlist <<< $line
 	[[ $_tag = '=' ]] && {
 		namelist=$nlist
-		echo "[namelist] $namelist"
+		test -n "$DEBUG" && echo "[namelist] $namelist"
 	}
 
 	[[ $line =~ [^\ ]*\ JOIN\ $CHANNEL ]] && read head ignore <<<$line
