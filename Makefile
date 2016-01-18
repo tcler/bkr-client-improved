@@ -15,15 +15,28 @@ install install_runtest: _isroot
 	@chmod u+s /usr/local/bin/wub-service.sh
 	@ps axf|grep -v grep|grep -q vershow || $(_bin)/vershow -uu >/dev/null &
 
-install_all install_robot: _isroot install_runtest _install_tclsh8.6 _install_require
+install_all: install_robot _install_web
+
+install_robot: _isroot install_runtest _install_require
 	#install test robot
 	cd bkr-test-robot; for f in *; do [ -d $$f ] && continue; cp -fd $$f $(_bin)/$$f; done
+
+_install_web: _isroot _install_tclsh8.6
 	#install webfront
 	[ -d /opt/wub ] || { \
 	yum install -y svn &>/dev/null; \
 	svn export https://github.com/tcler/wub/trunk /opt/wub >/dev/null; }
 	cd bkr-test-robot/www2; for f in *; do rm -fr /opt/wub/docroot/$$f; done
 	cp -rf -d bkr-test-robot/www2/* /opt/wub/docroot/.
+	@chmod o+w /opt/wub/CA
+
+_install_web1: _isroot _install_tclsh8.6
+	#install webfront
+	[ -d /opt/wub ] || { \
+	yum install -y svn &>/dev/null; \
+	svn export https://github.com/tcler/wub/trunk /opt/wub >/dev/null; }
+	cd bkr-test-robot/www; for f in *; do rm -fr /opt/wub/docroot/$$f; done
+	cp -rf -d bkr-test-robot/www/* /opt/wub/docroot/.
 	@chmod o+w /opt/wub/CA
 
 _install_tclsh8.6: _isroot
