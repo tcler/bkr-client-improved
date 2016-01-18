@@ -24,6 +24,7 @@ set OptionList {
 	raw    {arg n	help {Do not parse subtest.desc}}	r {link raw}
 	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList}}
 	wb     {arg o	help {Add customer string in the whiteboard}}
+	WB     {arg y	help {Customise whiteboard} hide y}
 	alone  {arg n	help {Submit all tests separately, one case one recipe}}
 }
 
@@ -185,6 +186,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 	lassign [genWhiteboard $Distro $tkey $tvalue "$TestCmnt"] WB gset
 
 	if {[string length $SubcmdOpt]>0} {append WB " {$SubcmdOpt}"}
+	if [info exist Opt(WB)] { set WB $Opt(WB) }
 
 	set jobinfo job_[regsub -all {[^-?,=_a-zA-Z0-9]} $WB {_}]; # substitute special characters
 	set jobinfo [regsub -all {_+} $jobinfo {_}];		  # merge duplicate underlines
