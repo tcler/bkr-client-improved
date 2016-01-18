@@ -52,7 +52,10 @@ test -c /dev/tcp || {
 }
 
 msg="$*"
+chan=${chan:-$CHANNEL}
 exec 100<>/dev/tcp/${SERVER}/${PORT}
+[[ $? != 0 ]] && { exit 1; }
+
 echo "NICK ${NICK}" >&100
 echo "USER ${NICK} 8 * : ${NICK}" >&100
 echo "JOIN ${CHANNEL}" >&100
@@ -85,7 +88,12 @@ if [[ -n "$I" ]]; then
 		case "$msg" in
 		/quit)   echo "$head QUIT" >&100; kill $$; exit 0;;
 		/nick*)  echo "$head ${msg/?nick/NICK}" >&100;;
-		*)      echo "$head PRIVMSG ${chan:-$CHANNEL} " :$msg >&100
+		/join\ *)
+			read ignore chan <<<"$msg"
+			CHANNEL=$chan
+			echo "JOIN ${CHANNEL}" >&100
+			;;
+		*)       echo "$head PRIVMSG ${chan} " :$msg >&100;;
 		esac
 	done
 else
