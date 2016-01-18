@@ -70,6 +70,7 @@ while read line <&100; do
 
 	[[ $line =~ [^\ ]*\ JOIN\ $CHANNEL ]] && read head ignore <<<$line
 	[[ $line =~ :End\ of\ /NAMES\ list. ]] && break
+	[[ $line =~ .*No\ such\ channel|JOIN\ :Not\ enough\ parameters ]] && break
 done
 
 help() {
@@ -79,7 +80,11 @@ help() {
 /names [Channel]
 /help"
 }
-if [[ -n "$I" ]]; then
+if [[ -z "$I" ]]; then
+	echo "$head PRIVMSG ${chan:-$CHANNEL} " :$msg >&100
+	echo "QUIT" >&100
+	exit $?
+else
 	#Fix me
 	while read line <&100; do
 		if [[ "$line" =~ PING ]]; then
@@ -108,8 +113,4 @@ if [[ -n "$I" ]]; then
 		*)       echo "$head PRIVMSG ${chan} " :$msg >&100;;
 		esac
 	done
-else
-	echo "$head PRIVMSG ${chan:-$CHANNEL} " :$msg >&100
-	echo "QUIT" >&100
-	exit $?
 fi
