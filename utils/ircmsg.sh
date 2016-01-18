@@ -72,6 +72,12 @@ while read line <&100; do
 	[[ $line =~ :End\ of\ /NAMES\ list. ]] && break
 done
 
+help() {
+	echo "/quit
+/nick <new nick name>
+/join <Channel|nick name>
+/help"
+}
 if [[ -n "$I" ]]; then
 	#Fix me
 	while read line <&100; do
@@ -82,7 +88,7 @@ if [[ -n "$I" ]]; then
 		fi
 	done &
 	while :; do
-		echo -n "msg:> "
+		echo -n "[$chan] "
 		read msg
 		[[ $msg =~ ^\ *$ ]] && continue
 		case "$msg" in
@@ -91,8 +97,9 @@ if [[ -n "$I" ]]; then
 		/join\ *)
 			read ignore chan <<<"$msg"
 			CHANNEL=$chan
-			echo "JOIN ${CHANNEL}" >&100
+			[[ ${chan:0:1} = '#' ]] && echo "JOIN ${CHANNEL}" >&100
 			;;
+		/help)   help;;
 		*)       echo "$head PRIVMSG ${chan} " :$msg >&100;;
 		esac
 	done
