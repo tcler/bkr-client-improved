@@ -53,6 +53,7 @@ test -c /dev/tcp || {
 
 msg="$*"
 chan=${chan:-$CHANNEL}
+echo "Connecting to ${SERVER}:${PORT} ..."
 exec 100<>/dev/tcp/${SERVER}/${PORT}
 [[ $? != 0 ]] && { exit 1; }
 
@@ -108,6 +109,10 @@ else
 		/names|/names\ *)
 			read ignore _chan <<<"$msg"
 			echo "NAMES ${_chan:-$chan}" >&100
+			;;
+		/raw\ *)
+			read ignore rawdata <<<"$msg"
+			echo "$rawdata" >&100
 			;;
 		/help)   help;;
 		*)       echo "$head PRIVMSG ${chan} " :$msg >&100;;
