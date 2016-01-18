@@ -76,6 +76,7 @@ help() {
 	echo "/quit
 /nick <new nick name>
 /join <Channel|nick name>
+/names [Channel]
 /help"
 }
 if [[ -n "$I" ]]; then
@@ -98,6 +99,10 @@ if [[ -n "$I" ]]; then
 			read ignore chan <<<"$msg"
 			CHANNEL=$chan
 			[[ ${chan:0:1} = '#' ]] && echo "JOIN ${CHANNEL}" >&100
+			;;
+		/names|/names\ *)
+			read ignore _chan <<<"$msg"
+			echo "NAMES ${_chan:-$chan}" >&100
 			;;
 		/help)   help;;
 		*)       echo "$head PRIVMSG ${chan} " :$msg >&100;;
