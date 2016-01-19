@@ -192,7 +192,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 	set xmlf [string range $jobinfo 0 128].[expr {int(rand()*10000)}].xml; # limit filename length
 
 	if {![catch {set fp \
-	  [open "|gen_job_xml -distro=$Distro -f - $SubcmdOpt {-wb=$WB} $gset >$xmlf" w]} err]} {
+	  [open "|gen_job_xml -distro=$Distro -f - {-wb=$WB} $SubcmdOpt $gset >$xmlf" w]} err]} {
 		foreach t $tvalue { puts $fp "$t" }
 		catch {close $fp} err
 
