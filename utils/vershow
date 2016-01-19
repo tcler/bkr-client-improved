@@ -4,7 +4,7 @@
 Usage() {
 	echo "Usage: $0 [--updatedb] <pkgName|pattern> [distroName|pattern]" >&2
 }
-_at=`getopt -o hu \
+_at=`getopt -o hun \
 	--long help \
 	--long updatedb \
     -n 'vershow' -- "$@"`
@@ -13,6 +13,7 @@ while true; do
 	case "$1" in
 	-h|--help)      Usage; shift 1; exit 0;;
 	-u|--updatedb)  [ -z "$Update" ] && Update=yes || Update=YES; shift 1;;
+	-n) nocolor=yes; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -138,7 +139,7 @@ while read distro _nil; do
 	[ -f $cachefile ] || continue
 	result=$(egrep -- "$pkgPart" $cachefile)
 	[ $? = 0 ] && {
-		echo -e "=> \033[1;34m$distro\033[0m"
+		[[ -z "$nocolor" ]] && echo -e "=> \033[1;34m$distro\033[0m" || echo -n "$distro -> "
 		echo "$result"
 	}
 done <<<"$list"
