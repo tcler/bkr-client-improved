@@ -12,6 +12,8 @@ PORT=6667
 NICK="testbot"
 CHANNEL="#fs-fs"
 
+qe_assistant=/usr/local/bin/qe_assistant
+
 [[ -f ~/.ircmsg.rc ]] && source ~/.ircmsg.rc
 ##########################################################
 # Main
@@ -92,7 +94,15 @@ else
 			echo "$head ${line/PING/PONG}" >&100
 		else
 			echo -e "< $line"
+			read _head _cmd _chan _msg <<<"$line"
+			logf=/tmp/qe_assistant-$$.log
+			if [[ -x "$qe_assistant" ]]; then
+				$qe_assistant "$_msg" >$logf
+				while read l; do [[ -z "$l" ]] && continue; echo "$head PRIVMSG ${chan} :$l"; done <$logf >&100
+			fi
+			rm $logf
 		fi
+
 	done &
 	while :; do
 		echo -n "[$chan] "
