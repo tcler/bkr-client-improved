@@ -23,8 +23,7 @@ set OptionList {
 	merge  {arg n	help {Merge all recipeSets in one job XML}}	m {link merge}
 	raw    {arg n	help {Do not parse subtest.desc}}	r {link raw}
 	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList}}
-	wb     {arg o	help {Add customer string in the whiteboard}}
-	WB     {arg y	help {Customise whiteboard} hide y}
+	wb-comment     {arg o	help {Add customer string in the default whiteboard}}
 	alone  {arg n	help {Submit all tests separately, one case one recipe}}
 }
 
@@ -177,8 +176,8 @@ if [info exist Opt(merge)] {
 }
 foreach {tkey tvalue} [array get TestGroup] {
 	set TestCmnt {}
-	if [info exist Opt(wb)] {
-		set TestCmnt $Opt(wb)
+	if [info exist Opt(wb-comment)] {
+		set TestCmnt $Opt(wb-comment)
 	}
 	if {$TestListFile != ""} {
 		lappend TestCmnt "$TestListFile"
