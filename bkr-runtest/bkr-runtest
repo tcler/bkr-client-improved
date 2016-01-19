@@ -23,8 +23,7 @@ set OptionList {
 	merge  {arg n	help {Merge all recipeSets in one job XML}}	m {link merge}
 	raw    {arg n	help {Do not parse subtest.desc}}	r {link raw}
 	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList}}
-	wb     {arg o	help {Add customer string in the whiteboard}}
-	WB     {arg y	help {Customise whiteboard} hide y}
+	wb-comment     {arg o	help {Add customer string in the default whiteboard}}
 	alone  {arg n	help {Submit all tests separately, one case one recipe}}
 }
 
@@ -170,15 +169,15 @@ foreach test $TestList {
 # Gen job xml[s] and submit
 set TestCnt 0
 set TestSumm {}
-set TestCmnt {}
 set gen_opts {}
 if [info exist Opt(merge)] {
 	set xmlf_merged "job_merged.[clock format [clock seconds] -format %Y%m%d_%H%M].[expr {int(rand()*10000)}].xml"
 	lappend SubcmdOpt {-recipe}
 }
 foreach {tkey tvalue} [array get TestGroup] {
-	if [info exist Opt(wb)] {
-		set TestCmnt $Opt(wb)
+	set TestCmnt {}
+	if [info exist Opt(wb-comment)] {
+		set TestCmnt $Opt(wb-comment)
 	}
 	if {$TestListFile != ""} {
 		lappend TestCmnt "$TestListFile"
@@ -193,7 +192,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 	set xmlf [string range $jobinfo 0 128].[expr {int(rand()*10000)}].xml; # limit filename length
 
 	if {![catch {set fp \
-	  [open "|gen_job_xml -distro=$Distro -f - $SubcmdOpt {-wb=$WB} $gset >$xmlf" w]} err]} {
+	  [open "|gen_job_xml -distro=$Distro -f - {-wb=$WB} $SubcmdOpt $gset >$xmlf" w]} err]} {
 		foreach t $tvalue { puts $fp "$t" }
 		catch {close $fp} err
 
