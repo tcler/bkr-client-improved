@@ -95,10 +95,15 @@ else
 		else
 			echo -e "< $line"
 			read _head _cmd _chan _msg <<<"$line"
+			peernick=$(awk -F'[:!]' '{print $2}' <<<"${_head}")
+			[[ "$_chan" = qe_assistant ]] && {
+				_chan=$peernick
+				_msg="qe_assistant $_msg"
+			}
 			logf=/tmp/qe_assistant-$$.log
 			if [[ -x "$qe_assistant" ]]; then
 				$qe_assistant "$_msg" >$logf
-				while read l; do [[ -z "$l" ]] && continue; echo "$head PRIVMSG ${chan} :$l"; done <$logf >&100
+				while read l; do [[ -z "$l" ]] && continue; echo "$head PRIVMSG ${_chan} :$l"; done <$logf >&100
 			fi
 			rm $logf
 		fi
