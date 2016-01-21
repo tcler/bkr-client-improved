@@ -22,8 +22,8 @@ fi
 export type=${1-rtt}
 
 [ ${P} = getLatestRHEL ] || {
-	echo -e "#Usage: ${0##*/} [all|rtt|stb|rel|ins|active (default rtt)]"
-	echo -e "#tag type: \033[1;34m<$type>\033[0m, fetch the list ...(please wait a minute)"
+	echo -e "#Usage: ${0##*/} [all|rtt|stb|rel|ins|active (default rtt)]" >&2
+	echo -e "#tag type: \033[1;34m<$type>\033[0m, fetch the list ...(please wait a minute)" >&2
 }
 case $type in
 al|all) url="${baseurl}?";;
