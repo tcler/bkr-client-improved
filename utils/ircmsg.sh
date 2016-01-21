@@ -29,16 +29,18 @@ Usage() {
 	echo "  Options:"
 	echo "    -n <nick>  used \$nick as nick name to JOIN channel"
 	echo "    -c <nick>  used to send private msg to \$nick"
-	echo "    -i         work in interactive mode as a simple irc client"
+	echo "    -i         run as a deamon robot"
+	echo "    -I         work in interactive mode as a simple irc client"
 	echo "    -d         open debug mode"
 }
-_at=`getopt -o hdC:c:in:s:p: -n 'ircmsg' -- "$@"`
+_at=`getopt -o hdC:c:Iin:s:p: -n 'ircmsg' -- "$@"`
 eval set -- "$_at"
 while true; do
 	case "$1" in
 	-h) Usage; shift 1; exit 0;;
 	-d) DEBUG=1; shift 1;;
 	-i) I=1; shift 1;;
+	-I) II=1; shift 1;;
 	-C) CHANNEL=$2; shift 2;;
 	-c) chan=$2; shift 2;;
 	-n) NICK=$2; shift 2;;
@@ -76,6 +78,34 @@ while read line <&100; do
 	[[ $line =~ .*No\ such\ channel|JOIN\ :Not\ enough\ parameters ]] && break
 done
 
+if [[ -z "$I" ]]; then
+	echo "$head PRIVMSG ${chan:-$CHANNEL} " :$msg >&100
+	echo "QUIT" >&100
+	exit $?
+fi
+
+#Fix me
+while read line <&100; do
+	if [[ "$line" =~ PING ]]; then
+		echo "$head ${line/PING/PONG}" >&100
+	else
+		echo -e "< $line"
+		read _head _cmd _chan _msg <<<"$line"
+		peernick=$(awk -F'[:!]' '{print $2}' <<<"${_head}")
+		[[ "$_chan" = qe_assistant ]] && {
+			_chan=$peernick
+			_msg="qe_assistant $_msg"
+		}
+		if [[ -x "$qe_assistant" ]]; then
+			$qe_assistant "$_msg" |
+			while read l; do [[ -z "$l" ]] && continue; echo "$head PRIVMSG ${_chan} :$l"; done <$logf >&100
+		fi
+	fi
+
+done &
+
+[[ -z "$II" ]] && exit 0
+
 help() {
 	echo "/quit
 /nick <new nick name>
@@ -83,54 +113,27 @@ help() {
 /names [Channel]
 /help"
 }
-if [[ -z "$I" ]]; then
-	echo "$head PRIVMSG ${chan:-$CHANNEL} " :$msg >&100
-	echo "QUIT" >&100
-	exit $?
-else
-	#Fix me
-	while read line <&100; do
-		if [[ "$line" =~ PING ]]; then
-			echo "$head ${line/PING/PONG}" >&100
-		else
-			echo -e "< $line"
-			read _head _cmd _chan _msg <<<"$line"
-			peernick=$(awk -F'[:!]' '{print $2}' <<<"${_head}")
-			[[ "$_chan" = qe_assistant ]] && {
-				_chan=$peernick
-				_msg="qe_assistant $_msg"
-			}
-			logf=/tmp/qe_assistant-$$.log
-			if [[ -x "$qe_assistant" ]]; then
-				$qe_assistant "$_msg" >$logf
-				while read l; do [[ -z "$l" ]] && continue; echo "$head PRIVMSG ${_chan} :$l"; done <$logf >&100
-			fi
-			rm $logf
-		fi
-
-	done &
-	while :; do
-		echo -n "[$chan] "
-		read msg
-		[[ $msg =~ ^\ *$ ]] && continue
-		case "$msg" in
-		/quit)   echo "$head QUIT" >&100; kill $$; exit 0;;
-		/nick*)  echo "$head ${msg/?nick/NICK}" >&100;;
-		/join\ *)
-			read ignore chan <<<"$msg"
-			CHANNEL=$chan
-			[[ ${chan:0:1} = '#' ]] && echo "JOIN ${CHANNEL}" >&100
-			;;
-		/names|/names\ *)
-			read ignore _chan <<<"$msg"
-			echo "NAMES ${_chan:-$chan}" >&100
-			;;
-		/raw\ *)
-			read ignore rawdata <<<"$msg"
-			echo "$rawdata" >&100
-			;;
-		/help)   help;;
-		*)       echo "$head PRIVMSG ${chan} " :$msg >&100;;
-		esac
-	done
-fi
+while :; do
+	echo -n "[$chan] "
+	read msg
+	[[ $msg =~ ^\ *$ ]] && continue
+	case "$msg" in
+	/quit)   echo "$head QUIT" >&100; kill $$; exit 0;;
+	/nick*)  echo "$head ${msg/?nick/NICK}" >&100;;
+	/join\ *)
+		read ignore chan <<<"$msg"
+		CHANNEL=$chan
+		[[ ${chan:0:1} = '#' ]] && echo "JOIN ${CHANNEL}" >&100
+		;;
+	/names|/names\ *)
+		read ignore _chan <<<"$msg"
+		echo "NAMES ${_chan:-$chan}" >&100
+		;;
+	/raw\ *)
+		read ignore rawdata <<<"$msg"
+		echo "$rawdata" >&100
+		;;
+	/help)   help;;
+	*)       echo "$head PRIVMSG ${chan} " :$msg >&100;;
+	esac
+done
