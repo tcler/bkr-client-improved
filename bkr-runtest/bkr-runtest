@@ -41,7 +41,7 @@ proc Usage {} {
 	puts "Example 1: $::prog RHEL-6.6 -n ~/git/test/kernel/filesystems/nfs/function/"
 	puts "Example 2: $::prog RHEL-6.6 -n ~/git/test/kernel/networking/bonding/failover -- --netqe-nic-driver=tg3 --netqe-nic-num=2"
 	puts "Example 3: $::prog Fedora-22,RHEL-7.2,RHEL-7.2 ~/git/test/nfs-utils/function/pnfs/blklayout"
-	puts "Example 4: echo '/distribution/reservesys' | $::prog RHEL-6.6 - -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6"
+	puts "Example 4: $::prog RHEL-6.6 -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6 # reserve a host"
 	puts ""
 	getUsage $::OptionList
 	puts "Info: exec `gen_job_xml -h` to check bkr workflow options"
@@ -90,11 +90,15 @@ set Distro [expandDistro $Distro]
 set TestList {}
 set TestListFile {}
 if {[llength $TestArgList]==0} {
-	if {![catch {set fp [open "|lstest . $lstest_opts" r]} err]} {
-		while {-1 != [gets $fp line]} {
-			lappend TestList $line
+	if {1} {
+		lappend TestList "/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12h ssched=no type=Functioal"
+	} else {
+		if {![catch {set fp [open "|lstest . $lstest_opts" r]} err]} {
+			while {-1 != [gets $fp line]} {
+				lappend TestList $line
+			}
+			close $fp
 		}
-		close $fp
 	}
 } else {
 	foreach f $TestArgList {
