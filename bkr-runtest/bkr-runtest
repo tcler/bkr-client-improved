@@ -249,7 +249,7 @@ if [info exist xmlf_merged] {
 	file delete ${xmlf_merged}.tail
 
 	if [info exist TestDir] {set TestList "$TestDir"}
-	lassign [genWhiteboard $Distro {merged} $TestList] WB tmp
+	lassign [genWhiteboard $Distro {merged} $TestList ""] WB tmp
 	regsub {<!--(<job .*?>)-->} $XML {\1} XML
 	regsub -all {[\&\\]} $WB {\\&} NWB
 	regsub {<!--<whiteboard>.*?</whiteboard>-->} $XML "<whiteboard>$NWB</whiteboard>" XML
