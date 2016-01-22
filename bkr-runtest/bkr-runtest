@@ -44,14 +44,28 @@ proc Usage {} {
 	puts "Example 4: $::prog RHEL-6.6 -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6 # reserve a host"
 	puts ""
 	getUsage $::OptionList
-	puts "Info: exec `gen_job_xml -h` to check bkr workflow options"
+	puts "Info: exec `gen_job_xml -h` to check gen_job_xml options"
+}
+proc Usage_bkr_reserve {} {
+	puts "Usage0: $::argv0 <distro\[,distro,...\]> \[-n\] \[-- gen_job_xml options\] "
+	puts "Example: $::prog RHEL-6.6 -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6"
+	puts ""
+	puts "Info: exec `gen_job_xml -h` to check gen_job_xml options"
 }
 if [info exist Opt(help)] {
-	Usage
+	if {$prog == "bkr-reservesys"} {
+		Usage_bkr_reserve
+	} else {
+		Usage
+	}
 	exit 0
 }
 if {[llength $Args] < 1} {
-	Usage
+	if {$prog == "bkr-reservesys"} {
+		Usage_bkr_reserve
+	} else {
+		Usage
+	}
 	exit 1
 }
 
@@ -91,6 +105,8 @@ set TestList {}
 set TestListFile {}
 if {[llength $TestArgList]==0} {
 	if {1} {
+		if {$prog == "bkr-runtest"} {
+			puts "INFO: No test specified, will reserve host($Distro) for you" }
 		lappend TestList "/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12h ssched=no type=Functioal"
 	} else {
 		if {![catch {set fp [open "|lstest . $lstest_opts" r]} err]} {
