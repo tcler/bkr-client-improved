@@ -105,7 +105,7 @@ set TestList {}
 set TestListFile {}
 if {[llength $TestArgList]==0} {
 	if {1} {
-		if {$prog == "bkr-runtest"} {
+		if {$prog != "bkr-reservesys"} {
 			puts "INFO: No test specified, will reserve host($Distro) for you" }
 		lappend TestList "/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12h ssched=no type=Functioal"
 	} else {
@@ -117,25 +117,29 @@ if {[llength $TestArgList]==0} {
 		}
 	}
 } else {
-	foreach f $TestArgList {
-		if {$f in "-"} {
-			set fp stdin
-			while {-1 != [gets $fp line]} {
-				lappend TestList $line
-			}
-		} elseif [file isdirectory $f] {
-			lappend TestDir $f
-			if {![catch {set fp [open "|lstest $f $lstest_opts" r]} err]} {
+	if {$prog == "bkr-reservesys"} {
+		lappend TestList "/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12h ssched=no type=Functioal"
+	} else {
+		foreach f $TestArgList {
+			if {$f in "-"} {
+				set fp stdin
 				while {-1 != [gets $fp line]} {
 					lappend TestList $line
 				}
-				close $fp
-			}
-		} elseif [file isfile $f] {
-			set TestListFile $f
-			if {![catch {set fp [open $f]} err]} {
-				while {-1 != [gets $fp line]} {
-					lappend TestList $line
+			} elseif [file isdirectory $f] {
+				lappend TestDir $f
+				if {![catch {set fp [open "|lstest $f $lstest_opts" r]} err]} {
+					while {-1 != [gets $fp line]} {
+						lappend TestList $line
+					}
+					close $fp
+				}
+			} elseif [file isfile $f] {
+				set TestListFile $f
+				if {![catch {set fp [open $f]} err]} {
+					while {-1 != [gets $fp line]} {
+						lappend TestList $line
+					}
 				}
 			}
 		}
