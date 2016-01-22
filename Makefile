@@ -12,7 +12,6 @@ install install_runtest: _isroot
 	cd bkr-runtest; for f in *; do rm -fr $(_bin)/$$f; done
 	cp -rf -d lib/* /usr/local/lib/.
 	cp -f -d bkr-runtest/* utils/* $(_bin)/.
-	@chmod u+s /usr/local/bin/wub-service.sh
 	@ps axf|grep -v grep|grep -q vershow || $(_bin)/vershow -uu >/dev/null &
 
 install_all: install_robot _install_web
@@ -29,6 +28,7 @@ _install_web: _isroot _install_tclsh8.6
 	cd bkr-test-robot/www2; for f in *; do rm -fr /opt/wub/docroot/$$f; done
 	cp -rf -d bkr-test-robot/www2/* /opt/wub/docroot/.
 	@chmod o+w /opt/wub/CA
+	@chmod u+s /usr/local/bin/wub-service.sh
 
 _install_web1: _isroot _install_tclsh8.6
 	#install webfront
@@ -38,6 +38,7 @@ _install_web1: _isroot _install_tclsh8.6
 	cd bkr-test-robot/www; for f in *; do rm -fr /opt/wub/docroot/$$f; done
 	cp -rf -d bkr-test-robot/www/* /opt/wub/docroot/.
 	@chmod o+w /opt/wub/CA
+	@chmod u+s /usr/local/bin/wub-service.sh
 
 _install_tclsh8.6: _isroot
 	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; \
