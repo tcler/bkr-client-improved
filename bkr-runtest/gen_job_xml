@@ -615,7 +615,7 @@ job retention_tag=Scratch user=$jobOwner $jobCtl {
 				if [info exist Opt(kdump)] {
 					lassign [regsub (.*?):/(.*$) $Opt(kdump) {\1 {\2}}] NFSSERVER VMCOREPATH
 					if { [ string length $NFSSERVER ] == 0 } {
-						set NFSSERVER "ibm-x3250m4-02.rhts.eng.pek2.redhat.com"
+						set NFSSERVER "ibm-x3250m4-06.rhts.eng.pek2.redhat.com"
 					}
 					if { [ string length $VMCOREPATH ] == 0 } {
 						set VMCOREPATH "/srv/nfs/vmcore"
