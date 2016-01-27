@@ -1,7 +1,7 @@
 #!/bin/bash
 # A simple irc client based pure bash
 # - used to send irc msg to notify some event
-# - or your can use -i option to talk with others
+# - or your can use -I option to talk with others
 # Author: yin-jianhong@163.com
 
 ##########################################################
