@@ -121,10 +121,10 @@ proc updateJobTask {jobid distro_rgset} {
 
 #_main_
 set USER $tcl_platform(user)
-set rc [catch {exec ps -U $USER -u $USER -o pid,user:20,cmd | grep -v grep | grep -wv ^[pid] | grep {tclsh.*bkr-autorun-monitor}} msg]
-if {$rc == 0} {
+set rc [catch {exec ps -U $USER -u $USER -o pid,user:20,cmd | grep -v grep | grep {tclsh.*bkr-autorun-monitor}} msg]
+if {$rc == 0 && [pid] != [lindex $msg 0]} {
 	puts "{Warn} bkr-autorun-monitor is running! $msg"
-	exit 0
+	#exit 0
 }
 cd [dbroot]
 sqlite3 db testrun.db
@@ -192,7 +192,12 @@ foreach {jobID taskList} [array get runningTest] {
 				set taskResults [$taskNode selectNodes results]
 				if {$taskResults != ""} {
 					foreach taskResNode [$taskResults childNodes] {
-						set _res [$taskResNode @result]
+						puts [$taskResNode asXML]
+						if [$taskResNode hasAttribute @result] {
+							set _res [$taskResNode @result]
+						} else {
+							set _res [string map {( {} ) {}} [$taskResNode text]]
+						}
 						set _path [$taskResNode @path]
 						if ![string match */avc $_path] {
 							if {$_res == "Fail"} {
