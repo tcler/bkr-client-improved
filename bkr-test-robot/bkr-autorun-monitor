@@ -124,7 +124,7 @@ set USER $tcl_platform(user)
 set rc [catch {exec ps -U $USER -u $USER -o pid,user:20,cmd | grep -v grep | grep {tclsh.*bkr-autorun-monitor}} msg]
 if {$rc == 0 && [pid] != [lindex $msg 0]} {
 	puts "{Warn} bkr-autorun-monitor is running! $msg"
-	#exit 0
+	exit 0
 }
 cd [dbroot]
 sqlite3 db testrun.db
@@ -145,6 +145,8 @@ db eval {
 
 #Update test status and result
 foreach {jobID taskList} [array get runningTest] {
+	#ifdebug
+	puts "==>$jobID"
 	set XML [getXML $jobID]
 	set doc [dom parse $XML]
 	set root [$doc documentElement]
@@ -166,6 +168,8 @@ foreach {jobID taskList} [array get runningTest] {
 		set recipeIdx 0
 		foreach paramNode [$root selectNodes {//param[@value=$testID]}] {
 			set taskNode [[$paramNode parentNode] parentNode]
+			#ifdebug
+			puts [$taskNode asXML]
 			set name [$taskNode @name]
 			set recipeNode [$taskNode parentNode]
 
@@ -192,7 +196,6 @@ foreach {jobID taskList} [array get runningTest] {
 				set taskResults [$taskNode selectNodes results]
 				if {$taskResults != ""} {
 					foreach taskResNode [$taskResults childNodes] {
-						puts [$taskResNode asXML]
 						if [$taskResNode hasAttribute @result] {
 							set _res [$taskResNode @result]
 						} else {
