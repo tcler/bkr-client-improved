@@ -24,7 +24,8 @@ set OptionList {
 	raw    {arg n	help {Do not parse subtest.desc}}	r {link raw}
 	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList}}
 	alone  {arg n	help {Submit all tests separately, one case one recipe}}
-	wb-comment     {arg y	help {Add customer string in the default whiteboard}}
+	wb-comment      {arg y	help {Add customer string in the default whiteboard}}
+	wb-format       {arg y	help {Accept a customized whiteboard}}
 }
 
 # _parse_ argument
@@ -35,11 +36,11 @@ parray Opt
 
 # Usage
 proc Usage {} {
-	puts "Usage0: $::argv0 <distro\[,distro,...\]> \[options\] \[-|testList|caseDir ...\] \[-- gen_job_xml options\] "
-	puts "Usage1: $::argv0 family \[options\] \[-|testList|caseDir ...\] -- --family=<distroFamily> \[other gen_job_xml options\]"
-	puts "Genarate job xml files from test case dir, test list file or stdin, then grouped submit to beaker\n"
-	puts "Example 1: $::prog RHEL-6.6 -n ~/git/test/kernel/filesystems/nfs/function/"
-	puts "Example 2: $::prog RHEL-6.6 -n ~/git/test/kernel/networking/bonding/failover -- --netqe-nic-driver=tg3 --netqe-nic-num=2"
+	puts "Usage0: $::prog \[options\] <distro\[,distro,...\]> \[-|testList|caseDir...\] \[-- gen_job_xml options\] "
+	puts "Usage1: $::prog \[options\] family                \[-|testList|caseDir...\] -- --family=<distroFamily> \[other gen_job_xml options\]"
+	puts ""
+	puts "Example 1: $::prog RHEL-6.6  ~/git/test/kernel/filesystems/nfs/function/"
+	puts "Example 2: $::prog RHEL-6.6  ~/git/test/kernel/networking/bonding/failover -- --netqe-nic-driver=tg3 --netqe-nic-num=2"
 	puts "Example 3: $::prog Fedora-22,RHEL-7.2,RHEL-7.2 ~/git/test/nfs-utils/function/pnfs/blklayout"
 	puts "Example 4: $::prog RHEL-6.6 -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6 # reserve a host"
 	puts ""
@@ -47,7 +48,7 @@ proc Usage {} {
 	puts "Info: exec `gen_job_xml -h` to check gen_job_xml options"
 }
 proc Usage_bkr_reserve {} {
-	puts "Usage0: $::argv0 <distro\[,distro,...\]> \[-n\] \[-- gen_job_xml options\] "
+	puts "Usage0: $::prog \[-n\] <distro\[,distro,...\]> \[-- gen_job_xml options\] "
 	puts "Example: $::prog RHEL-6.6 -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6"
 	puts ""
 	puts "Info: exec `gen_job_xml -h` to check gen_job_xml options"
