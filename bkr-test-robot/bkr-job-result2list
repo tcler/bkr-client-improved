@@ -1,0 +1,74 @@
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+# Author: jiyin@redhat.com
+# This is tool to parse job-result.xml to test list
+# tdom usage: http://wiki.tcl.tk/8984
+
+lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+package require tdom
+package require getOpt
+
+proc getXML {jobID} {
+	set xml [exec bkr job-results --prettyxml $jobID]
+	regsub {<\?xml .*?\?>} $xml {}
+}
+
+proc parseJobResult {jobid} {
+	set XML [getXML $jobid]
+	set doc [dom parse $XML]
+	set root [$doc documentElement]
+
+	set recipeSetList [$root selectNodes {descendant::recipeSet}]
+	foreach recipeSet $recipeSetList {
+		set recipeSetID [$recipeSet @id]
+		set gSet {}
+		set recipeList [$recipeSet selectNodes {descendant::recipe}]
+		set hostN [llength $recipeList]
+		set taskList [$recipeSet selectNodes {descendant::task}]
+		foreach task $taskList {
+			set tname [$task @name]
+			if {$tname == "/kernel/kdump/setup-nfsdump"} {
+				if {"kdump" ni $gSet} { lappend gSet kdump }
+			}
+		}
+
+		foreach recipe $recipeList {
+			set arch [$recipe @arch]
+			set distro [$recipe @distro]
+			set family [$recipe @family]
+			set gset "$distro $arch"
+			lappend gSet "$gset"
+			set taskList [$recipe selectNodes {descendant::task}]
+
+			foreach task $taskList {
+				set tname [$task @name]
+				if {$tname == "/distribution/install"} continue
+				if {$tname == "/kernel/kdump/setup-nfsdump"} continue
+				set tresult [$task @result]
+				set params {}
+				set paramList [$task selectNodes {descendant::param}]
+				foreach param $paramList {
+					set pname [$param @name]
+					if {$pname == "DISTRO_BUILD"} continue
+					if {$pname == "TestID"} continue
+					append tname " $pname=[$param @value]"
+				}
+				lappend test($tname) $tresult
+			}
+		}
+		puts "recipeSet $jobid->$recipeSetID $gSet"
+		foreach {T S} [array get test] {
+			puts "    {$T} {$S}"
+		}
+	}
+}
+
+#_main_
+#Update test status and result
+foreach jobID $::argv {
+	parseJobResult $jobID
+}
+
