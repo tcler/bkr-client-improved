@@ -155,8 +155,9 @@ foreach {jobID taskList} [array get runningTest] {
 	set completeStr [lrepeat $recipeNum Completed]
 	foreach recipeNode $recipeNodeList {
 		set arch [$recipeNode @arch]
-		incr HostUsed($arch)
-		#puts "$jobID incr HostUsed($arch) = $HostUsed($arch)"
+		set _arch [lindex [split $arch .] 0]
+		incr HostUsed($_arch)
+		#puts "$jobID incr HostUsed($_arch) = $HostUsed($_arch)"
 	}
 
 	foreach taskinfo $taskList {
@@ -296,12 +297,13 @@ foreach {distro_arch_rgset testList} [array get waitSubmitedTest] {
 
 	close [open jobsubmit.log w+]
 
-	if ![info exist HostUsed($arch)] { set HostUsed($arch) 0 }
-	set limitNum [expr $HostMax($arch) - $HostUsed($arch)]
+	set _arch [lindex [split $arch .] 0]
+	if ![info exist HostUsed($_arch)] { set HostUsed($_arch) 0 }
+	set limitNum [expr $HostMax($_arch) - $HostUsed($_arch)]
 
 	set N [limitSubmitJobs $distro $rgset $arch $testList $limitNum]
 	if {$N < 0} {set N 0}
-	set HostUsed($arch) [expr $HostUsed($arch) + $N]
+	set HostUsed($_arch) [expr $HostUsed($_arch) + $N]
 
 	set JobList [list {*}[exec bash -c {egrep -o J:[0-9]+ jobsubmit.log; :}]]
 	set distro_rgset $distro
