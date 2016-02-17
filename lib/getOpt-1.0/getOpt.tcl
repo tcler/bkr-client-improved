@@ -43,11 +43,12 @@ proc ::getOpt::getOpt {optionList argvVar optVar optArgVar} {
 	switch -glob -- $arg {
 		"-*" -
 		"--*" {
-			set opttype short
+			set opttype long
 			set option [string range $arg 1 end]
 			if [string equal [string range $option 0 0] "-"] {
 				set option [string range $arg 2 end]
-				set opttype long
+			} else {
+				set opttype longonly
 			}
 
 			set idx [string first "=" $option 1]
@@ -84,7 +85,7 @@ proc ::getOpt::getOpt {optionList argvVar optVar optArgVar} {
 						}
 					}
 				}
-			} elseif {$opttype in {short}} {
+			} elseif {$opttype in {longonly}} {
 				if [info exists _val] { append option =$_val }
 				# expand short args
 				set insertArgv [list]
@@ -135,15 +136,17 @@ proc ::getOpt::getOpt {optionList argvVar optVar optArgVar} {
 	return $result
 }
 
-proc ::getOpt::getOptions {optList argv validOptionVar invalidOptionVar notOptionVar} {
+proc ::getOpt::getOptions {optList argv validOptionVar invalidOptionVar notOptionVar {forwardOptionVar ""}} {
 	upvar $validOptionVar validOption
 	upvar $invalidOptionVar invalidOption
 	upvar $notOptionVar notOption
+	upvar $forwardOptionVar forwardOption
 
 	set notOption [list]
 	set opt ""
 	set optarg ""
 	set nargv $argv
+	set forwardOpts ""
 	#set argc [llength $nargv]
 
 	while {[set err [getOpt $optList nargv opt optarg]]} {
@@ -158,9 +161,22 @@ proc ::getOpt::getOptions {optList argv validOptionVar invalidOptionVar notOptio
 		} elseif {$err == 1} {
 			#known options
 			set argtype n
+			set forward {}
+			if [dict exists $optList $opt forward] {
+				set forward y
+			}
 			if [dict exists $optList $opt arg] {
 				set argtype [dict get $optList $opt arg]
 			}
+
+			if {$forward == "y"} {
+				switch -exact -- $argtype {
+					"n" {lappend forwardOption "--$opt"}
+					default {lappend forwardOption "--$opt=$optarg"}
+				}
+				continue
+			}
+
 			switch -exact -- $argtype {
 				"m" {lappend validOption($opt) $optarg}
 				"n" {incr validOption($opt) 1}
