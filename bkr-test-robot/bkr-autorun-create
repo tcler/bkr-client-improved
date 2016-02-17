@@ -28,8 +28,8 @@ set OptionList {
 	name   {link pkg hide y}
 	force  {arg n	help {Add new or overwrite existed testrun items}}
 	update {arg n	help {Just overwrite existed test run items}}
-	r      {arg n	help {Do not parse subtest.desc when lstest casedir}}
-	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList}}
+	r      {arg n	help {Do not parse subtest.desc when lstest casedir} hide y}
+	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList} hide y}
 
   *0 {Dummy "\n  Options for job configuration:"}
 	restraint		{forward y arg o	help {Use restraint harness instead of beach}}
