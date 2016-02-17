@@ -122,8 +122,8 @@ parray Opt
 
 # Usage
 proc Usage {} {
-	puts "Usage0: $::prog \[options\] <distro\[,distro,...\]> \[-|testList|caseDir...\] \[gen_job_xml options\] "
-	puts "Usage1: $::prog \[options\] family                \[-|testList|caseDir...\] --family=<distroFamily> \[other gen_job_xml options\]"
+	puts "Usage0: $::prog \[options\] <distro\[,distro,...\]> \[-|testfile...\] \[gen_job_xml options\] "
+	puts "Usage1: $::prog \[options\] family                \[-|testfile...\] --family=<distroFamily> \[other gen_job_xml options\]"
 	puts ""
 	puts "Example 1: $::prog RHEL-6.6  ~/git/test/kernel/filesystems/nfs/function/"
 	puts "Example 2: $::prog RHEL-6.6  ~/git/test/kernel/networking/bonding/failover --netqe-nic-driver=tg3 --netqe-nic-num=2"
@@ -133,8 +133,8 @@ proc Usage {} {
 	getUsage $::OptionList
 }
 proc Usage_bkr_reserve {} {
-	puts "Usage0: $::prog \[-n\] <distro\[,distro,...\]> \[-- gen_job_xml options\] "
-	puts "Example: $::prog RHEL-6.6 -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6"
+	puts "Usage0: $::prog \[-n\] <distro\[,distro,...\]> \[gen_job_xml options\] "
+	puts "Example: $::prog RHEL-6.6 --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6"
 	puts ""
 }
 if [info exist Opt(help)] {

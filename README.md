@@ -46,13 +46,13 @@ Notes:
 *   ***bkr-runtest*** - Genarate job XML files from test items (by `lstest` and `gen_job_xml`), then group them (by hardware requirement) and submit to beaker
 
 	```
-	Usage0: bkr-runtest [options] <distro[,distro,...]> [-|testList|caseDir...] [-- gen_job_xml options] 
-	Usage1: bkr-runtest [options] family                [-|testList|caseDir...] -- --family=<distroFamily> [other gen_job_xml options]
+	Usage0: bkr-runtest [options] <distro[,distro,...]> [-|testfile...] [gen_job_xml options] 
+	Usage1: bkr-runtest [options] family                [-|testfile...] --family=<distroFamily> [other gen_job_xml options]
 
 	Example 1: bkr-runtest RHEL-6.6  ~/git/test/kernel/filesystems/nfs/function/
-	Example 2: bkr-runtest RHEL-6.6  ~/git/test/kernel/networking/bonding/failover -- --netqe-nic-driver=tg3 --netqe-nic-num=2
+	Example 2: bkr-runtest RHEL-6.6  ~/git/test/kernel/networking/bonding/failover --netqe-nic-driver=tg3 --netqe-nic-num=2
 	Example 3: bkr-runtest Fedora-22,RHEL-7.2,RHEL-7.2 ~/git/test/nfs-utils/function/pnfs/blklayout
-	Example 4: bkr-runtest RHEL-6.6 -- --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6 # reserve a host
+	Example 4: bkr-runtest RHEL-6.6 --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6 # reserve a host
 	```
 	(Use `bkr-runtest -h` to get more helps)
 
@@ -61,7 +61,7 @@ Notes:
     1. To create/delete test items for the monitor: `bkr-autorun-create/bkr-autorun-del`
     2. To monitor test items' status and save results: `bkr-autorun-monitor` (It will automatically be triggered by crontab)
     3. To check the content and result of the monitor (by CLI): `bkr-autorun-stat`
-    4. To check the content and result of the moniter (by Web page): `wub-service.sh start` then check `http://localhost:$port`
+    4. To check the content and result of the moniter (by Web page): `wub-service.sh start` then check `http://$url:$port`. (use `wub-service.sh stat|tail -n1` get the $url:$port info)
 
       (Use `-h` option to study each tool's usage)
 

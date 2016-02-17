@@ -116,7 +116,7 @@ set OptionList {
 }
 
 proc Usage {progname} {
-	puts "Usage: $progname <distro> <testfile|casedir|-> <--pkg pkgname> \[gen_job_xml options\]"
+	puts "Usage: $progname <distro> <-|testfile...> <--pkg pkgname> \[gen_job_xml options\]"
 	getUsage $::OptionList
 }
 
