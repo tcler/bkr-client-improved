@@ -15,10 +15,13 @@ package require md5
 namespace import ::getOpt::* ::runtestlib::*
 
 # global var
+set prog [file tail $argv0]
 array set Opt {}
 array set InvalidOpt {}
 set Args [list]
+set ForwardOpt {}
 set OptionList {
+  *b0 {Dummy "\n  Base options:"}
 	help   {arg n	help {Print this usage}}
 	h      {link help}
 	pkg    {arg y	help {Package/Component name}}
@@ -27,31 +30,115 @@ set OptionList {
 	update {arg n	help {Just overwrite existed test run items}}
 	r      {arg n	help {Do not parse subtest.desc when lstest casedir}}
 	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList}}
+
+  *0 {Dummy "\n  Options for job configuration:"}
+	restraint		{forward y arg o	help {Use restraint harness instead of beach}}
+	cc			{forward y arg m	help {Notify additional e-mail address on job completion}}
+	job-owner		{forward y arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
+	wb			{forward y arg y	help {Set the whiteboard for this job}}
+	whiteboard		{link wb}
+	repo			{forward y arg m	help {Configure repo at <URL> in the kickstart for installation}}
+	recipe			{forward y arg n	help {Just generate recipeSet node, internal use for runtest -merge}}
+	rwb			{forward y arg y	help {Set the whiteboard for the recipe}}
+
+  *1 {Dummy "\n  Options for selecting distro tree(s):"}
+	family			{forward y arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
+	tag			{forward y arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE)}}
+	distro			{forward y arg m	help {Use named distro for job)}}
+	variant			{forward y arg y	help {Specify the distro variant}}
+	arch			{forward y arg y	help {Specify the distro arch}}
+	distrorequire		{link dr}
+	dr			{forward y arg m	help {distrorequire -dr=key="value"}}
+
+  *2 {Dummy "\n  Options for selecting system(s):"}
+	servers			{forward y arg y	help {Include NUMBER server hosts for multi-host test}}
+	clients			{forward y arg y	help {Include NUMBER client hosts for multi-host test}}
+	hr			{forward y arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
+	hostrequire		{link hr}
+	kv			{forward y arg m	help {Require system with matching legacy key-value, example: --keyvalue=NETWORK=e1000}}
+	keyvalue		{link kv}
+	machine			{forward y arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
+	systype			{forward y arg y	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
+	ormachine		{forward y arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
+	random                  {forward y arg n  help {autopick type}}
+
+  *3 {Dummy "\n  Options for selecting special system(s) of networ-qe:"}
+	nay-driver		{link netqe-nic-driver	hide y}
+	nic-num			{link netqe-nic-num	hide y}
+	nay-nic-driver		{link netqe-nic-driver	hide y}
+	nay-nic-num		{link netqe-nic-num	hide y}
+	nay-nic-model		{link netqe-nic-model	hide y}
+	nay-nic-speed		{link netqe-nic-speed	hide y}
+	nay-nic-match		{link netqe-nic-match	hide y}
+	nay-nic-unmatch		{link netqe-nic-unmatch hide y}
+	netqe-nic-driver	{forward y arg o help ""}
+	netqe-nic-num		{forward y arg o help ""}
+	netqe-nic-model		{forward y arg o help ""}
+	netqe-nic-speed		{forward y arg o help ""}
+	netqe-nic-match		{forward y arg o help ""}
+	netqe-nic-unmatch	{forward y arg o help {These options together generate the machine pool which match required NIC num/driver/model/speed
+				- Refer `parse_netqe_nic_info.sh -h`, which is the engine for the translating.
+				  Example: --netqe-nic-driver=e1000e --netqe-nic-num=2
+				- Use comma-separated values for different machine pool of multihost
+				  Example: --netqe-nic-driver=e1000e,any --netqe-nic-num=2 --netqe-nic-speed=1g }}
+
+  *4 {Dummy "\n  Options for setting tasks:"}
+	task			{forward y arg m	help {Include named task in job, can use multiple times}}
+	param			{forward y arg m	help {Set task params, can use multiple times.
+				Use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
+	taskparam		{link param}
+	nvr			{forward y arg m	help {Specify the kernel(Name-Version-Release) to be installed}}
+	install			{forward y arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
+	upstream		{forward y arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d][#tag]
+				default: git://git.app.eng.bos.redhat.com/linux.git#master}}
+	Scratch			{forward y arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times}}
+	scratch			{forward y arg m  help {same as Scratch, but every specified just apply one host, if in multihost mode}}
+	dbgk			{forward y arg n	help {Use the debug kernel}}
+	kcov			{forward y arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs, drivers/net"}}
+	kdump			{forward y arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
+	cmd			{forward y arg m	help {Add /distribution/command before test task}}
+	cmdb			{forward y arg m	help {Add /distribution/command before install kernel}}
+	leap-second		{forward y arg n	help {Add leap-second task}}
+	reserve-if-fail		{forward y arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h}}
+	fips                    {forward y arg n  help {enable fips}}
+
+  *5 {Dummy "\n  Options for installation:"}
+	part			{forward y arg m	help {Additional <partitions/> for job, example: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
+	partition		{link part}
+	ks-meta			{forward y arg m  help {Pass kickstart metadata OPTIONS when generating kickstart}}
+	ks-append		{forward y arg m	help {Specify additional kickstart commands to add to the base kickstart file}}
+	ks			{link ks-append hide y}
+	ksf			{forward y arg m	help {Similar to --ks-append, but pass the content of a specified file}}
+	k-opts			{forward y arg m	help {Pass OPTIONS to kernel during installation}}
+	kernel-options		{link k-opts}
+	k-opts-post		{forward y arg m	help {Pass OPTIONS to kernel after installation}}
+	kernel-options-post	{link k-opts-post}
 }
 
 proc Usage {progname} {
-	puts "Usage: $progname <distro> <testfile|casedir|-> <--pkg pkgname> \[-- gen_job_xml options\]"
+	puts "Usage: $progname <distro> <testfile|casedir|-> <--pkg pkgname> \[gen_job_xml options\]"
 	getUsage $::OptionList
 }
 
 # _parse_ argument
-getOptions $OptionList $::argv Opt InvalidOpt Args
-puts "Debug: Args{$Args}"
+getOptions $OptionList $::argv Opt InvalidOpt Args ForwardOpt
+puts "\[$prog\]: Arguments:{$Args}"
+puts "\[$prog\]: ForwardOpt{$ForwardOpt}"
 parray InvalidOpt
 parray Opt
 
 if [info exist Opt(help)] {
-	Usage $argv0
+	Usage $prog
 	exit 0
 }
 
 if {[llength $Args] < 2} {
-	Usage $argv0
+	Usage $prog
 	exit 1
 }
 
 if ![info exist Opt(pkg)] {
-	Usage $argv0
+	Usage $prog
 	exit 1
 }
 
@@ -71,15 +158,16 @@ if [info exist Opt(e)] {
 }
 
 # Get subcmd options
-set SubcmdOpt [list]
+set SubcmdOpt $ForwardOpt
 set TestArgList {}
 set Idx [lsearch $Args {--}]
 if {$Idx == -1} {
 	set TestArgList [lrange $Args 1 end]
 } else {
 	set TestArgList [lrange $Args 1 [expr $Idx-1]]
-	set SubcmdOpt [lrange $Args [expr $Idx+1] end]
+	lappend SubcmdOpt {*}[lrange $Args [expr $Idx+1] end]
 }
+puts "\[$prog\]: SubcmdOpt{$SubcmdOpt}"
 
 # Get distro and gset info
 set Distro [lindex $Args 0]
@@ -98,7 +186,7 @@ if ![regexp -- {-nvr=} $Gset] {
 set Distro_ [concat $Distro $Gset]
 if {$Distro_ == ""} {
 	puts "WARN: distro info is nil, something is wrong!"
-	Usage $argv0
+	Usage $prog
 	exit 1
 }
 
