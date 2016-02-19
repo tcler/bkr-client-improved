@@ -376,6 +376,7 @@ job retention_tag=Scratch user=$jobOwner $jobCtl {
 				set ARCH [lindex $ARCH_L 0]
 				set ARCH_L [lrange $ARCH_L 1 end]
 			}
+			lassign [split $ARCH .] ARCH Vendor
 			if ![string length $ARCH] {set ARCH auto}
 			if [string equal $ARCH "auto"] {set ARCH x86_64}
 
@@ -424,6 +425,9 @@ job retention_tag=Scratch user=$jobOwner $jobCtl {
 									lassign [regsub (.*?)(=|!=|>|>=|<|<=)(.*$) $kv {\1 op=\2 {value=\3}}] k op v
 									doTag $k $op $v -
 								}
+							}
+							if {$Vendor != ""} {
+								doTag key_value key=CPUVENDOR op== value=$Vendor -
 							}
 							if [info exist Opt(kv)] {
 								foreach kv $Opt(kv) {
