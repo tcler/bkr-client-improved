@@ -125,7 +125,7 @@ if [info exist Opt(d)] {
 }
 
 # Usage
-proc Usage {} {
+proc Usage {{detail n}} {
 	puts "Usage0: $::prog \[options\] <distro\[,distro,...\]> \[-|testfile...\] \[gen_job_xml options\] "
 	puts "Usage1: $::prog \[options\] family                \[-|testfile...\] --family=<distroFamily> \[other gen_job_xml options\]"
 	puts ""
@@ -134,12 +134,21 @@ proc Usage {} {
 	puts "Example 3: $::prog Fedora-22,RHEL-7.2,RHEL-7.2 ~/git/test/nfs-utils/function/pnfs/blklayout"
 	puts "Example 4: $::prog RHEL-6.6 --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6 # reserve a host"
 	puts ""
-	getUsage $::OptionList
+	if {$detail != "n"} {
+		getUsage $::OptionList
+	} else {
+		puts "* try '$::prog -h|less' to get more detail info about options"
+	}
 }
-proc Usage_bkr_reserve {} {
+proc Usage_bkr_reserve {{detail n}} {
 	puts "Usage0: $::prog \[-n\] <distro\[,distro,...\]> \[gen_job_xml options\] "
 	puts "Example: $::prog RHEL-6.6 --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6"
 	puts ""
+	if {$detail != "n"} {
+		getUsage $::OptionList
+	} else {
+		puts "* try '$::prog -h|less' to get more detail info about options"
+	}
 }
 proc istty {{chann stdin}} {
 	dict exists [fconfigure $chann] -mode
@@ -147,9 +156,9 @@ proc istty {{chann stdin}} {
 
 if [info exist Opt(help)] {
 	if {$prog == "bkr-reservesys"} {
-		Usage_bkr_reserve
+		Usage_bkr_reserve detail
 	} else {
-		Usage
+		Usage detail
 	}
 	exit 0
 }

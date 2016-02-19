@@ -120,10 +120,11 @@ set OptionList {
 proc Usage {progname {detail n}} {
 	puts "Usage0: $progname <distro> <-|testfile...> <--pkg pkgname> \[gen_job_xml options\]"
 	puts "Usage1: lstest <argument> | $progname <distro> <--pkg pkgname> \[gen_job_xml options\]"
+	puts ""
 	if {$detail != "n"} {
 		getUsage $::OptionList
 	} else {
-		puts "* try '$progname -h' to get more detail info about options"
+		puts "* try '$progname -h|less' to get more detail info about options"
 	}
 }
 proc istty {{chann stdin}} {
