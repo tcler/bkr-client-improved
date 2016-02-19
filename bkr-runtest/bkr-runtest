@@ -137,8 +137,8 @@ proc Usage_bkr_reserve {} {
 	puts "Example: $::prog RHEL-6.6 --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6"
 	puts ""
 }
-proc istty {chann stdin} {
-	dict exists [fconfigure stdout] -mode
+proc istty {{chann stdin}} {
+	dict exists [fconfigure $chann] -mode
 }
 
 if [info exist Opt(help)] {
@@ -193,6 +193,7 @@ set Distro [expandDistro $Distro]
 # Get the test list
 set TestList {}
 set TestListFile {}
+if {![istty stdin] && "-" ni $TestArgList} {lappend TestArgList -}
 if {[llength $TestArgList]==0} {
 	if {$prog != "bkr-reservesys"} {
 		puts "INFO: No test specified, will reserve host($Distro) for you" }
