@@ -196,7 +196,7 @@ set TestListFile {}
 if {![istty stdin] && "-" ni $TestArgList} {lappend TestArgList -}
 if {[llength $TestArgList]==0} {
 	if {$prog != "bkr-reservesys"} {
-		puts "INFO: No test specified, will reserve host($Distro) for you" }
+		puts "\[$prog\]: No test specified, will reserve host($Distro) for you" }
 	lappend TestList "/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12h ssched=no type=Functioal"
 } else {
 	if {$prog == "bkr-reservesys"} {
@@ -260,7 +260,7 @@ foreach test $TestList {
 	# get key {pkg= ssched= topo= GlobalSetup}
 	set key [testinfo recipekey $test]
 	if ![regexp -- {.+ ssched=.* topo=.*} $key] {
-		puts stderr "Warn: recipekey($key) is not standard([lindex $test 0])!"
+		puts stderr "\[$prog\]: Warn: recipekey($key) is not standard([lindex $test 0])!"
 		continue
 	}
 	if [info exist Opt(alone)] {regsub {ssched=no} $key {ssched=yes} key}
@@ -301,8 +301,8 @@ foreach {tkey tvalue} [array get TestGroup] {
 		foreach t $tvalue { puts $fp "$t" }
 		catch {close $fp} err
 
-		puts "INFO: processing GlobalSetup: {$gset}"
-		puts "Generate job XML ==> '$xmlf'"
+		puts "\[$prog\]: processing GlobalSetup: {$gset}"
+		puts "\[$prog\]: Generate job XML ==> '$xmlf'"
 
 		if [info exist xmlf_merged] {
 			exec sed -n {/retention_tag/,/\/notify/p} $xmlf > ${xmlf_merged}.head
@@ -319,12 +319,12 @@ foreach {tkey tvalue} [array get TestGroup] {
 		}
 		puts ""
 	} else {
-		puts "Error: fail to write $xmlf\n\n$err"
+		puts "\[$prog\]: Error: fail to write $xmlf\n\n$err"
 	}
 }
 
 if [info exist xmlf_merged] {
-	puts "INFO: Merged all recipeSets to '$xmlf_merged'"
+	puts "\[$prog\]: Merged all recipeSets to '$xmlf_merged'"
 	set XML [exec cat ${xmlf_merged}.head ${xmlf_merged}.body ${xmlf_merged}.tail]
 	file delete ${xmlf_merged}.head
 	file delete ${xmlf_merged}.body
