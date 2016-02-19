@@ -23,11 +23,13 @@ set OptionList {
 	help   {arg n	help {Print this usage}}	h {link help}
 	dryrun {arg n	help {Just generate XML file(s), not submit job to beaker}}	n {link dryrun}
 	merge  {arg n	help {Merge all recipeSets in one job XML}}	m {link merge}
-	raw    {arg n	help {Do not parse subtest.desc} hide y}	r {link raw hide y}
-	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList} hide y}
 	alone  {arg n	help {Submit all tests separately, one case one recipe}}
 	wb-comment      {arg y	help {Add customer string in the default whiteboard}}
 	wb-format       {arg y	help {Accept a customized whiteboard}}
+	d      {arg n   help {debug mode}}
+
+	raw    {arg n	help {Do not parse subtest.desc} hide y}	r {link raw hide y}
+	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList} hide y}
 
   *0 {Dummy "\n  Options for job configuration:"}
 	restraint		{forward y arg o	help {Use restraint harness instead of beach}}
@@ -115,10 +117,12 @@ set OptionList {
 
 # _parse_ argument
 getOptions $OptionList $::argv Opt InvalidOpt Args ForwardOpt
-puts "\[$prog\]: Arguments:{$Args}"
-puts "\[$prog\]: ForwardOpt{$ForwardOpt}"
-parray InvalidOpt
-parray Opt
+if [info exist Opt(d)] {
+	puts "\[$prog\]: Arguments:{$Args}"
+	puts "\[$prog\]: ForwardOpt{$ForwardOpt}"
+	parray InvalidOpt
+	parray Opt
+}
 
 # Usage
 proc Usage {} {
@@ -172,7 +176,9 @@ if {$Idx == -1} {
 	set TestArgList [lrange $Args 1 [expr $Idx-1]]
 	lappend SubcmdOpt {*}[lrange $Args [expr $Idx+1] end]
 }
-puts "\[$prog\]: SubcmdOpt{$SubcmdOpt}"
+if [info exist Opt(d)] {
+	puts "\[$prog\]: SubcmdOpt{$SubcmdOpt}"
+}
 
 set Distro [lindex $Args 0]
 #If Distro is a errata name, process it.
@@ -193,10 +199,10 @@ set Distro [expandDistro $Distro]
 # Get the test list
 set TestList {}
 set TestListFile {}
-if {![istty stdin] && "-" ni $TestArgList} {lappend TestArgList -}
+if {[llength $TestArgList]==0 && ![istty stdin]} {lappend TestArgList -}
 if {[llength $TestArgList]==0} {
 	if {$prog != "bkr-reservesys"} {
-		puts "\[$prog\]: No test specified, will reserve host($Distro) for you" }
+		puts "\[$prog\]: *Remind*: No test specified, will reserve host($Distro) for you" }
 	lappend TestList "/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12h ssched=no type=Functioal"
 } else {
 	if {$prog == "bkr-reservesys"} {

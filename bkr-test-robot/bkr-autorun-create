@@ -28,6 +28,8 @@ set OptionList {
 	name   {link pkg hide y}
 	force  {arg n	help {Add new or overwrite existed testrun items}}
 	update {arg n	help {Just overwrite existed test run items}}
+	d      {arg n	help {debug mode}}
+
 	r      {arg n	help {Do not parse subtest.desc when lstest casedir} hide y}
 	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList} hide y}
 
@@ -115,9 +117,14 @@ set OptionList {
 	kernel-options-post	{link k-opts-post}
 }
 
-proc Usage {progname} {
-	puts "Usage: $progname <distro> <-|testfile...> <--pkg pkgname> \[gen_job_xml options\]"
-	getUsage $::OptionList
+proc Usage {progname {detail n}} {
+	puts "Usage0: $progname <distro> <-|testfile...> <--pkg pkgname> \[gen_job_xml options\]"
+	puts "Usage1: lstest <argument> | $progname <distro> <--pkg pkgname> \[gen_job_xml options\]"
+	if {$detail != "n"} {
+		getUsage $::OptionList
+	} else {
+		puts "* try '$progname -h' to get more detail info about options"
+	}
 }
 proc istty {{chann stdin}} {
 	dict exists [fconfigure $chann] -mode
@@ -125,17 +132,19 @@ proc istty {{chann stdin}} {
 
 # _parse_ argument
 getOptions $OptionList $::argv Opt InvalidOpt Args ForwardOpt
-puts "\[$prog\]: Arguments:{$Args}"
-puts "\[$prog\]: ForwardOpt{$ForwardOpt}"
-parray InvalidOpt
-parray Opt
+if [info exist Opt(d)] {
+	puts "\[$prog\]: Arguments:{$Args}"
+	puts "\[$prog\]: ForwardOpt{$ForwardOpt}"
+	parray InvalidOpt
+	parray Opt
+}
 
 if [info exist Opt(help)] {
-	Usage $prog
+	Usage $prog detail
 	exit 0
 }
 
-if {[llength $Args] < 2} {
+if {[llength $Args] < 1} {
 	Usage $prog
 	exit 1
 }
@@ -170,7 +179,10 @@ if {$Idx == -1} {
 	set TestArgList [lrange $Args 1 [expr $Idx-1]]
 	lappend SubcmdOpt {*}[lrange $Args [expr $Idx+1] end]
 }
-puts "\[$prog\]: SubcmdOpt{$SubcmdOpt}"
+
+if [info exist Opt(d)] {
+	puts "\[$prog\]: SubcmdOpt{$SubcmdOpt}"
+}
 
 # Get distro and gset info
 set Distro [lindex $Args 0]
@@ -188,13 +200,22 @@ if ![regexp -- {-nvr=} $Gset] {
 
 set Distro_ [concat $Distro $Gset]
 if {$Distro_ == ""} {
-	puts "WARN: distro info is nil, something is wrong!"
+	puts "\[$prog\]: *WARN*: distro info is nil, something is wrong!"
 	Usage $prog
 	exit 1
 }
 
 # Get the test list
-if {![istty stdin] && "-" ni $TestArgList} {lappend TestArgList -}
+set TestList [list]
+if {[llength $TestArgList]==0} {
+	if [istty stdin] {
+		puts "\[$prog\]: *Warn*: No test list resource specified!"
+		Usage $prog
+		exit 1
+	} else {
+		lappend TestArgList -
+	}
+}
 foreach f $TestArgList {
 	if {$f in "-"} {
 		set fp stdin
@@ -218,9 +239,14 @@ foreach f $TestArgList {
 		}
 	}
 }
+if ![llength $TestList] {
+	puts "\[$prog\]: *Warn*: test list is nil, nothing to do, please check your test list file."
+	Usage $prog
+	exit 1
+}
 
 # __main__
-puts "Create/update run {$Distro_} ..."
+puts "\[$prog\]: Create/update run {$Distro_} ..."
 # if dbroot dir not exist, create it.
 file mkdir [dbroot]
 cd [dbroot]
