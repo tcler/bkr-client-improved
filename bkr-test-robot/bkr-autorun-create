@@ -119,6 +119,9 @@ proc Usage {progname} {
 	puts "Usage: $progname <distro> <-|testfile...> <--pkg pkgname> \[gen_job_xml options\]"
 	getUsage $::OptionList
 }
+proc istty {{chann stdin}} {
+	dict exists [fconfigure $chann] -mode
+}
 
 # _parse_ argument
 getOptions $OptionList $::argv Opt InvalidOpt Args ForwardOpt
@@ -191,6 +194,7 @@ if {$Distro_ == ""} {
 }
 
 # Get the test list
+if {![istty stdin] && "-" ni $TestArgList} {lappend TestArgList -}
 foreach f $TestArgList {
 	if {$f in "-"} {
 		set fp stdin
