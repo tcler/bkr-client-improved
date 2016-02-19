@@ -1,3 +1,0 @@
--  -w, --wb_format      Submit test case with formated whiteboard, supported options:
--                         %D test_distro, %E errata, %N test_name, %O test_opt, %P test_path, %T test_type
--                         %n case_num, %o test_obj, %p pkgName, %t submit_time
