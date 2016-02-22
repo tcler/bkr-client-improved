@@ -14,7 +14,7 @@ arch=s390x
 
 ## Complex matrix
 arch=i386.AuthenticAMD   dr="arch!=x86_64" kv=CPUFLAGS=pae hr=cpu_count=1 hr=hypervisor=
-arch=i386.GenuineIntel   dr="arch=x86_64" kv=CPUFLAGS=pae hr="cpu_count>1" hr=hypervisor=
+arch=i386.GenuineIntel   dr="arch!=x86_64" kv=CPUFLAGS=pae hr="cpu_count>1" hr=hypervisor=
 
 arch=x86_64              hr="cpu_count>1" hr=hypervisor=  k-opts-post="fips=1"
 arch=x86_64.GenuineIntel hr="cpu_count>1" hr=hypervisor=  dbgk
