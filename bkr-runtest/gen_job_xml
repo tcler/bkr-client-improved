@@ -389,7 +389,12 @@ job retention_tag=Scratch user=$jobOwner $jobCtl {
 				distroRequires ! {
 					and ! {
 						if {$DISTRO ni {"" "family"}} {
-							distro_name op== value=${DISTRO} -
+							if ![regexp -- {^RedHatEnterpriseLinux} $DISTRO] {
+								distro_name op== value=${DISTRO} -
+							} else {
+								distro_family op== value=${DISTRO} -
+								distro_tag op== value=${TAG} -
+							}
 						} else {
 							distro_family op== value=${FAMILY} -
 							distro_tag op== value=${TAG} -
