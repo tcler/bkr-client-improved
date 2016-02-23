@@ -197,7 +197,7 @@ foreach {jobID taskList} [array get runningTest] {
 				set taskResults [$taskNode selectNodes results]
 				if {$taskResults != ""} {
 					foreach taskResNode [$taskResults childNodes] {
-						if [$taskResNode hasAttribute @result] {
+						if [$taskResNode hasAttribute result] {
 							set _res [$taskResNode @result]
 						} else {
 							set _res [string map {( {} ) {}} [$taskResNode text]]
