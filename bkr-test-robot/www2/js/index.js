@@ -12,9 +12,9 @@ $(document).ready(function() {
 	  }
 	],
         order: [[ 1, 'asc' ]],
-        fixedColumns:   {
+        fixedColumns:   0 /* {
             leftColumns: 2
-        }
+        } */
     } );
 
     table.on( 'order.dt search.dt', function () {
