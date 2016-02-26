@@ -16,6 +16,7 @@ namespace import ::getOpt::* ::runtestlib::*
 
 cd [dbroot]
 sqlite3 db testrun.db
+db timeout 2000
 
 db eval {CREATE TABLE if not exists testrun(testid,
 	distro_rgset default '',

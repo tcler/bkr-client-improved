@@ -128,6 +128,7 @@ if {$rc == 0 && [pid] != [lindex $msg 0]} {
 }
 cd [dbroot]
 sqlite3 db testrun.db
+db timeout 2000
 
 #Get running test list
 array set runingTest {}

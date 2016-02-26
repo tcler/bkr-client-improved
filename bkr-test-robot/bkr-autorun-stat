@@ -43,6 +43,7 @@ if [info exist Opt(help)] {
 
 cd [dbroot]
 sqlite3 db testrun.db
+db timeout 2000
 #===============================================================================
 set pkgQ "select DISTINCT ti.pkgName from testinfo ti"
 set pkgList [db eval $pkgQ]
