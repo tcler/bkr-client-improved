@@ -8,6 +8,7 @@ namespace import ::getOpt::* ::runtestlib::*
 
 cd [dbroot]
 sqlite3 db testrun.db
+db timeout 2000
 
 #===============================================================================
 # require view

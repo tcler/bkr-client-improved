@@ -75,6 +75,7 @@ if [info exists Opt(y)] {
 # __main__
 cd [dbroot]
 sqlite3 db testrun.db
+db timeout 2000
 if {[string match -nocase y* $ans]} {
 	if {$deltype == "run"} {
 		db transaction {
