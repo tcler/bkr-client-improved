@@ -11,7 +11,6 @@ set ftime 0
 
 cd [dbroot]
 sqlite3 db testrun.db
-db timeout 2000
 
 #===============================================================================
 if {[dict get $req -host] != "localhost"} {

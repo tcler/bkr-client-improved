@@ -252,7 +252,6 @@ puts "\[$prog\]: Create/update run {$Distro_} ..."
 file mkdir [dbroot]
 cd [dbroot]
 sqlite3 db testrun.db
-db timeout 2000
 
 #Create table testrun
 db eval {CREATE TABLE if not exists testrun(testid,

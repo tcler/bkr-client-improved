@@ -56,12 +56,34 @@ proc parseJobResult {jobid} {
 					if {$pname == "TestID"} continue
 					append tname " $pname=[$param @value]"
 				}
+
+				#get subtest result
+				set task_results [$task selectNodes results]
+				set subresult [list]
+				if {$task_results != ""} {
+					foreach subres [$task_results childNodes] {
+						set _res [$subres @result]
+						set _path [$subres @path]
+						lappend subresult "$_res $_path"
+					}
+					lappend tresult $subresult
+				}
+
 				lappend test($tname) $tresult
 			}
 		}
 		puts "recipeSet $jobid->$recipeSetID $gSet"
-		foreach {T S} [array get test] {
-			puts "    {$T} {$S}"
+		foreach {Name Res} [array get test] {
+			set i 0
+			foreach reciperes $Res {
+				lassign $reciperes res subres
+				puts "  $res {$Name}"
+				foreach r $subres {
+					puts "        $r"
+				}
+				puts ""
+				incr i
+			}
 		}
 	}
 }
