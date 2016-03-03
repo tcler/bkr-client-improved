@@ -79,7 +79,9 @@ while read line <&100; do
 done
 
 if [[ -z "$I" ]]; then
-	echo "$head PRIVMSG ${chan:-$CHANNEL} " :$msg >&100
+	while read l; do
+		echo "$head PRIVMSG ${chan:-$CHANNEL} " :$l >&100
+	done <<<"$msg"
 	echo "QUIT" >&100
 	exit $?
 fi
