@@ -46,13 +46,13 @@ Notes:
 *   ***bkr-runtest*** - Genarate job XML files from test items (by `lstest` and `gen_job_xml`), then group them (by hardware requirement) and submit to beaker
 
 	```
-	Usage0: bkr-runtest [options] <distro[,distro,...]> [-|testfile...] [gen_job_xml options] 
-	Usage1: bkr-runtest [options] family                [-|testfile...] --family=<distroFamily> [other gen_job_xml options]
+	Usage0: runtest [options] <distro[,distro,...]> [-|testfile...] [gen_job_xml options] 
+	Usage1: runtest [options] <family[,family,...]> [-|testfile...] [gen_job_xml options]
 
-	Example 1: bkr-runtest RHEL-6.6  ~/git/test/kernel/filesystems/nfs/function/
-	Example 2: bkr-runtest RHEL-6.6  ~/git/test/kernel/networking/bonding/failover --netqe-nic-driver=tg3 --netqe-nic-num=2
-	Example 3: bkr-runtest Fedora-22,RHEL-7.2,RHEL-7.2 ~/git/test/nfs-utils/function/pnfs/blklayout
-	Example 4: bkr-runtest RHEL-6.6 --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6 # reserve a host
+	Example 1: runtest RHEL-6.6  ~/git/test/kernel/filesystems/nfs/function/
+	Example 2: runtest RHEL-6.6  ~/git/test/kernel/networking/bonding/failover --netqe-nic-driver=tg3 --netqe-nic-num=2
+	Example 3: runtest Fedora-22,RHEL-7.2,RHEL-7.2 ~/git/test/nfs-utils/function/pnfs/blklayout
+	Example 4: runtest RedHatEnterpriseLinux6 --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6 # reserve a host
 	```
 	(Use `bkr-runtest -h` to get more helps)
 
