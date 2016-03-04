@@ -30,9 +30,10 @@ array set Opt {}
 array set InvalidOpt {}
 set NotOptions [list]
 set OptionList {
-	help          {arg n	help {Print this usage}}	h {link help}
-	opts-macro    {arg y	help {exec the "cmd [arg]" in run time to generate options}}
+	help          {arg n	help {Print this usage}}
+	h             {link help}
 	f             {arg y	help {Specify a test list file}}
+	opts-macro    {arg y	help {exec the "cmd [arg]" in run time to generate options} hide y}
 
   *0 {Dummy "\n  Options for job configuration:"}
 	restraint		{arg o	help {Use restraint harness instead of beach}}
