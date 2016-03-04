@@ -39,6 +39,7 @@ Notes:
     ```
 	Usage: gen_job_xml --distro=<DISTRO> [options]
 	Example: gen_job_xml --distro RHEL-6.6 --task=/distribution/reservesys --arch=x86_64
+	Example: gen_job_xml --family RedHatEnterpriseLinux7 -f test.list --nvr=kernel-x.y.z-abc.el7 --dbgk
 
 	```
 	(Use `gen_job_xml -h` to check all available options)

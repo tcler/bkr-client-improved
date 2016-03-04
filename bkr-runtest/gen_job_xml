@@ -121,7 +121,8 @@ set OptionList {
 proc Usage {} {
 	puts "Usage: $::argv0 --distro=<DISTRO> \[options\]"
 	puts "Generates a Beaker job XML file, like `bkr workflow-simple`, but have many improvements and unofficial options"
-	puts "Example:  gen_job_xml --distro RHEL-6.6 --task=/distribution/reservesys --arch=x86_64\n"
+	puts "Example:  gen_job_xml --distro RHEL-6.6 --task=/distribution/reservesys --arch=x86_64"
+	puts "Example:  gen_job_xml --family RedHatEnterpriseLinux7 -f test.list --nvr=kernel-x.y.z-abc.el7 --dbgk\n"
 	getUsage $::OptionList
 }
 
