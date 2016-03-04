@@ -23,7 +23,7 @@ declaretags ks_appends ks_append
 declaretags watchdog
 declaretags task params param
 
-source $::conf_file
+source $::runtestConf
 
 # global var
 array set Opt {}

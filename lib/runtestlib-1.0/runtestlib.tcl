@@ -11,15 +11,19 @@
 exec tclsh "$0" ${1+"$@"}
 
 namespace eval ::runtestlib {
-	namespace export dbroot testinfo genWhiteboard expandDistro hostUsed conf_file
+	namespace export dbroot testinfo genGset genWhiteboard expandDistro hostUsed runtestConf autorunConf
 }
 
-set conf_file /etc/bkr-client-improved/bkr-autorun.conf
-set conf_file_private $::env(HOME)/.bkr-client-improved/bkr-autorun.conf
-if [file exists $conf_file_private] { set conf_file $conf_file_private }
+set runtestConf /etc/bkr-client-improved/bkr-runtest.conf
+set runtestConfPrivate $::env(HOME)/.bkr-client-improved/bkr-runtest.conf
+if [file exists $runtestConfPrivate] { set runtestConf $runtestConfPrivate }
+
+set autorunConf /etc/bkr-client-improved/bkr-autorun.conf
+set autorunConfPrivate $::env(HOME)/.bkr-client-improved/bkr-autorun.conf
+if [file exists $autorunConfPrivate] { set autorunConf $autorunConfPrivate }
 
 proc ::runtestlib::dbroot {} {
-	source $::conf_file
+	source $::autorunConf
 
 	return "$DB_ROOT"
 }
@@ -124,8 +128,20 @@ proc ::runtestlib::testinfo {subcmd testobj} {
 	return $ret
 }
 
-proc ::runtestlib::genWhiteboard {distro testkey testList comment} {
+proc ::runtestlib::genGset {testkey} {
+	lassign $testkey pkg ssched topo gset
 
+	set gset [string trimleft $gset]
+	if [string match topo=multi* $topo] {
+		lassign [regsub {.*?([0-9]+).([0-9]+).*} $topo {\1 \2}] servNum clntNum
+		set topoDesc M.$servNum.$clntNum
+		set gset [concat --servers=$servNum --clients=$clntNum $gset]
+	}
+
+	return $gset
+}
+
+proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 	proc pop {varname} {
 		upvar 1 $varname var
 		set var [lassign $var head]
@@ -146,19 +162,23 @@ proc ::runtestlib::genWhiteboard {distro testkey testList comment} {
 		return [join $parts $separator]
 	}
 
-	lassign $testkey pkg ssched topo gset
-	set gset [string trimleft $gset]
+	lassign $testkey pkg issched topo igset
+
+	# Gen gset string
+	set gset [genGset $testkey]
+
+	# Get task number
 	set tnum [llength $testList]
 
+	# Gen topo descrition
 	set topoDesc S
-	if {$pkg in {merged}} { set topoDesc X }
 	if [string match topo=multi* $topo] {
 		lassign [regsub {.*?([0-9]+).([0-9]+).*} $topo {\1 \2}] servNum clntNum
 		set topoDesc M.$servNum.$clntNum
-		set gset [concat --servers=$servNum --clients=$clntNum $gset]
-	} else {}
+	}
+	if {$pkg in {merged}} { set topoDesc X }
 
-	# get common directory path as test summary prefix
+	# Get common directory path as test summary prefix
 	set tnameList {}
 	set testSummPrefix {}
 	foreach t $testList {
@@ -225,9 +245,20 @@ proc ::runtestlib::genWhiteboard {distro testkey testList comment} {
 		set comment "\[$comment\]:"
 	}
 
-	set WB "\[[clock format [clock seconds] -format %Y%m%d~%H:%M]\] \[$pkg@$distro $topoDesc:$tnum\] $comment$testSummPrefix/$testSumm $gset"
+	set time [clock format [clock seconds] -format %Y%m%d~%H:%M]
+	set WB $format
+	if {$WB == ""} {set WB {[%T] [%P@%D %O:%N] %C%S/%s %G}}
+	regsub -all "%T" $WB "$time" WB
+	regsub -all "%P" $WB "$pkg" WB
+	regsub -all "%D" $WB "$distro" WB
+	regsub -all "%O" $WB "$topoDesc" WB
+	regsub -all "%N" $WB "$tnum" WB
+	regsub -all "%C" $WB "$comment" WB
+	regsub -all "%S" $WB "$testSummPrefix" WB
+	regsub -all "%s" $WB "$testSumm" WB
+	regsub -all "%G" $WB "$gset" WB
 
-	return [list $WB $gset]
+	return $WB
 }
 
 proc ::runtestlib::expandDistro {distroStr} {

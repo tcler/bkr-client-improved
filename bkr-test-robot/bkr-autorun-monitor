@@ -16,7 +16,7 @@ namespace import ::getOpt::* ::runtestlib::*
 
 exec bash -c {recipe.sh $(klist | awk -F'[ :@]+' '/Default principal/{print $3}') >/dev/null}
 
-source $conf_file
+source $autorunConf
 foreach {key val} [array get HostAvilable] { set HostMax($key) [expr ($val+5)/10] }
 
 #parray HostMax

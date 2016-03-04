@@ -11,6 +11,7 @@ lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require getOpt
 package require runtestlib
 namespace import ::getOpt::* ::runtestlib::*
+source $::runtestConf
 
 # global var
 set prog [file tail $argv0]
@@ -24,8 +25,8 @@ set OptionList {
 	dryrun {arg n	help {Just generate XML file(s), not submit job to beaker}}	n {link dryrun}
 	merge  {arg n	help {Merge all recipeSets in one job XML}}	m {link merge}
 	alone  {arg n	help {Submit all tests separately, one case one recipe}}
-	wb-comment      {arg y	help {Add customer string in the default whiteboard}}
 	wb-format       {arg y	help {Accept a customized whiteboard}}
+	wb-comment      {arg y	help {Add customer string in the default whiteboard}}
 	d      {arg n   help {debug mode}}
 
 	raw    {arg n	help {Do not parse subtest.desc} hide y}	r {link raw hide y}
@@ -294,14 +295,16 @@ if [info exist Opt(merge)] {
 	lappend SubcmdOpt {-recipe}
 }
 foreach {tkey tvalue} [array get TestGroup] {
-	set TestCmnt {}
-	if [info exist Opt(wb-comment)] {
-		set TestCmnt $Opt(wb-comment)
-	}
-	if {$TestListFile != ""} {
-		lappend TestCmnt "$TestListFile"
-	}
-	lassign [genWhiteboard $Distro $tkey $tvalue "$TestCmnt"] WB gset
+	set wbComment {}
+	if [info exist Opt(wb-comment)] { set wbComment $Opt(wb-comment) }
+	if {$TestListFile != ""} { lappend wbComment "$TestListFile" }
+
+	set wbFormat {}
+	if [info exist WB_FORMAT] { set wbFormat $WB_FORMAT }
+	if [info exist Opt(wb-format)] { set wbFormat $Opt(wb-format) }
+
+	set gset [genGset $tkey]
+	set WB [genWhiteboard $Distro $tkey $tvalue "$wbFormat" $wbComment]
 
 	if {[string length $SubcmdOpt]>0} {append WB " {$SubcmdOpt}"}
 
