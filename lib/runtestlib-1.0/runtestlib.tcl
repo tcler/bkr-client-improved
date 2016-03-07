@@ -247,11 +247,11 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 
 	set time [clock format [clock seconds] -format %Y%m%d~%H:%M]
 	set WB $format
-	if {$WB == ""} {set WB {[%T] [%P@%D %O:%N] %C%S/%s %G}}
+	if {$WB == ""} {set WB {[%T] [%P@%D %H:%N] %C%S/%s %G}}
 	regsub -all "%T" $WB "$time" WB
 	regsub -all "%P" $WB "$pkg" WB
 	regsub -all "%D" $WB "$distro" WB
-	regsub -all "%O" $WB "$topoDesc" WB
+	regsub -all "%H" $WB "$topoDesc" WB
 	regsub -all "%N" $WB "$tnum" WB
 	regsub -all "%C" $WB "$comment" WB
 	regsub -all "%S" $WB "$testSummPrefix" WB
