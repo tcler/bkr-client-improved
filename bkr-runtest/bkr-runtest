@@ -25,7 +25,7 @@ set OptionList {
 	dryrun {arg n	help {Just generate XML file(s), not submit job to beaker}}	n {link dryrun}
 	merge  {arg n	help {Merge all recipeSets in one job XML}}	m {link merge}
 	alone  {arg n	help {Submit all tests separately, one case one recipe}}
-	wb-format       {arg y	help {Accept a customized whiteboard}}
+	wb-format       {arg y	help {Customize whiteboard, default WB_FORMAT in see /etc/bkr-client-improved/bkr-runtest.conf}}
 	wb-comment      {arg y	help {Add customer string in the default whiteboard}}
 	d      {arg n   help {debug mode}}
 
