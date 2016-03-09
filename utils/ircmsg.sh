@@ -80,7 +80,8 @@ done
 
 if [[ -z "$I" ]]; then
 	while read l; do
-		echo "$head PRIVMSG ${chan:-$CHANNEL} " :$l >&100
+		[ -z "$l" ] && continue
+		echo "$head PRIVMSG ${chan:-$CHANNEL} :$l" >&100
 	done <<<"$msg"
 	echo "QUIT" >&100
 	exit $?
