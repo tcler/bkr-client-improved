@@ -101,7 +101,7 @@ while read line <&100; do
 		}
 		if [[ -x "$qe_assistant" ]]; then
 			$qe_assistant "$_msg" |
-			while read l; do [[ -z "$l" ]] && continue; echo "$head PRIVMSG ${_chan} :$l"; done <$logf >&100
+			while read l; do [[ -z "$l" ]] && continue; echo "$head PRIVMSG ${_chan} :$l"; done >&100
 		fi
 	fi
 
