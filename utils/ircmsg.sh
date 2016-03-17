@@ -14,7 +14,7 @@ CHANNEL="#fs-fs"
 
 qe_assistant=/usr/local/bin/qe_assistant
 
-[[ -f ~/.ircmsg.rc ]] && source ~/.ircmsg.rc
+[[ -f ~/.ircmsg/ircmsg.rc ]] && source ~/.ircmsg/ircmsg.rc
 ##########################################################
 # Main
 export LANG=C
@@ -40,9 +40,9 @@ while true; do
 	-h) Usage; shift 1; exit 0;;
 	-d) DEBUG=1; shift 1;;
 	-i) I=1; shift 1;;
-	-I) II=1; shift 1;;
+	-I) I=2; shift 1;;
 	-C) CHANNEL=$2; shift 2;;
-	-c) chan=$2; shift 2;;
+	-c) Chan=$2; shift 2;;
 	-n) NICK=$2; shift 2;;
 	-s) SERVER=$2; shift 2;;
 	-p) PORT=$2; shift 2;;
@@ -56,7 +56,7 @@ test -c /dev/tcp || {
 }
 
 msg="$*"
-chan=${chan:-$CHANNEL}
+Chan=${Chan:-$CHANNEL}
 echo "Connecting to ${SERVER}:${PORT} ..."
 exec 100<>/dev/tcp/${SERVER}/${PORT}
 [[ $? != 0 ]] && { exit 1; }
@@ -73,60 +73,94 @@ while read line <&100; do
 		test -n "$DEBUG" && echo "[namelist] $namelist"
 	}
 
-	[[ $line =~ [^\ ]*\ JOIN\ $CHANNEL ]] && read head ignore <<<$line
+	[[ $line =~ [^\ ]*\ JOIN\ $CHANNEL ]] && read Head ignore <<<$line
 	[[ $line =~ :End\ of\ /NAMES\ list. ]] && break
 	[[ $line =~ .*No\ such\ channel|JOIN\ :Not\ enough\ parameters ]] && break
 done
 
-if [[ -z "$I" ]]; then
+if [[ $I = 0 ]]; then
 	while read l; do
 		[ -z "$l" ] && continue
-		echo "$head PRIVMSG ${chan:-$CHANNEL} :$l" >&100
+		echo "$Head PRIVMSG ${Chan:-$CHANNEL} :$l" >&100
 	done <<<"$msg"
 	echo "QUIT" >&100
 	exit $?
 fi
 
+configdir=~/.ircmsg
+recorddir=$configdir/record/
+mkdir -p $recorddir
+
 #Fix me
 while read line <&100; do
+	line=${line/$'\r'/}
 	if [[ "$line" =~ PING ]]; then
-		echo "$head ${line/PING/PONG}" >&100
+		echo "$Head ${line/PING/PONG}" >&100
 	else
-		echo -e "< $line"
+		chanfile=$Chan
 		read _head _cmd _chan _msg <<<"$line"
-		peernick=$(awk -F'[:!]' '{print $2}' <<<"${_head}")
+		[[ $_cmd = MODE || $_cmd =~ [0-9]+ ]] && {
+			echo -e "$line" >>$recorddir/$chanfile
+			continue
+		}
+		[[ $_cmd = PRIVMSG ]] && {
+			peernick=$(awk -F'[:!]' '{print $2}' <<<"${_head}")
+			chanfile=${_chan}
+			[[ ${_chan:0:1} = "#" ]] || chanfile=$peernick
+		}
+		echo -e "$line" >>$recorddir/$chanfile
 		[[ "$_chan" = qe_assistant ]] && {
 			_chan=$peernick
 			_msg="qe_assistant $_msg"
 		}
 		if [[ -x "$qe_assistant" ]]; then
 			$qe_assistant "$_msg" |
-			while read l; do [[ -z "$l" ]] && continue; echo "$head PRIVMSG ${_chan} :$l"; done >&100
+			while read l; do [[ -z "$l" ]] && continue; echo "$Head PRIVMSG ${_chan} :$l"; done >&100
 		fi
 	fi
 
 done &
+pid=$!
+echo $pid
 
-[[ -z "$II" ]] && exit 0
+[[ $I -le 1 ]] && exit 0
+
+trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
+sigproc() {
+	kill $pid
+	exit
+}
 
 help() {
-	echo "/quit
-/nick <new nick name>
-/join <Channel|nick name>
-/names [Channel]
+	echo "/quit;
+/nick <new nick name>;
+/join <Channel|nick name>;
+/names [Channel];
 /help"
 }
+
+curchan=$configdir/curchan
+echo -n $Chan >$curchan
 while :; do
-	echo -n "[$chan] "
-	read msg
+	chan=$(< $curchan)
+	dialog --backtitle "irc $_chan" --no-shadow \
+		--begin 2 0 --title "irc $chan" --tailboxbg $recorddir/$chan 27 120 --and-widget \
+		--begin 30 0 --title "irc $chan" --inputbox "" 5 120  2>$configdir/msg.txt
+	retval=$?
+	msg=$(< $configdir/msg.txt)
+
 	[[ $msg =~ ^\ *$ ]] && continue
 	case "$msg" in
-	/quit)   echo "$head QUIT" >&100; kill $$; exit 0;;
-	/nick*)  echo "$head ${msg/?nick/NICK}" >&100;;
+	/nick*)
+		read ignore _nick
+		[ -n $_nick ] && NICK=$_nick
+		echo "$Head NICK ${NICK}" >&100
+		;;
 	/join\ *)
-		read ignore chan <<<"$msg"
-		CHANNEL=$chan
-		[[ ${chan:0:1} = '#' ]] && echo "JOIN ${CHANNEL}" >&100
+		read ignore _chan <<<"$msg"
+		Chan=$_chan
+		[[ ${Chan:0:1} = '#' ]] && echo "JOIN ${Chan}" >&100
+		echo -n $Chan >$curchan
 		;;
 	/names|/names\ *)
 		read ignore _chan <<<"$msg"
@@ -136,7 +170,10 @@ while :; do
 		read ignore rawdata <<<"$msg"
 		echo "$rawdata" >&100
 		;;
-	/help)   help;;
-	*)       echo "$head PRIVMSG ${chan} " :$msg >&100;;
+	/help)   help >>$recorddir/$chan;;
+	/quit)   echo "$Head QUIT" >&100; kill $pid $$; exit 0;;
+	*)       echo "$Head PRIVMSG ${chan} :$msg" >&100
+		echo ":${Head:-$NICK} :$msg" >>$recorddir/$chan
+		;;
 	esac
 done
