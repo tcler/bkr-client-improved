@@ -100,7 +100,7 @@ while read line <&100; do
 		chanfile=$Chan
 		read _head _cmd _chan _msg <<<"$line"
 		[[ $_cmd = MODE || $_cmd =~ [0-9]+ ]] && {
-			echo -e "$line" >>$recorddir/$chanfile
+			echo -e "${_head%!*}! ${_cmd} ${_chan} $_msg" >>$recorddir/$chanfile
 			continue
 		}
 		[[ $_cmd = PRIVMSG ]] && {
@@ -108,7 +108,7 @@ while read line <&100; do
 			chanfile=${_chan}
 			[[ ${_chan:0:1} = "#" ]] || chanfile=$peernick
 		}
-		echo -e "$line" >>$recorddir/$chanfile
+		echo -e "${_head%\!*}! ${_cmd} ${_chan} $_msg" >>$recorddir/$chanfile
 		[[ "$_chan" = qe_assistant ]] && {
 			_chan=$peernick
 			_msg="qe_assistant $_msg"
@@ -139,6 +139,7 @@ help() {
 /help"
 }
 
+export NCURSES_NO_UTF8_ACS=1
 curchan=$configdir/curchan
 echo -n $Chan >$curchan
 while :; do
@@ -174,7 +175,7 @@ while :; do
 	/help)   help >>$recorddir/$chan;;
 	/quit)   echo "$Head QUIT" >&100; kill $pid $$; exit 0;;
 	*)       echo "$Head PRIVMSG ${chan} :$msg" >&100
-		echo ":${Head:-$NICK} :$msg" >>$recorddir/$chan
+		echo ":${Head:-$NICK}! local :$msg" >>$recorddir/$chan
 		;;
 	esac
 done
