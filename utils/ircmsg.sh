@@ -143,6 +143,7 @@ curchan=$configdir/curchan
 echo -n $Chan >$curchan
 while :; do
 	chan=$(< $curchan)
+	touch $recorddir/$chan
 	dialog --backtitle "irc $_chan" --no-shadow \
 		--begin 2 0 --title "irc $chan" --tailboxbg $recorddir/$chan 27 120 --and-widget \
 		--begin 30 0 --title "irc $chan" --inputbox "" 5 120  2>$configdir/msg.txt
