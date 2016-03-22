@@ -18,6 +18,7 @@ qe_assistant=/usr/local/bin/qe_assistant
 ##########################################################
 # Main
 export LANG=C
+I=0
 msg=
 namelist=
 fix=$RANDOM
