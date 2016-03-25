@@ -29,7 +29,6 @@ proc getXML {jobID} {
 }
 
 proc limitSubmitJobs {distro rgset arch testlist limitNum} {
-	if ![info exist KDUMP_ADDR] {set KDUMP_ADDR ""}
 	foreach file [glob -nocomplain *.xml] { file delete -force $file }
 	set testNum [llength $testlist]
 	if {$testNum == 0 || $limitNum < 0} {
@@ -41,7 +40,7 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 	set cnt 0
 	global alone
 	set alone {}
-	if {![catch {set fp [open "|bkr-runtest -n $distro - ${alone} -- $rgset --kdump=$KDUMP_ADDR" w]} err]} {
+	if {![catch {set fp [open "|bkr-runtest -n $distro - ${alone} -- $rgset" w]} err]} {
 		foreach T $testlist { puts $fp $T }
 		catch {close $fp} err
 		foreach xml [glob -nocomplain *.xml] {
