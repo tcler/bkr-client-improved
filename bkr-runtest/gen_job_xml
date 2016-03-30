@@ -416,12 +416,13 @@ job retention_tag=Scratch user=$jobOwner $jobCtl {
 				}
 				hostRequires ! {
 					and ! {
+						set MACHINE {}
 						if [llength $MACHINE_L] {
 							set MACHINE [lindex $MACHINE_L 0]
 							set MACHINE_L [lrange $MACHINE_L 1 end]
 						}
 
-						if {[info exist MACHINE] && [string length $MACHINE] > 0} {
+						if {[string length $MACHINE] > 0} {
 							hostname op== value=$MACHINE -
 							if {$SystemType != "Machine"} {system_type op== value=${SystemType} -}
 						} else {
