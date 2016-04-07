@@ -63,7 +63,7 @@ set OptionList {
 	systype			{forward y arg y	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
 	ormachine		{forward y arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
 	random                  {forward y arg n        help {autopick type}}
-	hrraw                   {forward y arg y        help {add raw filter in hostrequire node, example: --hrraw='<system><not><fqdn op="like" value="%rmda%" /></not></system>'}}
+	hrxml                   {forward y arg y        help {add raw filter in hostrequire node, example: --hrxml='<system><not><fqdn op="like" value="%rmda%" /></not></system>'}}
 
   *3 {Dummy "\n  Options for selecting special system(s) of networ-qe:"}
 	nay-driver		{link netqe-nic-driver	hide y}
