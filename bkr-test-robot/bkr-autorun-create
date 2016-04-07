@@ -42,6 +42,7 @@ set OptionList {
 	repo			{forward y arg m	help {Configure repo at <URL> in the kickstart for installation}}
 	recipe			{forward y arg n	help {Just generate recipeSet node, internal use for runtest -merge}}
 	rwb			{forward y arg y	help {Set the whiteboard for the recipe}}
+	flag                    {forward y arg y	help {for distinguish repeated run}}
 
   *1 {Dummy "\n  Options for selecting distro tree(s):"}
 	family			{forward y arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}

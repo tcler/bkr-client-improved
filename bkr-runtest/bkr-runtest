@@ -41,6 +41,7 @@ set OptionList {
 	repo			{forward y arg m	help {Configure repo at <URL> in the kickstart for installation}}
 	recipe			{forward y arg n	help {Just generate recipeSet node, internal use for runtest -merge}}
 	rwb			{forward y arg y	help {Set the whiteboard for the recipe}}
+	flag                    {forward y arg y	help {for distinguish repeated run}}
 
   *1 {Dummy "\n  Options for selecting distro tree(s):"}
 	family			{forward y arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
@@ -61,7 +62,8 @@ set OptionList {
 	machine			{forward y arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
 	systype			{forward y arg y	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
 	ormachine		{forward y arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
-	random                  {forward y arg n  help {autopick type}}
+	random                  {forward y arg n        help {autopick type}}
+	hrraw                   {forward y arg y}       help {add raw filter in hostrequire node, example: --hrraw='<system><not><fqdn op="like" value="%rmda%" /></not></system>'}
 
   *3 {Dummy "\n  Options for selecting special system(s) of networ-qe:"}
 	nay-driver		{link netqe-nic-driver	hide y}
