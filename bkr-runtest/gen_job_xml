@@ -131,7 +131,7 @@ proc Usage {} {
 proc getDefaultNVR {_distro} {
 	set reg $_distro
 	if [regexp {^RHEL-[0-9]\.[0-9]$} $reg] {
-		regsub {RHEL-([0-9]+\.[0-9]+)} $reg RHEL-./\1 reg
+		regsub {RHEL-([0-9]+\.[0-9]+)} $reg {RHEL-./\1} reg
 	}
 
 	set _NVR [exec vershow {^kernel-[2-6]+[-.0-9]+\.} $reg]
