@@ -32,7 +32,7 @@ set NotOptions [list]
 set OptionList {
 	help          {arg n	help {Print this usage}}
 	h             {link help}
-	f             {arg y	help {Specify a test list file}}
+	F             {arg m	help {Specify a test list file}}
 	opts-macro    {arg y	help {exec the "cmd [arg]" in run time to generate options} hide y}
 
   *0 {Dummy "\n  Options for job configuration:"}
@@ -124,7 +124,7 @@ proc Usage {} {
 	puts "Usage: $::argv0 --distro=<DISTRO> \[options\]"
 	puts "Generates a Beaker job XML file, like `bkr workflow-simple`, but have many improvements and unofficial options"
 	puts "Example:  gen_job_xml --distro RHEL-6.6 --task=/distribution/reservesys --arch=x86_64"
-	puts "Example:  gen_job_xml --family RedHatEnterpriseLinux7 -f test.list --nvr=kernel-x.y.z-abc.el7 --dbgk\n"
+	puts "Example:  gen_job_xml --family RedHatEnterpriseLinux7 -F test.list --nvr=kernel-x.y.z-abc.el7 --dbgk\n"
 	getUsage $::OptionList
 }
 
@@ -182,10 +182,10 @@ if [info exist Opt(distro)] {
 if [info exist Opt(family)] {
 	foreach e $Opt(family) {lappend _lfamily {*}[split $e ", "]}
 	set prev {}
-	foreach f $_lfamily {
-		if {[string length $f] > 0} {
-			lappend FAMILY_L $f
-			set prev $f
+	foreach family $_lfamily {
+		if {[string length $family] > 0} {
+			lappend FAMILY_L $family
+			set prev $family
 		} elseif {[string length $prev] > 0} {
 			lappend FAMILY_L $prev
 		}
@@ -221,21 +221,26 @@ if {[llength $DISTRO_L] == 0 && [llength $FAMILY_L] == 0} {
 	exit 1
 }
 
-# process -f or --task= option
+# process -F or --task= option
 set TaskList {}
 set TestList {}
 if [info exist Opt(task)] { lappend TestList {*}$Opt(task) }
-if [info exist Opt(f)] {
-	set fp stdin
-	set testfile $Opt(f)
-	if {$testfile ni "-"} { set fp [open $testfile] }
-	while {-1 != [gets $fp line]} {
-		lappend TestList $line
+if [info exist Opt(F)] {
+	foreach testfile $Opt(F) {
+		set fp stdin
+		if {$testfile ni "-"} {
+			set fp [open $testfile]
+		}
+
+		while {-1 != [gets $fp line]} {
+			lappend TestList $line
+		}
+
+		if {$testfile ni "-"} { close $fp }
 	}
-	if {$testfile ni "-"} { close $fp }
 }
 if {[llength $TestList] == 0} {
-	puts stderr "Warning: no task specified, use -f or --task= option"
+	puts stderr "Warning: no task specified, use -F or --task= option"
 	Usage
 	exit 1
 }
