@@ -101,6 +101,7 @@ set OptionList {
 	kdump			{forward y arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
 	cmd			{forward y arg m	help {Add /distribution/command before test task}}
 	cmdb			{forward y arg m	help {Add /distribution/command before install kernel}}
+	cmd-end 		{forward y arg m	help {Add /distribution/command in the end of the recipe}}
 	leap-second		{forward y arg n	help {Add leap-second task}}
 	reserve-if-fail		{forward y arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h}}
 	fips                    {forward y arg n  help {enable fips}}

@@ -103,6 +103,7 @@ set OptionList {
 	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
 	cmd			{arg m	help {Add /distribution/command before test task}}
 	cmdb			{arg m	help {Add /distribution/command before install kernel}}
+	cmd-end			{arg m	help {Add /distribution/command in the end of the recipe}}
 	leap-second		{arg n	help {Add leap-second task}}
 	reserve-if-fail		{arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h}}
 	fips                    {arg n  help {enable fips}}
@@ -721,6 +722,16 @@ job retention_tag=Scratch user=$jobOwner $jobCtl {
 							param name=ESERVETIME value=${ReserveTime} -
 						}
 
+					}
+				}
+				# command in the end of the recipe
+				if [info exist Opt(cmd-end)] {
+					foreach cmd $Opt(cmd-end) {
+						task name=/distribution/command role=$role ! {
+							params ! {
+								param name=CMDS_TO_RUN value=$cmd -
+							}
+						}
 					}
 				}
 			}
