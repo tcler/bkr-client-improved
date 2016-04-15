@@ -474,6 +474,9 @@ job retention_tag=Scratch user=$jobOwner $jobCtl {
 					if {$restraint == "yes"} {
 						repo name=restraint url=http://file.bos.redhat.com/~bpeck/restraint/el7--test/ -
 					}
+					if [info exist Opt(kcov)] {
+						repo name=lcov url=http://download.devel.redhat.com/qa/rhts/lookaside/lcov/ -
+					}
 				}
 				partitions ! {
 					if [info exist Opt(part)] {
