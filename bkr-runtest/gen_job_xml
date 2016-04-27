@@ -556,15 +556,15 @@ if 0 {
 				}
 
 				# kernelinstall
-				if {$KVARIANT == "debug" && ![info exist Opt(nvr)]} {
-					set Opt(nvr) [getDefaultNVR $DISTRO]
-				}
-
 				if ![info exist NVR] { set NVR {} }
 				if [llength $NVR_L] {
 					set NVR [lindex $NVR_L 0]
 					set NVR_L [lrange $NVR_L 1 end]
 				}
+				if {$KVARIANT == "debug" && $NVR == ""} {
+					set NVR [getDefaultNVR $DISTRO]
+				}
+
 				if {$NVR != "" && $NVR != "{}"} {
 					set defaultNVR [getDefaultNVR $DISTRO]
 					if {$NVR != $defaultNVR || $KVARIANT == "debug"} {
