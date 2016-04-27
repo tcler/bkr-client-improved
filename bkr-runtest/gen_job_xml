@@ -655,7 +655,7 @@ if 0 {
 					if {$kdumpAddr == "" && [info exist KDUMP_ADDR]} {
 						set kdumpAddr $KDUMP_ADDR
 					}
-					lassign [regsub (.*?):/(.*$) $kdumpAddr {\1 {\2}}] NFSSERVER VMCOREPATH
+					lassign [regsub (.*?):(/.*$) $kdumpAddr {\1 {\2}}] NFSSERVER VMCOREPATH
 					if { [ string length $NFSSERVER ] == 0 } {
 						set NFSSERVER "ibm-x3250m4-06.rhts.eng.pek2.redhat.com"
 					}
