@@ -565,20 +565,35 @@ if 0 {
 					set NVR [getDefaultNVR $DISTRO]
 				}
 
-				if {$NVR != "" && $NVR != "{}"} {
-					set defaultNVR [getDefaultNVR $DISTRO]
-					if {$NVR != $defaultNVR || $KVARIANT == "debug"} {
-						task name=/distribution/kernelinstall role=$role ! {
-							params ! {
-								param name=KERNELARGNAME value=kernel -
-								param name=KERNELARGVERSION value=[regsub ^kernel- $NVR {}] -
-								param name=KERNELARGVARIANT value=$KVARIANT -
-								param name=NoDeps value=--nodeps -
+				if {$NVR ni {"" "{}"}} {
+					set UP ""
+					if ![regexp {^upstream.*} $NVR] {
+						set defaultNVR [getDefaultNVR $DISTRO]
+						if {$NVR != $defaultNVR || $KVARIANT == "debug"} {
+							task name=/distribution/kernelinstall role=$role ! {
+								params ! {
+									param name=KERNELARGNAME value=kernel -
+									param name=KERNELARGVERSION value=[regsub ^kernel- $NVR {}] -
+									param name=KERNELARGVARIANT value=$KVARIANT -
+									param name=NoDeps value=--nodeps -
+								}
 							}
 						}
+					} else {
+						set UP [regsub {^upstream} $NVR {}]
+						set UP [regsub {^[:=]} $UP {}]
+						set upstreamUrl git://git.app.eng.bos.redhat.com/linux.git
+						set upstreamTag master
+						if {$UP != ""} {
+							set url [regsub {#.*} $UP {}]
+							set tag [regsub {[^#]*(#|$)} $UP {}]
+							if {[string trim $url] != ""} {set upstreamUrl $url}
+							if {[string trim $tag] != ""} {set upstreamTag $tag}
+						}
+						set UP 1
 					}
 				}
-				if [info exist Opt(upstream)] {
+				if {[info exist Opt(upstream)] || $UP != ""} {
 					task name=/kernel/distribution/upstream-kernel/install role=$role ! {
 						params ! {
 							param name=KERNEL_GIT_REPO value=$upstreamUrl -
