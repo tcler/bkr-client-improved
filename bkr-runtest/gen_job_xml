@@ -565,8 +565,8 @@ if 0 {
 					set NVR [getDefaultNVR $DISTRO]
 				}
 
+				set UP ""
 				if {$NVR ni {"" "{}"}} {
-					set UP ""
 					if ![regexp {^upstream.*} $NVR] {
 						set defaultNVR [getDefaultNVR $DISTRO]
 						if {$NVR != $defaultNVR || $KVARIANT == "debug"} {
