@@ -202,10 +202,6 @@ if [regexp -- {^RH[A-Z]{2}-[0-9]{4}:[0-9]+} $Distro] {
 	lappend SubcmdOpt $pkgOpt=$pkgBuild
 }
 
-if [regexp -- {-kcov} $SubcmdOpt] {
-	set Opt(alone) 1
-}
-
 #If Distro is short format
 set Distro [expandDistro $Distro]
 
