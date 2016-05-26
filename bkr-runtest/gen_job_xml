@@ -42,6 +42,7 @@ set OptionList {
 	wb			{arg y	help {Set the whiteboard for this job}}
 	whiteboard		{link wb}
 	repo			{arg m	help {Configure repo at <URL> in the kickstart for installation}}
+	repo-post		{arg m	help {Configure repo at <URL> as part of kickstart %post execution}}
 	recipe			{arg n	help {Just generate recipeSet node, internal use for runtest -merge}}
 	rwb			{arg y	help {Set the whiteboard for the recipe}}
 
@@ -479,11 +480,6 @@ job retention_tag=Scratch user=$jobOwner $jobCtl {
 					if {$restraint == "yes"} {
 						repo name=restraint url=http://file.bos.redhat.com/~bpeck/restraint/el7--test/ -
 					}
-if 0 {
-					if [info exist Opt(kcov)] {
-						repo name=lcov url=http://download.devel.redhat.com/qa/rhts/lookaside/lcov/ -
-					}
-}
 				}
 				partitions ! {
 					if [info exist Opt(part)] {
@@ -494,12 +490,12 @@ if 0 {
 				}
 
 				ks_appends ! {
-					if {[info exist Opt(nvr)] && [info exist Opt(repo)]} {
+					if [info exist Opt(repo-post)] {
 						ks_append ! {
 							puts {<![CDATA[}
 							puts {%post}
 							set i 0
-							foreach url $Opt(repo) {
+							foreach url $Opt(repo-post) {
 								puts "cat <<-EOF >/etc/yum.repos.d/beaker-kernel$i.repo
 								\[beaker-kernel$i\]
 								name=beaker-kernel$i

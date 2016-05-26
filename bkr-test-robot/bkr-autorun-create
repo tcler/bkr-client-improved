@@ -40,6 +40,7 @@ set OptionList {
 	wb			{forward y arg y	help {Set the whiteboard for this job}}
 	whiteboard		{link wb}
 	repo			{forward y arg m	help {Configure repo at <URL> in the kickstart for installation}}
+	repo-post		{forward y arg m	help {Configure repo at <URL> as part of kickstart %post execution}}
 	recipe			{forward y arg n	help {Just generate recipeSet node, internal use for runtest -merge}}
 	rwb			{forward y arg y	help {Set the whiteboard for the recipe}}
 	flag                    {forward y arg y	help {for distinguish repeated run}}
