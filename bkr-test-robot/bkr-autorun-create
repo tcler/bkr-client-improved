@@ -32,6 +32,7 @@ set OptionList {
 
 	r      {arg n	help {Do not parse subtest.desc when lstest casedir} hide y}
 	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList} hide y}
+	alone  {forward y arg n	help {Submit all tests separately, one case one recipe}}
 
   *0 {Dummy "\n  Options for job configuration:"}
 	restraint		{forward y arg o	help {Use restraint harness instead of beach}}
