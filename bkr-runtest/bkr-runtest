@@ -334,8 +334,10 @@ foreach {tkey tvalue} [array get TestGroup] {
 			if ![info exist Opt(dryrun)] {
 				set status [catch {exec bkr job-submit $xmlf} result]
 				puts "$result"
-				file delete $xmlf
+			} else {
+				puts [exec cat $xmlf]
 			}
+			file delete $xmlf
 		}
 		puts ""
 	} else {
@@ -366,6 +368,8 @@ if [info exist xmlf_merged] {
 	if ![info exist Opt(dryrun)] {
 		set status [catch {exec bkr job-submit $xmlf_merged} result]
 		puts "$result"
-		file delete $xmlf_merged
+	} else {
+		puts [exec cat $xmlf_merged]
 	}
+	file delete $xmlf_merged
 }
