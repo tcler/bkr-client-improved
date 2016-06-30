@@ -78,7 +78,7 @@ UpdateDB() {
 		rhel5rpath=tree-${arch}/
 
 		cachefile=.curl.${distro//\//:}.${arch}.cache
-		[ -f $cachefile ] && continue
+		[[ -f $cachefile && ! $cachefile =~ latest ]] && continue
 
 		_rpath=$rhel5rpath$(echo $distro|egrep -o 'Server|Client') || {
 			_rpath=$compose$rpath
