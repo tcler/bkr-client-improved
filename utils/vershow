@@ -27,7 +27,7 @@ baseUrl="http://download.devel.redhat.com/"
 baseUrl="http://download.eng.bos.redhat.com/"
 distro_rel_eng() {
 	curl -k -L -u: ${baseUrl}rel-eng/  2>/dev/null |
-		awk -F'[<>]' '/"RHEL[-0-9.]+/&&/alt=".DIR."/{print "rel-eng/" $5}' |sed 's;/$;;'|egrep -v -i Supplementary;
+		awk -F'[<>]' '/"(latest-)?RHEL[-0-9.]+/&&/alt=".DIR."/{print "rel-eng/" $5}' |sed 's;/$;;'|egrep -v -i Supplementary;
 }
 distro_nightly() {
 	curl -k -L -u: ${baseUrl}nightly/  2>/dev/null |
