@@ -439,7 +439,8 @@ job retention_tag=Scratch user=$jobOwner $jobCtl {
 						}
 
 						if {[string length $MACHINE] > 0} {
-							hostname op== value=$MACHINE -
+							set m [regsub {^[^a-z]+} $MACHINE {}]
+							hostname op=like value=$m -
 							if {$SystemType != "Machine"} {system_type op== value=${SystemType} -}
 						} else {
 							arch op== value=${ARCH} -
@@ -463,7 +464,8 @@ job retention_tag=Scratch user=$jobOwner $jobCtl {
 					}
 					or ! {
 						foreach m "$ORMACHINE_L $NETQE_NIC_MACHINE($role)" {
-							hostname op== value=${m} -
+							set m [regsub {^[^a-z]+} $m {}]
+							hostname op=like value=$m -
 						}
 					}
 					not ! {
