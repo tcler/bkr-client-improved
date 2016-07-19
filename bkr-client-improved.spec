@@ -55,6 +55,10 @@ chmod u+s /usr/local/bin/wub-service.sh
 /etc/bkr-client-improved/bkr.recipe.matrix.conf
 /etc/bkr-client-improved/bkr.recipe.matrix.conf.example
 /etc/bkr-client-improved/subtest.desc.example
+/etc/bkr-client-improved/bkr-runtest.conf
+/usr/local/bin/bkr-job-result2list
+/usr/local/bin/ircmsg.sh
+/usr/local/bin/needinfome.sh
 /usr/local/bin/_brew.sh
 /usr/local/bin/_getNicIp.sh
 /usr/local/bin/availableHost.sh
@@ -103,12 +107,6 @@ chmod u+s /usr/local/bin/wub-service.sh
 /usr/local/bin/vercmp
 /usr/local/bin/vershow
 /usr/local/bin/wub-service.sh
-/usr/local/bin/www/clone.tml
-/usr/local/bin/www/delTestCase.tml
-/usr/local/bin/www/deltest.tml
-/usr/local/bin/www/index.tml
-/usr/local/bin/www/resubmit-list.tml
-/usr/local/bin/www/resubmit.tml
 /usr/local/bin/xmlrpc-client.sh
 /usr/local/lib/getOpt-1.0/example.tcl
 /usr/local/lib/getOpt-1.0/getOpt.tcl
