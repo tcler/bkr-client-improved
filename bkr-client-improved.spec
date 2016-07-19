@@ -1,6 +1,6 @@
 Summary: Beaker client improved
 Name:    bkr-client-improved
-Version: 0.97
+Version: 0.99
 Release: 0
 Group:   System
 URL:     https://github.com/tcler/bkr-client-improved
