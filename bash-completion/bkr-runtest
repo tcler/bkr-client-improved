@@ -1,0 +1,33 @@
+# bkr-runtest(1) completion                                         -*- shell-script -*-
+
+prog=$(basename $BASH_SOURCE)
+_bkr_runtest()
+{
+    local cur prev words cword
+    local narg
+    _init_completion || return
+
+    for w in "${words[@]}"; do
+        [[ $w =~ ^-.* ]] || ((narg++))
+    done
+
+    local opts=$( _parse_help "$1" )
+
+    if [[ "$cur" == -* ]]; then
+        #[[ $opts ]] || opts="" # POSIX fallback
+        COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
+    else
+        if [[ $narg -le 2 ]]; then
+            local arg1="RedHatEnterpriseLinux7 RedHatEnterpriseLinux6 7 6 <Distroname>"
+            COMPREPLY=( $( compgen -W "$arg1" -- "$cur" ) )
+        #elif [[ $narg -eq 3 ]]; then
+        #    COMPREPLY=( $( compgen -u "$cur" ) )
+        else
+            COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
+        fi
+    fi
+} &&
+complete -F _bkr_runtest $prog
+
+#echo $prog
+# ex: ts=4 sw=4 et filetype=sh

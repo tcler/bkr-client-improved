@@ -1,6 +1,7 @@
 
 export PATH:=${PATH}:/usr/local/bin:~/bin
 _bin=/usr/local/bin
+completion_path=/usr/share/bash-completion/completions
 
 install install_runtest: _isroot
 	@rpm -q redhat-lsb >/dev/null || yum install -y redhat-lsb #package that in default RHEL repo
@@ -13,6 +14,7 @@ install install_runtest: _isroot
 	cp -rf -d lib/* /usr/local/lib/.
 	cp -f -d bkr-runtest/* utils/* $(_bin)/.
 	@ps axf|grep -v grep|grep -q vershow || $(_bin)/vershow -uu >/dev/null &
+	cp -f -d bash-completion/* $(completion_path)/.
 
 install_all: install_robot _install_web
 
