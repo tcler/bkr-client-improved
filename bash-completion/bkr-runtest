@@ -25,6 +25,15 @@ _bkr_runtest()
         else
             COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
         fi
+
+        if [[ $prev == --retention-tag ]]; then
+            retentions="scratch 60days 120days active active+1 audit"
+            COMPREPLY=( $(compgen -W "$retentions" -- "$cur") )
+        fi
+        if [[ $prev == --product ]]; then
+            products='cpe:/o:redhat:enterprise_linux:$x:$y'
+            COMPREPLY=( $(compgen -W "$products" -- "$cur") )
+        fi
     fi
 } &&
 complete -F _bkr_runtest $prog
