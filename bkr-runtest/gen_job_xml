@@ -357,8 +357,17 @@ if [info exist Opt(job-owner)] {
 	set jobOwner $Opt(job-owner)
 }
 
+set retentionTag Scratch
+set productkv {}
+if [info exist Opt(retention-tag)] {
+	set retentionTag $Opt(retention-tag)
+	if [info exist Opt(product)] {
+		set productkv product=$Opt(product)
+	}
+}
+
 # start generate xml
-job retention_tag=Scratch user=$jobOwner $jobCtl {
+job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 	if ![info exist Opt(wb)] {
 		set Time [clock format [clock seconds] -format %Y-%m-%d~%H:%M]
 		set Opt(wb) "\[$Time\] $DISTRO_L \\[llength $TaskList]/[file tail [lindex [lindex $TaskList 0] 0]],... arch=$ARCH_L "
