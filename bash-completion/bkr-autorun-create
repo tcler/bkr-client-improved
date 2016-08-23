@@ -1,0 +1,42 @@
+# bkr-runtest(1) completion                                         -*- shell-script -*-
+
+prog=$(basename $BASH_SOURCE)
+_bkr_autorun_create()
+{
+    local cur prev words cword
+    local narg
+    _init_completion || return
+
+    for w in "${words[@]}"; do
+        [[ $w =~ ^-.* ]] || ((narg++))
+    done
+
+    local opts=$( _parse_help "$1" )
+
+    if [[ "$cur" == -* ]]; then
+        #[[ $opts ]] || opts="" # POSIX fallback
+        COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
+    else
+        if [[ $narg -le 2 ]]; then
+            local arg1="RedHatEnterpriseLinux7 RedHatEnterpriseLinux6 7 6 <Distroname>"
+            COMPREPLY=( $( compgen -W "$arg1" -- "$cur" ) )
+        #elif [[ $narg -eq 3 ]]; then
+        #    COMPREPLY=( $( compgen -u "$cur" ) )
+        else
+            COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
+        fi
+
+        if [[ $prev == --retention-tag ]]; then
+            retentions="scratch 60days 120days active active+1 audit"
+            COMPREPLY=( $(compgen -W "$retentions" -- "$cur") )
+        fi
+        if [[ $prev == --product ]]; then
+            products='cpe:/o:redhat:enterprise_linux:$x:$y'
+            COMPREPLY=( $(compgen -W "$products" -- "$cur") )
+        fi
+    fi
+} &&
+complete -F _bkr_autorun_create $prog
+
+#echo $prog
+# ex: ts=4 sw=4 et filetype=sh
