@@ -109,6 +109,7 @@ set OptionList {
 	cmd-end			{arg m	help {Add /distribution/command in the end of the recipe}}
 	leap-second		{arg n	help {Add leap-second task}}
 	reserve-if-fail		{arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h}}
+	reserve			{arg o	help {Reserve system at the end of the recipe}}
 	fips                    {arg n  help {enable fips}}
 
   *5 {Dummy "\n  Options for installation:"}
@@ -747,6 +748,16 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						#}
 					}
 				}
+				# command in the end of the recipe
+				if [info exist Opt(cmd-end)] {
+					foreach cmd $Opt(cmd-end) {
+						task name=/distribution/command role=$role ! {
+							params ! {
+								param name=CMDS_TO_RUN value=$cmd -
+							}
+						}
+					}
+				}
 				# --reserve-if-fail
 				if [info exist Opt(reserve-if-fail)] {
 					set ReserveTime {356400}
@@ -763,14 +774,19 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 					}
 				}
-				# command in the end of the recipe
-				if [info exist Opt(cmd-end)] {
-					foreach cmd $Opt(cmd-end) {
-						task name=/distribution/command role=$role ! {
-							params ! {
-								param name=CMDS_TO_RUN value=$cmd -
-							}
+				# --reserve
+				if [info exist Opt(reserve)] {
+					set ReserveTime {356400}
+					if {[string length $Opt(reserve)] > 0} {
+						set ReserveTime $Opt(reserve)
+					}
+
+					set time {}
+					task name=/distribution/reservesys role=$role ! {
+						params ! {
+							param name=ESERVETIME value=${ReserveTime} -
 						}
+
 					}
 				}
 			}

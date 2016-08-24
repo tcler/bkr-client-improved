@@ -107,6 +107,7 @@ set OptionList {
 	cmdb			{forward y arg m	help {Add /distribution/command before install kernel}}
 	leap-second		{forward y arg n	help {Add leap-second task}}
 	reserve-if-fail		{forward y arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h}}
+	reserve			{forward y arg o	help {Reserve system at the end of the recipe}}
 	fips                    {forward y arg n  help {enable fips}}
 
   *5 {Dummy "\n  Options for installation:"}
