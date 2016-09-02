@@ -202,7 +202,9 @@ if ![regexp -- {-nvr=} $Gset] {
 	if {$nvr == ""} {
 		set nvr [exec bash -c "vershow ^kernel-\[0-9\] /[string map {RHEL- {}} $Distro]$|sed -rn '/^kernel-/{s/\.\[^.\]+\.\[^.\]+$//;p;q}'"]
 	}
-	set Gset [concat "-nvr=$nvr" $Gset]
+	if {$nvr != ""} {
+		set Gset [concat "-nvr=$nvr" $Gset]
+	}
 }
 
 set Distro_ [concat $Distro $Gset]
