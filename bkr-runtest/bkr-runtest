@@ -90,6 +90,7 @@ set OptionList {
 
   *4 {Dummy "\n  Options for setting tasks:"}
 	task			{forward y arg m	help {Include named task in job, can use multiple times}}
+	taskn			{forward y arg y	help {repeat task 'N' times}}
 	param			{forward y arg m	help {Set task params, can use multiple times.
 				Use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
 	taskparam		{link param}

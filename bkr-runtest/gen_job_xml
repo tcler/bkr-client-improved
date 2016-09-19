@@ -92,6 +92,7 @@ set OptionList {
 
   *4 {Dummy "\n  Options for setting tasks:"}
 	task			{arg m	help {Include named task in job, can use multiple times}}
+	taskn			{arg y	help {repeat task 'N' times}}
 	param			{arg m	help {Set task params, can use multiple times.
 				Use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
 	taskparam		{link param}
@@ -356,6 +357,11 @@ if ![info exist jobOwner] {
 }
 if [info exist Opt(job-owner)] {
 	set jobOwner $Opt(job-owner)
+}
+
+set taskN 1
+if [info exist Opt(taskn)] {
+	set taskN $Opt(taskn)
 }
 
 set retentionTag Scratch
@@ -703,35 +709,38 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 
 				# task list
-				foreach task ${TaskList} {
-					set name [lindex $task 0]
-					set arglist [lrange $task 1 end]
-					task name=$name role=$role ! {
-						if {$restraint == "yes"} {
-							set head kernel
-							if [regexp {^/CoreOS/} $name] {
-								set head [lindex [split $name /] 2]
+				for {set i 0} {$i < $taskN} {incr i} {
+					foreach task ${TaskList} {
+						set name [lindex $task 0]
+						set arglist [lrange $task 1 end]
+						task name=$name role=$role ! {
+							if {$restraint == "yes"} {
+								set head kernel
+								if [regexp {^/CoreOS/} $name] {
+									set head [lindex [split $name /] 2]
+								}
+								if [regexp "/$head/?\\??" $restraint_git] {
+									set head {}
+								}
+								doTag fetch url=$restraint_git/$head#[string map "/CoreOS {} /$head/ {}" $name] -
 							}
-							if [regexp "/$head/?\\??" $restraint_git] {
-								set head {}
-							}
-							doTag fetch url=$restraint_git/$head#[string map "/CoreOS {} /$head/ {}" $name] -
-						}
-						params ! {
-							foreach arg $arglist {
-								lassign [regsub {(^[^=]*)=(.*)} $arg {\1 {\2}}] pname pvalue
-								# use "mh-" prefix to set different value for multihost
-								if [regexp {^mh-} $pname] {
-									set pname [string range $pname 3 end]
-									set pvalue_list [split $pvalue ,]
-									param name=$pname value=[lindex $pvalue_list $R] -
-								} else {
-									param name=$pname value=$pvalue -
+							params ! {
+								foreach arg $arglist {
+									lassign [regsub {(^[^=]*)=(.*)} $arg {\1 {\2}}] pname pvalue
+									# use "mh-" prefix to set different value for multihost
+									if [regexp {^mh-} $pname] {
+										set pname [string range $pname 3 end]
+										set pvalue_list [split $pvalue ,]
+										param name=$pname value=[lindex $pvalue_list $R] -
+									} else {
+										param name=$pname value=$pvalue -
+									}
 								}
 							}
 						}
 					}
 				}
+
 				# --kcov task
 				if [info exist Opt(kcov)] {
 					task name=/kernel/kcov/end role=$role ! {
