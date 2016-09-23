@@ -299,6 +299,8 @@ if [info exist Opt(merge)] {
 	lappend SubcmdOpt {-recipe}
 }
 foreach {tkey tvalue} [array get TestGroup] {
+	set testGset $tkey
+	set testList $tvalue
 	set wbComment {}
 	if [info exist Opt(wb-comment)] { set wbComment $Opt(wb-comment) }
 	if {$TestListFile != ""} { lappend wbComment "$TestListFile" }
@@ -307,8 +309,11 @@ foreach {tkey tvalue} [array get TestGroup] {
 	if [info exist WB_FORMAT] { set wbFormat $WB_FORMAT }
 	if [info exist Opt(wb-format)] { set wbFormat $Opt(wb-format) }
 
-	set gset [genGset $tkey]
-	set WB [genWhiteboard $Distro $tkey $tvalue "$wbFormat" $wbComment]
+	set gset [genGset $testGset]
+	set WB [genWhiteboard $Distro $testGset $testList "$wbFormat" $wbComment]
+	if {[llength $testList] == 1} {
+		append WB "[testinfo param [lindex $testList 0]]"
+	}
 
 	if {[string length $SubcmdOpt]>0} {
 		regsub -all "%O" $WB "{$SubcmdOpt}" WB
@@ -322,7 +327,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 
 	if {![catch {set fp \
 	  [open "|gen_job_xml -distro=$Distro -F - {-wb=$WB} $SubcmdOpt $gset >$xmlf" w]} err]} {
-		foreach t $tvalue { puts $fp "$t" }
+		foreach t $testList { puts $fp "$t" }
 		catch {close $fp} err
 
 		puts "\[$prog\]: processing GlobalSetup: {$gset}"
