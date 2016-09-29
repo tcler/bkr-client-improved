@@ -1,0 +1,101 @@
+#!/bin/bash
+
+installBrew2() {
+	: <<-COMM
+	#https://mojo.redhat.com/docs/DOC-1024827
+	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-server.repo
+	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-client.repo
+	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-workstation.repo
+	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-server.repo
+	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-client.repo
+	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-workstation.repo
+	curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
+	COMM
+
+	name=$(lsb_release -sir|awk '{print $1}')
+	verx=$(lsb_release -sr|awk -F. '{print $1}')
+
+	pushd /etc/yum.repos.d
+	case $name in
+	RedHatEnterprise*)
+		case $verx in
+		6) curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-workstation.repo;;
+		7) curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-workstation.repo;;
+		esac
+		;;
+	Fedora*)
+		curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
+		;;
+	esac
+	popd
+
+	yum install -y koji brewkoji
+	which brew &>/dev/null
+}
+
+run() {
+	local cmdline=$1
+	local ret=0
+
+	echo "[$(date +%T) $USER@ ${PWD%%*/}]# $cmdline"
+	eval $cmdline
+	ret=$?
+
+	return $ret
+}
+
+Usage() {
+	echo "Usage: $0 <build_id> <store_path> [--arch=|-c|-h]"
+}
+
+_at=`getopt -o ch --long arch: --long help -n "$0" -- "$@"`
+eval set -- "$_at"
+while true; do
+	case "$1" in
+	-h|--help)      Usage; shift 1; exit 0;;
+	--arch)         arch=$2; shift 2;;
+	-c)		createrepo=yes; shift 1;;
+	--) shift; break;;
+	esac
+done
+
+# arg parse
+[ $# -lt 2 ] && { Usage; exit 1; }
+
+taskid=$1
+storepath=$2
+[[ $taskid =~ ^[0-9]+$ ]] || {
+	echo "Warn: invalide build_id: '$taskid'"
+	Usage
+	exit 1
+}
+
+# install koji & brew
+which brew &>/dev/null || installBrew2
+
+# Download packges
+[ -d "$storepath" ] || {
+	echo "Info: '$storepath' does not exist, create it."
+	mkdir -p "$storepath" || {
+		exit 1
+	}
+}
+mkdir -p $storepath/$taskid
+
+pushd $storepath/$taskid &>/dev/null
+	#wait the scratch build finish
+	while brew taskinfo $taskid|grep -q '^State: open'; do echo "[$(date +%T) Info] build hasn't finished, waiting ..."; sleep 5m; done
+
+	run "brew taskinfo -r $taskid > >(tee brew_buildinfo.txt)"
+	urllist=$(sed -n '/mnt.redhat..*rpm$/{s; */mnt/redhat/;; ; p}' brew_buildinfo.txt|sort -u)
+	[ -n "$arch" ] && urllist=$(echo "$urllist" | egrep "\\.($arch|noarch)\\.rpm")
+	echo "$urllist"
+	for url in $urllist; do
+		#echo "http://download.devel.redhat.com/$url"
+		run "wget -c --progress=dot:mega http://download.devel.redhat.com/$url"
+	done
+
+	# Install packages
+	run "ls -lh"
+popd &>/dev/null
+
