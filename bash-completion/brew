@@ -1,0 +1,28 @@
+# brew(1) completion                                        -*- shell-script -*-
+
+prog=$(basename $BASH_SOURCE)
+__brew()
+{
+    local cur prev words cword
+    local narg
+    _init_completion || return
+
+    for w in "${words[@]}"; do
+        [[ $w =~ ^-.* ]] || ((narg++))
+    done
+
+    local opts=$( _parse_help "$1" )
+
+    if [[ $narg -le 2 ]]; then
+        local subcmd=$( $prog help | awk '/     */{print $1}' )
+        COMPREPLY=( $( compgen -W "$subcmd" -- "$cur" ) )
+    else
+        args=$( $prog ${words[1]} -h | grep '^  *' | egrep -o -- '--*[a-zA-Z0-9]+' )
+        #echo "$args"
+        COMPREPLY=( $( compgen -W "$args :" -- "$cur" ) )
+    fi
+} &&
+complete -F __brew brew
+
+#echo $prog
+# ex: ts=4 sw=4 et filetype=sh
