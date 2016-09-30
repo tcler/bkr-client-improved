@@ -1,0 +1,33 @@
+# polarion(1) completion                                    -*- shell-script -*-
+
+prog=$(basename $BASH_SOURCE)
+_polarion()
+{
+    local cur prev words cword
+    local narg
+    _init_completion || return
+
+    for w in "${words[@]}"; do
+        [[ $w =~ ^-.* ]] || ((narg++))
+    done
+
+    local opts=$( _parse_help "$1" )
+    local scmd=$( $prog -h | sed -r -n -e "/subcommands:/{s/[][', ]+/ /g; s/^.*: //; p}" )
+
+    if [[ "$cur" == -* ]]; then
+        #[[ $opts ]] || opts="" # POSIX fallback
+        COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
+    else
+        if [[ $narg -le 2 ]]; then
+            COMPREPLY=( $( compgen -W "$scmd" -- "$cur" ) )
+        elif [[ $prev = help ]]; then
+            COMPREPLY=( $( compgen -W "$scmd" -- "$cur" ) )
+        else
+            COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
+        fi
+    fi
+} &&
+complete -F _polarion $prog
+
+#echo $prog
+# ex: ts=4 sw=4 et filetype=sh
