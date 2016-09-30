@@ -13,13 +13,17 @@ __brew()
 
     local opts=$( _parse_help "$1" )
 
-    if [[ $narg -le 2 ]]; then
-        local subcmd=$( $prog help | awk '/     */{print $1}' )
-        COMPREPLY=( $( compgen -W "$subcmd" -- "$cur" ) )
-    else
+    if [[ $narg -gt 2 ]]; then
         args=$( $prog ${words[1]} -h | grep '^  *' | egrep -o -- '--*[a-zA-Z0-9]+' )
-        #echo "$args"
-        COMPREPLY=( $( compgen -W "$args :" -- "$cur" ) )
+        COMPREPLY=( $( compgen -W "$args" -- "$cur" ) )
+    else
+        if [[ "$prev" = ${words[1]} ]]; then
+            args=$( $prog ${words[1]} -h | grep '^  *' | egrep -o -- '--*[a-zA-Z0-9]+' )
+            COMPREPLY=( $( compgen -W "$args" -- "$cur" ) )
+        else
+            local subcmd=$( $prog help | awk '/     */{print $1}' )
+            COMPREPLY=( $( compgen -W "$subcmd" -- "$cur" ) )
+        fi
     fi
 } &&
 complete -F __brew brew
