@@ -26,8 +26,8 @@ distroMatch() {
 	distro=$2
 	[[ -z "$distro" ]] && return 0
 
-
 	case $distro in
+		RHEL-5*) family=el5;;
 		RHEL-6*) family=el6;;
 		RHEL-7*) family=el7;;
 		Fedora*) family=el7;;

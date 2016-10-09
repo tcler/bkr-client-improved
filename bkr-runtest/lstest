@@ -166,7 +166,7 @@ _getTestList() {
         info=$(_caseInfo ${d})
         [ -z "$info" ] && continue
 
-        if [ "$EXP" = yes ]; then
+        if [ "$EXP" = yes -o -n "$distro" ]; then
             echo "$info" | expand_testlist $CONFF -d "$distro"
         else
             echo "$info"
@@ -181,7 +181,7 @@ P=${0##*/}
 FORMAT=std
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [--fmt=<raw|pol> | -e [-p /etc/bkr-client-improved/bkr.recipe.matrix.conf*] | -t <maxtime>] [\$dir ...]"
+	echo "Usage: $P [--fmt=<raw|pol> | -e [-p /etc/bkr-client-improved/bkr.recipe.matrix.conf*] | -d <distro> | -t <maxtime>] [\$dir ...]"
 }
 _at=`getopt -o hred:t:p: \
 	--long help \
