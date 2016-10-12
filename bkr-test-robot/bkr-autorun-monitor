@@ -283,7 +283,7 @@ db eval {
 	set distro [lindex $distro_rgset 0]
 	set rgset  [lrange $distro_rgset 1 end]
 	set distro_arch_rgset "$distro $arch $rgset"
-	lappend waitSubmitedTest($distro_arch_rgset) "$test, Param: TestID=$testid"
+	lappend waitSubmitedTest($distro_arch_rgset) "$test , Param: TestID=$testid"
 }
 
 #Submit the test list to beaker: limitSubmitJobs
