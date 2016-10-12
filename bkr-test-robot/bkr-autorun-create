@@ -101,7 +101,7 @@ set OptionList {
 	Scratch			{forward y arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times}}
 	scratch			{forward y arg m  help {same as Scratch, but every specified just apply one host, if in multihost mode}}
 	dbgk			{forward y arg n	help {Use the debug kernel}}
-	kcov			{forward y arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs, drivers/net"}}
+	kcov			{forward y arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs,drivers/net"}}
 	kdump			{forward y arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
 	cmd			{forward y arg m	help {Add /distribution/command before test task}}
 	cmdb			{forward y arg m	help {Add /distribution/command before install kernel}}
