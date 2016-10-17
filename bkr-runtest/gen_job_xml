@@ -364,7 +364,7 @@ if [info exist Opt(taskn)] {
 	set taskN $Opt(taskn)
 }
 
-set retentionTag Scratch
+set retentionTag "60days"
 set productkv {}
 if [info exist Opt(retention-tag)] {
 	set retentionTag $Opt(retention-tag)
