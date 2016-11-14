@@ -21,7 +21,7 @@ recipeCheck() {
 	while read U N; do
 		[ "${N:-0}" -gt ${HostMax[$arch]} ] && {
 			let ret++
-			echo "$I" | sendmail.sh -p '[Remind warning line kkkkk] ' -t "$U@redhat.com" -c "jiyin@redhat.com" - \
+			echo "$I" | sendmail.sh -p '[Remind warning line !@#%^&*] ' -t "$U@redhat.com" -c "jiyin@redhat.com" - \
 				"You($U) hold too much($N/${HostMax[$arch]}) $arch recipes"  &>/dev/null
 		}
 	done <<<"$M"
