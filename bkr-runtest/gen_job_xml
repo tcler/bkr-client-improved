@@ -52,7 +52,7 @@ set OptionList {
 	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
 	tag			{arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE)}}
 	distro			{arg m	help {Use named distro for job)}}
-	variant			{arg y	help {Specify the distro variant}}
+	variant			{arg m	help {Specify the distro variant}}
 	arch			{arg y	help {Specify the distro arch}}
 	distrorequire		{link dr}
 	dr			{arg m	help {distrorequire -dr=key="value"}}
@@ -65,7 +65,7 @@ set OptionList {
 	kv			{arg m	help {Require system with matching legacy key-value, example: --keyvalue=NETWORK=e1000}}
 	keyvalue		{link kv}
 	machine			{arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
-	systype			{arg y	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
+	systype			{arg m	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
 	ormachine		{arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
 	random                  {arg n  help {autopick type}}
 	hrxml                   {arg y  help {add raw filter in hostrequire node, example: --hrxml='<system><not><fqdn op="like" value="%rmda%" /></not></system>'}}
@@ -256,8 +256,15 @@ foreach T $TestList {
 
 set METHOD "nfs"
 
-set SystemType "Machine"
-if [info exist Opt(systype)] { set SystemType $Opt(systype) }
+set SystemTypeList {}
+if [info exist Opt(systype)] {
+	foreach e $Opt(systype) {lappend SystemTypeList {*}[split $e ", "]}
+}
+
+set VARIANT_L {}
+if [info exist Opt(variant)] {
+	foreach e $Opt(variant) {lappend VARIANT_L {*}[split $e ", "]}
+}
 
 set KVARIANT "up"
 if [info exist Opt(dbgk)] { set KVARIANT "debug" }
@@ -388,6 +395,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 		}
 	}
 	recipeSet priority=Normal ! {
+		set SystemType "Machine"
+		set VARIANT {}
 		set DISTRO {}
 		set FAMILY {}
 		set TAG {STABLE}
@@ -432,7 +441,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							distro_family op== value=${FAMILY} -
 							distro_tag op== value=${TAG} -
 						}
-						if [info exist Opt(variant)] {
+
+						if [llength $VARIANT_L] {
+							set VARIANT [lindex $VARIANT_L 0]
+							set VARIANT_L [lrange $SystemTypeList 1 end]
+						}
+						if {$VARIANT ni ""} {
 							distro_variant op== value=$Opt(variant) -
 						}
 						distro_method op== value=${METHOD} -
@@ -456,9 +470,14 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							set MACHINE_L [lrange $MACHINE_L 1 end]
 						}
 
+						if [llength $SystemTypeList] {
+							set SystemType [lindex $SystemTypeList 0]
+							set SystemTypeList [lrange $SystemTypeList 1 end]
+						}
+
 						if {[string length $MACHINE] > 0} {
 							hostname op=like value=$MACHINE -
-							if {$SystemType != "Machine"} {system_type op== value=${SystemType} -}
+							#if {$SystemType != "Machine"} {system_type op== value=${SystemType} -}
 						} else {
 							arch op== value=${ARCH} -
 							system_type op== value=${SystemType} -
