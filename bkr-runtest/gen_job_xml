@@ -447,7 +447,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							set VARIANT_L [lrange $VARIANT_L 1 end]
 						}
 						if {$VARIANT ni ""} {
-							distro_variant op== value=$Opt(variant) -
+							distro_variant op== value=$VARIANT -
 						}
 						distro_method op== value=${METHOD} -
 						distro_arch op== value=${ARCH} -
