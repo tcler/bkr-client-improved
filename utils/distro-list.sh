@@ -60,9 +60,11 @@ getLatestRHEL() {
 			continue
 		}
 		if [ $type = all ]; then
-			echo "$rttList" | egrep '^RHEL-?'${VER:0:3}'[.0-9]*-'$sufix | head -n1
+			echo "$rttList" | egrep "^RHEL-${VER}$" ||
+				echo "$rttList" | egrep '^RHEL-?'${VER:0:3}'[.0-9]*-'$sufix | head -n1
 		else
-			echo "$rttList" | egrep '^RHEL-?'${VER:0:3}'[.0-9]*'$sufix | head -n1
+			echo "$rttList" | egrep "^RHEL-${VER}$" ||
+				echo "$rttList" | egrep '^RHEL-?'${VER:0:3}'[.0-9]*'$sufix | head -n1
 		fi
 	done
 }
