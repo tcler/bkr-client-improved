@@ -111,7 +111,7 @@ set OptionList {
 	leap-second		{arg n	help {Add leap-second task}}
 	reserve-if-fail		{arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h}}
 	reserve			{arg o	help {Reserve system at the end of the recipe}}
-	fips                    {arg n  help {enable fips}}
+	fips                    {arg o  help {enable fips}}
 
   *5 {Dummy "\n  Options for installation:"}
 	part			{arg m	help {Additional <partitions/> for job, example: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
@@ -288,6 +288,11 @@ set ARCH_L {auto}
 if [info exist Opt(arch)] {
 	set ARCH_L {}
 	foreach e $Opt(arch) {lappend ARCH_L {*}[split $e ", "]}
+}
+
+set FIPS_L {}
+if [info exist Opt(fips)] {
+	foreach e $Opt(fips) {lappend FIPS_L {*}[split $e ", "]}
 }
 
 set recipe_ks_meta {}
@@ -679,8 +684,19 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 				# enable fips
 				if [info exist Opt(fips)] {
-					task name=/distribution/fips/setup-fips-enabled role=$role ! {
-						params -
+					set FIPS {1}
+					if [llength $FIPS_L] {
+						set FIPS [lindex $FIPS_L 0]
+						set FIPS_L [lrange $FIPS_L 1 end]
+					}
+					if {$FIPS ni {"0"}} {
+						task name=/distribution/fips/setup-fips-enabled role=$role ! {
+							params -
+						}
+					} else {
+						task name=/distribution/fips/setup-fips-disabled role=$role ! {
+							params -
+						}
 					}
 				}
 
