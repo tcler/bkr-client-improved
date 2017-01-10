@@ -16,7 +16,7 @@ dfList=$(eval echo $latestDistroF{${DVLIST// /,}})
 #echo $dfList
 
 #getLatestRHEL all >.distroListr
-distro-list.sh all | egrep '^RHEL-?[678]' >.distroListr
+distro-list.sh all | egrep '^(RHEL|Pegas)-?[678]' >.distroListr
 while read d; do
 	pkgList=$(awk -v d=$d 'BEGIN{ret=1} $1 == d {$1=""; print; ret=0} END{exit ret}' .distroList.orig) || {
 		r=$d
@@ -39,7 +39,7 @@ done <.distroListr >.distroList
 test -n "`cat .distroList`" &&
 	for V in $DVLIST; do
 	    v=${V//[cs]/} t=${V//[0-9]/}
-	    egrep -i "^RHEL-?${v}.[0-9]+-${t}" .distroList >${latestDistroF}$V.tmp
+	    egrep -i "^(RHEL|Pegas)-?${v}.[0-9]+-${t}" .distroList >${latestDistroF}$V.tmp
 	done
 
 for f in $dfList; do
@@ -87,6 +87,7 @@ for f in $dfList; do
 
 	[ $available = 1 ] && {
 		sendmail.sh -p '[Notice] ' -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
+		sendmail.sh -p '[Notice] ' -f "me@redhat.com" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
 		#cat $p
 		mv ${f}.tmp ${f}
 	}

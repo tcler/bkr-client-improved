@@ -31,7 +31,7 @@ distro_rel_eng() {
 }
 distro_nightly() {
 	curl -k -L -u: ${baseUrl}nightly/  2>/dev/null |
-		awk -F'[<>]' '/"(latest-)?RHEL[-0-9.]+/&&/alt=".DIR."/{print "nightly/" $5}' |sed 's;/$;;'|egrep -v -i '(Supplementary|DSRV-)';
+		awk -F'[<>]' '/"(latest-)?(RHEL|Pegas)[-0-9.]+/&&/alt=".DIR."/{print "nightly/" $5}' |sed 's;/$;;'|egrep -v -i '(Supplementary|DSRV-)';
 }
 distro_released5() {
 	curl -k -L -u: ${baseUrl}released/RHEL-5-Server  2>/dev/null |
