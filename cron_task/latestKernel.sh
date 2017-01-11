@@ -13,10 +13,10 @@ latestKernelF=.latest.kernel
 kfList=$(eval echo $latestKernelF{${VLIST// /,}})
 #echo $kfList
 
-searchBrewBuild 'kernel-[-.0-9]+el'"[${VLIST// /}]"'$' >.kernelList
+searchBrewBuild 'kernel(-pegas)?-[-.0-9]+el'"[${VLIST// /}]"'$' >.kernelList
 test -n "`cat .kernelList`" &&
 	for V in ${VLIST}; do
-	    L=$(egrep 'kernel-[-.0-9]+el'$V .kernelList | head -n4)
+	    L=$(egrep 'kernel(-pegas)?-[-.0-9]+el'$V .kernelList | head -n4)
 	    #[ -z "$L" ] && { >${latestKernelF}$V.tmp; break; }
 	    echo "$L" >${latestKernelF}$V.tmp
 	done
@@ -60,7 +60,9 @@ for f in $kfList; do
 		LANG=C rpm -qp --changelog kernel-${tagr/kernel-/}.src.rpm >changeLog$v
 		\rm kernel-${tagr/kernel-/}.src.rpm
 
-		sed -n "/\*.*\[${tagr/kernel-/}\]/,/^$/{p}" changeLog$v >changeLog
+		vr=${tagr/kernel-/}
+		vr=${vr/pegas-/}
+		sed -r -n "/\*.*\[${vr}\]/,/^$/{p}" changeLog$v >changeLog
 		sed -n '1p;q' changeLog
 		grep '^-' changeLog | sort -k2,2
 		echo
@@ -73,7 +75,7 @@ for f in $kfList; do
 	echo -e "\n\n# the Covsan task info:" >>$p; cat Covscan.$v >>$p
 
 	[ $available = 1 ] && {
-		sendmail.sh -p '[Notice] ' -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
+		sendmail.sh -p '[Notice] ' -f "from@redhat.com" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
 		#cat $p
 		mv ${f}.tmp ${f}
 	}
