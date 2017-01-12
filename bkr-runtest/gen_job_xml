@@ -51,7 +51,7 @@ set OptionList {
   *1 {Dummy "\n  Options for selecting distro tree(s):"}
 	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
 	tag			{arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE)}}
-	distro			{arg m	help {Use named distro for job)}}
+	distro			{arg y	help {Use named distro for job)}}
 	variant			{arg m	help {Specify the distro variant}}
 	arch			{arg y	help {Specify the distro arch}}
 	distrorequire		{link dr}
@@ -176,6 +176,9 @@ if [info exist Opt(distro)] {
 	foreach e $Opt(distro) {lappend _ldistro {*}[split $e ", "]}
 	set prev {}
 	foreach d $_ldistro {
+		if [regexp -- {^[0-9]} $d] {
+			set d [expandDistro $d]
+		}
 		if {[string length $d] > 0} {
 			lappend DISTRO_L $d
 			set prev $d
