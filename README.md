@@ -2,6 +2,8 @@
 
 Unofficial tools for [beaker-project](https://beaker-project.org/) with improved features and customized options.
 
+![bkr test robot](https://raw.githubusercontent.com/tcler/bkr-client-improved/master/img/demo.gif)
+
 ## Features
 
 - Implement `newcase.sh` to replace `beaker-wizard`, which works better for multi-level directory and mutli-host.
