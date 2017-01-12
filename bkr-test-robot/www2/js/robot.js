@@ -211,6 +211,21 @@
 		}
 	}
 
+	var cpanelTO;
+	function controlPanelSwitch(on) {
+		var obj = document.getElementById('cpanel')
+		if (on == 1) {
+			obj.style.zIndex="100";
+			obj.style.display="block";
+			clearTimeout(cpanelTO);
+		} else {
+			cpanelTO=setTimeout(function() {
+				obj.style.zIndex="-1";
+				obj.style.display="none";
+			}, 3000)
+		}
+	}
+
 	function getUrlParameter(a) {
 		a = a.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
 		a = RegExp("[\\?&]" + a + "=([^&#]*)").exec(location.search);

@@ -347,7 +347,7 @@
 /* Ensure that the demo table scrolls */
     th, td { white-space: nowrap; }
     div.dataTables_wrapper {
-        width: 1200px;
+        width: 96%;
         margin: 0 auto;
     }
  
@@ -372,14 +372,27 @@
     }
 
 /* controlPanel */
-    div.controlPanel {
+    div.controlPanelCall {
         position: fixed;
-        z-index: 100;
-        top: 96pt;
-        left: 8pt;
+        z-index: 99;
+        top: 144pt;
+        left: 0pt;
         background-color: #454;
         background-color: #CD7F32;
         filter:alpha(Opacity=80); -moz-opacity:0.8; opacity: 0.8;
+        border: solid 3px;
+        border-color: #D9D919;
+        border-color: #cd7f32;
+    }
+    div.controlPanel {
+        position: fixed;
+        z-index: -1;
+        display: none;
+        top: 144pt;
+        left: 0pt;
+        background-color: #454;
+        background-color: #CD7F32;
+        filter:alpha(Opacity=96); -moz-opacity:0.96; opacity: 0.96;
         border: solid 3px;
         border-color: #D9D919;
         border-color: #cd7f32;

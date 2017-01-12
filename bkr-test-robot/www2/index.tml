@@ -166,6 +166,7 @@ puts ""
           <a class="navbar-brand" href="#">Bkr Test Robot </a>
         </div>
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+<!--
           <ul class="nav navbar-nav navbar-right">
             <ul class="nav navbar-nav">
               <li class=""><a data-toggle="modal" href="#QueryForm">PackageQuery<span class="sr-only">(current)</span></a></li>
@@ -183,11 +184,15 @@ puts ""
             <li><a href="#">About</a></li>
             </li>
           </ul>
+-->
         </div><!-- /.navbar-collapse -->
       </div><!-- /.container-fluid -->
     </nav>
     <div class="main-container">
-      <div class="controlPanel">
+      <div class="controlPanelCall" onmouseover="controlPanelSwitch(1);">
+         = 
+      </div>
+      <div class="controlPanel" id="cpanel" onmouseover="controlPanelSwitch(1);" onmouseout="controlPanelSwitch(0);">
         <input type="checkbox" id="selectAll" style="color: white;" onclick="checkall();" />
         <span style="font-weight:bold; color: #bfb;"> Show/UnselectAll </span>
         <br/>
@@ -198,7 +203,7 @@ puts ""
         <input type="button" value="Delete Test Cases" onclick="delTestCase();"/>
       </div>
 
-      <form action="[dict get $req -uri]" style="font-size:80%;" >
+      <form action="[dict get $req -uri]" style="font-size:90%;" >
         <fieldset style="border-style:solid;border-bottom-width:2px;border-top-width:2px;border-left-width:1px;">
           [
           set input {}
