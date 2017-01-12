@@ -1,3 +1,5 @@
+<!DOCTYPE HTML>
+
 [
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require tdom
@@ -116,7 +118,7 @@ if [dict exists $req -x-forwarded-for] { set forward /[dict get $req -x-forwarde
 puts ""
 ]
 
-<html lang="en">
+<html>
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -158,6 +160,7 @@ puts ""
     </script>
     <script src="./js/robot.js"></script>
   </head>
+
   <!--<body style="font-family: wqy-microhei; background: #2c3e50">-->
   <body style="font-family: wqy-microhei; background: #e3edcd">
     <nav class="navbar navbar-fixed-top navbar-inverse">
@@ -165,8 +168,8 @@ puts ""
         <div class="navbar-header">
           <a class="navbar-brand" href="#">Bkr Test Robot </a>
         </div>
-        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 <!--
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
           <ul class="nav navbar-nav navbar-right">
             <ul class="nav navbar-nav">
               <li class=""><a data-toggle="modal" href="#QueryForm">PackageQuery<span class="sr-only">(current)</span></a></li>
@@ -184,13 +187,14 @@ puts ""
             <li><a href="#">About</a></li>
             </li>
           </ul>
--->
         </div><!-- /.navbar-collapse -->
+-->
       </div><!-- /.container-fluid -->
     </nav>
+
     <div class="main-container">
       <div class="controlPanelCall" onmouseover="controlPanelSwitch(1);">
-         = 
+         V<br>V
       </div>
       <div class="controlPanel" id="cpanel" onmouseover="controlPanelSwitch(1);" onmouseout="controlPanelSwitch(0);">
         <input type="checkbox" id="selectAll" style="color: white;" onclick="checkall();" />
