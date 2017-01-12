@@ -49,7 +49,7 @@ set OptionList {
   *1 {Dummy "\n  Options for selecting distro tree(s):"}
 	family			{forward y arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
 	tag			{forward y arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE)}}
-	distro			{forward y arg m	help {Use named distro for job)}}
+	distro			{forward y arg y	help {Use named distro for job)}}
 	variant			{forward y arg m	help {Specify the distro variant}}
 	arch			{forward y arg y	help {Specify the distro arch}}
 	distrorequire		{link dr}
