@@ -200,6 +200,17 @@
 		curPkg = obj;
 	}
 
+	function pkgSelectSwitch(pkg) {
+		var obj = document.getElementById('Q-' + pkg);
+		if (obj.style.display == "none" || obj.style.display != "block") {
+			obj.style.zIndex="100";
+			obj.style.display="block";
+		} else {
+			obj.style.zIndex="-1";
+			obj.style.display="none";
+		}
+	}
+
 	function getUrlParameter(a) {
 		a = a.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
 		a = RegExp("[\\?&]" + a + "=([^&#]*)").exec(location.search);
@@ -220,6 +231,6 @@
 			}
 		}
 		pkgObj.checked = "checked";
-		pkgQuery(pkgObj.value);
+		//pkgQuery(pkgObj.value);
 	}
 

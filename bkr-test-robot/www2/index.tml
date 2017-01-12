@@ -203,16 +203,18 @@ puts ""
           [
           set input {}
           foreach pkg $pkgList {
-          	append input "<input type=\"radio\" name=\"pkg\" value=\"$pkg\" onchange=\"pkgQuery('$pkg');\" /> $pkg"
+          	append input "$pkg<input type=\"radio\" name=\"pkg\" value=\"$pkg\" onclick=\"pkgSelectSwitch('$pkg');\" onchange=\"pkgQuery('$pkg');\" /> | "
           }
           append input { <input type="submit" value="Query"/>}
           foreach pkg $pkgList {
           	append input "<div class=\"pkgQuery\" id=\"Q-$pkg\">"
+          	append input "<select name=\"run-$pkg\" multiple=\"multiple\" size=5>"
           	foreach distro $RUN($pkg) {
           		set D [string map {RHEL- {} {-nvr=kernel-} {+} {-nvr=} {+} {-install=} {+}} $distro]
           		set D [regsub -all {\+[0-9]+\.[0-9]+\.[0-9]+-} $D {}]
-          		append input "<input type=\"checkbox\" name=\"run-$pkg\" value=\"$distro\" />$D\n"
-          	}
+			append input "<option value=\"$distro\">$D</option>"
+		}
+          	append input "</select>"
           	append input {</div>}
           }
           set input

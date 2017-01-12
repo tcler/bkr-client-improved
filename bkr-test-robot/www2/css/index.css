@@ -413,8 +413,8 @@
     div.pkgQuery {
         background-color: #efd;
         margin:0 auto;
-        margin-left: 0;
-        width: 1000px;
+        //margin-left: 0;
+        //width: 500px;
         overflow: auto;
         white-space:nowrap;
         border:1px;
