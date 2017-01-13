@@ -76,7 +76,7 @@ for f in $dfList; do
 	tagr=$(awk '$1 ~ /^+/ && $2 ~ /kernel-/ {print $2}' $p|head -n1|sed s/$/.el${v%[cs]}/)
 	(echo -e "\n{Info} ${tagr} change log:"
 
-	sed -n '/\*.*\['"${tagr/kernel-/}"'\]/,/^$/{p}' /var/cache/kernelnvrDB/changeLog${v%[cs]} >changeLog
+	sed -n '/\*.*\['"${tagr/kernel-/}"'\]/,/^$/{p}' /var/cache/kernelnvrDB/*changeLog${v%[cs]} >changeLog
 	sed -n '1p;q' changeLog
 	grep '^-' changeLog | sort -k2,2
 	echo) >>$p
@@ -86,8 +86,7 @@ for f in $dfList; do
 	echo -e "\n#cur:" >>$p; cat $f.tmp >>$p
 
 	[ $available = 1 ] && {
-		sendmail.sh -p '[Notice] ' -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
-		sendmail.sh -p '[Notice] ' -f "me@redhat.com" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
+		sendmail.sh -p '[Notice] ' -f "from@redhat.com" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
 		#cat $p
 		mv ${f}.tmp ${f}
 	}

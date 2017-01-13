@@ -57,12 +57,16 @@ for f in $kfList; do
 		[ -f kernel-${tagr/kernel-/}.src.rpm ] || {
 			available=0
 		}
-		LANG=C rpm -qp --changelog kernel-${tagr/kernel-/}.src.rpm >changeLog$v
-		\rm kernel-${tagr/kernel-/}.src.rpm
+		if [[ $tagr =~ pegas ]]; then
+			LANG=C rpm -qp --changelog ${tagr}.src.rpm >pegas-changeLog$v
+		else
+			LANG=C rpm -qp --changelog ${tagr}.src.rpm >changeLog$v
+		fi
+		\rm ${tagr}.src.rpm
 
 		vr=${tagr/kernel-/}
 		vr=${vr/pegas-/}
-		sed -r -n "/\*.*\[${vr}\]/,/^$/{p}" changeLog$v >changeLog
+		sed -r -n "/\*.*\[${vr}\]/,/^$/{p}" pegas-changeLog$v changeLog$v >changeLog
 		sed -n '1p;q' changeLog
 		grep '^-' changeLog | sort -k2,2
 		echo
