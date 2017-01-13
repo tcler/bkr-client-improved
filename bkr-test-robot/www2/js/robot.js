@@ -222,7 +222,7 @@
 			cpanelTO=setTimeout(function() {
 				obj.style.zIndex="-1";
 				obj.style.display="none";
-			}, 3000)
+			}, 2000)
 		}
 	}
 
