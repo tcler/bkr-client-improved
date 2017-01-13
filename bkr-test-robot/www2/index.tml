@@ -64,14 +64,14 @@ if [dict exists $req -query] {
 foreach v [lsort -decreasing $distroListTmp] {
 	if {$v in $RUN($pkgx)} {lappend distroGsetList $v}
 }
+
+#default colum number if not specified
+set columNum 5
 if {$distroGsetList == ""} {
 	set distroGsetList $RUN($pkgx)
+	set distroGsetList [lrange $distroGsetList 0 [expr $columNum-1]]
 }
 set distroNum [llength $distroGsetList]
-if {$distroNum > 5} {
-	set distroGsetList [lrange $distroGsetList 0 4]
-	set distroNum [llength $distroGsetList]
-}
 
 set SQL "select
     ti.testid,
