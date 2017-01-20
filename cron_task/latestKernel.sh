@@ -16,9 +16,10 @@ kfList=$(eval echo $latestKernelF{${VLIST// /,}})
 searchBrewBuild 'kernel(-pegas)?-[-.0-9]+el'"[${VLIST// /}]"'$' >.kernelList
 test -n "`cat .kernelList`" &&
 	for V in ${VLIST}; do
-	    L=$(egrep 'kernel(-pegas)?-[-.0-9]+el'$V .kernelList | head -n4)
-	    #[ -z "$L" ] && { >${latestKernelF}$V.tmp; break; }
+	    L=$(egrep 'kernel-pegas-[-.0-9]+el'$V .kernelList | head -n4)
 	    echo "$L" >${latestKernelF}$V.tmp
+	    L=$(egrep 'kernel-[-.0-9]+el'$V .kernelList | head -n4)
+	    echo "$L" >>${latestKernelF}$V.tmp
 	done
 
 for f in $kfList; do
