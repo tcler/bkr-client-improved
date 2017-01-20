@@ -76,7 +76,9 @@ for f in $dfList; do
 	tagr=$(awk '$1 ~ /^+/ && $2 ~ /kernel-/ {print $2}' $p|head -n1|sed s/$/.el${v%[cs]}/)
 	(echo -e "\n{Info} ${tagr} change log:"
 
-	sed -n '/\*.*\['"${tagr/kernel-/}"'\]/,/^$/{p}' /var/cache/kernelnvrDB/*changeLog${v%[cs]} >changeLog
+	vr=${tagr/kernel-/}
+	vr=${vr/pegas-/}
+	sed -n '/\*.*\['"${vr}"'\]/,/^$/{p}' /var/cache/kernelnvrDB/*changeLog${v%[cs]} >changeLog
 	sed -n '1p;q' changeLog
 	grep '^-' changeLog | sort -k2,2
 	echo) >>$p
