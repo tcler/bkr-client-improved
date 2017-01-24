@@ -212,7 +212,9 @@ puts ""
           [
           set input {}
           foreach pkg $pkgList {
-          	append input "$pkg<input type=\"radio\" name=\"pkg\" value=\"$pkg\" onclick=\"pkgSelectSwitch('$pkg');\" onchange=\"pkgQuery('$pkg');\" /> | "
+		append input "<label for=\"$pkg\">"
+		append input "<input name=\"pkg\" id=\"$pkg\" type=\"radio\" onclick=\"pkgSelectSwitch('$pkg');\" onchange=\"pkgQuery('$pkg');\" />$pkg |"
+		append input "</label>"
           }
           append input { <input type="submit" value="Query"/>}
           foreach pkg $pkgList {
