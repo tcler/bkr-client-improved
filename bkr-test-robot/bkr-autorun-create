@@ -109,6 +109,7 @@ set OptionList {
 	reserve-if-fail		{forward y arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h}}
 	reserve			{forward y arg o	help {Reserve system at the end of the recipe}}
 	fips                    {forward y arg o  help {enable fips}}
+	abrt                    {forward y arg n  help {enable abrt(insert /distribution/crashes/enable-abrt)}}
 
   *5 {Dummy "\n  Options for installation:"}
 	part			{forward y arg m	help {Additional <partitions/> for job, example: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
