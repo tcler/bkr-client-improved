@@ -77,6 +77,13 @@ Notes:
 
       (Check utils dir to get more)
 
+*   ***bkr-client-cmd***
+    - `bkr job-edit`: download job xml, edit it with vim, then submit new job
+    - `bkr recipes-list`: roughly count recipes comsumed by me, generally parse info in this page:
+      https://beaker.xxxxx.com/recipes/mine
+
+      (Check utils dir to get more)
+
 ## Reference
 
 * https://github.com/beaker-project

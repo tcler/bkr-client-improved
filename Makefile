@@ -1,6 +1,7 @@
 
 export PATH:=${PATH}:/usr/local/bin:~/bin
 _bin=/usr/local/bin
+_bkr_client_cmd=/usr/lib/python2.7/site-packages/bkr/client/commands
 completion_path=/usr/share/bash-completion/completions
 
 install install_runtest: _isroot
@@ -13,6 +14,7 @@ install install_runtest: _isroot
 	cd bkr-runtest; for f in *; do rm -fr $(_bin)/$$f; done
 	cp -rf -d lib/* /usr/local/lib/.
 	cp -f -d bkr-runtest/* utils/* $(_bin)/.
+	cp -f bkr-client-cmd/* $(_bkr_client_cmd)/.
 	@ps axf|grep -v grep|grep -q vershow || $(_bin)/vershow -uu >/dev/null &
 	cp -f -d bash-completion/* $(completion_path)/.
 
