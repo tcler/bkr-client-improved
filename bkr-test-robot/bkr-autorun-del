@@ -21,8 +21,8 @@ set Args [list]
 set OptionList {
 	help     {arg n	help {Print this usage}}	h {link help}
 	y        {arg n	help {yes}}
-	b        {arg n	help {only delete the aborted jobs}}
-	e        {arg n	help {only delete the empty (nil) jobs}}
+	a        {arg n	help {only delete the "(aborted)" jobs}}
+	n        {arg n	help {only delete the "(nil)" jobs}}
 	delpkg   {arg n	help {delete all tests that along the pkg and all related run info}}
 }
 set deltype run
@@ -65,10 +65,10 @@ if {$deltype == "run" && [llength $Args] < 2} {
 set pkgName [lindex $Args 0]
 set Distro_Gset [lindex $Args 1]
 
-if [info exists Opt(e)] {
-	set toDel "Empty"
-} elseif [info exists Opt(b)] {
-	set toDel "Aborted"
+if [info exists Opt(n)] {
+	set toDel "(nil)"
+} elseif [info exists Opt(a)] {
+	set toDel "(aborted)"
 } else {
 	set toDel "All"
 }
@@ -99,7 +99,7 @@ if {[string match -nocase y* $ans]} {
 			"
 		}
 		#exec "rm -rf log/[string map {{ } _} $Distro_Gset]"
-	    } elseif {$toDel == "Empty"} {
+	    } elseif {$toDel == "(nil)"} {
 		db transaction {
 			db eval "DELETE FROM testrun
 				WHERE testrun.testStat = '' and distro_rgset = '$Distro_Gset' and testid in (
@@ -109,7 +109,7 @@ if {[string match -nocase y* $ans]} {
 				)
 			"
 		}
-	    } elseif {$toDel == "Aborted"} {
+	    } elseif {$toDel == "(aborted)"} {
 		db transaction {
 			db eval "DELETE FROM testrun
 				WHERE testrun.testStat = 'aborted' and distro_rgset = '$Distro_Gset' and testid in (
