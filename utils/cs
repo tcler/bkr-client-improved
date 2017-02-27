@@ -1,0 +1,747 @@
+#!/bin/bash
+#
+# Check beaker job result in CLI.
+
+get_recipe_console_log()
+{
+	local j id=$1  # recipe id
+
+	if test $id -eq 0 -a $console_flag -ne 0 ; then
+		echo $console_log
+		return
+	fi
+
+	test -e $DIR/recipe-$id-cosole.log && return
+
+	if ! test -e $DIR/recipe-$id-consolelog ; then
+		console_log=`bkr job-logs R:$id | grep console.log$`
+		test -z "$console_log" && return
+		echo $console_log > $DIR/recipe-$id-consolelog
+	else
+		console_log=`cat $DIR/recipe-$id-consolelog`
+	fi
+
+	for j in $console_log
+	do
+		#echo $j
+		local tmpclog=$DIR/recipe-$id-console.log
+		if ! [ -s $tmpclog ] ; then
+			wget --quiet -O $tmpclog $j
+		fi
+		if [ -s $tmpclog ] && grep -qw "WARNING\|BUG\|panic\|Oops\|SysRq\|tainted" $tmpclog ; then
+			echo -e "\e[101m---> Console Catches:\e[0m"
+			grep -aw "WARNING\|BUG\|panic\|Oops\|tainted" $tmpclog | sed -e 's/^[[0-9. ]*\]//' \
+				| uniq -w 20 | uniq -s 35 | grep -vE "run test"\|beah-\|-panic > /tmp/$id-cs_console_tmp
+			if test $(cat /tmp/${id}-cs_console_tmp | wc -l) -gt 30 ; then
+				cat /tmp/$id-cs_console_tmp | sort | uniq -w 20 | uniq -s 35 > /tmp/$id-cs_console_tmp1
+				if test $(cat /tmp/${id}-cs_console_tmp1 | wc -l) -gt 20 ; then
+					head /tmp/$id-cs_console_tmp1
+				else
+					cat /tmp/$id-cs_console_tmp1
+				fi
+			else
+				cat /tmp/$id-cs_console_tmp
+			fi
+			grep -qa SysRq $tmpclog && echo -en "\n$(grep -aw -A 2 SysRq $tmpclog | sed -e 's/^[[0-9. ]*\]//')"
+			if grep -qa "SysRq : Show Blocked State" $tmpclog ; then
+				echo -en "\n$(grep -a "D [0-9a-f]{4,}" $tmpclog | sed -e 's/^[[0-9. ]*\]//' | uniq -w 20 -c)"
+			fi
+			grep -ia -B 2 -A 5 "call t" $tmpclog | sed -e 's/^[[0-9. ]*\]//' > /tmp/$id-cs-callt
+			if [ $(cat /tmp/$id-cs-callt | wc -l) -gt 30 ] ; then
+				head -30 /tmp/$id-cs-callt
+			else
+				cat /tmp/$id-cs-callt
+			fi
+		fi
+		csolast=$(grep -iaEw "run test"\|"ltptest"\|"xfstest"\|"run fstests"\|"start test" $tmpclog \
+			| sed -e 's/^[[0-9. ]*\]//' | tail -1)
+		if [ -n "$csolast" ] ; then
+			echo $csolast
+			local tmp=$(echo ${csolast} | sed -e 's/\/$//' -e 's/RHEL6FS//' \
+				-e 's/\([0-9]\{3,\}\)[a-zA-Z_0-9-]\{,\}/\1/' | awk -F/ '{printf "%s/%s\n", $(NF-1), $NF}')
+			if [ -n "$xfstests_last_running" ] && [[ "$xfstests_last_running" =~ $tmp ]] ; then
+				:
+			elif [ $2 -eq 1 ] ; then # there is unfinished task
+				:
+			fi
+		fi
+		#cowsay -W 70 $(grep -i -A 5 "call t" $tmpclog)
+		echo -n "Recipe console.log url: "
+		echo $j
+	done
+}
+
+get_task_output()
+{
+	local j id=$1 # task id
+	local name=$(basename $taskname)
+	local full_log="$DIR/task-$id-loglist-full"
+	local lx=0
+	local wbarch=$3
+
+	test -e $DIR/$JOBS-$id-TESTOUT.log && return
+
+	if ! test -s $DIR/task-$id-loglist ; then
+		if ! test -e $full_log ; then
+			bkr job-logs T:$id > $full_log
+		fi
+		if test $console_flag -eq 1 ; then
+			LOGS=`grep -E $id/.*TESTOUT.log\|*.bad.diff\|test_log-RHEL6FS\|test_log.*dmesg.log\|fsck.full $full_log`
+		else
+			LOGS=`grep -E $id/.*TESTOUT.log\|*.bad.diff\|test_log-RHEL6FS\|fsck.full $full_log`
+		fi
+		test -z "$LOGS" && return
+		echo $LOGS > $DIR/task-$id-loglist
+	else
+		LOGS=`cat $DIR/task-$id-loglist | tr ' ' '\n'`
+	fi
+
+	echo -en "\n--->Task Log url:\n$LOGS"
+
+	case $taskname in
+	*ltp/generic)
+		lx=1;
+		;;&
+	*xfs/xfstests)
+		local tmp
+		for tmp in $new_xfstests_fail
+		do
+			tmp=$(echo $tmp | tr / -)
+			[[ "$tmp" =~ dmesg ]] && continue
+			local xtflog=$DIR/$id-$name-$rcparch-$tmp
+			if ! test -s $xtflog && grep -qw ${tmp}.out.bad.diff $full_log ; then
+				wget --quiet -O $xtflog `grep -w ${tmp}.out.bad.diff $full_log`
+			fi
+			if [ -s $DIR/$id-tt-$tmp ] ; then
+				echo -en "\n\n\e[33m--->$tmp Fail log:\e[0m"
+				echo -ne "\n\e[94m$(cat $DIR/$id-tt-$tmp | tr ["\n"{}] " " | awk '{$1="";$3="";$5="";print}')\e[0m\n"
+			else
+				echo -en "\n\n\e[91m--->$tmp Fail log:\e[0m"
+			fi
+			if [ -e $xtflog ] ; then
+				echo -en "\n$(uniq $xtflog | sed -e '/^$/d' | sed -e '/^[#: ]$/d' | tail -10)"
+			fi
+			lx=1
+		done
+		;;&
+	*)
+		local faillog=$DIR/$id-$name-$rcparch-faillog
+		#if test $lx -eq 1 ; then echo 1 >  $faillog; fi # skip OUTPUT of xfstests, too big
+		if ! test -s $faillog && grep -q TESTOUT $full_log && \
+			( test $2 -eq 1 || test $lx -eq 0 || test $lx -eq 1 -a $2 -eq 1 ); then
+			# only download OUTPUT when 1) unfinished 2) non ltp/xfstests 3) ltp/xfstests unfinished
+			wget --quiet -O $faillog `grep TESTOUT $full_log`
+			sed -i -e '/.*%.*ETA/d' $faillog # remove wget process output
+		fi
+		if test -s $faillog && grep -qiE FAIL\|error\|WARN $faillog && test $lx -eq 0 ; then
+			# only parse OUTPUT when non ltp/xfstests
+			uniq $faillog | sed -e '/^$/d' | sed -e '/^+ log/d' | sed -e '/MARK-LWD-LOOP/d' > ${faillog}_alt
+			! [[ "$taskname" =~ ext4/resize ]] && grep -qa "result: F" ${faillog}_alt && \
+				echo -en "\n\e[101m---> Fails:\e[0m\n$(uniq $faillog | sed -e '/^$/d' |\
+				sed -e '/^+ log/d' | grep -v "dmesg result" | grep -a -B 10 "result: F")"
+			! [[ "$taskname" =~ ext4/resize ]] && grep -qa "result: W" ${faillog}_alt && \
+				echo -en "\n\e[43m---> Warns:\e[0m\n$(uniq $faillog | sed -e '/^$/d' |\
+				sed -e '/^+ log/d' | grep -v "dmesg result" | grep -a -B 10 "result: W")"
+			grep -qia "command not found" ${faillog}_alt && echo -en "\n$(uniq $faillog | grep -ia "command not found")"
+		fi
+		;;
+	esac
+
+	if test $2 -eq 1 -a -s $faillog ; then # all unfinished tasks need Tails
+		echo -en "\n\e[46m---> Tails:\e[0m"
+		echo -en "\n$(uniq -w 20 $faillog | sed -e '/MARK-LWD-LOOP/d' | sed -e '/^$/d' | grep -a "Entering directory" | tail -1)"
+		xfstests_last_running=$(uniq -w 20 $faillog | sed -e '/MARK-LWD-LOOP/d' | sed -e '/^$/d' | sed -e '/======/d' | \
+			grep -iaEw "run test"\|"ltptest"\|"run fstests"\|"start test"\|"Running test [a-z]*" | \
+			sed -e 's/\([0-9]\{3,\}\)[a-zA-Z_0-9-]\{,\}/\1/' | tail -1)
+		echo -en "\n$xfstests_last_running"
+		echo -en "\n$(uniq -w 20 $faillog | sed -e '/MARK-LWD-LOOP/d' | sed -e '/^$/d' | sed -e '/^[#: ]$/d' | tail -15)"
+	fi
+
+	local dmesglog=$DIR/$id-$name-$rcparch-dmesglog
+	if ! test -s $dmesglog && grep -q test_log.*dmesg.log $full_log ; then
+		wget --quiet -O $dmesglog `grep test_log.*dmesg.log $full_log` > /tmp/cserr 2>&1
+	fi
+	if test -s $dmesglog ; then
+		echo -en "\n\e[34m---> Dmesg Catches:\e[0m\n\
+		$(grep -awE WARNING\|BUG\|panic\|Oops\|tainted $dmesglog | sed -e 's/^[[0-9. ]*\]//' | \
+			uniq -w 20 | grep -v "run test" | grep -v 'beah-' )"
+		echo -en "\n$(grep -aw -A 2 SysRq $dmesglog | sed -e 's/^[[0-9. ]*\]//')"
+		if grep -q "SysRq : Show Blocked State" $dmesglog ; then
+			echo -en "\n$(grep -aw 'D ' $dmesglog | sed -e 's/^[[0-9. ]*\]//')"
+		fi
+	fi
+}
+
+toxmlshell()
+{
+	echo "$@" | xmllint --shell $xmlfile | sed '/^\//d'
+}
+
+xmlpath()
+{
+	xmllint --xpath "string($1)" $xmlfile
+	if test -n "$2" ; then
+		echo -ne "$2"
+	fi
+}
+
+parse_xfstests()
+{
+	local id=$2 # taskid
+	test -d ${HOMEDIR}/workspace/kernel/filesystems/xfs/xfstests/ || return
+	local fst=`echo $1 | awk -F: '{print $1}'`
+	local tst=`echo $1 | awk -F: '{print $2}'`
+	local tst_tr=$(echo $tst | tr / -)
+	[[ $fst =~ install ]] && return
+	[[ $tst =~ _REPORT ]] && return
+	[[ $tst =~ dmesg ]] && return
+	[[ $tst =~ avc ]] && return
+	[[ $tst =~ fsck ]] && return  # recorded not parsed
+	pushd ${HOMEDIR}/workspace/kernel/filesystems/xfs/xfstests/ > /dev/null 2>&1
+	echo $distro | grep -q RHEL-6 && rel=RHEL6
+	echo $distro | grep -q RHEL-7 && rel=RHEL7
+	echo $distro | grep -q RHEL5 && rel=RHEL5
+	./parse.py -t $tst -f $fst -r $rel -v > $DIR/$id-tt-$tst_tr 2>&1
+	popd > /dev/null 2>&1
+	if ! test -s $DIR/$id-tt-$tst_tr ; then
+		echo -ne "  and \e[91mNOT\e[0m in known issues"
+	else
+		:
+	fi
+	new_xfstests_fail="$new_xfstests_fail $tst"
+}
+
+xmllint_task()
+{
+	local rs="job" # for recipeSet or job
+	[ "$1" == "" ] && rs=""
+	shift
+
+	local i=$1 k=$2 l=$3 j lastw_r lastw_p lastp_r lastp_p unf=0 arch=$4
+
+	taskname=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@name"`
+	taskrslt=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@result"`
+	taskstats=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@status"`
+	new_xfstests_fail=""
+
+	case $taskrslt in
+	"Pass")
+		echo -ne "$taskname  \e[42mPass\e[0m  "
+		;;
+	"Panic")
+		console_flag=1
+		unf=1
+		unf_task=1
+		echo -ne "\n\e[1;31m$taskname  $taskrslt\e[21;0m   "
+		;;
+	"Warn")
+		console_flag=1
+		echo -ne "\n\e[43m$taskname\e[0m  \e[43m$taskrslt\e[0m   "
+		;;
+	"Fail")
+		echo -ne "\n\e[101m$taskname\e[0m  \e[101m$taskrslt\e[0m   "
+		;;
+	*)
+		echo -ne "$taskname  $taskrslt   "
+		;;
+	esac
+
+	xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@status" "  "
+	xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@id" "  "
+	xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@duration" "  "
+	local taskduration=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@duration"`
+
+	get_param $i $k $l FSTYP
+	get_param $i $k $l KERNELARGVERSION
+
+	# return after print status and fstyp
+	if test "$taskrslt" = "Pass" ; then
+		echo ""
+		return
+	fi
+
+	local taskid=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@id"`
+	local rststr="$rs/recipeSet[$i]/recipe[$k]/task[$l]/results"
+	local rscnt=`toxmlshell "ls /$rststr" | grep -c result`
+
+	toxmlshell "cat $rststr" | grep "External Watchdog Expired" > /dev/null
+	local ew=$?
+	toxmlshell "cat $rststr" | grep "LOCALWATCHDOG" > /dev/null
+	local lw=$?
+	if test $ew -eq 0 -o $lw -eq 0 || test "$taskstats" == "Aborted" -o "$taskstats" == "Cancelled" ; then
+		local wdstr="  \e[43m====== NOT FINISHED ${taskstats}"
+		test $lw -eq 0 && wdstr="$wdstr LW"
+		test $ew -eq 0 && wdstr="$wdstr EW"
+		wdstr="$wdstr ====\e[0m"
+		echo -en "$wdstr"
+		unf=1
+		unf_task=1
+		clone_flag=1
+		console_flag=1
+		#get_task_output $taskid $unf
+	fi
+	lastp_r=$(toxmlshell "cat $rststr" |grep Pass| tail -1 | awk '{print $4}' | awk -F= '{print $2}' | tr -d \")
+	lastp_p=$(toxmlshell "cat $rststr" |grep Pass| tail -1 | awk '{print $3}' | awk -F= '{print $2}' | tr -d \")
+	lastw_r=$(toxmlshell "cat $rststr" |grep Warn| tail -1 | awk '{print $4}' | awk -F= '{print $2}' | tr -d \")
+	lastw_p=$(toxmlshell "cat $rststr" |grep Warn| tail -1 | awk '{print $3}' | awk -F= '{print $2}' | tr -d \")
+
+	local fail_flag=0
+	local opcnt=0
+	local rs_ult=""
+	local rs_path=""
+
+	if [[ $taskname =~ xfs/xfstests ]] ; then # result loop xfstests
+
+		xfstests_fstyp=$(get_param $i $k $l FSTYP)
+		xfstests_blksz=$(get_param $i $k $l BLKSIZE)
+		if ! test -s $DIR/xtfts-$taskid ; then
+		toxmlshell "cat $rststr" | grep -E Fail\|Panic\|Warn | awk '{printf "%s %s\n",$3,$4}' > $DIR/xtfts-$taskid
+		fi
+		while read xtft_p xtft_r ; do
+			if [[ ! $xtft_p =~ path ]] || [[ ! $xtft_r =~ result ]] ; then continue; fi
+			rs_ult=$(echo $xtft_r | awk -F= '{print $2}' | tr -d \")
+			rs_path=$(echo $xtft_p | awk -F= '{print $2}' | tr -d \")
+			if [[ $rs_ult =~ Fail|Panic|Warn ]] ; then
+				echo -ne "\n--->"
+				echo -ne "${rs_path}\t${rs_ult}"
+				if [[ $rs_path =~ dmesg ]] ;  then console_flag=1; fi
+				((opcnt=$opcnt+1))
+				parse_xfstests $rs_path $taskid
+				if test $fail_flag -eq 0 ; then fail_flag=1; fi
+			fi
+		done < $DIR/xtfts-$taskid
+
+	else
+
+	for j in `seq 1 $rscnt` ; do # result loop non-xfstests
+
+		rs_ult=`xmlpath "$rststr/result[$j]/@result"`
+		[ -z "$rs_ult" ] && rs_ult=`xmlpath "$rststr/result[$j]"`
+		rs_path=`xmlpath "$rststr/result[$j]/@path"`
+		if [[ $rs_ult =~ Fail|Panic|Warn ]] ; then
+			#!(($opcnt%4)) && echo -ne "\n-->"
+			echo -ne "\n--->"
+			echo -ne "${rs_path}\t${rs_ult}"
+			if [[ $taskname =~ ^/kernel ]]; then
+				local tmp=$(echo ${rs_path} | sed -e 's/\/$//' -e 's/RHEL6FS//' \
+					-e 's/\([0-9]\{3,\}\)[a-zA-Z_0-9-]\{,\}/\1/' | awk -F/ '{print $NF}')
+				if [[ $rs_path =~ dmesg ]] ;  then
+					tmp=$(echo ${rs_path} | sed -e 's/\/$//' -e 's/RHEL6FS//' \
+					-e 's/\([0-9]\{3,\}\)[a-zA-Z_0-9-]\{,\}/\1/' | awk -F/ '{printf "%s/%s/dmesg\n", $4, $5}')
+				fi
+			fi
+			if [[ $rs_path =~ dmesg ]] ;  then console_flag=1; fi
+			((opcnt=$opcnt+1))
+			if test $fail_flag -eq 0 ; then fail_flag=1; fi
+		fi
+	done
+
+	fi
+
+	if test $unf -eq 1 ; then  # last PASS/Warn result for unfinished task
+		if test -n "$lastp_r" -a -n "$lastp_p" && test "$lastp_p" != "/" ; then
+			echo -ne "\n--->Last Pass: "
+			echo -ne "${lastp_p}\t${lastp_r}"
+			((opcnt=$opcnt+1))
+		fi
+		if test -n "$lastw_r" -a -n "$lastw_p" && test "$lastw_p" != "/" ; then
+			echo -ne "\n--->Last Warn: "
+			echo -ne "${lastw_p}\t${lastw_r}"
+			((opcnt=$opcnt+1))
+		fi
+	fi
+	if test $fail_flag -eq 1 -a $log_flag -eq 1; then get_task_output $taskid $unf $arch ; fi
+
+	if test "$taskrslt" != "Pass" ; then echo -e "\n" ; fi
+}
+
+xmllint_result()
+{
+	local rs="job" # for recipeSet or job
+	[[ "$1" =~ "RS" ]] && rs=""
+	shift
+
+	local i j k l
+	local recipecnt=`toxmlshell "ls $rs" | grep -c recipeSet`
+	local jid=`xmlpath "$rs/@id"`
+	if [ -z "$rs" ] ; then
+		recipecnt=`toxmlshell "ls recipeSet" | grep -c recipe`
+	else
+		echo https://beaker.engineering.redhat.com/jobs/$jid
+	fi
+	distro=`xmlpath "$rs/recipeSet[1]/recipe[1]/@distro"`
+	kernel=$(echo `xmlpath "$rs/whiteboard"` | sed -e 's/^.*-\([0-9.]\{3,10\}\.el[5-7]\).*$/\1/')
+
+	echo ""
+	xmlpath "$rs/@id" "  "
+	xmlpath "$rs/@owner" "  "
+	xmlpath "$rs/@result" "  "
+	xmlpath "$rs/@status" "\n"
+	xmlpath "$rs/whiteboard" "\n"
+
+	for i in `seq 1 $recipecnt`    # recipeSet loop
+	do
+		clone_flag=0
+		echo -en "\n-------------------------------- RecipeSet RS:"
+		rsid=`xmlpath "$rs/recipeSet[$i]/@id"`
+		echo "$rsid -------------------"
+		local rcpcnt=`toxmlshell "ls $rs/recipeSet[$i]" | grep -c recipe`
+		for k in `seq 1 $rcpcnt`   # recipe loop
+		do
+			console_flag=0
+			unf_task=0
+			rid=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/@id"`
+			test $k -ne 1 && echo ""
+			echo -ne "recipe R:"
+			echo -n "$rid "
+			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@whiteboard" " "
+			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@arch" " "
+			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@distro" " "
+			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@status" " "
+			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@role" " "
+			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@duration" " "
+			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@result"  " ----\n"
+			echo https://beaker.engineering.redhat.com/recipes/$rid
+
+			rcparch=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/@arch"`
+			rcpwb=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/@whiteboard"`
+			local tskcnt=`toxmlshell "ls /$rs/recipeSet[$i]/recipe[$k]" | grep -c task`
+			for l in `seq 1 $tskcnt`   # task loop
+			do
+				if [[ "${rcpwb^^*}" =~ X86|I[0-9]86|PPC|AARCH|ARM|S390|IA64 ]] ; then
+					xmllint_task "$rs" $i $k $l $rcpwb
+				else
+					xmllint_task "$rs" $i $k $l $rcparch
+				fi
+			done  # task
+			if test $console_flag -ne 0 -a $log_flag -eq 1 ; then
+				get_recipe_console_log `xmlpath "$rs/recipeSet[$i]/recipe[$k]/@id"` $unf_task
+			fi
+		done  # recipe
+		sleep 1
+	done # recipeSet
+}
+
+# get param of a task
+# $1 $2 $3 i k l index
+# $4 param name pattern
+#
+get_param()
+{
+	local i=$1 k=$2 l=$3
+	local rs="job"
+	[[ "$JOBS" =~ RS ]] && rs=""
+	local paramscnt=`toxmlshell "ls $rs/recipeSet[$i]/recipe[$k]/task[$l]/params" | grep -c param`
+	for j in `seq 1 $paramscnt`
+	do
+		if [[ `xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/params/param[$j]/@name"` =~ $4 ]] ; then
+			echo -n `xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/params/param[$j]/@value"`
+		fi
+	done
+}
+
+# parse parsed xfstests rslt string in ${HOMEDIR}/tmp/$jobid/xtfts-$taskid
+# $1 jobid, $2 taskid $345 ikl $6 subcase
+#
+print_xfstests_fails()
+{
+	local rs_ult=""
+	local rs_path=""
+	local i=$3
+	local k=$4
+	local l=$5
+	local taskid=$2
+	local rststr="job/recipeSet[$i]/recipe[$k]/task[$l]/results"
+
+	! test -d ${results_dir}/${fstest_cn}/${1}/ && mkdir -p ${results_dir}/${fstest_cn}/${1}
+
+	if ! test -s ${results_dir}/${fstest_cn}/${1}/xtfts-${taskid} ; then
+	toxmlshell "cat $rststr" | grep -E Fail\|Panic\|Warn | awk '{printf "%s %s\n",$3,$4}' > ${results_dir}/${fstest_cn}/${1}/xtfts-${taskid}
+	fi
+	echo -en "    "
+	while read xtft_p xtft_r ; do
+		if [[ ! $xtft_p =~ path ]] || [[ ! $xtft_r =~ result ]] ; then continue; fi
+		rs_ult=$(echo $xtft_r | awk -F= '{print $2}' | tr -d \")
+		rs_path=$(echo $xtft_p | awk -F= '{print $2}' | tr -d \" | sed 's/generic/g/')
+		if [[ $rs_ult =~ Fail|Panic|Warn ]] ; then
+			[ -n "$6" ] && [[ ! "$xtft_p" =~ "$6" ]] && continue
+			local fst=`echo $rs_path | awk -F: '{print $1}'`
+			local tst=`echo $rs_path | awk -F: '{print $2}'`
+			[[ "$tst" =~ REPORT ]] && continue
+			if [[ "$tst" =~ dmesg|avc ]] || [[ "$fst" =~ install|dev|fsck ]]; then
+				echo -n "$rs_path "
+			else
+				local ptmp=$(echo ${rs_path} | awk -F: '{print $2}')
+				echo -n "$ptmp "
+			fi
+		fi
+	done < ${results_dir}/${fstest_cn}/${1}/xtfts-$taskid
+	echo ""
+}
+
+# brief a result xml file
+# $1 jobid, $2 casename, $3 distro, $4 kernel, $5 arch, $6 fstyp, $7 blksize $8 subcase
+#
+get_casenames()
+{
+	local i j k l
+	local recipecnt=`toxmlshell "ls job" | grep -c recipeSet`
+	local distro=`xmlpath "job/recipeSet[1]/recipe[1]/@distro"`
+	local jwb=`xmlpath "job/whiteboard"`
+	local kernel=$(echo `xmlpath "job/whiteboard"` | sed -e 's/^.*-\([0-9.]\{3,10\}\.el[5-9]\).*$/\1/')
+
+	if [ ! -z "$3" ] ; then
+		[[ $distro =~ RHEL-$3 ]] || return
+	fi
+
+	# in case of wrong kernel vr
+	if [[ ! "$kernel" =~ [0-9]{,3}\.el[5-9] ]] ; then
+		#[ $# -gt 1 ] && echo -n $jwb
+		if [[ "$jwb" =~ upstream ]] ; then
+			kernel="upstream"
+		else
+			kernel=""
+		fi
+	fi
+
+	for i in `seq 1 $recipecnt`    # recipeSet loop
+	do
+		local rcpcnt=`toxmlshell "ls /job/recipeSet[$i]" | grep -c recipe`
+		for k in `seq 1 $rcpcnt`   # recipe loop
+		do
+			local rcparch=`xmlpath "job/recipeSet[$i]/recipe[$k]/@arch"`
+			local rcpwb=`xmlpath "job/recipeSet[$i]/recipe[$k]/@whiteboard"`
+			local tskcnt=`toxmlshell "ls /job/recipeSet[$i]/recipe[$k]" | grep -c task`
+
+			[ -n "$5" ] && ( [[ ! "$rcparch" =~ $5 ]] && [[ ! "$rcpwb" =~ $5 ]] ) && continue
+
+			for l in `seq 1 $tskcnt`   # task loop
+			do
+				local taskname=`xmlpath "job/recipeSet[$i]/recipe[$k]/task[$l]/@name"`
+				local taskrslt=`xmlpath "job/recipeSet[$i]/recipe[$k]/task[$l]/@result"`
+				local taskid=`xmlpath "job/recipeSet[$i]/recipe[$k]/task[$l]/@id"`
+
+				case $taskname in
+				*kernelinstall) # get kernel version from kernelinstall
+					local kn=$(get_param $i $k $l KERNELARGNAME)
+					local kv=$(get_param $i $k $l KERNELARGVERSION)
+					local krt=$(get_param $i $k $l KERNELARGVARIANT)
+					[ $kn != "kernel" ] && continue
+					[[ ! "$kv" =~ [0-9]{,3}\.el[5-9] ]] && continue
+					if [ $krt == "debug" ] ; then
+						kernel=$(echo $kv | sed -e 's/^.*-\([0-9.]\{3,10\}\.el[5-9]\).*$/\1/').debug
+					else
+						kernel=$(echo $kv | sed -e 's/^.*-\([0-9.]\{3,10\}\.el[5-9]\).*$/\1/')
+					fi
+					;;
+				*upstream-kernel/install) # get kernel version from upstream kernel install
+					local kc=$(get_param $i $k $l KERNEL_GIT_COMMIT)
+					kernel="upstream $kc"
+					;;
+				/kernel/[df]*)
+					[ -n "$4" ] && [ -z "$kernel" ] && continue 2 # only known kernel version, loss some results
+					[ -n "$4" ] && ( [[ ! $kernel =~ $4 ]] && [[ ! $4 =~ $kernel ]] ) && continue 2
+					if [ $# -eq 1 ] ; then
+						echo $taskname
+					elif [ ! -z "$2" ] && [[ $taskname =~ $2 ]] ; then
+						local fstyp=$(get_param $i $k $l FSTYP)
+						local blksz=$(get_param $i $k $l BLKSIZE)
+						[ -n "$6" ] && [ -z "$fstyp" ] && continue 1 # only known fstyp
+						[ -n "$7" ] && [ -z "$blksz" ] && continue 1 # only known blksz
+						[ -n "$6" ] && [ -n "$fstyp" ] && [[ ! $fstyp =~ $6 ]] && continue
+						[ -n "$7" ] && [ -n "$blksz" ] && [[ ! $blksz =~ $7 ]] && continue
+						[ ! -e ${HOMEDIR}/tmp/.showjb ] && [ $# -gt 1 ] && echo "J:$1" && touch ${HOMEDIR}/tmp/.showjb
+						[ ! -e ${HOMEDIR}/tmp/.showtn ] && echo $taskname && touch ${HOMEDIR}/tmp/.showtn
+						if [ ! -e ${HOMEDIR}/tmp/.showdk ] ; then
+							echo "$distro $kernel $fstyp $blksz"
+							echo -n "$distro $kernel" > ${HOMEDIR}/tmp/.showdk
+						elif [[ "$distro $kernel" != $(cat ${HOMEDIR}/tmp/.showdk) ]] ; then
+							echo "$distro $kernel $fstyp $blksz"
+						fi
+						if [[ $taskname =~ xfs/xfstests ]] ; then
+							echo -ne "\t\t$rcparch\t($rcpwb)"
+							print_xfstests_fails $1 $taskid $i $k $l "$8"
+						else
+							echo -ne "\t\t\t\t$rcparch\t\t$taskrslt\t\t\t($rcpwb)\n"
+						fi
+					fi
+					;;
+				esac
+			done  # task
+		done  # recipe
+	done # recipeSet
+	rm -f ${HOMEDIR}/tmp/.showdk
+}
+
+main_func()
+{
+	! test -d $DIR && mkdir -p $DIR
+
+	if ! test -s $xmlfile ; then
+		bkr job-results --prettyxml $JOBS > $xmlfile
+	fi
+
+	echo ""
+	if [ $interact_flag -eq 1 ] ; then
+		xmllint_result $JOBS | less -R  # for ANSI colors
+	else
+		xmllint_result $JOBS
+	fi
+	echo ""
+	if [ -s /tmp/cserr ] ; then
+		less /tmp/cserr
+		rm -f /tmp/cserr
+	fi
+}
+
+# $1 : dir to store results files
+#
+# read all result dirs under ${HOMEDIR}/tmp, get casename from xml
+# make dir via casename under $1, all or single dir,
+# copy result dir to $1/casename to make:
+#        $1/casename/$jobids
+#
+build_results()
+{
+	mkdir -p $1 || return
+	[ -n "$2" ] && [ -e ${HOMEDIR}/tmp/$2/bd ] && return
+
+	find ${HOMEDIR}/tmp/$2 | grep xmlresult | grep -v db_files > ${HOMEDIR}/tmp/result_dir_list
+
+	while read rrstr ; do
+		local jobid=$(echo $rrstr | awk -F/ '{print $(NF-1)}')
+		if [[ $jobid =~ ^[0-9]+$ ]] ; then
+			xmlfile=$rrstr
+			for cns in `get_casenames $jobid` ; do
+				[ ! -d $1/$cns/$jobid ] && mkdir -p $1/$cns/$jobid
+				[ ! -e $1/$cns/$jobid/.xmlresult ] && cp -f ${HOMEDIR}/tmp/$jobid/.xmlresult $1/$cns/$jobid/
+				if ! ls $1/$cns/$jobid/xtfts* > /dev/null 2>&1 && ls ${HOMEDIR}/tmp/$jobid/xtfts* > /dev/null 2>&1 ; then
+					cp -f ${HOMEDIR}/tmp/$jobid/xtfts* $1/$cns/$jobid/
+				fi
+			done
+		fi
+	done < ${HOMEDIR}/tmp/result_dir_list
+	[ -n "$2" ] && touch ${HOMEDIR}/tmp/$2/bd
+}
+
+# show result history of a case,
+# $1 casename or bug No.
+# $2 rhel distro $3 kernel
+# $4 arch $5 fstyp $6 blksize $7 subcase
+# find jobs in $results_dir/$casename/$jobids, get a brief and show
+#
+show_results()
+{
+	[ ! -d $results_dir ] && echo "No result files dir found" && return
+
+	find $results_dir | grep "$1" | grep  xmlresult > ${HOMEDIR}/tmp/show-joblist
+
+	while read jrstr ; do
+		local jobid=$(echo $jrstr | awk -F/ '{print $(NF-1)}')
+		if [[ $jobid =~ ^[0-9]+$ ]] ; then
+			if [[ $1 =~ xfstests ]] && [ -n "$7" ] ; then
+				if ls ${results_dir}/${fstest_cn}/${jobid}/xtfts-* > /dev/null 2>&1 ; then
+					! grep -q "$7" ${results_dir}/${fstest_cn}/${jobid}/xtfts-* > /dev/null 2>&1 && continue
+				fi
+			fi
+			xmlfile=$jrstr
+			get_casenames "$jobid" "$1" "$2" "$3" "$4" "$5" "$6" "$7"
+			rm -f  ${HOMEDIR}/tmp/.showjb
+		fi
+	done < ${HOMEDIR}/tmp/show-joblist
+	rm -f ${HOMEDIR}/tmp/.showtn
+}
+
+Usage()
+{
+	echo -e "Usage:\tcs \$jobid  \t\t\t\t: to check job result, no log download"
+	echo -e "\tcs RS:\$recipeSetid  \t\t\t: to check RecipeSet result, download logs"
+	echo ""
+	echo -e "\tcs -r <jobid>  \t\t\t\t: to check single job, reload xmlfile"
+	echo -e "\tcs -f <xml-file> <jobid>   \t\t: to check single job via existing xmlfile"
+	echo -e "\tcs -b  \t\t\t\t\t: to build results files db, only need once"
+	echo ""
+	echo -e "\tcs -s <part-case-name> [disto] [kernel] [arch] [fstyp] [blksize] [subcase]\n\
+		\t\t\t\t: to check hitory: cs -s ltp\n\
+		\t\t\t\t: to check hitory: cs -s xfs/xfstests 7.1 \"\" KVM xfs 2048\n\
+		\t\t\t\t: to check hitory: cs -s xfs/xfstests 6.8 \"\" \"\" \"\" \"\" "g/102"\n\
+		\t\t\t\t: to check hitory: cs -s xfs/xfstests 7 \"upstream v4.2\" \"\" \"\" \"\" "g/102"\n\
+		\t\t\t\t: to check hitory: cs -s xfs/xfstests 7.2 325.el7 x86_64 xfs 2048"
+	exit 0
+}
+
+if ! type xmllint > /dev/null 2>&1 ; then
+	echo "Please install libxml2"
+	exit 1
+fi
+
+[ -z $HOMEDIR ] && HOMEDIR=$HOME
+
+console_flag=0
+clone_flag=0
+log_flag=0 # no log download by default
+interact_flag=1 # interactive by default
+results_dir=${HOMEDIR}/tmp/results_db_files
+fstest_cn=/kernel/filesystems/xfs/xfstests
+
+if [ "$1" == "-d" ] ; then # turn on debug
+	shift
+	set -x
+	exec > ${HOMEDIR}/tmp/cs.log 2>&1
+fi
+
+if [ "$1" == "-l" ] ; then # turn on log
+	shift
+	log_flag=1
+fi
+
+if [ "$1" == "-n" ] ; then # turn off interactive
+	shift
+	interact_flag=0
+fi
+
+case "$1" in
+[0-9]*)
+	JOBS="J:$1"
+	DIR=${HOMEDIR}/tmp/$1
+	xmlfile=$DIR/.xmlresult
+	main_func
+	build_results "$results_dir" "$1" # add to db
+	;;
+RS:[0-9]*)	# Specific RecipeSet, turn on log
+	log_flag=1
+	JOBS="$1"
+	DIR=${HOMEDIR}/tmp/$1
+	xmlfile=$DIR/.xmlresult
+	main_func
+	#build_results "$results_dir" "$2" # not for RecipeSet
+	;;
+"-r")
+	[[ "$2" =~ ^[0-9]+$ ]] || Usage
+	JOBS="J:$2"
+	DIR=${HOMEDIR}/tmp/$2
+	rm -f $DIR/.xmlresult
+	xmlfile=$DIR/.xmlresult
+	main_func
+	build_results "$results_dir" "$2" # add to db
+	;;
+"-f")
+	[ -z "$2" ] && Usage
+	[ ! -s "$2" ] && Usage
+	xmlfile="$2"
+	JOBS="J:$3"
+	DIR=${HOMEDIR}/tmp/$3
+	main_func
+	;;
+"-b")
+	build_results "$results_dir"
+	;;
+"-s")
+	[ $# -lt 2 ] && Usage
+	[ -z "$2" ] && Usage
+	show_results "$2" "$3" "$4" "$5" "$6" "$7" "$8"
+	;;
+*)
+	Usage
+	;;
+esac
