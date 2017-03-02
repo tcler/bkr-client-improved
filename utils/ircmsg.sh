@@ -10,7 +10,8 @@ SERVER="irc.devel.RH.com"
 PORT=6667
 
 NICK="testbot"
-CHANNEL="#fs-fs"
+#CHANNEL="#fs-fs"
+CHANNEL=
 
 qe_assistant=/usr/local/bin/qe_assistant
 
@@ -33,8 +34,11 @@ Usage() {
 	echo "    -i         run as a deamon robot"
 	echo "    -I         work in interactive mode as a simple irc client"
 	echo "    -d         open debug mode"
+	echo "    -q         quit after send message"
+	echo "    -P <session:addr>	proxy session name"
+	echo "    -L <user:passwd>	proxy login user and passwd"
 }
-_at=`getopt -o hdC:c:Iin:s:p: -n 'ircmsg' -- "$@"`
+_at=`getopt -o hdC:c:Iin:s:p:qP:L: -n 'ircmsg' -- "$@"`
 eval set -- "$_at"
 while true; do
 	case "$1" in
@@ -47,6 +51,9 @@ while true; do
 	-n) NICK=$2; shift 2;;
 	-s) SERVER=$2; shift 2;;
 	-p) PORT=$2; shift 2;;
+	-q) QUIT=1; shift 1;;
+	-P) ProxySession=$2; shift 2;;
+	-L) UserPasswd=$2; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -58,14 +65,29 @@ test -c /dev/tcp || {
 
 msg="$*"
 Chan=${Chan:-$CHANNEL}
+Chan=${Chan:-NULL}
 echo "Connecting to ${SERVER}:${PORT} ..."
 exec 100<>/dev/tcp/${SERVER}/${PORT}
 [[ $? != 0 ]] && { exit 1; }
 
 echo "NICK ${NICK}" >&100
 echo "USER ${NICK} 8 * : ${NICK}" >&100
-echo "JOIN ${CHANNEL}" >&100
 
+test -n "$ProxySession" && {
+	read session addr <<<"${ProxySession/:/ }"
+	while read line <&100; do
+		test -n "$DEBUG" && echo $line
+		[[ $line =~ NOTICE.AUTH.:To.connect ]] && break
+	done
+
+	echo "PRIVMSG root :${UserPasswd/:/ }" >&100
+	read line <&100 && echo "proxy: $line"
+
+	#echo "PRIVMSG root :create ${session} ${addr}" >&100
+	echo "PRIVMSG root :connect ${session}" >&100
+}
+
+test -n "${CHANNEL}" && echo "JOIN ${CHANNEL}" >&100
 while read line <&100; do
 	test -n "$DEBUG" && echo $line
 	read _serv _time _nick _tag _chan nlist <<< $line
@@ -82,9 +104,11 @@ done
 if [[ $I = 0 ]]; then
 	while read l; do
 		[ -z "$l" ] && continue
-		echo "$Head PRIVMSG ${Chan:-$CHANNEL} :$l" >&100
+		echo "$Head PRIVMSG ${Chan} :$l" >&100
 	done <<<"$msg"
-	echo "QUIT" >&100
+
+	test -n "$QUIT" && echo "$Head QUIT" >&100
+	test -z "$ProxySession" && echo "$Head QUIT" >&100
 	exit $?
 fi
 
@@ -173,10 +197,18 @@ while :; do
 		read ignore rawdata <<<"$msg"
 		echo "$rawdata" >&100
 		;;
-	/help)   help >>$recorddir/$chan;;
-	/quit)   echo "$Head QUIT" >&100; kill $pid $$; exit 0;;
-	*)       echo "$Head PRIVMSG ${chan} :$msg" >&100
-		echo ":${Head:-$NICK}! local :$msg" >>$recorddir/$chan
+	/msg\ *)
+		read ignore tonick _msg <<<"$msg"
+		echo "PRIVMSG $tonick :$_msg" >&100
+		echo "PRIVMSG $tonick :$_msg" >>$recorddir/$chan
+		;;
+	/help)
+		help >>$recorddir/$chan;;
+	/disconnect)
+		kill $pid $$; exit 0;;
+	/quit)	echo "$Head QUIT" >&100; kill $pid $$; exit 0;;
+	*)	echo "${Head} PRIVMSG ${chan} :$msg" >&100
+		echo "${Head} PRIVMSG ${chan} :$msg" >>$recorddir/$chan
 		;;
 	esac
 done
