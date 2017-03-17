@@ -38,7 +38,8 @@ Usage() {
 	echo "    -P <session:addr>	proxy session name"
 	echo "    -L <user:passwd>	proxy login user and passwd"
 }
-_at=`getopt -o hdC:c:Iin:s:p:qP:L: -n 'ircmsg' -- "$@"`
+_at=`getopt -o hdC:c:Iin:s:p:qP:L: --long create-session \
+-n 'ircmsg' -- "$@"`
 eval set -- "$_at"
 while true; do
 	case "$1" in
@@ -54,6 +55,7 @@ while true; do
 	-q) QUIT=1; shift 1;;
 	-P) ProxySession=$2; shift 2;;
 	-L) UserPasswd=$2; shift 2;;
+	--create-session) CreateSession=1; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -83,7 +85,7 @@ test -n "$ProxySession" && {
 	echo "PRIVMSG root :${UserPasswd/:/ }" >&100
 	read line <&100 && echo "proxy: $line"
 
-	#echo "PRIVMSG root :create ${session} ${addr}" >&100
+	test -n $CreateSession && echo "PRIVMSG root :create ${session} ${addr}" >&100
 	echo "PRIVMSG root :connect ${session}" >&100
 }
 
