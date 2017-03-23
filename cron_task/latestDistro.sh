@@ -63,7 +63,17 @@ for f in $dfList; do
 	available=1
 	p=${PWD}/${f}.patch
 	diff -pNur -w $f ${f}.tmp >$p && continue
+	sed -i '/^[^+]/d' $p
 	grep '^+[^+]' ${p} || continue
+
+	Pegas=
+	while read l; do
+		test -z "$l" && continue
+		egrep -i pegas <<<$l || Pegas=and && {
+			Pegas+=" Pegas"
+			break
+		}
+	done <$p
 
 	#get stable version
 	stbVersion=$(grep '^+[^+]' ${p} | awk '$(NF-1) ~ ".label.:"{print $1}' | head -n1)
@@ -72,7 +82,9 @@ for f in $dfList; do
 	echo "#-------------------------------------------------------------------------------" >>$p
 	url=https://home.corp.redhat.com/wiki/rhel${v%[cs]}changelog
 	url=http://patchwork.lab.bos.redhat.com/status/rhel${v%[cs]}/changelog.html
-	echo "#$url" >>$p
+	urlPegas=http://patchwork.lab.bos.redhat.com/status/pegas1/changelog.html
+	echo "# $url" >>$p
+	echo "# $urlPegas" >>$p
 	tagr=$(awk '$1 ~ /^+/ && $2 ~ /kernel-/ {print $2}' $p|head -n1|sed s/$/.el${v%[cs]}/)
 	(echo -e "\n{Info} ${tagr} change log:"
 
@@ -88,7 +100,7 @@ for f in $dfList; do
 	echo -e "\n#cur:" >>$p; cat $f.tmp >>$p
 
 	[ $available = 1 ] && {
-		sendmail.sh -p '[Notice] ' -f "from@redhat.com" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} ${t} available"  &>/dev/null
+		sendmail.sh -p '[Notice] ' -f "from@redhat.com" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} $Pegas ${t} available"  &>/dev/null
 		#cat $p
 		mv ${f}.tmp ${f}
 	}
