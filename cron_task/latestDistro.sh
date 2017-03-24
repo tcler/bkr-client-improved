@@ -68,11 +68,21 @@ for f in $dfList; do
 
 	Pegas=
 	while read l; do
-		test -z "$l" && continue
+		[[ -z "$l" -o "$l" =~ ^\+\+\+ ]] && continue
 		egrep -i pegas <<<$l || Pegas=and && {
 			Pegas+=" Pegas"
 			break
 		}
+	done <$p
+
+	while read l; do
+		[[ -z "$l" -o "$l" =~ ^\+\+\+ ]] && continue
+
+		for chan in "#fs-qe" "#network-qe"; do
+			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
+				"{Notice} new distro: $l"
+			sleep 2
+		done
 	done <$p
 
 	#get stable version
