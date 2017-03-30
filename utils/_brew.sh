@@ -36,6 +36,7 @@ installBrew() {
 }
 
 installBrew2() {
+	which brew &>/dev/null && return
 	: <<-COMM
 	#https://mojo.redhat.com/docs/DOC-1024827
 	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-server.repo
