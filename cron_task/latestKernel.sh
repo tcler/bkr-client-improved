@@ -43,13 +43,27 @@ for f in $kfList; do
 	available=1
 	p=${PWD}/${f}.patch
 	diff -pNur $f ${f}.tmp >$p && continue
+	sed -i '/^[^+]/d;/^+++/d' $p
 	grep '^+[^+]' ${p} || continue
+
+	url=https://home.corp.redhat.com/wiki/rhel${v%[cs]}changelog
+	url=http://patchwork.lab.bos.redhat.com/status/rhel${v%[cs]}/changelog.html
+	urlPegas=http://patchwork.lab.bos.redhat.com/status/pegas1/changelog.html
+	while read l; do
+		[[ -z "$l" -o "$l" =~ ^\+\+\+ ]] && continue
+		changeUrl=$url
+		[[ $l =~ pegas ]] && changeUrl=$urlPegas
+
+		for chan in "#fs-qe" "#network-qe"; do
+			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
+				"{Notice} new kernel: $l    # $changeUrl"
+		done
+	done <$p
 
 	echo >>$p
 	echo "#-------------------------------------------------------------------------------" >>$p
-	url=https://home.corp.redhat.com/wiki/rhel${v%[cs]}changelog
-	url=http://patchwork.lab.bos.redhat.com/status/rhel${v%[cs]}/changelog.html
-	echo "#$url" >>$p
+	echo "# $url" >>$p
+	echo "# $urlPegas" >>$p
 	A=(`grep "^+[^+]" $p | sed 's/^[+-]//' | xargs`)
 	for ((i=0; i<${#A[@]}; i++)); do
 		tagr=${A[i]}
