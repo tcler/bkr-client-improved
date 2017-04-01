@@ -7,7 +7,7 @@ exec tclsh "$0" ${1+"$@"}
 # This is a test run creater.
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
-package require getOpt 1.0
+package require getOpt 3.0
 package require runtestlib
 package require tdom
 package require sqlite3
@@ -21,11 +21,9 @@ array set InvalidOpt {}
 set Args [list]
 set ForwardOpt {}
 set OptionList {
-  *b0 {Dummy "\n  Base options:"}
-	help   {arg n	help {Print this usage}}
-	h      {link help}
-	pkg    {arg y	help {Package/Component name}}
-	name   {link pkg hide y}
+  "  Base options:" {
+	{help h}      {arg n	help {Print this usage}}
+	{pkg name}    {arg y	help {Package/Component name}}
 	force  {arg n	help {Add new or overwrite existed testrun items}}
 	update {arg n	help {Just overwrite existed test run items}}
 	d      {arg n	help {debug mode}}
@@ -33,13 +31,13 @@ set OptionList {
 	r      {arg n	help {Do not parse subtest.desc when lstest casedir} hide y}
 	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList} hide y}
 	alone  {forward y arg n	help {Submit all tests separately, one case one recipe}}
+  }
 
-  *0 {Dummy "\n  Options for job configuration:"}
+  "\n  Options for job configuration:" {
 	restraint		{forward y arg o	help {Use restraint harness instead of beach}}
 	cc			{forward y arg m	help {Notify additional e-mail address on job completion}}
 	job-owner		{forward y arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
-	wb			{forward y arg y	help {Set the whiteboard for this job}}
-	whiteboard		{link wb}
+	{wb whiteboard}		{forward y arg y	help {Set the whiteboard for this job}}
 	repo			{forward y arg m	help {Configure repo at <URL> in the kickstart for installation}}
 	repo-post		{forward y arg m	help {Configure repo at <URL> as part of kickstart %post execution}}
 	recipe			{forward y arg n	help {Just generate recipeSet node, internal use for runtest -merge}}
@@ -47,29 +45,29 @@ set OptionList {
 	flag                    {forward y arg y	help {for distinguish repeated run}}
 	retention-tag           {forward y arg y        help {e.g: scratch, 60days, 120days, active, active+1, audit}}
 	product                 {forward y arg y        help {e.g: cpe:/o:redhat:enterprise_linux:$x:$y}}
+  }
 
-  *1 {Dummy "\n  Options for selecting distro tree(s):"}
+  "\n  Options for selecting distro tree(s):" {
 	family			{forward y arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
 	tag			{forward y arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE)}}
 	distro			{forward y arg y	help {Use named distro for job)}}
 	variant			{forward y arg y	help {Specify the distro variant}}
 	arch			{forward y arg y	help {Specify the distro arch}}
-	distrorequire		{link dr}
-	dr			{forward y arg m	help {distrorequire -dr=key="value"}}
+	{dr distrorequire}	{forward y arg m	help {distrorequire -dr=key="value"}}
+  }
 
-  *2 {Dummy "\n  Options for selecting system(s):"}
+  "\n  Options for selecting system(s):" {
 	servers			{forward y arg y	help {Include NUMBER server hosts for multi-host test}}
 	clients			{forward y arg y	help {Include NUMBER client hosts for multi-host test}}
-	hr			{forward y arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
-	hostrequire		{link hr}
-	kv			{forward y arg m	help {Require system with matching legacy key-value, example: --keyvalue=NETWORK=e1000}}
-	keyvalue		{link kv}
+	{hr hostrequire}	{forward y arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
+	{kv keyvalue}		{forward y arg m	help {Require system with matching legacy key-value, example: --keyvalue=NETWORK=e1000}}
 	machine			{forward y arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
 	systype			{forward y arg y	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
 	ormachine		{forward y arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
 	random                  {forward y arg n  help {autopick type}}
+  }
 
-  *3 {Dummy "\n  Options for selecting special system(s) of networ-qe:"}
+  "\n  Options for selecting special system(s) of networ-qe:" {
 	nay-driver		{link netqe-nic-driver	hide y}
 	nic-num			{link netqe-nic-num	hide y}
 	nay-nic-driver		{link netqe-nic-driver	hide y}
@@ -78,6 +76,7 @@ set OptionList {
 	nay-nic-speed		{link netqe-nic-speed	hide y}
 	nay-nic-match		{link netqe-nic-match	hide y}
 	nay-nic-unmatch		{link netqe-nic-unmatch hide y}
+
 	netqe-nic-driver	{forward y arg o help ""}
 	netqe-nic-num		{forward y arg o help ""}
 	netqe-nic-model		{forward y arg o help ""}
@@ -88,12 +87,12 @@ set OptionList {
 				  Example: --netqe-nic-driver=e1000e --netqe-nic-num=2
 				- Use comma-separated values for different machine pool of multihost
 				  Example: --netqe-nic-driver=e1000e,any --netqe-nic-num=2 --netqe-nic-speed=1g }}
+  }
 
-  *4 {Dummy "\n  Options for setting tasks:"}
+  "\n  Options for setting tasks:" {
 	task			{forward y arg m	help {Include named task in job, can use multiple times}}
-	param			{forward y arg m	help {Set task params, can use multiple times.
+	{param taskparam}	{forward y arg m	help {Set task params, can use multiple times.
 				Use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
-	taskparam		{link param}
 	nvr			{forward y arg m	help {Specify the kernel(Name-Version-Release) to be installed}}
 	install			{forward y arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
 	upstream		{forward y arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d][#tag]
@@ -110,18 +109,16 @@ set OptionList {
 	reserve			{forward y arg o	help {Reserve system at the end of the recipe}}
 	fips                    {forward y arg o  help {enable fips}}
 	abrt                    {forward y arg n  help {enable abrt(insert /distribution/crashes/enable-abrt)}}
+  }
 
-  *5 {Dummy "\n  Options for installation:"}
-	part			{forward y arg m	help {Additional <partitions/> for job, example: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
-	partition		{link part}
+  "\n  Options for installation:" {
+	{part partition}	{forward y arg m	help {Additional <partitions/> for job, example: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
 	ks-meta			{forward y arg m  help {Pass kickstart metadata OPTIONS when generating kickstart}}
-	ks-append		{forward y arg m	help {Specify additional kickstart commands to add to the base kickstart file}}
-	ks			{link ks-append hide y}
+	{ks-append ks}		{forward y arg m	help {Specify additional kickstart commands to add to the base kickstart file}}
 	ksf			{forward y arg m	help {Similar to --ks-append, but pass the content of a specified file}}
-	k-opts			{forward y arg m	help {Pass OPTIONS to kernel during installation}}
-	kernel-options		{link k-opts}
-	k-opts-post		{forward y arg m	help {Pass OPTIONS to kernel after installation}}
-	kernel-options-post	{link k-opts-post}
+	{k-opts kernel-options}	{forward y arg m	help {Pass OPTIONS to kernel during installation}}
+	{k-opts-post kernel-options-post}		{forward y arg m	help {Pass OPTIONS to kernel after installation}}
+  }
 }
 
 proc Usage {progname {detail n}} {
