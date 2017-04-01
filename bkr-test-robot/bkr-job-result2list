@@ -9,7 +9,7 @@ exec tclsh "$0" ${1+"$@"}
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require tdom
-package require getOpt
+package require getOpt 1.0
 
 proc getXML {jobID} {
 	set xml [exec bkr job-results --prettyxml $jobID]

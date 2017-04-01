@@ -9,7 +9,7 @@ exec tclsh "$0" ${1+"$@"}
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require xmlgen
-package require getOpt
+package require getOpt 1.0
 package require runtestlib
 namespace import ::xmlgen::* ::getOpt::* ::runtestlib::*
 
