@@ -10,7 +10,7 @@ lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require tdom
 package require sqlite3
 package require runtestlib
-package require getOpt
+package require getOpt 3.0
 namespace import ::getOpt::* ::runtestlib::*
 
 # global var
@@ -18,11 +18,13 @@ array set Opt {}
 array set InvalidOpt {}
 set Args [list]
 set OptionList {
-	help   {arg n	help {Print this usage}}	h {link help}
-	lsjob  {arg n	help {list the job}}	j {link lsjob}
-	lsrun  {arg n	help {list the run}}	r {link lsrun}
-	lsprogress {}	p {link lsprogress}	s {link lsprogress}
-	jobchk {arg n	help {TBD: check if the job was delete, but the status is not completed} hide {}}
+  "*Options:" {
+	{help h}   {arg n	help {Print this usage}}
+	{lsjob j}  {arg n	help {list the job}}
+	{lsrun r}  {arg n	help {list the run}}
+	{lsprogress p s} {}
+	jobchk     {arg n	help {TBD: check if the job was delete, but the status is not completed} hide {}}
+  }
 }
 
 proc Usage {progname} {

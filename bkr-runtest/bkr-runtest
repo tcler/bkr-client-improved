@@ -8,7 +8,7 @@ exec tclsh "$0" ${1+"$@"}
 #   call gen_job_xml generate xml files and submit them to beaker server.
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
-package require getOpt
+package require getOpt 1.0
 package require runtestlib
 namespace import ::getOpt::* ::runtestlib::*
 source $::runtestConf

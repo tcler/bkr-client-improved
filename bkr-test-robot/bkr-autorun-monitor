@@ -11,7 +11,7 @@ lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require tdom
 package require sqlite3
 package require runtestlib
-package require getOpt
+package require getOpt 1.0
 namespace import ::getOpt::* ::runtestlib::*
 
 exec bash -c {recipe.sh $(klist | awk -F'[ :@]+' '/Default principal/{print $3}') >/dev/null}
