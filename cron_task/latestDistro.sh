@@ -68,7 +68,7 @@ for f in $dfList; do
 
 	Pegas=
 	while read l; do
-		[[ -z "$l" -o "$l" =~ ^\+\+\+ ]] && continue
+		[[ -z "$l" || "$l" =~ ^\+\+\+ ]] && continue
 		egrep -i pegas <<<$l || Pegas=and && {
 			Pegas+=" Pegas"
 			break
@@ -76,7 +76,7 @@ for f in $dfList; do
 	done <$p
 
 	while read l; do
-		[[ -z "$l" -o "$l" =~ ^\+\+\+ ]] && continue
+		[[ -z "$l" || "$l" =~ ^\+\+\+ ]] && continue
 
 		for chan in "#fs-qe" "#network-qe"; do
 			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
