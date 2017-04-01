@@ -50,7 +50,7 @@ for f in $kfList; do
 	url=http://patchwork.lab.bos.redhat.com/status/rhel${v%[cs]}/changelog.html
 	urlPegas=http://patchwork.lab.bos.redhat.com/status/pegas1/changelog.html
 	while read l; do
-		[[ -z "$l" -o "$l" =~ ^\+\+\+ ]] && continue
+		[[ -z "$l" || "$l" =~ ^\+\+\+ ]] && continue
 		changeUrl=$url
 		[[ $l =~ pegas ]] && changeUrl=$urlPegas
 
