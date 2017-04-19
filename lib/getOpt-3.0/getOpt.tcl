@@ -186,7 +186,7 @@ proc ::getOpt::getOptions {optLists argv validOptionVar invalidOptionVar notOpti
 			}
 
 			set forward {}
-			if [dict exists $optList $opt forward] {
+			if [dict exists $optAttr forward] {
 				set forward y
 			}
 
