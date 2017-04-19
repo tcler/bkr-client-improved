@@ -99,33 +99,43 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 				set insertArgv [list]
 				while {[string length $optName]!=0} {
 					set x [string range $optName 0 0]
-					if {$x in {= - { } \\ \' \"}} break
 					set optName [string range $optName 1 end]
-					if {![dict exist $optionList $x]} {
+
+					if {$x in {= - { } \\ \' \"}} break
+
+					lassign [getOptObj $optionList $x] x optAttr
+					if {$x == ""} {
 						lappend insertArgv  --$x
-					} else {
-						if {[dict exist $optionList $x link]} {
-							set x [dict get $optionList $x link]
+						continue
+					}
+
+					if {[dict exist $optionList $x link]} {
+						set x [dict get $optionList $x link]
+						lassign [getOptObj $optionList $x] x optAttr
+						if {$x == ""} {
+							lappend insertArgv  --$x
+							continue
 						}
-						set xtype n
-						if [dict exists $optionList $x arg] {
-							set xtype [dict get $optionList $x arg]
+					}
+
+					set xtype n
+					if [dict exists $optAttr arg] {
+						set xtype [dict get $optAttr arg]
+					}
+					switch -exact -- $xtype {
+						"n" { lappend insertArgv  --$x }
+						"o" {
+							lappend insertArgv  --$x=$optName
+							break
 						}
-						switch -exact -- $xtype {
-							"n" { lappend insertArgv  --$x }
-							"o" {
+						"y" -
+						"m" {
+							if {[string length $optName]==0} {
+								lappend insertArgv  --$x
+							} else {
 								lappend insertArgv  --$x=$optName
-								break
 							}
-							"y" -
-							"m" {
-								if {[string length $optName]==0} {
-									lappend insertArgv  --$x
-								} else {
-									lappend insertArgv  --$x=$optName
-								}
-								break
-							}
+							break
 						}
 					}
 				}
