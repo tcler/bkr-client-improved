@@ -14,6 +14,13 @@ namespace eval ::getOpt {
 	namespace export getOptions getUsage
 }
 
+set ::getOpt::flag(NOTOPT)  1
+set ::getOpt::flag(KNOWN)   2
+set ::getOpt::flag(NEEDARG) 3
+set ::getOpt::flag(UNKNOWN) 4
+set ::getOpt::flag(END)     5
+set ::getOpt::flag(AGAIN)   6
+
 proc ::getOpt::getOptObj {optList optName} {
 	foreach {optNameList optAttr} $optList {
 		if {$optName in $optNameList} {
@@ -28,24 +35,24 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 	upvar $optVar optName
 	upvar $optArgVar optArg
 
-	set result -2
+	set result $::getOpt::flag(UNKNOWN)
 	set optName ""
 	set optArg ""
 
 	if {[llength $argv] == 0} {
-		return 0
+		return $::getOpt::flag(END)
 	}
 
 	set rarg [lindex $argv 0]
 	if {$rarg in {-}} {
 		set optArg $rarg
 		set argv [lrange $argv 1 end]
-		return 2
+		return $::getOpt::flag(NOTOPT)
 	}
 	if {$rarg in {--}} {
 		set optArg [lrange $argv 0 end]
 		set argv [list]
-		return 2
+		return $::getOpt::flag(NOTOPT)
 	}
 
 	set argv [lrange $argv 1 end]
@@ -69,7 +76,7 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 			lassign [getOptObj $optionList $optName] optFind optAttr
 			if {$optFind != ""} {
 				set optName $optFind
-				set result 1
+				set result $::getOpt::flag(KNOWN)
 				set argtype n
 				if [dict exists $optAttr arg] {
 					set argtype [dict get $optAttr arg]
@@ -89,7 +96,7 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 							set optArg [lindex $argv 0]
 							set argv [lrange $argv 1 end]
 						} else {
-							set result -1
+							set result $::getOpt::flag(NEEDARG)
 						}
 					}
 				}
@@ -140,14 +147,14 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 					}
 				}
 				set argv [concat $insertArgv $argv]
-				return 3
+				return $::getOpt::flag(AGAIN)
 			} else {
-				set result -2
+				set result $::getOpt::flag(UNKNOWN)
 			}
 		}
 		default {
 			set optArg $rarg
-			set result 2
+			set result $::getOpt::flag(NOTOPT)
 		}
 	}
 
@@ -168,16 +175,16 @@ proc ::getOpt::getOptions {optLists argv validOptionVar invalidOptionVar notOpti
 	set forwardOpts ""
 	#set argc [llength $nargv]
 
-	while {[set err [argparse $optList nargv opt optarg]]} {
-		if {$err == 3} {
+	while {[set ret [argparse $optList nargv opt optarg]]} {
+		if {$ret == $::getOpt::flag(AGAIN)} {
 			continue
-		} elseif {$err == 2} {
+		} elseif {$ret == $::getOpt::flag(NOTOPT)} {
 			if {[lindex $optarg 0] == {--}} {
 				set notOption [concat $notOption $optarg]
 			} else {
 				lappend notOption $optarg
 			}
-		} elseif {$err == 1} {
+		} elseif {$ret == $::getOpt::flag(KNOWN)} {
 			#known options
 			set argtype n
 			lassign [getOptObj $optList $opt] _optFind optAttr
@@ -203,12 +210,12 @@ proc ::getOpt::getOptions {optLists argv validOptionVar invalidOptionVar notOpti
 				"n" {incr validOption($opt) 1}
 				default {set validOption($opt) $optarg}
 			}
-		} elseif {$err == -1} {
+		} elseif {$ret == $::getOpt::flag(NEEDARG)} {
 			set invalidOption($opt) "option -$opt need argument"
-		} elseif {$err == -2} {
+		} elseif {$ret == $::getOpt::flag(UNKNOWN)} {
 			#unknown options
 			set invalidOption($opt) "unkown options"
-		} elseif {$err == 0} {
+		} elseif {$ret == $::getOpt::flag(END)} {
 			#end of nargv
 			break
 		}
