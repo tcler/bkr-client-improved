@@ -612,10 +612,11 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						if {$NVR != $defaultNVR || $KVARIANT == "debug"} {
 							task name=/distribution/kernelinstall role=$role ! {
 								params ! {
-									set KN [regsub {(^[a-z-]*)-.*} $NVR {\1}]
-									set KV [regsub {^[a-z-]*} $NVR {}]
+									set KN [regsub {((^[a-z][a-z-]*)-)?.*} $NVR {\2}]
+									if {$KN == ""} {set KN kernel}
+									set KVR [regsub {^[a-z-]*} $NVR {}]
 									param name=KERNELARGNAME value=$KN -
-									param name=KERNELARGVERSION value=$KV -
+									param name=KERNELARGVERSION value=$KVR -
 									param name=KERNELARGVARIANT value=$KVARIANT -
 									param name=NoDeps value=--nodeps -
 								}
