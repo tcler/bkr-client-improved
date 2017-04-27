@@ -642,9 +642,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						params ! {
 							param name=KERNEL_GIT_REPO value=$upstreamUrl -
 							param name=KERNEL_GIT_COMMIT value=$upstreamTag -
-							param name=ABORT_IF_FAIL value=yes -
+							param name=ABORT_IF_FAIL value=1 -
 							if [info exist Opt(upstream-kernel-kasan)] {
-								param name=ABORT_IF_FAIL value=yes -
+								param name=ENABLE_KASAN value=1 -
 							}
 						}
 					}
