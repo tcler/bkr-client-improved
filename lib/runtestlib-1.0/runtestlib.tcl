@@ -288,6 +288,7 @@ proc ::runtestlib::hostUsed {} {
 	array set runingTest {}
 	db_ eval {
 	    select
+	        trun.distro_rgset as rgset,
 	        trun.res as res,
 	        trun.jobid as jobid,
 	        ti.test as test
