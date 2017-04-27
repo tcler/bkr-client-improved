@@ -296,6 +296,9 @@ proc ::runtestlib::hostUsed {} {
 	        (trun.testStat = 'running' or trun.res LIKE '%New%') and ti.testid = trun.testid
 	} {
 		set arch [testinfo arch $test]
+		if [regexp -- {-arch=([^ \"']+)} $rgset] {
+			regexp -- {-arch=([^ \"']+)} $rgset _arch arch
+		}
 		set hostused_($arch\ $jobid) [llength $res]
 	}
 	foreach {arch_job N} [array get hostused_] {
