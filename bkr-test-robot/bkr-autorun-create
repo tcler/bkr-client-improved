@@ -97,6 +97,7 @@ set OptionList {
 	install			{forward y arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
 	upstream		{forward y arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d][#tag]
 				default: git://git.app.eng.bos.redhat.com/linux.git#master}}
+	upstream-kernel-kasan   {forward y arg n  help {Flag to enable upstream kernel kasan support}}
 	Scratch			{forward y arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times}}
 	scratch			{forward y arg m  help {same as Scratch, but every specified just apply one host, if in multihost mode}}
 	dbgk			{forward y arg n	help {Use the debug kernel}}
