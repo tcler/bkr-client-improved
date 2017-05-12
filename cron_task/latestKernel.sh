@@ -56,7 +56,7 @@ for f in $kfList; do
 
 		for chan in "#fs-qe" "#network-qe"; do
 			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
-				"{Notice} new kernel: $l    # $changeUrl"
+				$'\x16'"{Notice}"$'\x0F'" new kernel: $l    # $changeUrl"
 		done
 	done <$p
 
