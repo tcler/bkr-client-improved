@@ -1,6 +1,30 @@
 #!/bin/bash
 #author: jiyin@redhat.com
 
+# https://en.wikichip.org/wiki/irc/colors
+ircBold=$'\x02'
+ircItalics=$'\x1D'
+ircUnderline=$'\x1F'
+ircReverse=$'\x16'
+ircPlain=$'\x0F'
+
+ircWhite=$'\x03'00
+ircBlack=$'\x03'01
+ircNavy=$'\x03'02
+ircGreen=$'\x03'03
+ircRed=$'\x03'04
+ircMaroon=$'\x03'05
+ircPurple=$'\x03'06
+ircOlive=$'\x03'07
+ircYellow=$'\x03'08
+ircLightGreen=$'\x03'09
+ircTeal=$'\x03'10
+ircCyan=$'\x03'11
+ircRoyalblue=$'\x03'12
+ircMagenta=$'\x03'13
+ircGray=$'\x03'14
+ircLightGray=$'\x03'15
+
 mkdir -p /var/cache/distroDB
 pushd /var/cache/distroDB  >/dev/null
 baseurl=http://download.devel.redhat.com/rel-eng
@@ -80,7 +104,7 @@ for f in $dfList; do
 
 		for chan in "#fs-qe" "#network-qe"; do
 			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
-				$'\x16'"{Notice}"$'\x0F'" new distro: $l"
+				"${ircReverse}{Notice}${ircPlain} new distro: $l"
 			sleep 2
 		done
 	done <$p
