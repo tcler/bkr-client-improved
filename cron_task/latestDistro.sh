@@ -80,7 +80,7 @@ for f in $dfList; do
 
 		for chan in "#fs-qe" "#network-qe"; do
 			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
-				"{Notice} new distro: $l"
+				$'\x16'"{Notice}"$'\x0F'" new distro: $l"
 			sleep 2
 		done
 	done <$p
