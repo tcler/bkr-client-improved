@@ -96,6 +96,9 @@ proc ::runtestlib::testinfo {subcmd testobj} {
 			lappend key $gset
 			set ret $key
 		}
+		"attr" {
+			set ret $tattr
+		}
 		"param" {
 			set ret $param
 		}
