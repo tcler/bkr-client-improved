@@ -133,13 +133,14 @@ _caseInfo() {
 	read level nil <<<${level}
 	rm -rf testinfo.desc
 
-	pAttrs="pkg=${pkgName:--} topo=$topo time=$time ssched=$ssched type=$type level=$level"
+	pAttrs="pkg=${pkgName:--} time=$time ssched=$ssched type=$type level=$level"
 
 	subtests_generator="gen_subtest.sh"
 	[ -x $subtests_generator ] && sh $subtests_generator
 	subtests=$(egrep -h '^[[:space:]]*(Attr|Param|GlobalSetup):' subtest.desc subtest.list  2>/dev/null)
 	if [ "$FORMAT" = raw -o -z "$subtests" ]; then
 		testinfo="$name Attr: ${pAttrs% }"
+		[[ $topo =~ multiHost* ]] && testinfo+=", GlabalSetup: --topo=$topo"
 		[ "$FORMAT" = pol ] && testinfo="fs-qe case:$name tag:$pkgName,$level,$type"
 		echo "$testinfo"
 	else
@@ -175,7 +176,8 @@ _caseInfo() {
 			[ -n "$args" ] && testinfo+=", Param: $args"
 
 			#get the global config
-			conf=$(parse_yaml "$l"|sed -n '/^GlobalSetup: */{s///;p;q}')
+			[[ $topo =~ multiHost* ]] && conf="--topo=$topo "
+			conf+=$(parse_yaml "$l"|sed -n '/^GlobalSetup: */{s///;p;q}')
 			sconf=$(eval set -- $conf; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
 			sconf=$(echo "$sconf"| while read c; do echo -n "$c"|sed -e "s;';'\"'\"';g" -e "s/^/'/" -e "s/$/' /"; done)
 			[ -n "$sconf" ] && testinfo+=", GlobalSetup: $sconf"

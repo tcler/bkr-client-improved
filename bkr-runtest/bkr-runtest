@@ -57,6 +57,7 @@ set OptionList {
   }
 
   "\n  Options for selecting system(s):" {
+	{topo}			{forward y arg y	help {Include NUMBER server and client hosts for multi-host test. eg --topo=multiHost.1.1}}
 	{servers s}		{forward y arg y	help {Include NUMBER server hosts for multi-host test}}
 	{clients c}		{forward y arg y	help {Include NUMBER client hosts for multi-host test}}
 	{hr hostrequire}	{forward y arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
@@ -219,10 +220,10 @@ if {[llength $TestArgList]==0 && ![istty stdin]} {lappend TestArgList -}
 if {[llength $TestArgList]==0 && $TestList == {}} {
 	if {$prog != "bkr-reservesys"} {
 		puts "\[$prog\]: *Remind*: No test specified, will reserve host($Distro) for you" }
-	lappend TestList "/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12h ssched=no type=Functioal"
+	lappend TestList "/distribution/reservesys Attr: pkg=distrbution time=12h ssched=no type=Functioal"
 } else {
 	if {$prog == "bkr-reservesys"} {
-		lappend TestList "/distribution/reservesys Attr: pkg=distrbution topo=singleHost time=12h ssched=no type=Functioal"
+		lappend TestList "/distribution/reservesys Attr: pkg=distrbution time=12h ssched=no type=Functioal"
 	} else {
 		foreach f $TestArgList {
 			if {$f in "-"} {
@@ -279,9 +280,9 @@ foreach test $TestList {
 	if {[regexp -- {^ *#} $test] == 1} continue
 	if {[string trim $test] == ""} continue
 
-	# get key {pkg= ssched= topo= GlobalSetup}
+	# get key {pkg= ssched= GlobalSetup}
 	set key [testinfo recipekey $test]
-	if ![regexp -- {.+ ssched=.* topo=.*} $key] {
+	if ![regexp -- {.+ ssched=.* } $key] {
 		puts stderr "\[$prog\]: Warn: recipekey($key) is not standard([lindex $test 0])!"
 		continue
 	}
