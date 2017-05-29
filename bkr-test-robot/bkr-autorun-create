@@ -57,6 +57,7 @@ set OptionList {
   }
 
   "\n  Options for selecting system(s):" {
+	{topo}			{forward y arg y	help {Include NUMBER server and client hosts for multi-host test. eg --topo=multiHost.1.1}}
 	servers			{forward y arg y	help {Include NUMBER server hosts for multi-host test}}
 	clients			{forward y arg y	help {Include NUMBER client hosts for multi-host test}}
 	{hr hostrequire}	{forward y arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}

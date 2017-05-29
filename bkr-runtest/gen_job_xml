@@ -59,6 +59,7 @@ set OptionList {
   }
 
   "\n  Options for selecting system(s):" {
+	{topo}			{arg y	help {Include NUMBER server and client hosts for multi-host test. eg --topo=multiHost.1.1}}
 	{servers s}		{arg y	help {Include NUMBER server hosts for multi-host test}}
 	{clients c}		{arg y	help {Include NUMBER client hosts for multi-host test}}
 	{hr hostrequire}	{arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
@@ -317,6 +318,9 @@ if [info exist Opt(restraint)] {
 }
 
 set ROLE_LIST {}
+if [info exist Opt(topo)] {
+	lassign [regsub -all {[^0-9]+} $Opt(topo) " "] Opt(servers) Opt(clients)
+}
 if [info exist Opt(servers)] { lappend ROLE_LIST {*}[lrepeat $Opt(servers) SERVERS] }
 if [info exist Opt(clients)] { lappend ROLE_LIST {*}[lrepeat $Opt(clients) CLIENTS] }
 if {[llength $ROLE_LIST] == 0} { set ROLE_LIST STANDALONE }

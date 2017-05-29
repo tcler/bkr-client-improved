@@ -92,8 +92,7 @@ proc ::runtestlib::testinfo {subcmd testobj} {
 		"recipekey" {
 			if ![regsub {.*pkg=([^ ]*).*} $tattr {\1} _pkg] { set _pkg pkg=? }
 			if ![regsub {.*(ssched=..).*} $tattr {\1} _ssched] { set _ssched ssched=no }
-			if ![regsub {.*(topo=[^ ]*).*} $tattr {\1} _topo] { set _topo topo=single? }
-			set key "$_pkg $_ssched $_topo"
+			set key "$_pkg $_ssched"
 			lappend key $gset
 			set ret $key
 		}
@@ -129,15 +128,8 @@ proc ::runtestlib::testinfo {subcmd testobj} {
 }
 
 proc ::runtestlib::genGset {testkey} {
-	lassign $testkey pkg ssched topo gset
-
+	lassign $testkey pkg ssched gset
 	set gset [string trimleft $gset]
-	if [string match topo=multi* $topo] {
-		lassign [regsub {.*?([0-9]+).([0-9]+).*} $topo {\1 \2}] servNum clntNum
-		set topoDesc M.$servNum.$clntNum
-		set gset [concat --servers=$servNum --clients=$clntNum $gset]
-	}
-
 	return $gset
 }
 
@@ -162,7 +154,7 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 		return [join $parts $separator]
 	}
 
-	lassign $testkey pkg issched topo igset
+	lassign $testkey pkg issched igset
 
 	# Gen gset string
 	set gset [genGset $testkey]
@@ -172,8 +164,8 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 
 	# Gen topo descrition
 	set topoDesc S
-	if [string match topo=multi* $topo] {
-		lassign [regsub {.*?([0-9]+).([0-9]+).*} $topo {\1 \2}] servNum clntNum
+	if [string match *topo=* $gset] {
+		lassign [regsub {.*topo=[^0-9]*([0-9]+)[^0-9]+([0-9]+).*} $gset {\1 \2}] servNum clntNum
 		set topoDesc M.$servNum.$clntNum
 	}
 	if {$pkg in {merged}} { set topoDesc X }
