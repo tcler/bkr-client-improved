@@ -277,8 +277,18 @@ if [info exist Opt(e)] {
 # Group the test list
 set sschedCnt 0
 foreach test $TestList {
-	if {[regexp -- {^ *#} $test] == 1} continue
-	if {[string trim $test] == ""} continue
+	set test [string trim $test]
+	if {[regexp -- {^#} $test] == 1} continue
+	if {$test == "" || $test == "./"} continue
+
+	#convert old test format to new(move topo= to GlobalSetup:)
+	set attr [testinfo attr $test]
+	if [string match *topo=multi* $attr] {
+		if {[testinfo gset $test] == ""} {
+			append test ", GlobalSetup: "
+		}
+		append test " [regsub {.*(topo=[^ ]+).*} $attr {--\1}]"
+	}
 
 	# get key {pkg= ssched= GlobalSetup}
 	set key [testinfo recipekey $test]
