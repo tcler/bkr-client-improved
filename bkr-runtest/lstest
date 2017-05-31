@@ -140,7 +140,7 @@ _caseInfo() {
 	subtests=$(egrep -h '^[[:space:]]*(Attr|Param|GlobalSetup):' subtest.desc subtest.list  2>/dev/null)
 	if [ "$FORMAT" = raw -o -z "$subtests" ]; then
 		testinfo="$name Attr: ${pAttrs% }"
-		[[ $topo =~ multiHost* ]] && testinfo+=", GlabalSetup: --topo=$topo"
+		[[ $topo =~ multiHost* ]] && testinfo+=", GlobalSetup: --topo=$topo"
 		[ "$FORMAT" = pol ] && testinfo="fs-qe case:$name tag:$pkgName,$level,$type"
 		echo "$testinfo"
 	else
