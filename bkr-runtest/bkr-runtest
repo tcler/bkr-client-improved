@@ -396,5 +396,5 @@ if [info exist xmlf_merged] {
 		puts [exec cat $xmlf_merged]
 		file delete $xmlf_merged
 	}
-	file delete $xmlf_merged
+	#file delete $xmlf_merged
 }
