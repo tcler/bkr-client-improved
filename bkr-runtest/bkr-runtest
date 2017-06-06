@@ -379,7 +379,11 @@ if [info exist xmlf_merged] {
 	lassign [genWhiteboard $Distro {merged} $TestList ""] WB tmp
 	regsub {<!--(<job .*?>)-->} $XML {\1} XML
 	regsub -all {[\&\\]} $WB {\\&} NWB
-	regsub {<!--<whiteboard>.*?</whiteboard>-->} $XML "<whiteboard>$NWB</whiteboard>" XML
+	if ![regexp -- {--wb=} $ForwardOpt] {
+		regsub {<!--<whiteboard>.*?</whiteboard>-->} $XML "<whiteboard>$NWB</whiteboard>" XML
+	} else {
+		regsub {<!--(<whiteboard>.*?</whiteboard>)-->} $XML {\1} XML
+	}
 	regsub {<!--(<notify>)} $XML {\1} XML
 	regsub {(</notify>)-->} $XML {\1} XML
 	regsub -linestop {<!--(</job>)-->$} $XML {\1} XML
