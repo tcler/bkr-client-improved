@@ -23,6 +23,7 @@ set OptionList {
   "  Base options:" {
 	{help h}   {arg n	help {Print this usage}}
 	{dryrun n} {arg o	help {Just generate XML file(s), not submit job to beaker}}
+	{jobn}     {arg y	help {--jobn=N submit job N times}}
 	{merge m}  {arg n	help {Merge all recipeSets in one job XML}}
 	alone      {arg n	help {Submit all tests separately, one case one recipe}}
 	d          {arg n	help {debug mode}}
@@ -307,10 +308,17 @@ foreach test $TestList {
 set TestCnt 0
 set TestSumm {}
 set gen_opts {}
+set jobN 1
+if [info exist Opt(jobn)] {
+	regsub {.*([1-9][0-9]*).*} $Opt(jobn) {\1} jobN
+	if {$jobN == ""} {set jobN 1}
+}
+
 if [info exist Opt(merge)] {
 	set xmlf_merged "job_merged.[clock format [clock seconds] -format %Y%m%d_%H%M].[expr {int(rand()*10000)}].xml"
 	lappend SubcmdOpt {-recipe}
 }
+
 foreach {tkey tvalue} [array get TestGroup] {
 	set testGset $tkey
 	set testList $tvalue
@@ -354,8 +362,10 @@ foreach {tkey tvalue} [array get TestGroup] {
 			file delete $xmlf
 		} else {
 			if ![info exist Opt(dryrun)] {
-				set status [catch {exec bkr job-submit $xmlf} result]
-				puts "$result"
+				for {set i 0}  {$i < $jobN} {incr i} {
+					set status [catch {exec bkr job-submit $xmlf} result]
+					puts "$result"
+				}
 				file delete $xmlf
 			} elseif {$Opt(dryrun) != ""} {
 				puts [exec cat $xmlf]
@@ -393,8 +403,10 @@ if [info exist xmlf_merged] {
 	close $fp
 
 	if ![info exist Opt(dryrun)] {
-		set status [catch {exec bkr job-submit $xmlf_merged} result]
-		puts "$result"
+		for {set i 0}  {$i < $jobN} {incr i} {
+			set status [catch {exec bkr job-submit $xmlf_merged} result]
+			puts "$result"
+		}
 		file delete $xmlf_merged
 	} elseif {$Opt(dryrun) != ""} {
 		puts [exec cat $xmlf_merged]
