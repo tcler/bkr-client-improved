@@ -215,6 +215,7 @@ if {$Distro_ == ""} {
 }
 
 # Get the test list
+set _TestList [list]
 set TestList [list]
 if {[llength $TestArgList]==0} {
 	if [istty stdin] {
@@ -229,12 +230,12 @@ foreach f $TestArgList {
 	if {$f in "-"} {
 		set fp stdin
 		while {-1 != [gets $fp line]} {
-			lappend TestList $line
+			lappend _TestList $line
 		}
 	} elseif [file isdirectory $f] {
 		if {![catch {set fp [open "|lstest $f $lstest_opts" r]} err]} {
 			while {-1 != [gets $fp line]} {
-				lappend TestList $line
+				lappend _TestList $line
 			}
 			close $fp
 		}
@@ -242,12 +243,29 @@ foreach f $TestArgList {
 		if {![catch {set fp [open $f]} err]} {
 			while {-1 != [gets $fp line]} {
 				if { ! [regexp {^#} $line]} {
-					lappend TestList $line
+					lappend _TestList $line
 				}
 			}
 		}
 	}
 }
+
+foreach test $_TestList {
+	set test [string trim $test]
+	if {$test == ""} continue
+
+	#convert old test format to new(move topo= to GlobalSetup:)
+	set attr [testinfo attr $test]
+	if [string match *topo=multi* $attr] {
+		if {[testinfo gset $test] == ""} {
+			append test ", GlobalSetup: "
+		}
+		append test " [regsub {.*(topo=[^ ]+).*} $attr {--\1}]"
+	}
+	lappend TestList $test
+}
+unset _TestList
+
 if ![llength $TestList] {
 	puts "\[$prog\]: *Warn*: test list is nil, nothing to do, please check your test list file."
 	Usage $prog
