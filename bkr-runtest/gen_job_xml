@@ -446,7 +446,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 			recipe kernel_options=$Opt(k-opts) kernel_options_post=$Opt(k-opts-post) whiteboard=$Opt(wb) ks_meta=$recipe_ks_meta ! {
 				set pick "false"
 				if [info exist Opt(random)] {set pick "true"}
-				doTag autopick random $pick -
+				doTag autopick random=$pick -
 				distroRequires ! {
 					and ! {
 						if {$DISTRO ni {"" "family"}} {
