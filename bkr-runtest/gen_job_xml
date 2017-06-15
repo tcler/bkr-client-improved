@@ -62,6 +62,7 @@ set OptionList {
 	{topo}			{arg y	help {Include NUMBER server and client hosts for multi-host test. eg --topo=multiHost.1.1}}
 	{servers s}		{arg y	help {Include NUMBER server hosts for multi-host test}}
 	{clients c}		{arg y	help {Include NUMBER client hosts for multi-host test}}
+	{sr sysrequire}		{arg m	help {Additional <hostRequires><system/> for job, example: --sysrequire=numanodes>=4}}
 	{hr hostrequire}	{arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
 	{kv keyvalue}		{arg m	help {Require system with matching legacy key-value, example: --keyvalue=NETWORK=e1000}}
 	machine			{arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
@@ -494,6 +495,14 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							set MACHINE_L [lrange $MACHINE_L 1 end]
 						}
 
+						doTag system ! {
+							if [info exist Opt(sr)] {
+								foreach kv $Opt(sr) {
+									lassign [regsub (.*?)(=|!=|>|>=|<|<=)(.*$) $kv {\1 op=\2 {value=\3}}] k op v
+									doTag $k $op $v -
+								}
+							}
+						}
 						if {[string length $MACHINE] > 0} {
 							hostname op=like value=$MACHINE -
 						} else {
