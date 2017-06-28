@@ -116,6 +116,7 @@ set OptionList {
 	reserve			{arg o	help {Reserve system at the end of the recipe}}
 	fips                    {arg o  help {enable fips}}
 	abrt                    {arg n  help {enable abrt(insert /distribution/crashes/enable-abrt)}}
+	ignore-panic            {arg n  help {Do not abort job if panic message appears on serial console}}
   }
 
   "\n  Options for installation:" {
@@ -595,7 +596,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 				}
 
-				if [info exist Opt(reserve-if-fail)] {watchdog panic=ignore -}
+				if [info exist Opt(reserve-if-fail) || info exist Opt(ignore-panic)] {
+					watchdog panic=ignore -
+				}
 
 				# distro install
 				task name=/distribution/install role=$role ! {
