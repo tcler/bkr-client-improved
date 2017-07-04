@@ -110,17 +110,17 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 
 					if {$x in {= - { } \\ \' \"}} break
 
-					lassign [getOptObj $optionList $x] x optAttr
-					if {$x == ""} {
-						lappend insertArgv  -$x
+					lassign [getOptObj $optionList $x] _x optAttr
+					if {$_x == ""} {
+						lappend insertArgv  --$x
 						continue
 					}
 
 					if {[dict exist $optionList $x link]} {
-						set x [dict get $optionList $x link]
-						lassign [getOptObj $optionList $x] x optAttr
-						if {$x == ""} {
-							lappend insertArgv  -$x
+						set _x [dict get $optionList $x link]
+						lassign [getOptObj $optionList $_x] __x optAttr
+						if {$__x == ""} {
+							lappend insertArgv  --$x
 							continue
 						}
 					}
