@@ -508,6 +508,11 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							hostname op=like value=$MACHINE -
 						} else {
 							arch op== value=${ARCH} -
+							if {![info exist Opt(hr)] || ![lsearch -glob $Opt(hr) hypervisor*]} {
+								if [string match ppc64* $ARCH] {
+									lappend Opt(hr) {hypervisor!=}
+								}
+							}
 							if [info exist Opt(hr)] {
 								foreach kv $Opt(hr) {
 									lassign [regsub (.*?)(=|!=|>|>=|<|<=)(.*$) $kv {\1 op=\2 {value=\3}}] k op v
