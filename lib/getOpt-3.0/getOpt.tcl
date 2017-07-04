@@ -112,7 +112,7 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 
 					lassign [getOptObj $optionList $x] x optAttr
 					if {$x == ""} {
-						lappend insertArgv  --$x
+						lappend insertArgv  -$x
 						continue
 					}
 
@@ -120,7 +120,7 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 						set x [dict get $optionList $x link]
 						lassign [getOptObj $optionList $x] x optAttr
 						if {$x == ""} {
-							lappend insertArgv  --$x
+							lappend insertArgv  -$x
 							continue
 						}
 					}
@@ -130,17 +130,17 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 						set xtype [dict get $optAttr arg]
 					}
 					switch -exact -- $xtype {
-						"n" { lappend insertArgv  --$x }
+						"n" { lappend insertArgv  -$x }
 						"o" {
-							lappend insertArgv  --$x=$optName
+							lappend insertArgv  -$x=$optName
 							break
 						}
 						"y" -
 						"m" {
 							if {[string length $optName]==0} {
-								lappend insertArgv  --$x
+								lappend insertArgv  -$x
 							} else {
-								lappend insertArgv  --$x=$optName
+								lappend insertArgv  -$x=$optName
 							}
 							break
 						}
