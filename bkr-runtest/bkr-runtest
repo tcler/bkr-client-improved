@@ -50,9 +50,9 @@ set OptionList {
   }
 
   "\n  Options for selecting distro tree(s):" {
+	distro			{          arg y	help {Use named distro for job)}}
 	family			{forward y arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
 	tag			{forward y arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE)}}
-	distro			{forward y arg y	help {Use named distro for job)}}
 	variant			{forward y arg m	help {Specify the distro variant}}
 	arch			{forward y arg y	help {Specify the distro arch}}
 	{dr distrorequire}	{forward y arg m	help {distrorequire -dr=key="value"}}
@@ -176,7 +176,7 @@ if [info exist Opt(help)] {
 	}
 	exit 0
 }
-if {[llength $Args] < 1} {
+if {[llength $Args] < 1 && ![info exist Opt(distro)]} {
 	if {$prog == "bkr-reservesys"} {
 		Usage_bkr_reserve
 	} else {
@@ -191,19 +191,20 @@ if [info exist Opt(raw)] {
 }
 
 set SubcmdOpt $ForwardOpt
-set TestArgList {}
-set Idx [lsearch $Args {--}]
-if {$Idx == -1} {
-	set TestArgList [lrange $Args 1 end]
-} else {
-	set TestArgList [lrange $Args 1 [expr $Idx-1]]
-	lappend SubcmdOpt {*}[lrange $Args [expr $Idx+1] end]
-}
 if [info exist Opt(d)] {
 	puts "\[$prog\]: SubcmdOpt{$SubcmdOpt}"
 }
 
+set TestArgList {}
+
 set Distro [lindex $Args 0]
+if [info exist Opt(distro)] {
+	set Distro $Opt(distro)
+	set TestArgList [lrange $Args 0 end]
+} else {
+	set TestArgList [lrange $Args 1 end]
+}
+
 #If Distro is a errata name, process it.
 if [regexp -- {^RH[A-Z]{2}-[0-9]{4}:[0-9]+} $Distro] {
 	lassign [exec errata2distro_and_pkg $Distro] Distro pkgBuild
@@ -249,6 +250,8 @@ if {[llength $TestArgList]==0 && $TestList == {}} {
 						lappend TestList $line
 					}
 				}
+			} else {
+				puts stderr "{*Warning*} $f might not exist"
 			}
 		}
 	}
