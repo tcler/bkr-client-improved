@@ -137,6 +137,13 @@ if [info exist Opt(d)] {
 	parray InvalidOpt
 	parray Opt
 }
+if {[array size InvalidOpt] > 0} {
+	puts stderr "{Error} got invalide option\[s\]:"
+	foreach {opt value} [array get InvalidOpt] {
+		puts stderr "  $opt -> $value"
+	}
+	exit 1
+}
 
 # Usage
 proc Usage {{detail n}} {
