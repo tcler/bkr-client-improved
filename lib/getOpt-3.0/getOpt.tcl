@@ -64,7 +64,7 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 			if [string equal [string range $optName 0 0] "-"] {
 				set optName [string range $rarg 2 end]
 			} else {
-				set opttype longonly
+				set opttype short
 			}
 
 			set idx [string first "=" $optName 1]
@@ -100,7 +100,7 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 						}
 					}
 				}
-			} elseif {$opttype in {longonly}} {
+			} elseif {$opttype in {short} && [string length $optName] > 1} {
 				if [info exists _val] { append optName =$_val }
 				# expand short args
 				set insertArgv [list]
@@ -112,7 +112,7 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 
 					lassign [getOptObj $optionList $x] _x optAttr
 					if {$_x == ""} {
-						lappend insertArgv  --$x
+						lappend insertArgv  -$x
 						continue
 					}
 
@@ -120,7 +120,7 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 						set _x [dict get $optionList $x link]
 						lassign [getOptObj $optionList $_x] __x optAttr
 						if {$__x == ""} {
-							lappend insertArgv  --$x
+							lappend insertArgv  -$x
 							continue
 						}
 					}
