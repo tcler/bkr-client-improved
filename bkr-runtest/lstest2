@@ -1,0 +1,250 @@
+#!/bin/bash
+#
+# Traversal all cases in specified dir and format output the testlist
+# bkr-runtest can parse the testlist, and submit them to beaker
+#
+# Author: jiyin@redhat.com
+
+parse_subtest() {
+	local ys="$*"
+	echo "$ys" | awk 'BEGIN {FS=""; P=0; S=0}
+	{
+		for(n=1;n<=NF;n++) {
+			if ($n==" " && $(n-1)==" " && P==0 && S==0)
+				continue
+			if ($n=="," && P==0 && S==0) {
+				print gensub("^ ", "", 1, s); s=""
+			} else {
+				s=s$n;
+				if(S==0 && $n=="\"" && $(n-1)!="\\")
+					P=(P+1)%2;
+				if(P==0 && $n=="'"'"'")
+					S=(S+1)%2
+			}
+		}
+	}
+	END {print gensub("^ ", "", 1, s)}'
+}
+
+_caseInfo() {
+	[ $# -lt 1 ] && {
+		echo "Usage: func <case path>" >&2
+		return 1
+	}
+
+	local f=runtest.sh
+	local infofile=testinfo.desc
+	local casepath=$1
+	local name=
+
+	declare -A Attr
+	local _time= _pkg= _ssched=no _type= _level=
+
+	declare -a Setup
+	local topo=
+
+	[ -d "$casepath" ] || { echo "{warn} dir [$casepath] not exist." >&2; return; }
+
+	pushd $casepath >/dev/null;
+
+	unlink $infofile 2>/dev/null
+	make $infofile &>/dev/null
+	[ -f $infofile ] || {
+		echo "{ERROR} [$casepath/] make $infofile fail, please fix the Makefile." >&2
+		popd >/dev/null; return 1
+	}
+
+	#get case name
+	name=$(awk -F'[: =\t]+' '/^Name:/{print $2}' $infofile)
+	[ -z "$name" ] && {
+		echo "{ERROR} [$casepath/] casename NULL, maybe Makefile wrong." >&2
+		popd >/dev/null; return 1
+	}
+
+	#get test attr: max run time
+	_time=$(awk -F'[: =\t]+' '/^TestTime:/{print $2}' $infofile)
+	echo $_time | egrep -q '[0-9]+h' && _time=$((${_time/h/}*60))m
+	echo $_time | egrep -q '[0-9]+d' && _time=$((${_time/d/}*24*60))m
+	Attr[time]=$_time
+
+	#get test attr: pkg name belong to
+	unset PACKAGE_NAME PACKAGE
+	eval "$(egrep '^[[:space:]]*(export *)?PACKAGE(_NAME)?=[^ #]' -h * .* 2>/dev/null|sed 's;export;;')"
+	_pkg=${PACKAGE_NAME}
+	test -z "${_pkg}" && _pkg=${PACKAGE}
+	test -z "${_pkg}" && _pkg=?
+	Attr[pkg]=$_pkg
+
+	#get test attr: sepatate scheduling?
+	egrep -q -i ' *DANGEROU?S=yes' -r . && _ssched="yes.dangerous"
+	egrep -q -i ' *STRESS=yes' -r . && _ssched="yes.stress"
+	#
+	## if cost so many time separate schedule too
+	echo $maxtime | egrep -q '[0-9]+h' && maxtime=$((${maxtime/h/}*60))
+	echo $maxtime | egrep -q '[0-9]+d' && maxtime=$((${maxtime/d/}*24*60))
+	maxtime=${maxtime//[^0-9]/}
+	[ "$_ssched" = "no" -a "${_time/m/}" -gt "${maxtime:-120}" ] && _ssched="yes.longtime"
+	Attr[ssched]=$_ssched
+
+	#get test attr: type info
+	_type=$(awk '{match($0,"Type:[ \t]*.*(.egression|.tress|.unction|.anity)",M); if(M[1]) print M[1]}' $infofile)
+	read _type nil <<<${_type}
+	Attr[type]=$_type
+
+	#get test attr: level info
+	_level=$(awk '{match($0,"(Type):[ \t]*.*([Tt]ier[0-9]+)",M); if(M[2]) print M[2]}' $infofile)
+	_level=${_level:-Tier1}
+	read _level nil <<<${_level}
+	Attr[level]=$_level
+
+	#get test setup: topologic if is multihost
+	grep -q "Type:[[:space:]]*Multihost" $infofile &&
+	topo=multiHost.1.1
+	grep -q '\${\?CLIENTS}\?' $f && grep -q '\${\?SERVERS}\?' $f &&
+	topo=multiHost.1.1
+	##if specify the machine acount in $infofile
+	nums=$(grep -i "Type:[[:space:]]*Multihost" $infofile | grep -o '[0-9]\+')
+	read ServerNeed ClientNeed <<<$nums
+	test -n "$ServerNeed" -o -n "$ClientNeed" &&
+	topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
+	##if specify the machine acount in runtest.sh
+	egrep -q '^[[:space:]]*(Client|Server)Need=' $f && {
+		eval "$(egrep '^[[:space:]]*(Client|Server)Need=' $f)"
+		topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
+	}
+	[[ -n "$topo" ]] && Setup+=(--topo=$topo)
+
+	# remove infofile
+	rm -rf $infofile
+
+	subtests_generator="gen_subtest.sh"
+	[ -x $subtests_generator ] && sh $subtests_generator
+	subtests=$(egrep -h '^[[:space:]]*(Attr|Param|GlobalSetup):' subtest.desc subtest.list  2>/dev/null)
+	subtests_yml=$(egrep -h '^[[:space:]]*(attr|param|setup):' subtest.yml 2>/dev/null)
+
+	if [[ "$FORMAT" = raw ]] || [[ -z "$subtests" && -z "$subtests_yml" ]]; then
+		_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do echo -n "$e: ${Attr[$e]}, " ; done; echo -n "}")
+		_attr=${_attr//, \}/\}}
+		[[ ${#Setup[@]} > 0 ]] && {
+			_setup=", "$(echo -n "setup: ["; for e in "${Setup[@]}"; do echo -n "$e, "; done; echo -n "]")
+			_setup=${_setup/, ]/]}
+		}
+		echo "${name}: {${_attr}${_setup}}"
+	else
+		while read l; do
+			[[ -z "$l" ]] && continue
+
+			#update attr
+			subattr=$(parse_subtest "$l"|sed -n '/^Attr: */{s///;p;q}')
+			for kv in $subattr; do
+				read k v <<<"${kv/=/ }"
+				Attr[$k]=$v
+			done
+
+			#get the params list
+			Param=()
+			param=$(parse_subtest "$l"|sed -n '/^Param: */{s///;p;q}')
+			while read p; do
+				[[ -z "$p" ]] && continue
+				Param+=("$p")
+			done < <(eval set -- $param; for ((i=1;i<=$#;i++)); do echo "${!i}"; done)
+
+			#get the global setup
+			Setup2=()
+			[[ -n "${Setup[*]}" ]] && Setup2=("${Setup[@]}")
+			gsetup=$(parse_subtest "$l"|sed -n '/^GlobalSetup: */{s///;p;q}')
+			while read s; do
+				[[ -z "$s" ]] && continue
+				Setup2+=("$s")
+			done < <(eval set -- $gsetup; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
+
+			# output as yaml format
+			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do echo -n "$e: ${Attr[$e]}, " ; done; echo -n "}")
+			_attr=${_attr//, \}/\}}
+			[[ ${#Param[@]} > 0 ]] && {
+				_param=", "$(echo -n "param: ["; for e in "${Param[@]}"; do echo -n "$e, "; done; echo -n "]")
+				_param=${_param/, ]/]}
+			}
+			[[ ${#Setup2[@]} > 0 ]] && {
+				_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do echo -n "$e, "; done; echo -n "]")
+				_setup=${_setup/, ]/]}
+			}
+			echo "${name}: {${_attr}${_param}${_setup}}"
+		done <<<"$subtests"
+
+		while read l; do
+			[[ -z "$l" ]] && continue
+
+			#update attr
+			attrkeys=$(yaml2dict -keys "$l" attr)
+			for k in $attrkeys; do
+				Attr[$k]=$(yaml2dict "$l" attr $k)
+			done
+
+			# output as yaml format
+			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do echo -n "$e: ${Attr[$e]}, " ; done; echo -n "}")
+			_attr=${_attr//, \}/\}}
+
+			#get the param list
+			_param=$(echo "$l" | sed -rn '/param: /{s/.*(param: \[[^]]+]).*/\1/;p}')
+			[[ -n "$_param" ]] && _param=", "$_param
+
+			#get the setup list
+			_setup=$(echo "$l"|sed -rn '/setup: /{s/.*(setup: \[[^]]+]).*/\1/;p}')
+			[[ -n "$_setup" ]] && _setup=", "$_setup
+			echo "${name}: {${_attr}${_param}${_setup}}"
+		done <<<"$subtests_yml"
+	fi
+
+	popd >/dev/null
+}
+
+_casesInfo() {
+	[ $# -lt 1 ] && {
+		echo "Usage: func <case_path [case_path...]>" >&2
+		return 1
+	}
+	for p in "$@"; do _caseInfo "$p"; done
+}
+
+_getTestList() {
+	local paths= info=
+
+	paths=$(find "$@" -name runtest.sh|sed -e 's;^.//*;;' -e 's;/runtest.sh$;;' -e 's/^runtest.sh$/./')
+	for d in $paths; do
+		[ -f ${d}/Makefile ] || continue
+
+		info=$(_caseInfo ${d})
+		[ -z "$info" ] && continue
+
+		echo "$info"
+	done
+}
+
+# __main__
+#===============================================================================
+export LANG=C
+P=${0##*/}
+FORMAT=std
+#-------------------------------------------------------------------------------
+Usage() {
+	echo "Usage: $P [--fmt=<raw|fixme> | -t <maxtime>] [\$dir ...]"
+}
+_at=`getopt -o hred:t:p: \
+	--long help \
+	--long raw \
+	--long fmt: \
+    -n 'lstest' -- "$@"`
+eval set -- "$_at"
+while true; do
+	case "$1" in
+	-h|--help)      Usage; shift 1; exit 0;;
+	-r|--raw)       FORMAT=raw; shift 1;;
+	--fmt)          FORMAT=$2; shift 2;;
+	-t)		maxtime=$2; shift 2;;
+	--) shift; break;;
+	esac
+done
+
+_getTestList "$@"
+

@@ -1,0 +1,40 @@
+#!/bin/sh
+# -*- tcl -*-
+# The next line is executed by /bin/sh, but not tcl \
+exec tclsh "$0" ${1+"$@"}
+
+# Author: jiyin@redhat.com
+lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+package require yaml
+
+set op get
+set args [list]
+
+foreach arg $::argv {
+	if {$arg == "-keys"} {
+		set op keys
+	} else {
+		lappend args $arg
+	}
+}
+
+set yamlStr [lindex $args 0]
+if ![regexp {^ *{.*} *$} $yamlStr] {
+	set yamlStr "{$yamlStr}"
+}
+
+set dictStr [::yaml::yaml2dict $yamlStr]
+if {$dictStr == ""} {
+	exit 1
+}
+
+if {[llength $args] < 2} {
+	puts [dict $op $dictStr]
+} else {
+	set objPath [lrange $args 1 end]
+	if [dict exists $dictStr {*}$objPath] {
+		puts [dict $op $dictStr {*}$objPath]
+	} else {
+		exit 2
+	}
+}
