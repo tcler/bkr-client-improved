@@ -90,9 +90,8 @@ proc ::runtestlib::testinfo {subcmd testobj} {
 	set ret ""
 	switch -exact -- $subcmd {
 		"recipekey" {
-			if ![regsub {.*pkg=([^ ]*).*} $tattr {\1} _pkg] { set _pkg pkg=? }
 			if ![regsub {.*(ssched=..).*} $tattr {\1} _ssched] { set _ssched ssched=no }
-			set key "$_pkg $_ssched"
+			set key "$_ssched"
 			lappend key $gset
 			set ret $key
 		}
@@ -131,7 +130,7 @@ proc ::runtestlib::testinfo {subcmd testobj} {
 }
 
 proc ::runtestlib::genGset {testkey} {
-	lassign $testkey pkg ssched gset
+	lassign $testkey ssched gset
 	set gset [string trimleft $gset]
 	return $gset
 }
@@ -157,7 +156,9 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 		return [join $parts $separator]
 	}
 
-	lassign $testkey pkg issched igset
+	lassign $testkey issched igset
+	regexp {pkg(=|: )?([^ ,]+)} $testList _ignore _op pkg 
+	if {$pkg == ""} {set pkg ?}
 
 	# Gen gset string
 	set gset [genGset $testkey]

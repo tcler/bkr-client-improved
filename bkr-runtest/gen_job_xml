@@ -8,6 +8,7 @@ exec tclsh "$0" ${1+"$@"}
 # gen_job_xml --help for detail
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+package require yaml
 package require xmlgen
 package require getOpt 3.0
 package require runtestlib
@@ -258,7 +259,14 @@ if {[llength $TestList] == 0} {
 	exit 1
 }
 foreach T $TestList {
-	lappend TaskList [concat [lindex $T 0] $GlobalParam [testinfo param $T]]
+	if [regexp {Param: } $T] {
+		lappend TaskList [concat [lindex $T 0] $GlobalParam [testinfo param $T]]
+	} elseif [regexp {param: } $T] {
+		set tdict [::yaml::yaml2dict $T]
+		lappend TaskList [concat [lindex $T 0] $GlobalParam [dict get $tdict param]]
+	} else {
+		lappend TaskList [concat [lindex $T 0] $GlobalParam]
+	}
 }
 
 set METHOD "nfs"
