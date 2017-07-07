@@ -28,8 +28,6 @@ set OptionList {
 	update {arg n	help {Just overwrite existed test run items}}
 	d      {arg n	help {debug mode}}
 
-	r      {arg n	help {Do not parse subtest.desc when lstest casedir} hide y}
-	e      {arg o	help {Call `expand_testlist [ployConf]` to expand testList} hide y}
 	alone  {forward y arg n	help {Submit all tests separately, one case one recipe}}
   }
 
@@ -164,18 +162,6 @@ if ![info exist Opt(pkg)] {
 # Get the package/component name
 set pkgName $Opt(pkg)
 
-# Get lstest opts
-set lstest_opts {}
-if [info exist Opt(r)] {
-	append lstest_opts " -r"
-}
-if [info exist Opt(e)] {
-	append lstest_opts " -e"
-	if {$Opt(e) != ""} {
-		append lstest_opts " -p $Opt(e)"
-	}
-}
-
 # Get subcmd options
 set SubcmdOpt $ForwardOpt
 set TestArgList {}
@@ -231,13 +217,6 @@ foreach f $TestArgList {
 		set fp stdin
 		while {-1 != [gets $fp line]} {
 			lappend _TestList $line
-		}
-	} elseif [file isdirectory $f] {
-		if {![catch {set fp [open "|lstest $f $lstest_opts" r]} err]} {
-			while {-1 != [gets $fp line]} {
-				lappend _TestList $line
-			}
-			close $fp
 		}
 	} elseif [file isfile $f] {
 		if {![catch {set fp [open $f]} err]} {
