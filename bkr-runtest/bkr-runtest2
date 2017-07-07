@@ -30,8 +30,6 @@ set OptionList {
 	d          {arg n	help {debug mode}}
 	wb-format  {arg y	help {Customize whiteboard, default WB_FORMAT in see /etc/bkr-client-improved/bkr-runtest.conf}}
 	wb-comment {arg y	help {Add customer string in the default whiteboard}}
-
-	{raw r}   {arg n	help {Do not parse subtest.desc} hide y}
   }
 
   "\n  Options for job configuration:" {
@@ -192,11 +190,6 @@ if {[llength $Args] < 1 && ![info exist Opt(distro)]} {
 	exit 1
 }
 
-set lstest_opts {}
-if [info exist Opt(raw)] {
-	append lstest_opts {-r}
-}
-
 set SubcmdOpt $ForwardOpt
 if [info exist Opt(d)] {
 	puts "\[$prog\]: SubcmdOpt{$SubcmdOpt}"
@@ -241,14 +234,6 @@ if {[llength $TestArgList]==0 && $TestList == {}} {
 				set fp stdin
 				while {-1 != [gets $fp line]} {
 					lappend TestList $line
-				}
-			} elseif [file isdirectory $f] {
-				lappend TestDir $f
-				if {![catch {set fp [open "|lstest $f $lstest_opts" r]} err]} {
-					while {-1 != [gets $fp line]} {
-						lappend TestList $line
-					}
-					close $fp
 				}
 			} elseif [file isfile $f] {
 				set TestListFile $f
