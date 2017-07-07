@@ -267,12 +267,43 @@ if {[llength $TestArgList]==0 && $TestList == {}} {
 # Group the test list
 set sschedCnt 0
 foreach test $TestList {
-	#skip unexpected stuff
+	#filter: skip unexpected stuff
 	set test [string trim $test]
 	if {[regexp -- {^#} $test] == 1} continue
 	if {$test == "" || $test == "./"} continue
 
 	set tdict [lindex [::yaml::yaml2dict $test] 1]
+
+	#filter: check distro blacklist
+	if [dict exist $tdict attr distronotin] {
+		set match_black 0
+		set blacklist [dict get $tdict attr distronotin]
+		foreach pattern {*}$blacklist {
+			if [regexp $pattern $Distro] {
+				set match_black 1
+				break
+			}
+		}
+		if {$match_black == 1} {
+			puts stderr "{Warn} match blacklist $blacklist: $test"
+			continue
+		}
+	}
+
+	#filter: check distro whitelist
+	if [dict exist $tdict attr distroin] {
+		set match_white 0
+		set whitelist [dict get $tdict attr distroin]
+		foreach pattern {*}$whitelist {
+			if [regexp $pattern $Distro] {
+				set match_white 1
+			}
+		}
+		if {$match_white == 0} {
+			puts stderr "{Warn} not match whitelist $whitelist: $test"
+			continue
+		}
+	}
 
 	# get ssched
 	set _ssched [dict get $tdict attr ssched]
