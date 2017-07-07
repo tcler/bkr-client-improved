@@ -263,6 +263,7 @@ foreach T $TestList {
 		lappend TaskList [concat [lindex $T 0] $GlobalParam [testinfo param $T]]
 	} elseif [regexp {param: } $T] {
 		set tdict [::yaml::yaml2dict $T]
+		if ![dict exist $tdict param] {set tdict [lindex [::yaml::yaml2dict $T] 1]}
 		lappend TaskList [concat [lindex $T 0] $GlobalParam [dict get $tdict param]]
 	} else {
 		lappend TaskList [concat [lindex $T 0] $GlobalParam]

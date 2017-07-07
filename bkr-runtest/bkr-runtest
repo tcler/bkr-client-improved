@@ -303,9 +303,9 @@ foreach test $TestList {
 		append test " [regsub {.*(topo=[^ ]+).*} $attr {--\1}]"
 	}
 
-	# get key {pkg= ssched= GlobalSetup}
+	# get key {ssched= GlobalSetup}
 	set key [testinfo recipekey $test]
-	if ![regexp -- {.+ ssched=.* } $key] {
+	if ![regexp -- {ssched=.* } $key] {
 		puts stderr "\[$prog\]: Warn: recipekey($key) is not standard([lindex $test 0])!"
 		continue
 	}
