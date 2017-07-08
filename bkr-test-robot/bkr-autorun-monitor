@@ -40,7 +40,7 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 	set cnt 0
 	global alone
 	set alone {}
-	if {![catch {set fp [open "|bkr-runtest -n $distro - ${alone} $rgset --random --kdump" w]} err]} {
+	if {![catch {set fp [open "|bkr-runtest2 -n $distro - ${alone} $rgset --random --kdump" w]} err]} {
 		foreach T $testlist { puts $fp $T }
 		catch {close $fp} err
 		foreach xml [glob -nocomplain *.xml] {
@@ -53,19 +53,7 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 				exec bash -c {cat jobsubmit.log >>jobsubmit.err.log}
 				continue
 			}
-			incr cnt
-			if ![regexp {^job_[0-9]{8}_[0-9]{2}_[0-9]{2}_[-?_A-Za-z0-9]+_S_[0-9]+_.*\.xml$} $xml] {
-				lassign [regsub {.*--servers=([0-9]+).*--clients=([0-9]+).*} $xml {\1 \2}] s c
-				if {$s==""||$c==""} {
-					lassign [regsub {^job_[0-9]{8}_[0-9]{2}_[0-9]{2}_[-?_A-Za-z0-9]+_M_([0-9]+)_([0-9]+)_.*} $xml {\1 \2}] s c
-				}
-				if {$s==""||$c==""} {
-					incr cnt 1
-				} else {
-					incr cnt [expr $s + $c - 1]
-				}
-			}
-			#incr cnt [exec bash -c "grep -c '</recipe>' $xml; :"]
+			incr cnt [exec bash -c "grep -c '</recipe>' $xml; :"]
 		}
 	} else {
 		puts "{WARN} limitSubmitJobs open|-> $err"
