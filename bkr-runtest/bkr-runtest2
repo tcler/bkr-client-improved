@@ -30,6 +30,7 @@ set OptionList {
 	d          {arg n	help {debug mode}}
 	wb-format  {arg y	help {Customize whiteboard, default WB_FORMAT in see /etc/bkr-client-improved/bkr-runtest.conf}}
 	wb-comment {arg y	help {Add customer string in the default whiteboard}}
+	f          {arg n       help {just do dynamic filter and output test list}}
   }
 
   "\n  Options for job configuration:" {
@@ -217,29 +218,30 @@ if [regexp -- {^RH[A-Z]{2}-[0-9]{4}:[0-9]+} $Distro] {
 set Distro [expandDistro $Distro]
 
 # Get the test list
+set _TestList {}
 set TestList {}
-if [info exist Opt(task)] { set TestList [list $Opt(task)] }
+if [info exist Opt(task)] { set _TestList [list $Opt(task)] }
 set TestListFile {}
 if {[llength $TestArgList]==0 && ![istty stdin]} {lappend TestArgList -}
-if {[llength $TestArgList]==0 && $TestList == {}} {
+if {[llength $TestArgList]==0 && $_TestList == {}} {
 	if {$prog != "bkr-reservesys"} {
 		puts "\[$prog\]: *Remind*: No test specified, will reserve host($Distro) for you" }
-	lappend TestList "/distribution/reservesys: {attr: {pkg: distrbution, time: 12h, ssched: no, type: Functioal}}"
+	lappend _TestList "/distribution/reservesys: {attr: {pkg: distrbution, time: 12h, ssched: no, type: Functioal}}"
 } else {
 	if {$prog == "bkr-reservesys"} {
-		lappend TestList "/distribution/reservesys: {attr: {pkg: distrbution, time: 12h, ssched: no, type: Functioal}}"
+		lappend _TestList "/distribution/reservesys: {attr: {pkg: distrbution, time: 12h, ssched: no, type: Functioal}}"
 	} else {
 		foreach f $TestArgList {
 			if {$f in "-"} {
 				set fp stdin
 				while {-1 != [gets $fp line]} {
-					lappend TestList $line
+					lappend _TestList $line
 				}
 			} elseif [file isfile $f] {
 				set TestListFile $f
 				if {![catch {set fp [open $f]} err]} {
 					while {-1 != [gets $fp line]} {
-						lappend TestList $line
+						lappend _TestList $line
 					}
 				}
 			} else {
@@ -249,9 +251,8 @@ if {[llength $TestArgList]==0 && $TestList == {}} {
 	}
 }
 
-# Group the test list
-set sschedCnt 0
-foreach test $TestList {
+# test filters
+foreach test $_TestList {
 	#filter: skip unexpected stuff
 	set test [string trim $test]
 	if {[regexp -- {^#} $test] == 1} continue
@@ -289,6 +290,18 @@ foreach test $TestList {
 			continue
 		}
 	}
+	lappend TestList $test
+}
+
+if [info exist Opt(f)] {
+	foreach test $TestList {puts $test}
+	exit 0
+}
+
+# Group the test list
+set sschedCnt 0
+foreach test $TestList {
+	set tdict [lindex [::yaml::yaml2dict $test] 1]
 
 	# get ssched
 	set _ssched [dict get $tdict attr ssched]
