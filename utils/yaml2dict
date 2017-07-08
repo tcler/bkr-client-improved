@@ -8,11 +8,15 @@ lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require yaml
 
 set op get
+set type {list}
 set args [list]
 
 foreach arg $::argv {
 	if {$arg == "-keys"} {
 		set op keys
+		set type {list}
+	} elseif {$arg == "-dict"} {
+		set type {dict}
 	} else {
 		lappend args $arg
 	}
@@ -29,12 +33,28 @@ if {$dictStr == ""} {
 }
 
 if {[llength $args] < 2} {
-	puts [dict $op $dictStr]
+	if {$type == {dict}} {
+		foreach key [dict keys $dictStr] {
+			puts "$key \"[dict get $dictStr $key]\""
+		}
+	} else {
+		foreach e $dictStr {puts $e}
+	}
 } else {
 	set objPath [lrange $args 1 end]
 	if [dict exists $dictStr {*}$objPath] {
-		puts [dict $op $dictStr {*}$objPath]
+		set obj [dict get $dictStr {*}$objPath]
+		if {$op == {keys}} {set obj [dict keys $obj]}
+		if {$type == {dict}} {
+			foreach key [dict keys $obj] {
+				puts "$key \"[dict get $obj $key]\""
+			}
+		} else {
+			foreach e $obj {puts $e}
+		}
+
 	} else {
 		exit 2
 	}
 }
+

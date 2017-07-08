@@ -26,6 +26,18 @@ parse_subtest() {
 	END {print gensub("^ ", "", 1, s)}'
 }
 
+ymlhash() {
+	local k=$1 v=$2
+	[[ $k =~ [:,] ]] && k="'$k'"
+	[[ $v =~ [:,] ]] && v="'$v'"
+	echo -n "${k}: $v, "
+}
+ymllist() {
+	local e=$1
+	[[ $e =~ [:,] ]] && e="'$e'"
+	echo -n "$e, "
+}
+
 _caseInfo() {
 	[ $# -lt 1 ] && {
 		echo "Usage: func <case path>" >&2
@@ -123,10 +135,10 @@ _caseInfo() {
 	subtests_yml=$(egrep -h '^[[:space:]]*(attr|param|setup):' subtest.yml 2>/dev/null)
 
 	if [[ "$FORMAT" = raw ]] || [[ -z "$subtests" && -z "$subtests_yml" ]]; then
-		_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do echo -n "$e: ${Attr[$e]}, " ; done; echo -n "}")
+		_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
 		_attr=${_attr//, \}/\}}
 		[[ ${#Setup[@]} > 0 ]] && {
-			_setup=", "$(echo -n "setup: ["; for e in "${Setup[@]}"; do echo -n "$e, "; done; echo -n "]")
+			_setup=", "$(echo -n "setup: ["; for e in "${Setup[@]}"; do ymllist "$e"; done; echo -n "]")
 			_setup=${_setup/, ]/]}
 		}
 		echo "${name}: {${_attr}${_setup}}"
@@ -159,14 +171,14 @@ _caseInfo() {
 			done < <(eval set -- $gsetup; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
 
 			# output as yaml format
-			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do echo -n "$e: ${Attr[$e]}, " ; done; echo -n "}")
+			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
 			_attr=${_attr//, \}/\}}
 			[[ ${#Param[@]} > 0 ]] && {
-				_param=", "$(echo -n "param: ["; for e in "${Param[@]}"; do echo -n "$e, "; done; echo -n "]")
+				_param=", "$(echo -n "param: ["; for e in "${Param[@]}"; do ymllist "$e"; done; echo -n "]")
 				_param=${_param/, ]/]}
 			}
 			[[ ${#Setup2[@]} > 0 ]] && {
-				_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do echo -n "$e, "; done; echo -n "]")
+				_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do ymllist "$e"; done; echo -n "]")
 				_setup=${_setup/, ]/]}
 			}
 			echo "${name}: {${_attr}${_param}${_setup}}"
@@ -176,13 +188,12 @@ _caseInfo() {
 			[[ -z "$l" ]] && continue
 
 			#update attr
-			attrkeys=$(yaml2dict -keys "$l" attr)
-			for k in $attrkeys; do
+			while read k; do
 				Attr[$k]=$(yaml2dict "$l" attr $k)
-			done
+			done < <(yaml2dict "$l" -keys attr)
 
 			# output as yaml format
-			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do echo -n "$e: ${Attr[$e]}, " ; done; echo -n "}")
+			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
 			_attr=${_attr//, \}/\}}
 
 			#get the param list
@@ -190,8 +201,16 @@ _caseInfo() {
 			[[ -n "$_param" ]] && _param=", "$_param
 
 			#get the setup list
-			_setup=$(echo "$l"|sed -rn '/setup: /{s/.*(setup: \[[^]]+]).*/\1/;p}')
-			[[ -n "$_setup" ]] && _setup=", "$_setup
+			Setup2=()
+			[[ -n "${Setup[*]}" ]] && Setup2=("${Setup[@]}")
+			while read s; do
+				Setup2+=("$s")
+			done < <(yaml2dict "$l" setup)
+			[[ ${#Setup2[@]} > 0 ]] && {
+				_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do ymllist "$e"; done; echo -n "]")
+				_setup=${_setup/, ]/]}
+			}
+
 			echo "${name}: {${_attr}${_param}${_setup}}"
 		done <<<"$subtests_yml"
 	fi
