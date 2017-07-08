@@ -1,0 +1,253 @@
+#!/bin/bash
+#
+# Traversal all cases in specified dir and format output the testlist
+# bkr-runtest can parse the testlist, and submit them to beaker
+#
+# Author: jiyin@redhat.com
+
+parse_yaml() {
+	local ys="$*"
+	echo "$ys" | awk 'BEGIN {FS=""; P=0; S=0}
+	{
+		for(n=1;n<=NF;n++) {
+			if ($n==" " && $(n-1)==" " && P==0 && S==0)
+				continue
+			if ($n=="," && P==0 && S==0) {
+				print gensub("^ ", "", 1, s); s=""
+			} else {
+				s=s$n;
+				if(S==0 && $n=="\"" && $(n-1)!="\\")
+					P=(P+1)%2;
+				if(P==0 && $n=="'"'"'")
+					S=(S+1)%2
+			}
+		}
+	}
+	END {print gensub("^ ", "", 1, s)}'
+}
+
+distroMatch() {
+	condition=$1
+	distro=$2
+	[[ -z "$distro" ]] && return 0
+
+	case $distro in
+		RHEL-5*) family=el5;;
+		RHEL-6*) family=el6;;
+		RHEL-7*) family=el7;;
+		Fedora*) family=el7;;
+		*)	family=;;
+	esac
+	[[ -z "$family" ]] && return 0
+
+
+	nodistrof=$(eval set -- $condition; for c; do [[ "$c" =~ ^nodistro= ]] && echo -n "${c#*nodistro=}"; done)
+	distrof=$(eval set -- $condition; for c; do [[ "$c" =~ ^distro= ]] && echo -n "${c#*distro=}"; done)
+	[[ -z "$distrof" && -z "$nodistrof" ]] && return 0
+
+	#white list
+	if [[ -n "$distrof" ]]; then
+		if [[ "$distrof" =~ $family ]]; then
+			return 0
+		else
+			return 1
+		fi
+	fi
+
+	#black list
+	if [[ -n "$nodistrof" && "$nodistrof" =~ $family ]]; then
+		return 1
+	fi
+
+	return 0
+}
+
+_caseInfo() {
+	[ $# -lt 1 ] && {
+		echo "Usage: func <case path>" >&2
+		return 1
+	}
+	local casepath=$1 pkgName= type= level=
+	local info= name= topo=singleHost ssched=no f=runtest.sh pkgName
+	[ -d "$casepath" ] || { echo "{warn} dir [$casepath] not exist."; }
+
+	pushd $casepath >/dev/null;
+
+	unlink testinfo.desc 2>/dev/null
+	make testinfo.desc &>/dev/null
+	[ -f testinfo.desc ] || {
+		echo "{ERROR} [$casepath/] make testinfo.desc fail, please fix the Makefile." >&2
+		popd >/dev/null; return 1
+	}
+
+	#get case name and time
+	name=$(awk -F'[: =\t]+' '/^Name:/{print $2}' testinfo.desc)
+	[ -z "$name" ] && {
+		echo "{ERROR} [$casepath/] casename NULL, maybe Makefile wrong." >&2
+		popd >/dev/null; return 1
+	}
+	time=$(awk -F'[: =\t]+' '/^TestTime:/{print $2}' testinfo.desc)
+	echo $time | egrep -q '[0-9]+h' && time=$((${time/h/}*60))m
+	echo $time | egrep -q '[0-9]+d' && time=$((${time/d/}*24*60))m
+
+	#get pkg name
+	unset PACKAGE_NAME PACKAGE
+	eval "$(egrep '^[[:space:]]*(export *)?PACKAGE(_NAME)?=[^ #]' -h * .* 2>/dev/null|sed 's;export;;')"
+	pkgName=${PACKAGE_NAME}
+	test -z "${pkgName}" && pkgName=${PACKAGE}
+	test -z "${pkgName}" && pkgName=?
+
+	#sepatate scheduling?
+	egrep -q -i ' *DANGEROU?S=yes' -r . && ssched="yes.dangerous"
+	egrep -q -i ' *STRESS=yes' -r . && ssched="yes.stress"
+
+	# if cost so many time separate schedule too
+	echo $maxtime | egrep -q '[0-9]+h' && maxtime=$((${maxtime/h/}*60))
+	echo $maxtime | egrep -q '[0-9]+d' && maxtime=$((${maxtime/d/}*24*60))
+	maxtime=${maxtime//[^0-9]/}
+	[ "$ssched" = "no" -a "${time/m/}" -gt "${maxtime:-120}" ] && ssched="yes.longtime"
+
+	#get topologic if is multihost
+	grep -q "Type:[[:space:]]*Multihost" testinfo.desc &&
+	topo=multiHost.1.1
+	grep -q '\${\?CLIENTS}\?' $f && grep -q '\${\?SERVERS}\?' $f &&
+	topo=multiHost.1.1
+	##if specify the machine acount in testinfo.desc
+	nums=$(grep -i "Type:[[:space:]]*Multihost" testinfo.desc | grep -o '[0-9]\+')
+	read ServerNeed ClientNeed <<<$nums
+	test -n "$ServerNeed" -o -n "$ClientNeed" &&
+	topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
+	##if specify the machine acount in runtest.sh
+	egrep -q '^[[:space:]]*(Client|Server)Need=' $f && {
+		eval "$(egrep '^[[:space:]]*(Client|Server)Need=' $f)"
+		topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
+	}
+
+	#get type info
+	type=$(awk '{match($0,"Type:[ \t]*.*(.egression|.tress|.unction|.anity)",M); if(M[1]) print M[1]}' testinfo.desc)
+	read type nil <<<${type}
+
+	#get test level info
+	level=$(awk '{match($0,"(Type):[ \t]*.*([Tt]ier[0-9]+)",M); if(M[2]) print M[2]}' testinfo.desc)
+	level=${level:-Tier1}
+	read level nil <<<${level}
+	rm -rf testinfo.desc
+
+	pAttrs="pkg=${pkgName:--} time=$time ssched=$ssched type=$type level=$level"
+
+	subtests_generator="gen_subtest.sh"
+	[ -x $subtests_generator ] && sh $subtests_generator
+	subtests=$(egrep -h '^[[:space:]]*(Attr|Param|GlobalSetup):' subtest.desc subtest.list  2>/dev/null)
+	if [ "$FORMAT" = raw -o -z "$subtests" ]; then
+		testinfo="$name Attr: ${pAttrs% }"
+		[[ $topo =~ multiHost* ]] && testinfo+=", GlobalSetup: --topo=$topo"
+		[ "$FORMAT" = pol ] && testinfo="fs-qe case:$name tag:$pkgName,$level,$type"
+		echo "$testinfo"
+	else
+		while read l; do
+			#get the condition config
+			condition=$(parse_yaml "$l"|sed -n '/^Condition: */{s///;p;q}')
+			[ -n "$condition" ] && {
+				if [ -n "$distro" ]; then
+					distroMatch "$condition" $distro || continue
+				fi
+				testinfo+=", Condition: $condition"
+			}
+
+			#get the attr list
+			attrs=$(parse_yaml "$l"|sed -n '/^Attr: */{s///;p;q}')
+			echo "$attrs"|grep -q "ssched=" && {
+				pAttrs=$(eval $attrs; echo "$pAttrs"|sed -r "s/(ssched=)[^ ]*/\1$ssched/")
+				attrs=$(echo "$attrs"|sed 's/\<ssched=[^ ]* *//')
+			}
+			echo "$attrs"|grep -q "level=" && {
+				pAttrs=$(eval $attrs; echo "$pAttrs"|sed -r "s/(level=)[^ ]*/\1$level/")
+				attrs=$(echo "$attrs"|sed 's/\<level=[^ ]* *//')
+			}
+			echo "$attrs"|grep -q "type=" && {
+				pAttrs=$(eval $attrs; echo "$pAttrs"|sed -r "s/(type=)[^ ]*/\1$type/")
+				attrs=$(echo "$attrs"|sed 's/\<type=[^ ]* *//')
+			}
+			attrs="$pAttrs $attrs"
+			testinfo="$name Attr: ${attrs% }"
+
+			#get the params list
+			args=$(parse_yaml "$l"|sed -n '/^Param: */{s///;p;q}')
+			[ -n "$args" ] && testinfo+=", Param: $args"
+
+			#get the global config
+			[[ $topo =~ multiHost* ]] && conf="--topo=$topo "
+			conf+=$(parse_yaml "$l"|sed -n '/^GlobalSetup: */{s///;p;q}')
+			sconf=$(eval set -- $conf; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
+			sconf=$(echo "$sconf"| while read c; do echo -n "$c"|sed -e "s;';'\"'\"';g" -e "s/^/'/" -e "s/$/' /"; done)
+			[ -n "$sconf" ] && testinfo+=", GlobalSetup: $sconf"
+
+			[ "$FORMAT" = pol ] && {
+				testinfo="fs-qe case:$name"
+				[ -n "$args" ] && testinfo="$testinfo param:${args// /,}"
+				testinfo="$testinfo tag:$pkgName,$level,$type"
+				[ -n "$sconf" ] && { sconf=${sconf//\'/}; testinfo="$testinfo gset:${sconf// /,}"; }
+			}
+			echo "$testinfo"
+		done <<<"$subtests"
+	fi
+
+	popd >/dev/null
+}
+
+_casesInfo() {
+	[ $# -lt 1 ] && {
+		echo "Usage: func <case_path [case_path...]>" >&2
+		return 1
+	}
+	for p in "$@"; do _caseInfo "$p"; done
+}
+
+_getTestList() {
+	local paths= info=
+
+	paths=$(find "$@" -name runtest.sh|sed -e 's;^.//*;;' -e 's;/runtest.sh$;;' -e 's/^runtest.sh$/./')
+	for d in $paths; do
+		[ -f ${d}/Makefile ] || continue
+
+		info=$(_caseInfo ${d})
+		[ -z "$info" ] && continue
+
+		if [ "$EXP" = yes ]; then
+			echo "$info" | expand_testlist $CONFF -d "$distro"
+		else
+			echo "$info"
+		fi
+	done
+}
+
+# __main__
+#===============================================================================
+export LANG=C
+P=${0##*/}
+FORMAT=std
+#-------------------------------------------------------------------------------
+Usage() {
+	echo "Usage: $P [--fmt=<raw|pol> | -e [-p /etc/bkr-client-improved/bkr.recipe.matrix.conf*] | -d <distro> | -t <maxtime>] [\$dir ...]"
+}
+_at=`getopt -o hred:t:p: \
+	--long help \
+	--long raw \
+	--long fmt: \
+    -n 'lstest' -- "$@"`
+eval set -- "$_at"
+while true; do
+	case "$1" in
+	-h|--help)      Usage; shift 1; exit 0;;
+	-r|--raw)       FORMAT=raw; shift 1;;
+	--fmt)          FORMAT=$2; shift 2;;
+	-e)		EXP=yes; shift 1;;
+	-p)		CONFF=$2; shift 2;;
+	-t)		maxtime=$2; shift 2;;
+	-d)		distro=$2; shift 2;;
+	--) shift; break;;
+	esac
+done
+
+_getTestList "$@"
+
