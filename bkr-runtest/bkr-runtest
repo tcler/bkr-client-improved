@@ -323,7 +323,7 @@ foreach test $TestList {
 	set key [list $ssched $setup]
 
 	if [info exist Opt(alone)] {regsub {ssched=no} $key {ssched=yes} key}
-	if [regexp {ssched=ye} [lindex $key 1]] {
+	if [regexp {ssched=ye} $ssched] {
 		lset key 1 "ssched=yes.[incr sschedCnt]"
 	}
 	lappend TestGroup($key) $test
