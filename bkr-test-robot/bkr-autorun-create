@@ -235,6 +235,7 @@ foreach test $_TestList {
 	set test [string trim $test]
 	if {[regexp -- {^#} $test] == 1} continue
 	if {$test == "" || $test == "./"} continue
+	regsub -line {^-  *} $test {} test
 
 	lappend TestList $test
 }
