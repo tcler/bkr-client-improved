@@ -175,7 +175,15 @@ proc ::getOpt::getOptions {optLists argv validOptionVar invalidOptionVar notOpti
 	set forwardOpts ""
 	#set argc [llength $nargv]
 
-	while {[set ret [argparse $optList nargv opt optarg]]} {
+	while {1} {
+		set prefix {-}
+		set curarg [lindex $nargv 0]
+		if [string equal [string range $curarg 0 1] "--"] {
+			set prefix {--}
+		}
+
+		set ret [argparse $optList nargv opt optarg]
+
 		if {$ret == $::getOpt::flag(AGAIN)} {
 			continue
 		} elseif {$ret == $::getOpt::flag(NOTOPT)} {
@@ -199,8 +207,8 @@ proc ::getOpt::getOptions {optLists argv validOptionVar invalidOptionVar notOpti
 
 			if {$forward == "y"} {
 				switch -exact -- $argtype {
-					"n" {lappend forwardOption "--$opt"}
-					default {lappend forwardOption "--$opt=$optarg"}
+					"n" {lappend forwardOption "$prefix$opt"}
+					default {lappend forwardOption "$prefix$opt=$optarg"}
 				}
 				continue
 			}
