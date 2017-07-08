@@ -1,0 +1,23 @@
+# Sub-test list file
+#
+# Take every line as yaml string: attr: {}, param: [], setup: []
+# - attr:        #attr key: value hash:
+#     level: Tier1|Tier2|...
+#     type: regresion|function|stress|...
+#     ssched: no|ye            #Means if need schedule the test alone
+#     disable: yes             #This test is not ready
+# - param:       #param list:
+#     VAR=$VALUE
+# - setup:       #option list of bkr-runtest, gen_job_xml:
+#     --arch=<arch>            #Run for specified arch
+#     --kernel-options=k=v     #same as bkr-workflow/gen_job_xml option
+#     --hostrequire=k=v        #same as bkr-workflow/gen_job_xml option
+#     --keyvalue=k=v           #same as bkr-workflow/gen_job_xml option
+#     --machine=v              #same as bkr-workflow/gen_job_xml option
+#     ...
+# Example:
+attr: {ssched: yes.dangerous, distroin: RHEL-?[56]}
+param: [PROTO=tcp, NFS_VER=4.2]
+param: [PROTO=udp, NFS_VER=3], setup: ['--opt=arg,with,comma', --fips]
+attr: {archin: x86_64}, param: ['VAR=value,with,comma', VAR2=value with space]
+attr: {level: Tier1, type: regression, ssched: yes.longtime}, param: [var=value, x=y], setup: [--kernel-options=x=y, --keyvalue=x=y]
