@@ -314,6 +314,11 @@ foreach test $TestList {
 	lappend TestGroup($key) $test
 }
 
+if {[array size TestGroup] == 0} {
+	puts stderr "{Warn} no valide test. exit"
+	exit 1
+}
+
 # Gen job xml[s] and submit
 set TestCnt 0
 set TestSumm {}
