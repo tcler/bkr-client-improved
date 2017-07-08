@@ -150,6 +150,7 @@ _caseInfo() {
 			subattr=$(parse_subtest "$l"|sed -n '/^Attr: */{s///;p;q}')
 			for kv in $subattr; do
 				read k v <<<"${kv/=/ }"
+				[[ $k = distroin && $v = NULL ]] && continue
 				Attr[$k]=$v
 			done
 
@@ -189,7 +190,9 @@ _caseInfo() {
 
 			#update attr
 			while read k; do
-				Attr[$k]=$(yaml2dict "$l" attr $k)
+				$v=$(yaml2dict "$l" attr $k)
+				[[ $k = distroin && $v = NULL ]] && continue
+				Attr[$k]=$v
 			done < <(yaml2dict "$l" -keys attr)
 
 			# output as yaml format
