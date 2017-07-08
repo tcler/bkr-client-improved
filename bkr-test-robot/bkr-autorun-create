@@ -7,6 +7,7 @@ exec tclsh "$0" ${1+"$@"}
 # This is a test run creater.
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+package require yaml
 package require getOpt 3.0
 package require runtestlib
 package require tdom
@@ -230,17 +231,11 @@ foreach f $TestArgList {
 }
 
 foreach test $_TestList {
+	#filter: skip unexpected stuff
 	set test [string trim $test]
-	if {$test == ""} continue
+	if {[regexp -- {^#} $test] == 1} continue
+	if {$test == "" || $test == "./"} continue
 
-	#convert old test format to new(move topo= to GlobalSetup:)
-	set attr [testinfo attr $test]
-	if [string match *topo=multi* $attr] {
-		if {[testinfo gset $test] == ""} {
-			append test ", GlobalSetup: "
-		}
-		append test " [regsub {.*(topo=[^ ]+).*} $attr {--\1}]"
-	}
 	lappend TestList $test
 }
 unset _TestList
@@ -299,19 +294,27 @@ if {"testplanName" in [db eval {PRAGMA table_info(testinfo)}]} {
 # insert transaction
 db transaction {
 	foreach test $TestList {
-		# fix me verify distro info, if distronin or distronotin specify
-		#if ![verify_test $Distro] {continue}
+		set tname [lindex [::yaml::yaml2dict $test] 0]
+		set tdict [lindex [::yaml::yaml2dict $test] 1]
 
-		set tier [testinfo tier $test]
-		set key [testinfo md5sum $test]
+		set tier tier1
+		if [dict exist $tdict attr tier] {
+			set tier [dict exist $tdict attr tier]
+		}
+		set param {}
+		if [dict exist $tdict param] {
+			set tier [dict exist $tdict param]
+		}
+		set setup {}
+		if [dict exist $tdict setup] {
+			set tier [dict exist $tdict setup]
+		}
+		set key "$tname $param $setup"
 		set testid [::md5::md5 -hex [string trim $key]]
 
 		# verify the arch
-		set arch [testinfo arch $test]
+		regexp {-arch=([a-z0-9]+)} $setup _ignore arch
 		if {[regexp {RHEL-7} $Distro_] && [regexp {i386} $arch]} {
-			continue
-		}
-		if {[regexp {RHEL-LE} $Distro_] && ![regexp {ppc64le} $arch]} {
 			continue
 		}
 
