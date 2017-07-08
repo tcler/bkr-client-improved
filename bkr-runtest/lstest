@@ -250,23 +250,48 @@ P=${0##*/}
 FORMAT=std
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [--fmt=<raw|fixme> | -t <maxtime>] [\$dir ...]"
+	echo "Usage: $P [--fmt=<raw|fixme> | -e[expand_file] | -t <maxtime>] [\$dir ...]"
 }
-_at=`getopt -o hred:t:p: \
+_at=`getopt -o hrt:e:: \
 	--long help \
 	--long raw \
 	--long fmt: \
     -n 'lstest' -- "$@"`
 eval set -- "$_at"
+
 while true; do
 	case "$1" in
 	-h|--help)      Usage; shift 1; exit 0;;
 	-r|--raw)       FORMAT=raw; shift 1;;
 	--fmt)          FORMAT=$2; shift 2;;
 	-t)		maxtime=$2; shift 2;;
+	-e)		E=yes; setupConf=$2; shift 2;;
 	--) shift; break;;
 	esac
 done
 
-_getTestList "$@"
+if [[ $E != yes ]]; then
+	_getTestList "$@"
 
+else
+	testList=$(_getTestList "$@")
+	testListWithSetup=$(echo "$testList"|grep 'setup: \[')
+	testListWithOutSetup=$(echo "$testList"|grep -v 'setup: \[')
+
+	[ -z "$setupConf" ] && {
+		setupConf=/etc/bkr-client-improved/bkr.recipe.matrix.conf
+		setupConfPrivate=~/.bkr-client-improved/bkr.recipe.matrix.conf
+		[ -f $setupConfPrivate ] && setupConf=$setupConfPrivate
+	}
+	[ -r $setupConf ] || {
+		echo "[Warn] can not read '$setupConf'" >&2
+		exit 1
+	}
+	setupList=$(egrep -v '^ *#|^$' $setupConf)
+	setupyList=$(while read setup; do echo $(eval set -- $setup; for a; do ymllist "--$a"; done); done <<<"$setupList")
+
+	while read setup; do
+		echo "$testListWithSetup" | sed "s/] *}$/, ${setup%,}&/"
+		echo "$testListWithOutSetup" | sed "s/}$/, setup: [${setup%,}]&/"
+	done <<<"$setupyList"
+fi
