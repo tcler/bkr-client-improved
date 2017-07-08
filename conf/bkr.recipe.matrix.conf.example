@@ -2,5 +2,5 @@
 # Used by lstest -e , to apply some hareware require to all test
 #  like NIC drivers
 
-nic=tg3
-nic=e100
+netqe-nic-driver=tg3
+netqe-nic-driver=e1000
