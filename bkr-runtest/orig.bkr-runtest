@@ -244,7 +244,7 @@ if {[llength $TestArgList]==0 && $TestList == {}} {
 				}
 			} elseif [file isdirectory $f] {
 				lappend TestDir $f
-				if {![catch {set fp [open "|lstest $f $lstest_opts" r]} err]} {
+				if {![catch {set fp [open "|orig.lstest $f $lstest_opts" r]} err]} {
 					while {-1 != [gets $fp line]} {
 						lappend TestList $line
 					}
