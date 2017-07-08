@@ -1,0 +1,88 @@
+#!/bin/bash
+#
+# Traversal all cases in specified dir and format output the testlist
+# bkr-runtest can parse the testlist, and submit them to beaker
+#
+# Author: jiyin@redhat.com
+
+parse_subtest() {
+	local ys="$*"
+	echo "$ys" | awk 'BEGIN {FS=""; P=0; S=0}
+	{
+		for(n=1;n<=NF;n++) {
+			if ($n==" " && $(n-1)==" " && P==0 && S==0)
+				continue
+			if ($n=="," && P==0 && S==0) {
+				print gensub("^ ", "", 1, s); s=""
+			} else {
+				s=s$n;
+				if(S==0 && $n=="\"" && $(n-1)!="\\")
+					P=(P+1)%2;
+				if(P==0 && $n=="'"'"'")
+					S=(S+1)%2
+			}
+		}
+	}
+	END {print gensub("^ ", "", 1, s)}'
+}
+
+ymlhash() {
+	local k=$1 v=$2
+	[[ $k =~ [:,] ]] && k="'$k'"
+	[[ $v =~ [:,] ]] && v="'$v'"
+	echo -n "${k}: $v, "
+}
+ymllist() {
+	local e=$1
+	[[ $e =~ [:,] ]] && e="'$e'"
+	echo -n "$e, "
+}
+
+for f in "$@"; do
+	while read l; do
+		[[ -z "$l" ]] && continue
+		[[ "$l" =~ ^\ *# ]] && continue
+
+		#get attr list
+		declare -A Attr
+		subattr=$(parse_subtest "$l"|sed -n '/^Attr: */{s///;p;q}')
+		for kv in $subattr; do
+			read k v <<<"${kv/=/ }"
+			[[ $k = distroin && $v = NULL ]] && continue
+			Attr[$k]=$v
+		done
+
+		#get the params list
+		Param=()
+		param=$(parse_subtest "$l"|sed -n '/^Param: */{s///;p;q}')
+		while read p; do
+			[[ -z "$p" ]] && continue
+			Param+=("$p")
+		done < <(eval set -- $param; for ((i=1;i<=$#;i++)); do echo "${!i}"; done)
+
+		#get the global setup
+		Setup2=()
+		gsetup=$(parse_subtest "$l"|sed -n '/^GlobalSetup: */{s///;p;q}')
+		while read s; do
+			[[ -z "$s" ]] && continue
+			Setup2+=("$s")
+		done < <(eval set -- $gsetup; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
+
+		# output as yaml format
+		[[ ${#Attr[@]} > 0 ]] && {
+			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
+			_attr=${_attr//, \}/\}}
+		}
+		[[ ${#Param[@]} > 0 ]] && {
+			_param=", "$(echo -n "param: ["; for e in "${Param[@]}"; do ymllist "$e"; done; echo -n "]")
+			_param=${_param/, ]/]}
+		}
+		[[ ${#Setup2[@]} > 0 ]] && {
+			_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do ymllist "$e"; done; echo -n "]")
+			_setup=${_setup/, ]/]}
+		}
+		result="${_attr}${_param}${_setup}"
+		echo ${result#, }
+	#done < "$f"
+	done < "$f" >"${f/.*/.yml}"
+done
