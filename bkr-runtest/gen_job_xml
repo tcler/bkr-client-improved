@@ -259,14 +259,18 @@ if {[llength $TestList] == 0} {
 	exit 1
 }
 foreach T $TestList {
+	set tname [lindex $T 0]
+	if {[string index $tname end] == ":"} {
+		set tname [string range $tname 0 end-1]
+	}
 	if [regexp {Param: } $T] {
-		lappend TaskList [concat [lindex $T 0] $GlobalParam [testinfo param $T]]
+		lappend TaskList [concat $tname $GlobalParam [testinfo param $T]]
 	} elseif [regexp {param: } $T] {
 		set tdict [::yaml::yaml2dict $T]
 		if ![dict exist $tdict param] {set tdict [lindex [::yaml::yaml2dict $T] 1]}
-		lappend TaskList [concat [lindex $T 0] $GlobalParam [dict get $tdict param]]
+		lappend TaskList [concat $tname $GlobalParam [dict get $tdict param]]
 	} else {
-		lappend TaskList [concat [lindex $T 0] $GlobalParam]
+		lappend TaskList [concat $tname $GlobalParam]
 	}
 }
 
