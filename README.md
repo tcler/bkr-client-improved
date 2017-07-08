@@ -31,7 +31,7 @@ Notes:
 *   ***lstest*** - List Test items from test case dir
 
     ```
-	Usage: lstest [--raw> | -e[~/.bkr-client-improved/bkr.recipe.matrix.conf] | -t <maxtime>] [$dir ...]
+	Usage: lstest [--raw | -e[~/.bkr-client-improved/bkr.recipe.matrix.conf] | -t <maxtime>] [$dir ...]
 	Example: lstest /kernel/filesystems/nfs/regression
 
 	```
