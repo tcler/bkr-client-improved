@@ -257,6 +257,7 @@ foreach test $_TestList {
 	set test [string trim $test]
 	if {[regexp -- {^#} $test] == 1} continue
 	if {$test == "" || $test == "./"} continue
+	regsub -line {^-  *} $test {} test
 
 	set tdict [lindex [::yaml::yaml2dict $test] 1]
 
@@ -292,6 +293,7 @@ foreach test $_TestList {
 	}
 	lappend TestList $test
 }
+unset _TestList
 
 if [info exist Opt(f)] {
 	foreach test $TestList {puts $test}
