@@ -5,7 +5,7 @@
 #
 # Author: jiyin@redhat.com
 
-parse_yaml() {
+parse_subtest() {
 	local ys="$*"
 	echo "$ys" | awk 'BEGIN {FS=""; P=0; S=0}
 	{
@@ -26,40 +26,16 @@ parse_yaml() {
 	END {print gensub("^ ", "", 1, s)}'
 }
 
-distroMatch() {
-	condition=$1
-	distro=$2
-	[[ -z "$distro" ]] && return 0
-
-	case $distro in
-		RHEL-5*) family=el5;;
-		RHEL-6*) family=el6;;
-		RHEL-7*) family=el7;;
-		Fedora*) family=el7;;
-		*)	family=;;
-	esac
-	[[ -z "$family" ]] && return 0
-
-
-	nodistrof=$(eval set -- $condition; for c; do [[ "$c" =~ ^nodistro= ]] && echo -n "${c#*nodistro=}"; done)
-	distrof=$(eval set -- $condition; for c; do [[ "$c" =~ ^distro= ]] && echo -n "${c#*distro=}"; done)
-	[[ -z "$distrof" && -z "$nodistrof" ]] && return 0
-
-	#white list
-	if [[ -n "$distrof" ]]; then
-		if [[ "$distrof" =~ $family ]]; then
-			return 0
-		else
-			return 1
-		fi
-	fi
-
-	#black list
-	if [[ -n "$nodistrof" && "$nodistrof" =~ $family ]]; then
-		return 1
-	fi
-
-	return 0
+ymlhash() {
+	local k=$1 v=$2
+	[[ $k =~ [:,] ]] && k="'$k'"
+	[[ $v =~ [:,] ]] && v="'$v'"
+	echo -n "${k}: $v, "
+}
+ymllist() {
+	local e=$1
+	[[ $e =~ [:,] ]] && e="'$e'"
+	echo -n "$e, "
 }
 
 _caseInfo() {
@@ -67,53 +43,79 @@ _caseInfo() {
 		echo "Usage: func <case path>" >&2
 		return 1
 	}
-	local casepath=$1 pkgName= type= level=
-	local info= name= topo=singleHost ssched=no f=runtest.sh pkgName
-	[ -d "$casepath" ] || { echo "{warn} dir [$casepath] not exist."; }
+
+	local f=runtest.sh
+	local infofile=testinfo.desc
+	local casepath=$1
+	local name=
+
+	declare -A Attr
+	local _time= _pkg= _ssched=no _type= _level=
+
+	declare -a Setup
+	local topo=
+
+	[ -d "$casepath" ] || { echo "{warn} dir [$casepath] not exist." >&2; return; }
 
 	pushd $casepath >/dev/null;
 
-	unlink testinfo.desc 2>/dev/null
-	make testinfo.desc &>/dev/null
-	[ -f testinfo.desc ] || {
-		echo "{ERROR} [$casepath/] make testinfo.desc fail, please fix the Makefile." >&2
+	unlink $infofile 2>/dev/null
+	make $infofile &>/dev/null
+	[ -f $infofile ] || {
+		echo "{ERROR} [$casepath/] make $infofile fail, please fix the Makefile." >&2
 		popd >/dev/null; return 1
 	}
 
-	#get case name and time
-	name=$(awk -F'[: =\t]+' '/^Name:/{print $2}' testinfo.desc)
+	#get case name
+	name=$(awk -F'[: =\t]+' '/^Name:/{print $2}' $infofile)
 	[ -z "$name" ] && {
 		echo "{ERROR} [$casepath/] casename NULL, maybe Makefile wrong." >&2
 		popd >/dev/null; return 1
 	}
-	time=$(awk -F'[: =\t]+' '/^TestTime:/{print $2}' testinfo.desc)
-	echo $time | egrep -q '[0-9]+h' && time=$((${time/h/}*60))m
-	echo $time | egrep -q '[0-9]+d' && time=$((${time/d/}*24*60))m
 
-	#get pkg name
+	#get test attr: max run time
+	_time=$(awk -F'[: =\t]+' '/^TestTime:/{print $2}' $infofile)
+	echo $_time | egrep -q '[0-9]+h' && _time=$((${_time/h/}*60))m
+	echo $_time | egrep -q '[0-9]+d' && _time=$((${_time/d/}*24*60))m
+	Attr[time]=$_time
+
+	#get test attr: pkg name belong to
 	unset PACKAGE_NAME PACKAGE
 	eval "$(egrep '^[[:space:]]*(export *)?PACKAGE(_NAME)?=[^ #]' -h * .* 2>/dev/null|sed 's;export;;')"
-	pkgName=${PACKAGE_NAME}
-	test -z "${pkgName}" && pkgName=${PACKAGE}
-	test -z "${pkgName}" && pkgName=?
+	_pkg=${PACKAGE_NAME}
+	test -z "${_pkg}" && _pkg=${PACKAGE}
+	test -z "${_pkg}" && _pkg=?
+	Attr[pkg]=$_pkg
 
-	#sepatate scheduling?
-	egrep -q -i ' *DANGEROU?S=yes' -r . && ssched="yes.dangerous"
-	egrep -q -i ' *STRESS=yes' -r . && ssched="yes.stress"
-
-	# if cost so many time separate schedule too
+	#get test attr: sepatate scheduling?
+	egrep -q -i ' *DANGEROU?S=yes' -r . && _ssched="yes.dangerous"
+	egrep -q -i ' *STRESS=yes' -r . && _ssched="yes.stress"
+	#
+	## if cost so many time separate schedule too
 	echo $maxtime | egrep -q '[0-9]+h' && maxtime=$((${maxtime/h/}*60))
 	echo $maxtime | egrep -q '[0-9]+d' && maxtime=$((${maxtime/d/}*24*60))
 	maxtime=${maxtime//[^0-9]/}
-	[ "$ssched" = "no" -a "${time/m/}" -gt "${maxtime:-120}" ] && ssched="yes.longtime"
+	[ "$_ssched" = "no" -a "${_time/m/}" -gt "${maxtime:-120}" ] && _ssched="yes.longtime"
+	Attr[ssched]=$_ssched
 
-	#get topologic if is multihost
-	grep -q "Type:[[:space:]]*Multihost" testinfo.desc &&
+	#get test attr: type info
+	_type=$(awk '{match($0,"Type:[ \t]*.*(.egression|.tress|.unction|.anity)",M); if(M[1]) print M[1]}' $infofile)
+	read _type nil <<<${_type}
+	Attr[type]=$_type
+
+	#get test attr: level info
+	_level=$(awk '{match($0,"(Type):[ \t]*.*([Tt]ier[0-9]+)",M); if(M[2]) print M[2]}' $infofile)
+	_level=${_level:-Tier1}
+	read _level nil <<<${_level}
+	Attr[level]=$_level
+
+	#get test setup: topologic if is multihost
+	grep -q "Type:[[:space:]]*Multihost" $infofile &&
 	topo=multiHost.1.1
 	grep -q '\${\?CLIENTS}\?' $f && grep -q '\${\?SERVERS}\?' $f &&
 	topo=multiHost.1.1
-	##if specify the machine acount in testinfo.desc
-	nums=$(grep -i "Type:[[:space:]]*Multihost" testinfo.desc | grep -o '[0-9]\+')
+	##if specify the machine acount in $infofile
+	nums=$(grep -i "Type:[[:space:]]*Multihost" $infofile | grep -o '[0-9]\+')
 	read ServerNeed ClientNeed <<<$nums
 	test -n "$ServerNeed" -o -n "$ClientNeed" &&
 	topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
@@ -122,74 +124,98 @@ _caseInfo() {
 		eval "$(egrep '^[[:space:]]*(Client|Server)Need=' $f)"
 		topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
 	}
+	[[ -n "$topo" ]] && Setup+=(--topo=$topo)
 
-	#get type info
-	type=$(awk '{match($0,"Type:[ \t]*.*(.egression|.tress|.unction|.anity)",M); if(M[1]) print M[1]}' testinfo.desc)
-	read type nil <<<${type}
-
-	#get test level info
-	level=$(awk '{match($0,"(Type):[ \t]*.*([Tt]ier[0-9]+)",M); if(M[2]) print M[2]}' testinfo.desc)
-	level=${level:-Tier1}
-	read level nil <<<${level}
-	rm -rf testinfo.desc
-
-	pAttrs="pkg=${pkgName:--} time=$time ssched=$ssched type=$type level=$level"
+	# remove infofile
+	rm -rf $infofile
 
 	subtests_generator="gen_subtest.sh"
 	[ -x $subtests_generator ] && sh $subtests_generator
 	subtests=$(egrep -h '^[[:space:]]*(Attr|Param|GlobalSetup):' subtest.desc subtest.list  2>/dev/null)
-	if [ "$FORMAT" = raw -o -z "$subtests" ]; then
-		testinfo="$name Attr: ${pAttrs% }"
-		[[ $topo =~ multiHost* ]] && testinfo+=", GlobalSetup: --topo=$topo"
-		[ "$FORMAT" = pol ] && testinfo="fs-qe case:$name tag:$pkgName,$level,$type"
-		echo "$testinfo"
+	subtests_yml=$(egrep -h '^[[:space:]]*(attr|param|setup):' subtest.yml 2>/dev/null)
+
+	if [[ "$FORMAT" = raw ]] || [[ -z "$subtests" && -z "$subtests_yml" ]]; then
+		_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
+		_attr=${_attr//, \}/\}}
+		[[ ${#Setup[@]} > 0 ]] && {
+			_setup=", "$(echo -n "setup: ["; for e in "${Setup[@]}"; do ymllist "$e"; done; echo -n "]")
+			_setup=${_setup/, ]/]}
+		}
+		echo "${name}: {${_attr}${_setup}}"
 	else
 		while read l; do
-			#get the condition config
-			condition=$(parse_yaml "$l"|sed -n '/^Condition: */{s///;p;q}')
-			[ -n "$condition" ] && {
-				if [ -n "$distro" ]; then
-					distroMatch "$condition" $distro || continue
-				fi
-				testinfo+=", Condition: $condition"
-			}
+			[[ -z "$l" ]] && continue
 
-			#get the attr list
-			attrs=$(parse_yaml "$l"|sed -n '/^Attr: */{s///;p;q}')
-			echo "$attrs"|grep -q "ssched=" && {
-				pAttrs=$(eval $attrs; echo "$pAttrs"|sed -r "s/(ssched=)[^ ]*/\1$ssched/")
-				attrs=$(echo "$attrs"|sed 's/\<ssched=[^ ]* *//')
-			}
-			echo "$attrs"|grep -q "level=" && {
-				pAttrs=$(eval $attrs; echo "$pAttrs"|sed -r "s/(level=)[^ ]*/\1$level/")
-				attrs=$(echo "$attrs"|sed 's/\<level=[^ ]* *//')
-			}
-			echo "$attrs"|grep -q "type=" && {
-				pAttrs=$(eval $attrs; echo "$pAttrs"|sed -r "s/(type=)[^ ]*/\1$type/")
-				attrs=$(echo "$attrs"|sed 's/\<type=[^ ]* *//')
-			}
-			attrs="$pAttrs $attrs"
-			testinfo="$name Attr: ${attrs% }"
+			#update attr
+			subattr=$(parse_subtest "$l"|sed -n '/^Attr: */{s///;p;q}')
+			for kv in $subattr; do
+				read k v <<<"${kv/=/ }"
+				[[ $k = distroin && $v = NULL ]] && continue
+				Attr[$k]=$v
+			done
 
 			#get the params list
-			args=$(parse_yaml "$l"|sed -n '/^Param: */{s///;p;q}')
-			[ -n "$args" ] && testinfo+=", Param: $args"
+			Param=()
+			param=$(parse_subtest "$l"|sed -n '/^Param: */{s///;p;q}')
+			while read p; do
+				[[ -z "$p" ]] && continue
+				Param+=("$p")
+			done < <(eval set -- $param; for ((i=1;i<=$#;i++)); do echo "${!i}"; done)
 
-			#get the global config
-			[[ $topo =~ multiHost* ]] && conf="--topo=$topo "
-			conf+=$(parse_yaml "$l"|sed -n '/^GlobalSetup: */{s///;p;q}')
-			sconf=$(eval set -- $conf; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
-			sconf=$(echo "$sconf"| while read c; do echo -n "$c"|sed -e "s;';'\"'\"';g" -e "s/^/'/" -e "s/$/' /"; done)
-			[ -n "$sconf" ] && testinfo+=", GlobalSetup: $sconf"
+			#get the global setup
+			Setup2=()
+			[[ -n "${Setup[*]}" ]] && Setup2=("${Setup[@]}")
+			gsetup=$(parse_subtest "$l"|sed -n '/^GlobalSetup: */{s///;p;q}')
+			while read s; do
+				[[ -z "$s" ]] && continue
+				Setup2+=("$s")
+			done < <(eval set -- $gsetup; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
 
-			[ "$FORMAT" = pol ] && {
-				testinfo="fs-qe case:$name"
-				[ -n "$args" ] && testinfo="$testinfo param:${args// /,}"
-				testinfo="$testinfo tag:$pkgName,$level,$type"
-				[ -n "$sconf" ] && { sconf=${sconf//\'/}; testinfo="$testinfo gset:${sconf// /,}"; }
+			# output as yaml format
+			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
+			_attr=${_attr//, \}/\}}
+			[[ ${#Param[@]} > 0 ]] && {
+				_param=", "$(echo -n "param: ["; for e in "${Param[@]}"; do ymllist "$e"; done; echo -n "]")
+				_param=${_param/, ]/]}
 			}
-			echo "$testinfo"
+			[[ ${#Setup2[@]} > 0 ]] && {
+				_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do ymllist "$e"; done; echo -n "]")
+				_setup=${_setup/, ]/]}
+			}
+			echo "${name}: {${_attr}${_param}${_setup}}"
 		done <<<"$subtests"
+
+		while read l; do
+			[[ -z "$l" ]] && continue
+
+			#update attr
+			while read k; do
+				$v=$(yaml2dict "$l" attr $k)
+				[[ $k = distroin && $v = NULL ]] && continue
+				Attr[$k]=$v
+			done < <(yaml2dict "$l" -keys attr)
+
+			# output as yaml format
+			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
+			_attr=${_attr//, \}/\}}
+
+			#get the param list
+			_param=$(echo "$l" | sed -rn '/param: /{s/.*(param: \[[^]]+]).*/\1/;p}')
+			[[ -n "$_param" ]] && _param=", "$_param
+
+			#get the setup list
+			Setup2=()
+			[[ -n "${Setup[*]}" ]] && Setup2=("${Setup[@]}")
+			while read s; do
+				Setup2+=("$s")
+			done < <(yaml2dict "$l" setup)
+			[[ ${#Setup2[@]} > 0 ]] && {
+				_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do ymllist "$e"; done; echo -n "]")
+				_setup=${_setup/, ]/]}
+			}
+
+			echo "${name}: {${_attr}${_param}${_setup}}"
+		done <<<"$subtests_yml"
 	fi
 
 	popd >/dev/null
@@ -213,11 +239,7 @@ _getTestList() {
 		info=$(_caseInfo ${d})
 		[ -z "$info" ] && continue
 
-		if [ "$EXP" = yes ]; then
-			echo "$info" | expand_testlist $CONFF -d "$distro"
-		else
-			echo "$info"
-		fi
+		echo "$info"
 	done
 }
 
@@ -228,7 +250,7 @@ P=${0##*/}
 FORMAT=std
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [--fmt=<raw|pol> | -e [-p /etc/bkr-client-improved/bkr.recipe.matrix.conf*] | -d <distro> | -t <maxtime>] [\$dir ...]"
+	echo "Usage: $P [--fmt=<raw|fixme> | -t <maxtime>] [\$dir ...]"
 }
 _at=`getopt -o hred:t:p: \
 	--long help \
@@ -241,10 +263,7 @@ while true; do
 	-h|--help)      Usage; shift 1; exit 0;;
 	-r|--raw)       FORMAT=raw; shift 1;;
 	--fmt)          FORMAT=$2; shift 2;;
-	-e)		EXP=yes; shift 1;;
-	-p)		CONFF=$2; shift 2;;
 	-t)		maxtime=$2; shift 2;;
-	-d)		distro=$2; shift 2;;
 	--) shift; break;;
 	esac
 done
