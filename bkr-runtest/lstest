@@ -250,7 +250,7 @@ P=${0##*/}
 FORMAT=std
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [--fmt=<raw|fixme> | -e[expand_file] | -t <maxtime>] [\$dir ...]"
+	echo "Usage: $P [--raw | -e[expand_file] | -t <maxtime>] [\$dir ...]"
 }
 _at=`getopt -o hrt:e:: \
 	--long help \
