@@ -31,6 +31,7 @@ set OptionList {
 	wb-format  {arg y	help {Customize whiteboard, default WB_FORMAT in see /etc/bkr-client-improved/bkr-runtest.conf}}
 	wb-comment {arg y	help {Add customer string in the default whiteboard}}
 	f          {arg n       help {just do dynamic filter and output test list}}
+	F          {arg n       help {output test groups and exit} hide yes}
   }
 
   "\n  Options for job configuration:" {
@@ -324,9 +325,19 @@ foreach test $TestList {
 
 	if [info exist Opt(alone)] {regsub {ssched=no} $key {ssched=yes} key}
 	if [regexp {ssched=ye} $ssched] {
-		lset key 1 "ssched=yes.[incr sschedCnt]"
+		lset key 0 "ssched=yes.[incr sschedCnt]"
 	}
 	lappend TestGroup($key) $test
+}
+
+if [info exist Opt(F)] {
+	foreach {tkey tvalue} [array get TestGroup] {
+		puts "==> $tkey"
+		foreach test {*}$tvalue {
+			puts "    $test"
+		}
+	}
+	exit
 }
 
 if {[array size TestGroup] == 0} {
