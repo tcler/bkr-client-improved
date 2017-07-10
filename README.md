@@ -8,7 +8,7 @@ Unofficial tools for [beaker-project](https://beaker-project.org/) with improved
 
 - Implement `newcase.sh` to replace `beaker-wizard`, which works better for multi-level directory and mutli-host.
 - Implement `gen_job_xml` to support complicated options setting for each role or recipeset.
-- Add `subtest.desc` to define each test's attribution/parameter/requirement. User don't need to read the code to study how to run it, and easy to extend one test case to multiple test items.
+- Add `subtest.yml` to define each test's attribution/parameter/requirement. User don't need to read the code to study how to run it, and easy to extend one test case to multiple test items.
 - Implement `lstest/bkr-runtest` to submit test jobs to beaker from git dir, the action is convenient, fast, grouped and hardware resources saving. User don't need maintain tedious job XML and parameters.
 - Implement `bkr-autorun-*` to submit test jobs, monitor job status, report test results, and save results in database for easy querying and comparing.
 - Supply some useful scripts for QE.
