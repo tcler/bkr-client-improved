@@ -308,7 +308,7 @@ foreach test $TestList {
 
 	# get ssched
 	set _ssched [dict get $tdict attr ssched]
-	if {$_ssched ni {no ""}} {
+	if {$_ssched ni {no 0 ""}} {
 		set _ssched "yes"
 	} else {
 		set _ssched "no"
