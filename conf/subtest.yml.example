@@ -6,6 +6,8 @@
 #     type: regresion|function|stress|...
 #     ssched: no|ye            #Means if need schedule the test alone
 #     disable: yes             #This test is not ready
+#     distroin: <regular expression pattern to match distro name>
+#     distronotin: <regular expression pattern to match distro name>
 # - param:       #param list:
 #     VAR=$VALUE
 # - setup:       #option list of bkr-runtest, gen_job_xml:
