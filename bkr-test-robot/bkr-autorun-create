@@ -273,12 +273,13 @@ foreach test $_TestList {
 	}
 
 	#filter: check arch whitelist and blacklist
+	set _arch x86_64
 	if [dict exist $tdict setup] {
 		set _setup [dict get $tdict setup]
 		regexp {.*arch=([^ ]+)} "$_setup $SubcmdOpt" _ignore _arch
 	}
 
-	if {[info exist _arch] && [dict exist $tdict attr archnotin]} {
+	if {[dict exist $tdict attr archnotin]} {
 		set match_black 0
 		set blacklist [dict get $tdict attr archnotin]
 		foreach pattern {*}$blacklist {
@@ -292,7 +293,7 @@ foreach test $_TestList {
 			continue
 		}
 	}
-	if {[info exist _arch] && [dict exist $tdict attr archin]} {
+	if {[dict exist $tdict attr archin]} {
 		set match_white 0
 		set whitelist [dict get $tdict attr archin]
 		foreach pattern {*}$whitelist {
