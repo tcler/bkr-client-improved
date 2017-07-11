@@ -2,6 +2,7 @@
 
 [
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+package require yaml
 package require tdom
 package require sqlite3
 package require runtestlib
@@ -258,8 +259,10 @@ set tbody {}
 foreach row $matrix {
 	set testid [lindex $row 0]
 	set test [lindex $row 1]
-	set tname [lindex $test 0]
-	set tattr [lrange $test 1 end]
+	set tdict [::yaml::yaml2dict $test]
+	set tname [lindex $tdict 0]
+	set tdict [lindex $tdict 1]
+
 	set resList [lrange $row 2 end-$distroNum]
 	append tbody "    <tr id=\"$testid\" ondblclick=\"showDetail('$testid')\">\n"
 	append tbody "      <td></td>\n"
@@ -268,13 +271,17 @@ foreach row $matrix {
 	set Tnames $tnames
 	if {[string length $tnames] > 32} {set Tnames "<abbr title=\"$tnames\">[string range $tnames 0 30]..</abbr>"}
 
-	set param [string map {TEST_PARAM_ * FSTYPE {} FSTYP {} NFS_VERSION VER SOCKET_TYPE SOCK TEST_ {} MKFS_OPTS {}} [testinfo param $test]]
+	set param {}
+	if [dict exist $tdict param] {set param [dict get $tdict param]}
+	set param [string map {TEST_PARAM_ * FSTYPE {} FSTYP {} NFS_VERSION VER SOCKET_TYPE SOCK TEST_ {} MKFS_OPTS {}} $param]
 	set Param $param
 	if {[string length $param] > 32} {set Param "<abbr title=\"$param\">[string range $param 0 30]..</abbr>"}
 
-	set gset [string map {-part=fs= {} name= {} size= {} type= {} --arch= {} -arch= {}} [testinfo gset $test]]
-	set Gset $gset
-	if {[string length $gset] > 20} {set Gset "<abbr title=\"$gset\">[string range $gset 0 20]..</abbr>"}
+	set setup {}
+	if [dict exist $tdict setup] {set setup [dict get $tdict setup]}
+	set setup [string map {-part=fs= {} name= {} size= {} type= {} --arch= {} -arch= {}} $setup]
+	set Gset $setup
+	if {[string length $setup] > 20} {set Gset "<abbr title=\"$setup\">[string range $setup 0 20]..</abbr>"}
 
 	set tinfo "$Tnames|$Param|$Gset"
 
@@ -384,8 +391,16 @@ set detailDiv {}
 foreach row $matrix {
 	set testid [lindex $row 0]
 	set test [lindex $row 1]
-	set tname [lindex $test 0]
-	set tinfo "$tname | [testinfo param $test] | [testinfo gset $test]"
+	set tdict [::yaml::yaml2dict $test]
+	set tname [lindex $tdict 0]
+	set tdict [lindex $tdict 1]
+
+	set param {}
+	if [dict exist $tdict param] {set param [dict get $tdict param]}
+	set setup {}
+	if [dict exist $tdict setup] {set setup [dict get $tdict setup]}
+
+	set tinfo "$tname | $param | $setup"
 	set resList [lrange $row end-[expr $distroNum-1] end]
 	append detailDiv "<div class=\"detail\" id=\"div$testid\">\n"
 	append detailDiv "<span class=\"hideDetail\" id=\"div$testid\" onclick=\"hideDetail('div$testid')\"><button type=\"button\">X</button> - \[Close me\]</span>\n"

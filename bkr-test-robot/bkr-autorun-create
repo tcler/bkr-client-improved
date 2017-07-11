@@ -29,6 +29,7 @@ set OptionList {
 	update {arg n	help {Just overwrite existed test run items}}
 	d      {arg n	help {debug mode}}
 
+	f      {arg n   help {just do dynamic filter and output test list}}
 	alone  {forward y arg n	help {Submit all tests separately, one case one recipe}}
   }
 
@@ -230,6 +231,7 @@ foreach f $TestArgList {
 	}
 }
 
+# test filters
 foreach test $_TestList {
 	#filter: skip unexpected stuff
 	set test [string trim $test]
@@ -237,9 +239,81 @@ foreach test $_TestList {
 	if {$test == "" || $test == "./"} continue
 	regsub -line {^-  *} $test {} test
 
+	set tdict [lindex [::yaml::yaml2dict $test] 1]
+
+	#filter: check distro blacklist
+	if [dict exist $tdict attr distronotin] {
+		set match_black 0
+		set blacklist [dict get $tdict attr distronotin]
+		foreach pattern {*}$blacklist {
+			if [regexp $pattern $Distro] {
+				set match_black 1
+				break
+			}
+		}
+		if {$match_black == 1} {
+			puts stderr "{Filter} match blacklist {$blacklist}: $test"
+			continue
+		}
+	}
+
+	#filter: check distro whitelist
+	if [dict exist $tdict attr distroin] {
+		set match_white 0
+		set whitelist [dict get $tdict attr distroin]
+		foreach pattern {*}$whitelist {
+			if [regexp $pattern $Distro] {
+				set match_white 1
+			}
+		}
+		if {$match_white == 0} {
+			puts stderr "{Filter} not match whitelist {$whitelist}: $test"
+			continue
+		}
+	}
+
+	#filter: check arch whitelist and blacklist
+	if [dict exist $tdict setup] {
+		set _setup [dict get $tdict setup]
+		regexp {.*arch=([^ ]+)} "$_setup $SubcmdOpt" _ignore _arch
+	}
+
+	if {[info exist _arch] && [dict exist $tdict attr archnotin]} {
+		set match_black 0
+		set blacklist [dict get $tdict attr archnotin]
+		foreach pattern {*}$blacklist {
+			if [regexp $pattern $_arch] {
+				set match_black 1
+				break
+			}
+		}
+		if {$match_black == 1} {
+			puts stderr "{Filter} match blacklist {$blacklist}: $test"
+			continue
+		}
+	}
+	if {[info exist _arch] && [dict exist $tdict attr archin]} {
+		set match_white 0
+		set whitelist [dict get $tdict attr archin]
+		foreach pattern {*}$whitelist {
+			if [regexp $pattern $_arch] {
+				set match_white 1
+			}
+		}
+		if {$match_white == 0} {
+			puts stderr "{Filter} not match whitelist {$whitelist}: $test"
+			continue
+		}
+	}
+
 	lappend TestList $test
 }
 unset _TestList
+
+if [info exist Opt(f)] {
+	foreach test $TestList {puts $test}
+	exit 0
+}
 
 if ![llength $TestList] {
 	puts "\[$prog\]: *Warn*: test list is nil, nothing to do, please check your test list file."
@@ -295,8 +369,9 @@ if {"testplanName" in [db eval {PRAGMA table_info(testinfo)}]} {
 # insert transaction
 db transaction {
 	foreach test $TestList {
-		set tname [lindex [::yaml::yaml2dict $test] 0]
-		set tdict [lindex [::yaml::yaml2dict $test] 1]
+		set tdict [::yaml::yaml2dict $test]
+		set tname [lindex $tdict 0]
+		set tdict [lindex $tdict 1]
 
 		set tier tier1
 		if [dict exist $tdict attr tier] {
@@ -304,24 +379,23 @@ db transaction {
 		}
 		set param {}
 		if [dict exist $tdict param] {
-			set tier [dict exist $tdict param]
+			set param [dict get $tdict param]
 		}
 		set setup {}
 		if [dict exist $tdict setup] {
-			set tier [dict exist $tdict setup]
+			set setup [dict get $tdict setup]
 		}
 		set key "$tname $param $setup"
 		set testid [::md5::md5 -hex [string trim $key]]
 
 		# verify the arch
-		regexp {-arch=([a-z0-9]+)} $setup _ignore arch
-		if {[regexp {RHEL-7} $Distro_] && [regexp {i386} $arch]} {
+		regexp -- {-arch=([a-z0-9]+)} "$setup $SubcmdOpt" _ignore arch
+		if {[info exist arch] && [regexp {RHEL-7} $Distro_] && [regexp {i386} $arch]} {
 			continue
 		}
 
 		set testInsert {INSERT OR REPLACE INTO testinfo (testid, test, tier, pkgName) VALUES($testid, $test, $tier, $pkgName)}
 		db eval $testInsert
-#puts "$tier $test"
 
 		if [info exist Opt(force)] {
 			set testrunInsert {INSERT OR REPLACE INTO testrun (testid, distro_rgset, abortedCnt, res) VALUES($testid, $Distro_, 0, '-')}
