@@ -28,20 +28,28 @@ parse_subtest() {
 
 ymlhash() {
 	local k=$1 v=$2
+	[[ -z "$k" ]] && return
+	v=${v:-?}
+
 	[[ $k =~ [:,] ]] && k="'$k'"
 	[[ $v =~ [:,] ]] && v="'$v'"
 	echo -n "${k}: $v, "
 }
 ymllist() {
 	local e=$1
+	[[ -z "$e" ]] && return
+
 	[[ $e =~ [:,] ]] && e="'$e'"
 	echo -n "$e, "
 }
 
+[[ $# = 0 ]] && set -- -
 for f in "$@"; do
 	while read l; do
+		name=
 		[[ -z "$l" ]] && continue
 		[[ "$l" =~ ^\ *# ]] && continue
+		[[ "$l" =~ ^/ ]] && read name l <<<"$l"
 
 		#get attr list
 		declare -A Attr
@@ -69,6 +77,7 @@ for f in "$@"; do
 		done < <(eval set -- $gsetup; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
 
 		# output as yaml format
+		[[ -n "$name" ]] && echo -n "$name: "
 		[[ ${#Attr[@]} > 0 ]] && {
 			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
 			_attr=${_attr//, \}/\}}
@@ -83,6 +92,5 @@ for f in "$@"; do
 		}
 		result="${_attr}${_param}${_setup}"
 		echo ${result#, }
-	#done < "$f"
-	done < "$f" >"${f/.*/.yml}"
+	done < <(cat "$f")
 done
