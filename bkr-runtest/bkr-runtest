@@ -273,7 +273,7 @@ foreach test $_TestList {
 			}
 		}
 		if {$match_black == 1} {
-			puts stderr "{Warn} match blacklist $blacklist: $test"
+			puts stderr "{Filter} match blacklist {$blacklist}: $test"
 			continue
 		}
 	}
@@ -288,10 +288,45 @@ foreach test $_TestList {
 			}
 		}
 		if {$match_white == 0} {
-			puts stderr "{Warn} not match whitelist $whitelist: $test"
+			puts stderr "{Filter} not match whitelist {$whitelist}: $test"
 			continue
 		}
 	}
+
+	#filter: check arch whitelist and blacklist
+	if [dict exist $tdict setup] {
+		set _setup [dict get $tdict setup]
+		regexp {.*arch=([^ ]+)} "$_setup $SubcmdOpt" _ignore _arch
+	}
+
+	if {[info exist _arch] && [dict exist $tdict attr archnotin]} {
+		set match_black 0
+		set blacklist [dict get $tdict attr archnotin]
+		foreach pattern {*}$blacklist {
+			if [regexp $pattern $_arch] {
+				set match_black 1
+				break
+			}
+		}
+		if {$match_black == 1} {
+			puts stderr "{Filter} match blacklist {$blacklist}: $test"
+			continue
+		}
+	}
+	if {[info exist _arch] && [dict exist $tdict attr archin]} {
+		set match_white 0
+		set whitelist [dict get $tdict attr archin]
+		foreach pattern {*}$whitelist {
+			if [regexp $pattern $_arch] {
+				set match_white 1
+			}
+		}
+		if {$match_white == 0} {
+			puts stderr "{Filter} not match whitelist {$whitelist}: $test"
+			continue
+		}
+	}
+
 	lappend TestList $test
 }
 unset _TestList
