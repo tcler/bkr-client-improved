@@ -73,6 +73,14 @@ for f in "$@"; do
 		gsetup=$(parse_subtest "$l"|sed -n '/^GlobalSetup: */{s///;p;q}')
 		while read s; do
 			[[ -z "$s" ]] && continue
+			[[ "$s" =~ arch= ]] && {
+				Attr[archin]=${s/*arch=/}
+				continue
+			}
+			[[ "$s" =~ noarch= ]] && {
+				Attr[archnotin]=${s/*noarch=/}
+				continue
+			}
 			Setup2+=("$s")
 		done < <(eval set -- $gsetup; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
 
