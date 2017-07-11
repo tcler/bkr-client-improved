@@ -53,15 +53,20 @@ for f in "$@"; do
 
 		#get attr list
 		declare -A Attr
+		Param=()
+		Setup2=()
 		subattr=$(parse_subtest "$l"|sed -n '/^Attr: */{s///;p;q}')
 		for kv in $subattr; do
 			read k v <<<"${kv/=/ }"
 			[[ $k = distroin && $v = NULL ]] && continue
+			[[ $k = topo ]] && {
+				[[ $v =~ ^multi ]] && Setup2+=("--topo=$v")
+				continue
+			}
 			Attr[$k]=$v
 		done
 
 		#get the params list
-		Param=()
 		param=$(parse_subtest "$l"|sed -n '/^Param: */{s///;p;q}')
 		while read p; do
 			[[ -z "$p" ]] && continue
@@ -69,7 +74,6 @@ for f in "$@"; do
 		done < <(eval set -- $param; for ((i=1;i<=$#;i++)); do echo "${!i}"; done)
 
 		#get the global setup
-		Setup2=()
 		gsetup=$(parse_subtest "$l"|sed -n '/^GlobalSetup: */{s///;p;q}')
 		while read s; do
 			[[ -z "$s" ]] && continue
