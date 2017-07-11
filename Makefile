@@ -5,8 +5,13 @@ _bkr_client_cmd=/usr/lib/python2.7/site-packages/bkr/client/commands
 completion_path=/usr/share/bash-completion/completions
 
 install install_runtest: _isroot
+	@-rpm -q epel-release || { \
+		[[ $$(uname -r) =~ ^2\.6\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm; \
+		[[ $$(uname -r) =~ ^3\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm; \
+	}
 	@rpm -q redhat-lsb >/dev/null || yum install -y redhat-lsb #package that in default RHEL repo
 	@rpm -q tcl >/dev/null || yum install -y tcl #package that in default RHEL repo
+	@yum install -y tcllib  #epel
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
 	mkdir -p /etc/bkr-client-improved && cp -n -r -d conf/* /etc/bkr-client-improved/.
 	cd lib; for d in *; do rm -fr /usr/local/lib/$$d; done
@@ -14,9 +19,9 @@ install install_runtest: _isroot
 	cd bkr-runtest; for f in *; do rm -fr $(_bin)/$$f; done
 	cp -rf -d lib/* /usr/local/lib/.
 	cp -f -d bkr-runtest/* utils/* $(_bin)/.
-	cp -f bkr-client-cmd/* $(_bkr_client_cmd)/.
 	@ps axf|grep -v grep|grep -q vershow || $(_bin)/vershow -uu >/dev/null &
 	cp -f -d bash-completion/* $(completion_path)/.
+	@-cp -f bkr-client-cmd/* $(_bkr_client_cmd)/.
 
 install_all: install_robot _install_web
 
@@ -45,16 +50,13 @@ _install_web1: _isroot _install_tclsh8.6
 	@chmod u+s /usr/local/bin/wub-service.sh
 
 _install_tclsh8.6: _isroot
-	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; \
-	./utils/tcllib_install.sh; }
+	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; }
 
 _install_require: _isroot
 	@sed -i '/^Defaults *secure_path/{/.usr.local.bin/! {s; *$$;:$(_bin);}}' /etc/sudoers
 	@rpm -q tcl-devel >/dev/null || yum install -y tcl-devel #package that in default RHEL repo
 	@rpm -q sqlite >/dev/null || yum install -y sqlite #package that in default RHEL repo
 	@rpm -q sqlite-tcl >/dev/null || { yum install -y sqlite-tcl; exit 0; } #package that in default RHEL repo
-	@-! tclsh <<<"lappend ::auto_path /usr/lib /usr/lib64; package require md5" 2>&1|grep -q 'can.t find' || \
-{ yum install -y tcllib || ./utils/tcllib_install.sh; }
 	@-! tclsh <<<"lappend ::auto_path /usr/local/lib /usr/lib64; package require tdom" 2>&1|grep -q 'can.t find' || \
 { yum install -y tdom || ./utils/tdom_install.sh; }
 
