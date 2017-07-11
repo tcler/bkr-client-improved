@@ -89,7 +89,7 @@ for f in "$@"; do
 		done < <(eval set -- $gsetup; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
 
 		# output as yaml format
-		[[ -n "$name" ]] && echo -n "$name: "
+		[[ -n "$name" ]] && echo -n "$name: {"
 		[[ ${#Attr[@]} > 0 ]] && {
 			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
 			_attr=${_attr//, \}/\}}
@@ -103,6 +103,8 @@ for f in "$@"; do
 			_setup=${_setup/, ]/]}
 		}
 		result="${_attr}${_param}${_setup}"
-		echo ${result#, }
+		echo -n ${result#, }
+		[[ -n "$name" ]] && echo -n "}"
+		echo
 	done < <(cat "$f")
 done
