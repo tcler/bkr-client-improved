@@ -242,7 +242,7 @@ foreach test $_TestList {
 	set tdict [lindex [::yaml::yaml2dict $test] 1]
 
 	if [dict exist $tdict attr disable] {
-		continue
+		if {[dict get $tdict attr disable] ni {no 0}} continue
 	}
 
 	#filter: check distro blacklist

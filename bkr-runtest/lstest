@@ -157,7 +157,7 @@ _caseInfo() {
 			for kv in $subattr; do
 				read k v <<<"${kv/=/ }"
 				[[ $k = distroin && $v = NULL ]] && continue
-				[[ $k = disable ]] && continue 2
+				[[ $k = disable && $v = yes ]] && continue 2
 				Attr[$k]=$v
 			done
 
@@ -199,7 +199,7 @@ _caseInfo() {
 			while read k; do
 				v=$(yaml2dict "$l" attr $k)
 				[[ $k = distroin && $v = NULL ]] && continue
-				[[ $k = disable ]] && continue 2
+				[[ $k = disable && $v = yes ]] && continue 2
 				Attr[$k]=$v
 			done < <(yaml2dict "$l" -keys attr)
 
