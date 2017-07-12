@@ -241,6 +241,10 @@ foreach test $_TestList {
 
 	set tdict [lindex [::yaml::yaml2dict $test] 1]
 
+	if [dict exist $tdict attr disable] {
+		continue
+	}
+
 	#filter: check distro blacklist
 	if [dict exist $tdict attr distronotin] {
 		set match_black 0
