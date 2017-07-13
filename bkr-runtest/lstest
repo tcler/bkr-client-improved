@@ -89,7 +89,7 @@ _caseInfo() {
 	eval "$(egrep '^[[:space:]]*(export *)?PACKAGE(_NAME)?=[^ #]' -h * .* 2>/dev/null|sed 's;export;;')"
 	_pkg=${PACKAGE_NAME}
 	test -z "${_pkg}" && _pkg=${PACKAGE}
-	test -z "${_pkg}" && _pkg=?
+	test -z "${_pkg}" && _pkg=Function
 	Attr[pkg]=$_pkg
 
 	#get test attr: sepatate scheduling?
