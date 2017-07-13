@@ -9,7 +9,7 @@ install install_runtest: _isroot
 	@if [[ $$(lsb_release -si) != Fedora ]]; then \
 	  if ! rpm -q epel-release; then \
 	    [[ $$(uname -r) =~ ^2\.6\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm; \
-	    [[ $$(uname -r) =~ ^3\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm; \
+	    [[ $$(uname -r) =~ ^3\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm; :; \
 	  fi; \
 	fi
 	@rpm -q tcl >/dev/null || yum install -y tcl #package that in default RHEL repo
@@ -22,7 +22,8 @@ install install_runtest: _isroot
 	cp -rf -d lib/* /usr/local/lib/.
 	cp -f -d bkr-runtest/* utils/* $(_bin)/.
 	@ps axf|grep -v grep|grep -q vershow || $(_bin)/vershow -uu >/dev/null &
-	cp -f -d bash-completion/* $(completion_path)/.
+	@yum install -y bash-completion
+	cp -fd bash-completion/* ${completion_path}/.||cp -fd bash-completion/* ${completion_path/\/*/}/.
 	@-cp -f bkr-client-cmd/* $(_bkr_client_cmd)/.
 
 install_all: install_robot _install_web
