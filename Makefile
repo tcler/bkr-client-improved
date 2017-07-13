@@ -5,11 +5,13 @@ _bkr_client_cmd=/usr/lib/python2.7/site-packages/bkr/client/commands
 completion_path=/usr/share/bash-completion/completions
 
 install install_runtest: _isroot
-	@-rpm -q epel-release || { \
-		[[ $$(uname -r) =~ ^2\.6\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm; \
-		[[ $$(uname -r) =~ ^3\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm; \
-	}
 	@rpm -q redhat-lsb >/dev/null || yum install -y redhat-lsb #package that in default RHEL repo
+	@if [[ $$(lsb_release -si) != Fedora ]]; then \
+	  if ! rpm -q epel-release; then \
+	    [[ $$(uname -r) =~ ^2\.6\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm; \
+	    [[ $$(uname -r) =~ ^3\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm; \
+	  fi; \
+	fi
 	@rpm -q tcl >/dev/null || yum install -y tcl #package that in default RHEL repo
 	@yum install -y tcllib  #epel
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
