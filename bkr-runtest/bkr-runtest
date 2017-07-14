@@ -248,7 +248,7 @@ if {[llength $TestArgList]==0 && $_TestList == {}} {
 			} elseif [file isdirectory $f] {
 				puts stderr "{*Warn*} '$f' is a directory. please use 'lstest $f | $prog <arg> \[opts\]'"
 			} else {
-				puts stderr "{*Warn*} file '$f' not exist.
+				puts stderr "{*Warn*} file '$f' not exist."
 			}
 		}
 	}
