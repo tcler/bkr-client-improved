@@ -52,7 +52,7 @@ for f in "$@"; do
 		[[ "$l" =~ ^/ ]] && read name l <<<"$l"
 
 		#get attr list
-		unset Attr
+		unset Attr Param Setup2
 		declare -A Attr
 		Param=()
 		Setup2=()
@@ -60,6 +60,7 @@ for f in "$@"; do
 		for kv in $subattr; do
 			read k v <<<"${kv/=/ }"
 			#[[ $k = distroin && $v = NULL ]] && continue
+			[[ $k = type && $v = "" ]] && v=Function
 			[[ $k = topo ]] && {
 				[[ $v =~ ^multi ]] && Setup2+=("--topo=$v")
 				continue
@@ -90,15 +91,18 @@ for f in "$@"; do
 		done < <(eval set -- $gsetup; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
 
 		# output as yaml format
+		_attr= _param= _setup=
 		[[ -n "$name" ]] && echo -n "$name: {"
 		[[ ${#Attr[@]} > 0 ]] && {
 			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
 			_attr=${_attr//, \}/\}}
 		}
+
 		[[ ${#Param[@]} > 0 ]] && {
 			_param=", "$(echo -n "param: ["; for e in "${Param[@]}"; do ymllist "$e"; done; echo -n "]")
 			_param=${_param/, ]/]}
 		}
+
 		[[ ${#Setup2[@]} > 0 ]] && {
 			_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do ymllist "$e"; done; echo -n "]")
 			_setup=${_setup/, ]/]}
