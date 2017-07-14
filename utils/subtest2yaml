@@ -52,6 +52,7 @@ for f in "$@"; do
 		[[ "$l" =~ ^/ ]] && read name l <<<"$l"
 
 		#get attr list
+		unset Attr
 		declare -A Attr
 		Param=()
 		Setup2=()
