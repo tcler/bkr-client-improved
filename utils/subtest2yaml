@@ -59,7 +59,7 @@ for f in "$@"; do
 		subattr=$(parse_subtest "$l"|sed -n '/^Attr: */{s///;p;q}')
 		for kv in $subattr; do
 			read k v <<<"${kv/=/ }"
-			[[ $k = distroin && $v = NULL ]] && continue
+			#[[ $k = distroin && $v = NULL ]] && continue
 			[[ $k = topo ]] && {
 				[[ $v =~ ^multi ]] && Setup2+=("--topo=$v")
 				continue
