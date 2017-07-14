@@ -340,9 +340,11 @@ if [info exist Opt(restraint)] {
 
 set ROLE_LIST {}
 if [info exist Opt(topo)] {
-	lassign [regsub -all {[^0-9]+} $Opt(topo) " "] Opt(servers) Opt(clients)
-	if {$Opt(servers) == ""} {set Opt(servers) 1}
-	if {$Opt(clients) == ""} {set Opt(clients) 1}
+	if ![regexp -nocase {single} $Opt(topo)] {
+		lassign [regsub -all {[^0-9]+} $Opt(topo) " "] Opt(servers) Opt(clients)
+		if {$Opt(servers) == ""} {set Opt(servers) 1}
+		if {$Opt(clients) == ""} {set Opt(clients) 1}
+	}
 }
 if [info exist Opt(servers)] { lappend ROLE_LIST {*}[lrepeat $Opt(servers) SERVERS] }
 if [info exist Opt(clients)] { lappend ROLE_LIST {*}[lrepeat $Opt(clients) CLIENTS] }

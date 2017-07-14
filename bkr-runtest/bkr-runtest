@@ -354,7 +354,10 @@ foreach test $TestList {
 	set tdict [lindex [::yaml::yaml2dict $test] 1]
 
 	# get ssched
-	set _ssched [dict get $tdict attr ssched]
+	set _ssched no
+	if [dict exist $tdict attr ssched] {
+		set _ssched [dict get $tdict attr ssched]
+	}
 	if {$_ssched ni {no 0 ""}} {
 		set _ssched "yes"
 	} else {
