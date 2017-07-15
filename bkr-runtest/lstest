@@ -215,7 +215,13 @@ _caseInfo() {
 			Setup2=()
 			[[ -n "${Setup[*]}" ]] && Setup2=("${Setup[@]}")
 			while read s; do
-				Setup2+=("$s")
+				if [[ "$s" =~ topo= ]]; then
+					for i in ${!Setup2[@]}; do
+						[[ "${Setup2[$i]}" =~ topo= ]] && Setup2[$i]=$s
+					done
+				else
+					Setup2+=("$s")
+				fi
 			done < <(yaml2dict "$l" setup)
 			[[ ${#Setup2[@]} > 0 ]] && {
 				_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do ymllist "$e"; done; echo -n "]")
