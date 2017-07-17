@@ -195,16 +195,24 @@ _caseInfo() {
 		while read l; do
 			[[ -z "$l" ]] && continue
 
+			unset Attr2 Setup2
+			declare -A Attr2
+			Setup2=()
+
 			#update attr
+			for key in "${!Attr[@]}"; do
+				Attr2[$key]=${Attr[$key]}
+			done
 			while read k; do
 				v=$(yaml2dict "$l" attr $k)
 				[[ $k = distroin && $v = NULL ]] && continue
 				[[ $k = disable && $v = yes ]] && continue 2
-				Attr[$k]=$v
+				Attr2[$k]=$v
 			done < <(yaml2dict "$l" -keys attr)
 
+			_attr= _param= _setup=
 			# output as yaml format
-			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
+			_attr=$(echo -n "attr: {"; for e in "${!Attr2[@]}"; do ymlhash "$e" "${Attr2[$e]}"; done; echo -n "}")
 			_attr=${_attr//, \}/\}}
 
 			#get the param list
@@ -212,7 +220,6 @@ _caseInfo() {
 			[[ -n "$_param" ]] && _param=", "$_param
 
 			#get the setup list
-			Setup2=()
 			[[ -n "${Setup[*]}" ]] && Setup2=("${Setup[@]}")
 			while read s; do
 				if [[ "$s" =~ topo= ]]; then
