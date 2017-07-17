@@ -63,7 +63,19 @@ db eval {
 db transaction {
 	foreach testobj $TestList {
 		lassign $testobj testid test tier
-		set key [testinfo md5sum $test]
+
+		set tdict [::yaml::yaml2dict $test]
+		set tname [lindex $tdict 0]
+		set tdict [lindex $tdict 1]
+		set param {}
+		if [dict exist $tdict param] {
+			set param [dict get $tdict param]
+		}
+		set setup {}
+		if [dict exist $tdict setup] {
+			set setup [dict get $tdict setup]
+		}
+		set key "$tname $param $setup"
 		set newtestid [::md5::md5 -hex [string trim $key]]
 
 if {$key == $test} {

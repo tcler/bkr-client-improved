@@ -11,7 +11,7 @@
 exec tclsh "$0" ${1+"$@"}
 
 namespace eval ::runtestlib {
-	namespace export dbroot testinfo genGset genWhiteboard expandDistro hostUsed runtestConf autorunConf
+	namespace export dbroot genWhiteboard expandDistro hostUsed runtestConf autorunConf
 }
 
 set runtestConf /etc/bkr-client-improved/bkr-runtest.conf
@@ -68,73 +68,6 @@ proc ::conf2dict {confStr} {
 	return [string trim $res]
 }
 
-proc ::runtestlib::testinfo {subcmd testobj} {
-	set tattr {}
-	set param {}
-	set gset {}
-
-	set tname [lindex $testobj 0]
-	set testdesc "[regsub -- {^ *[^ ]* *} $testobj {}]"
-	set dictStr [::conf2dict "$testdesc"]
-
-	foreach {k v} $dictStr {
-		if {$k == "Attr"} {
-			set tattr [concat $tattr $v]
-		} elseif {$k == "Param"} {
-			set param [concat $param $v]
-		} elseif {$k == "GlobalSetup"} {
-			set gset [concat $gset $v]
-		}
-	}
-
-	set ret ""
-	switch -exact -- $subcmd {
-		"recipekey" {
-			if ![regsub {.*(ssched=..).*} $tattr {\1} _ssched] { set _ssched ssched=no }
-			set key "$_ssched"
-			lappend key $gset
-			set ret $key
-		}
-		"attr" {
-			set ret $tattr
-		}
-		"param" {
-			set ret $param
-		}
-		"arch" -
-		"gset" {
-			if {$subcmd == "arch"} {
-				set ret x86_64
-				if [regexp -- {-arch=([^ ]+)} $gset] {
-					set ret [regsub {.*-arch=([_0-9a-zA-Z]+).*} $gset {\1}]
-				}
-			} else {
-				set ret $gset
-			}
-		}
-		"pkg" {
-			regsub  {.*pkg=([^ ]*).*} $tattr  {\1}  pkg
-			set ret $pkg
-		}
-		"md5sum" {
-			set ret "$tname $param $gset"
-		}
-		"tier" {
-			regsub  {.* level=[Tt]ier([0-9]).*} $tattr {\1} tier
-			if {$tier == ""} {set tier 1}
-			set ret $tier
-		}
-	}
-
-	return $ret
-}
-
-proc ::runtestlib::genGset {testkey} {
-	lassign $testkey ssched gset
-	set gset [string trimleft $gset]
-	return $gset
-}
-
 proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 	proc pop {varname} {
 		upvar 1 $varname var
@@ -161,7 +94,7 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 	if {![info exist pkg] || $pkg == ""} {set pkg ?}
 
 	# Gen gset string
-	set gset [genGset $testkey]
+	lassign $testkey _ssched gset
 
 	# Get task number
 	set tnum [llength $testList]
@@ -292,9 +225,9 @@ proc ::runtestlib::hostUsed {} {
 	    join testinfo ti on
 	        (trun.testStat = 'running' or trun.res LIKE '%New%') and ti.testid = trun.testid
 	} {
-		set arch [testinfo arch $test]
-		if [regexp -- {-arch=([^ \"']+)} $rgset] {
-			regexp -- {-arch=([^ \"']+)} $rgset _arch arch
+		set arch x86_64
+		if [regexp -- {.*-arch=([^ ]+)} "$test $rgset"] {
+			regexp -- {.*-arch=([^ ]+)} "$test $rgset" _arch arch
 		}
 		set hostused_($arch\ $jobid) [llength $res]
 	}
