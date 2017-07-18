@@ -109,6 +109,7 @@ set OptionList {
 	dbgk			{arg n	help {Use the debug kernel}}
 	kcov			{arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs, drivers/net"}}
 	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
+	nokdump			{arg n	help {disable kdump, some tests can not work with kdump}}
 	cmd			{arg m	help {Add /distribution/command before test task}}
 	cmdb			{arg m	help {Add /distribution/command before install kernel}}
 	cmd-end			{arg m	help {Add /distribution/command in the end of the recipe}}
@@ -710,7 +711,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 
 				# --kdump task
-				if [info exist Opt(kdump)] {
+				if {[info exist Opt(kdump)] && ![info exist Opt(nokdump)]} {
 					set kdumpAddr $Opt(kdump)
 					if {$kdumpAddr == "" && [info exist KDUMP_ADDR]} {
 						set kdumpAddr $KDUMP_ADDR
