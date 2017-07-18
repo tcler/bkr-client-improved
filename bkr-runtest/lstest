@@ -137,61 +137,17 @@ _caseInfo() {
 
 	subtests_generator="gen_subtest.sh"
 	[ -x $subtests_generator ] && sh $subtests_generator
-	subtests=$(egrep -h '^[[:space:]]*(Attr|Param|GlobalSetup):' subtest.desc subtest.list  2>/dev/null)
 	subtests_yml=$(egrep -h '^[[:space:]]*(attr|param|setup):' subtest.yml 2>/dev/null)
 
-	if [[ "$FORMAT" = raw ]] || [[ -z "$subtests" && -z "$subtests_yml" ]]; then
+	if [[ "$FORMAT" = raw ]] || [[ -z "$subtests_yml" ]]; then
 		_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
 		_attr=${_attr//, \}/\}}
 		[[ ${#Setup[@]} > 0 ]] && {
 			_setup=", "$(echo -n "setup: ["; for e in "${Setup[@]}"; do ymllist "$e"; done; echo -n "]")
 			_setup=${_setup/, ]/]}
 		}
-		echo "${name}: {${_attr}${_setup}}"
+		echo "- ${name}: {${_attr}${_setup}}"
 	else
-		while read l; do
-			[[ -z "$l" ]] && continue
-
-			#update attr
-			subattr=$(parse_subtest "$l"|sed -n '/^Attr: */{s///;p;q}')
-			for kv in $subattr; do
-				read k v <<<"${kv/=/ }"
-				[[ $k = distroin && $v = NULL ]] && continue
-				[[ $k = disable && $v = yes ]] && continue 2
-				Attr[$k]=$v
-			done
-
-			#get the params list
-			Param=()
-			param=$(parse_subtest "$l"|sed -n '/^Param: */{s///;p;q}')
-			while read p; do
-				[[ -z "$p" ]] && continue
-				Param+=("$p")
-			done < <(eval set -- $param; for ((i=1;i<=$#;i++)); do echo "${!i}"; done)
-
-			#get the global setup
-			Setup2=()
-			[[ -n "${Setup[*]}" ]] && Setup2=("${Setup[@]}")
-			gsetup=$(parse_subtest "$l"|sed -n '/^GlobalSetup: */{s///;p;q}')
-			while read s; do
-				[[ -z "$s" ]] && continue
-				Setup2+=("$s")
-			done < <(eval set -- $gsetup; for ((i=1;i<=$#;i++)); do echo "${!i}"; done|sort)
-
-			# output as yaml format
-			_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
-			_attr=${_attr//, \}/\}}
-			[[ ${#Param[@]} > 0 ]] && {
-				_param=", "$(echo -n "param: ["; for e in "${Param[@]}"; do ymllist "$e"; done; echo -n "]")
-				_param=${_param/, ]/]}
-			}
-			[[ ${#Setup2[@]} > 0 ]] && {
-				_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do ymllist "$e"; done; echo -n "]")
-				_setup=${_setup/, ]/]}
-			}
-			echo "${name}: {${_attr}${_param}${_setup}}"
-		done <<<"$subtests"
-
 		while read l; do
 			[[ -z "$l" ]] && continue
 
@@ -205,7 +161,7 @@ _caseInfo() {
 			done
 			while read k; do
 				v=$(yaml2dict "$l" attr $k)
-				[[ $k = distroin && $v = NULL ]] && continue
+				[[ $k = distroin && $v = "" ]] && v=NULL
 				[[ $k = disable && $v = yes ]] && continue 2
 				Attr2[$k]=$v
 			done < <(yaml2dict "$l" -keys attr)
@@ -235,7 +191,7 @@ _caseInfo() {
 				_setup=${_setup/, ]/]}
 			}
 
-			echo "${name}: {${_attr}${_param}${_setup}}"
+			echo "- ${name}: {${_attr}${_param}${_setup}}"
 		done <<<"$subtests_yml"
 	fi
 
