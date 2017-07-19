@@ -16,6 +16,7 @@ install install_runtest: _isroot
 	@yum install -y tcllib  #epel
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
 	mkdir -p /etc/bkr-client-improved && cp -n -r -d conf/* /etc/bkr-client-improved/.
+	cp -f conf/*.example /etc/bkr-client-improved/.
 	cd lib; for d in *; do rm -fr /usr/local/lib/$$d; done
 	cd utils; for f in *; do rm -fr $(_bin)/$$f; done
 	cd bkr-runtest; for f in *; do rm -fr $(_bin)/$$f; done
