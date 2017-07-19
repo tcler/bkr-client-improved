@@ -11,8 +11,7 @@ lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require yaml
 package require xmlgen
 package require getOpt 3.0
-package require runtestlib
-namespace import ::xmlgen::* ::getOpt::* ::runtestlib::*
+namespace import ::xmlgen::* ::getOpt::*
 
 declaretags job whiteboard notify cc
 declaretags recipeSet recipe and or not
@@ -23,8 +22,6 @@ declaretags partitions partition
 declaretags ks_appends ks_append
 declaretags watchdog
 declaretags task params param
-
-source $::runtestConf
 
 # global var
 array set Opt {}
@@ -260,13 +257,16 @@ if {[llength $TestList] == 0} {
 	exit 1
 }
 foreach T $TestList {
-	set tname [lindex $T 0]
-	if {[string index $tname end] == ":"} {
-		set tname [string range $tname 0 end-1]
-	}
-	if [regexp {param: } $T] {
-		set tdict [::yaml::yaml2dict $T]
-		if ![dict exist $tdict param] {set tdict [lindex [::yaml::yaml2dict $T] 1]}
+	set test [string trim $T]
+	if {[regexp -- {^#} $test] == 1} continue
+	if {$test == "" || $test == "./"} continue
+	regsub -line {^-  *} $test {} test
+
+	set tdict [::yaml::yaml2dict $T]
+	set tname [lindex $tdict 0]
+	set tdict [lindex $tdict 1]
+
+	if [dict exist $tdict param] {
 		lappend TaskList [concat $tname $GlobalParam [dict get $tdict param]]
 	} else {
 		lappend TaskList [concat $tname $GlobalParam]
@@ -396,9 +396,7 @@ if [info exist Opt(recipe)] {
 	set notifyCtl {C}
 }
 
-if ![info exist jobOwner] {
-	set jobOwner {}
-}
+set jobOwner {}
 if [info exist Opt(job-owner)] {
 	set jobOwner $Opt(job-owner)
 }

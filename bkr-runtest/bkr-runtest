@@ -108,8 +108,8 @@ set OptionList {
 	scratch			{forward y arg m  help {same as Scratch, but every specified just apply one host, if in multihost mode}}
 	dbgk			{forward y arg n	help {Use the debug kernel}}
 	kcov			{forward y arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs,drivers/net"}}
-	kdump			{forward y arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
-	nokdump			{forward y arg n	help {disable kdump, some tests can not work with kdump}}
+	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
+	nokdump			{arg n	help {disable kdump, some tests can not work with kdump}}
 	cmd			{forward y arg m	help {Add /distribution/command before test task}}
 	cmdb			{forward y arg m	help {Add /distribution/command before install kernel}}
 	cmd-end 		{forward y arg m	help {Add /distribution/command in the end of the recipe}}
@@ -407,6 +407,17 @@ if [info exist Opt(jobn)] {
 	if {$jobN == ""} {set jobN 1}
 }
 
+if {[info exist Opt(kdump)] } {
+	if {$Opt(kdump) == "" && [info exist KDUMP_ADDR]} {
+		set Opt(kdump) $KDUMP_ADDR
+	}
+	lappend SubcmdOpt "-kdump=$Opt(kdump)"
+}
+
+if [info exist jobOwner] {
+	lappend SubcmdOpt "-job-owner=$jobOwner"
+}
+
 if [info exist Opt(merge)] {
 	set xmlf_merged "job_merged.[clock format [clock seconds] -format %Y%m%d_%H%M].[expr {int(rand()*10000)}].xml"
 	lappend SubcmdOpt {-recipe}
@@ -434,7 +445,11 @@ foreach {tkey tvalue} [array get TestGroup] {
 	}
 
 	if {[string length $SubcmdOpt]>0} {
-		regsub -all "%O" $WB "{$SubcmdOpt}" WB
+		set _opts $SubcmdOpt
+		if {[info exist Opt(kdump)] && $Opt(kdump) != ""} {
+			regsub -line {kdump=[^ ]+} $_opts {kdump=*} _opts
+		}
+		regsub -all "%O" $WB "{$_opts}" WB
 	} else {
 		regsub -all "%O" $WB "" WB
 	}
