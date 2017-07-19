@@ -4,22 +4,27 @@
 # - attr:        #attr key: value hash:
 #     level: Tier1|Tier2|...
 #     type: regresion|function|stress|...
-#     ssched: no|ye            #Means if need schedule the test alone
+#     ssched: no|yes[.reason]  #Means if need schedule the test alone
 #     disable: yes             #This test is not ready
-#     distroin: <regular expression pattern to match distro name>
+#     distroin:    <regular expression pattern to match distro name>
 #     distronotin: <regular expression pattern to match distro name>
+#     archin:      <regular expression pattern to match arch name>
+#     archnotin:   <regular expression pattern to match arch name>
 # - param:       #param list:
 #     VAR=$VALUE
-# - setup:       #option list of bkr-runtest, gen_job_xml:
+# - setup:       #option list of bkr workflow-*, bkr-runtest, gen_job_xml:
+#     --topo=singlehost
+#     --topo=multihost.1.2
 #     --arch=<arch>            #Run for specified arch
-#     --kernel-options=k=v     #same as bkr-workflow/gen_job_xml option
-#     --hostrequire=k=v        #same as bkr-workflow/gen_job_xml option
-#     --keyvalue=k=v           #same as bkr-workflow/gen_job_xml option
-#     --machine=v              #same as bkr-workflow/gen_job_xml option
+#     --kernel-options=k=v     #same as bkr workflow/gen_job_xml option
+#     --hostrequire=k=v        #same as bkr workflow/gen_job_xml option
+#     --keyvalue=k=v           #same as bkr workflow/gen_job_xml option
+#     --machine=v              #same as bkr workflow/gen_job_xml option
 #     ...
 # Example:
-attr: {ssched: yes.dangerous, distroin: RHEL-?[56]}
+
+attr: {ssched: yes.dangerous, distroin: 'RHEL-[56]'}
 param: [PROTO=tcp, NFS_VER=4.2]
-param: [PROTO=udp, NFS_VER=3], setup: ['--opt=arg,with,comma', --fips]
-attr: {archin: x86_64}, param: ['VAR=value,with,comma', VAR2=value with space]
+param: [PROTO=udp, NFS_VER=3], setup: ['--opt=arg,with,comma', --topo=multihost.1.2, --fips]
+attr: {archin: x86_64}, param: ['VAR=value,with,comma', VAR2=value with space], setup: [--topo=singlehost]
 attr: {level: Tier1, type: regression, ssched: yes.longtime}, param: [var=value, x=y], setup: [--kernel-options=x=y, --keyvalue=x=y]
