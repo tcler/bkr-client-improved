@@ -8,6 +8,7 @@ exec tclsh "$0" ${1+"$@"}
 # tdom usage: http://wiki.tcl.tk/8984
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+package require yaml
 package require tdom
 package require sqlite3
 package require runtestlib 1.1
@@ -276,7 +277,14 @@ db eval {
 	}
 
 	set distro_arch_rgset "$distro $arch $rgset"
-	lappend waitSubmitedTest($distro_arch_rgset) "$test , Param: TestID=$testid"
+
+	set tdict [lindex [::yaml::yaml2dict $test] 1]
+	if [dict exist $tdict param] {
+		regsub -line {param: \[} $test "&TestID=$testid, " ntest
+	} else {
+		regsub -line ".$"  $test  ", param: \[TestID=$testid]&" ntest
+	}
+	lappend waitSubmitedTest($distro_arch_rgset) $ntest
 }
 
 #Submit the test list to beaker: limitSubmitJobs
