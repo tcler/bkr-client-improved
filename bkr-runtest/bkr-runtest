@@ -378,7 +378,7 @@ foreach test $TestList {
 
 	set key [list $ssched $setup]
 
-	if [info exist Opt(alone)] {regsub {ssched=no} $key {ssched=yes} key}
+	if [info exist Opt(alone)] {regsub {ssched=no} $ssched {ssched=yes} ssched}
 	if [regexp {ssched=ye} $ssched] {
 		lset key 0 "ssched=yes.[incr sschedCnt]"
 	}
