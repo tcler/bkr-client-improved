@@ -265,15 +265,15 @@ db eval {
 	trun.testid = ti.testid and (trun.testStat = '' or trun.testStat = 'aborted' or trun.testStat = 'cancelled' or trun.jobid = '') and trun.abortedCnt < 10
 } {
 	if {$abrtCnt > 5} {set alone {-alone}}
-	if ![regexp -- {-arch=([^ \"']+)} $test _arch arch] {
+	if ![regexp -- {-arch=([a-z0-9_]+)} $test _arch arch] {
 		set arch x86_64
 	}
 	if {$arch == "auto"} {set arch x86_64}
 	set distro [lindex $distro_rgset 0]
 	set rgset  [lrange $distro_rgset 1 end]
 
-	if [regexp -- {-arch=([^ \"']+)} $rgset] {
-		regexp -- {-arch=([^ \"']+)} $rgset _arch arch
+	if [regexp -- {-arch=([a-z0-9_]+)} $rgset] {
+		regexp -- {-arch=([a-z0-9_]+)} $rgset _arch arch
 	}
 
 	set distro_arch_rgset "$distro $arch $rgset"
