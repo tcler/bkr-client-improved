@@ -278,8 +278,11 @@ foreach test $_TestList {
 
 	#filter: check arch whitelist and blacklist
 	set _arch x86_64
-	if [dict exist $tdict setup] {
-		set _setup [dict get $tdict setup]
+	if {[dict exist $tdict setup] || $SubcmdOpt != ""} {
+		set _setup {}
+		if [dict exist $tdict setup] {
+			set _setup [dict get $tdict setup]
+		}
 		regexp {.*arch=([^ ]+)} "$_setup $SubcmdOpt" _ignore _arch
 	}
 
