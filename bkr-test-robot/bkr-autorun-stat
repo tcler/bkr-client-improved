@@ -154,7 +154,7 @@ if [info exist Opt(lsrun)] {
 			if ![info exist Opt(lsprogress)] {
 				set testobj [format "{%s} {%s} {%s} {%s} {%s} %s {%s} %s" $distro_rgset $jobid $tstat $rstat $res $abortedCnt $shortcat $pkgName]
 				if [info exist Opt(lsres)] {
-					set testobj [format "{%s}\n\t{%s}\n%s" $tinfo $rstat $resdetail]
+					set testobj [format "%s\n\t{%s}\n%s" [regsub {: {}} [regsub "attr:\[^\}]*\}(, )?" $test {}] {}] $rstat $resdetail]
 				}
 				puts "$testobj"
 			}
