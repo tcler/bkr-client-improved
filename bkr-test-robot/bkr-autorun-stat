@@ -111,6 +111,7 @@ if [info exist Opt(lsrun)] {
 			trun.testStat as tstat,
 			trun.rstat as rstat,
 			trun.res as res,
+			trun.res as resdetail,
 			trun.abortedCnt as abortedCnt,
 			ti.test as test,
 			trun.testid as testid,
@@ -153,7 +154,7 @@ if [info exist Opt(lsrun)] {
 			if ![info exist Opt(lsprogress)] {
 				set testobj [format "{%s} {%s} {%s} {%s} {%s} %s {%s} %s" $distro_rgset $jobid $tstat $rstat $res $abortedCnt $shortcat $pkgName]
 				if [info exist Opt(lsres)] {
-					set testobj [format "{%s}\n\t{%s}\n\t%s" $tinfo $rstat $res]
+					set testobj [format "{%s}\n\t{%s}\n%s" $tinfo $rstat $resdetail]
 				}
 				puts "$testobj"
 			}
