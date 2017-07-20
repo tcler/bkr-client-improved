@@ -24,6 +24,7 @@ set OptionList {
 	{lsjob j}  {arg n	help {list the job}}
 	{lsrun r}  {arg n	help {list the run}}
 	{lsprogress p s} {}
+	{lsres}    {arg n	help {list test res, for diff}}
 	jobchk     {arg n	help {TBD: check if the job was delete, but the status is not completed} hide {}}
   }
 }
@@ -151,6 +152,9 @@ if [info exist Opt(lsrun)] {
 
 			if ![info exist Opt(lsprogress)] {
 				set testobj [format "{%s} {%s} {%s} {%s} {%s} %s {%s} %s" $distro_rgset $jobid $tstat $rstat $res $abortedCnt $shortcat $pkgName]
+				if [info exist Opt(lsres)] {
+					set testobj [format "{%s}\n\t{%s}\n\t%s" $tinfo $rstat $res]
+				}
 				puts "$testobj"
 			}
 		}
