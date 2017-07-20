@@ -282,7 +282,7 @@ db eval {
 	if [dict exist $tdict param] {
 		regsub -line {param: \[} $test "&TestID=$testid, " ntest
 	} else {
-		regsub -line ".$"  $test  ", param: \[TestID=$testid]&" ntest
+		regsub -line "\}$"  $test  ", param: \[TestID=$testid]&" ntest
 	}
 	lappend waitSubmitedTest($distro_arch_rgset) $ntest
 }
