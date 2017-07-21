@@ -23,8 +23,30 @@
 #     ...
 # Example:
 
-attr: {ssched: yes.dangerous, distroin: 'RHEL-[56]'}
-param: [PROTO=tcp, NFS_VER=4.2]
-param: [PROTO=udp, NFS_VER=3], setup: ['--opt=arg,with,comma', --topo=multihost.1.2, --fips]
+attr: {distroin: 'RHEL-[56]', ssched: yes.dangerous}
+
+attr: {archnotin: s390x, ssched: yes.dangerous}
+
 attr: {archin: x86_64}, param: ['VAR=value,with,comma', VAR2=value with space], setup: [--topo=singlehost]
-attr: {level: Tier1, type: regression, ssched: yes.longtime}, param: [var=value, x=y], setup: [--kernel-options=x=y, --keyvalue=x=y]
+
+attr: {level: Tier3, ssched: yes.longtime}, param: [var=value, x=y], setup: [--kernel-options=x=y, --keyvalue=x=y]
+
+param: [PROTO=tcp, NFS_VER=4.2]
+
+param: [PROTO=udp, NFS_VER=3], setup: ['--opt=arg,with,comma', --topo=multihost.1.2, --fips]
+
+setup: [--hostrequire=labcontroller!=lab-02.rhts.eng.nay.redhat.com --hostrequire=labcontroller!=lab-01.rhts.eng.pek2.redhat.com]
+
+setup: [--hostrequire=cpu_count>2]
+
+setup: [--partition=fs=xfs name=/mnt/ltp-generic size=6 type=part]
+
+setup: [--nokdump, '--machine=hp-dl388g8-18.rhts.eng.pek2.redhat.com,hp-dl388g8-15.rhts.eng.pek2.redhat.com']
+
+setup: [--sysrequire=numanodes>=2, --topo=multihost.1.1]
+
+setup: [--keyvalue=CPUFLAGS=avx2]
+
+setup: [--keyvalue=hypervisor=]
+
+setup: [--ignore-panic]
