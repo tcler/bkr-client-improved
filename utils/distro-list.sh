@@ -16,7 +16,7 @@ getList() {
 	done
 }
 
-if [[ "$1" =~ ^[0-9] ]]; then
+if [[ "$1" =~ ^(alt-)?[0-9] ]]; then
 	set -- rtt "$@"
 fi
 export type=${1-rtt}
@@ -60,11 +60,11 @@ getLatestRHEL() {
 			continue
 		}
 		if [ $type = all ]; then
-			echo "$rttList" | egrep "^RHEL-${VER}$" ||
-				echo "$rttList" | egrep '^RHEL-?'${VER:0:3}'[.0-9]*-'$sufix | head -n1
+			echo "$rttList" | egrep -i "^RHEL-${VER}$" ||
+				echo "$rttList" | egrep -i '^RHEL-?'${VER:0:3}'[.0-9]*-'$sufix | head -n1
 		else
-			echo "$rttList" | egrep "^RHEL-${VER}$" ||
-				echo "$rttList" | egrep '^RHEL-?'${VER:0:3}'[.0-9]*'$sufix | head -n1
+			echo "$rttList" | egrep -i "^RHEL-${VER}$" ||
+				echo "$rttList" | egrep -i '^RHEL-?'${VER:0:3}'[.0-9]*'$sufix | head -n1
 		fi
 	done
 }
