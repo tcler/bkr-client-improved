@@ -28,5 +28,14 @@ rm -f $dialogres
 
 echo ${runs[0]}
 echo ${runs[1]}
+[[ ${#runs[@]} < 2 ]] && {
+	echo "{Error} you must select more than 1 testrun to diff" >&2
+	exit
+}
 
-vimdiff <(eval bkr-autorun-stat --db=$dbfile --lsres ${runs[0]}) <(eval bkr-autorun-stat --db=$dbfile --lsres ${runs[1]})
+resfile0=.${runs[0]//[ \']/_}.$$.res0
+resfile1=.${runs[1]//[ \']/_}.$$.res1
+eval bkr-autorun-stat --db=$dbfile --lsres ${runs[0]} >$resfile0
+eval bkr-autorun-stat --db=$dbfile --lsres ${runs[1]} >$resfile1
+vimdiff $resfile0 $resfile1
+rm -f $resfile0 $resfile1
