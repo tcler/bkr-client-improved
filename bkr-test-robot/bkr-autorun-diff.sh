@@ -27,7 +27,7 @@ while true; do
 done
 
 dialogres=.$$.res
-eval dialog --backtitle "Checklist" --checklist "Test" 30 120 28  $(bkr-autorun-stat -r --db=$dbfile|sed 's/.*/"&" "" 1/')  2>$dialogres
+eval dialog --backtitle "bkr-autorun-diff" --checklist "testrun_list" 30 120 28  $(bkr-autorun-stat -r --db=$dbfile|sed 's/.*/"&" "" 1/')  2>$dialogres
 oIFS=$IFS; IFS=$'\n' runs=($(eval set -- $(< $dialogres); for v; do echo "$v"; done)); IFS=$oIFS
 rm -f $dialogres
 
