@@ -46,10 +46,11 @@ if [info exist Opt(help)] {
 	exit 0
 }
 
-set dbfile testrun.db
-if [info exist Opt(db)] { set dbfile $Opt(db) }
+set dbfile "[dbroot]/testrun.db"
+if {[info exist Opt(db)] && $Opt(db) != ""} {
+	set dbfile $Opt(db)
+}
 
-cd [dbroot]
 sqlite3 db $dbfile
 db timeout 6000
 #===============================================================================
