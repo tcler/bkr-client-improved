@@ -48,6 +48,12 @@ resf2=.${runs[1]//[ \']/_}.$$.res
 	resf1=.${runs[1]//[ \']/_}.$$.res
 	resf2=.${runs[0]//[ \']/_}.$$.res
 }
+trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
+sigproc() {
+	rm -fr ${resf1}* ${resf2}* ${resf1%.res} ${resf2%.res}
+	exit
+}
+
 eval bkr-autorun-stat --db=$dbfile --lsres ${runs[0]}  >${resf1}
 eval bkr-autorun-stat --db=$dbfile --lsres ${runs[1]}  >${resf2}
 
