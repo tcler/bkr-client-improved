@@ -26,10 +26,13 @@ get_recipe_console_log()
 		#echo $j
 		local tmpclog=$DIR/recipe-$id-console.log
 		if ! [ -s $tmpclog ] ; then
-			wget --quiet -O $tmpclog $j
+			wget --no-check-certificate  --quiet -O $tmpclog $j || \
+			echo Download console log failed
 		fi
-		if [ -s $tmpclog ] && grep -qw "WARNING\|BUG\|panic\|Oops\|SysRq\|tainted" $tmpclog ; then
+
+		if [ -s $tmpclog ] ; then
 			echo -e "\e[101m---> Console Catches:\e[0m"
+			# searching
 			grep -aw "WARNING\|BUG\|panic\|Oops\|tainted" $tmpclog | sed -e 's/^[[0-9. ]*\]//' \
 				| uniq -w 20 | uniq -s 35 | grep -vE "run test"\|beah-\|-panic > /tmp/$id-cs_console_tmp
 			if test $(cat /tmp/${id}-cs_console_tmp | wc -l) -gt 30 ; then
@@ -42,16 +45,28 @@ get_recipe_console_log()
 			else
 				cat /tmp/$id-cs_console_tmp
 			fi
+
+			# searching sysrq
 			grep -qa SysRq $tmpclog && echo -en "\n$(grep -aw -A 2 SysRq $tmpclog | sed -e 's/^[[0-9. ]*\]//')"
 			if grep -qa "SysRq : Show Blocked State" $tmpclog ; then
 				echo -en "\n$(grep -a "D [0-9a-f]{4,}" $tmpclog | sed -e 's/^[[0-9. ]*\]//' | uniq -w 20 -c)"
 			fi
+
+			# searching call trace
 			grep -ia -B 2 -A 5 "call t" $tmpclog | sed -e 's/^[[0-9. ]*\]//' > /tmp/$id-cs-callt
 			if [ $(cat /tmp/$id-cs-callt | wc -l) -gt 30 ] ; then
 				head -30 /tmp/$id-cs-callt
 			else
 				cat /tmp/$id-cs-callt
 			fi
+
+			# nothing matched
+			if ! grep -aiqE "WARNING\|BUG\|panic\|Oops\|tainted\|sysrq"\|"call trace" $tmpclog ; then
+				echo No match found in console.log, last 10 lines:
+				tail -10 $tmpclog
+			fi
+		else
+			echo Empty console log
 		fi
 		csolast=$(grep -iaEw "run test"\|"ltptest"\|"xfstest"\|"run fstests"\|"start test" $tmpclog \
 			| sed -e 's/^[[0-9. ]*\]//' | tail -1)
@@ -96,7 +111,7 @@ get_task_output()
 		LOGS=`cat $DIR/task-$id-loglist | tr ' ' '\n'`
 	fi
 
-	echo -en "\n--->Task Log url:\n$LOGS"
+	echo -en "\n--->Task Log url:\n--->$LOGS"
 
 	case $taskname in
 	*ltp/generic)
@@ -110,7 +125,8 @@ get_task_output()
 			[[ "$tmp" =~ dmesg ]] && continue
 			local xtflog=$DIR/$id-$name-$rcparch-$tmp
 			if ! test -s $xtflog && grep -qw ${tmp}.out.bad.diff $full_log ; then
-				wget --quiet -O $xtflog `grep -w ${tmp}.out.bad.diff $full_log`
+				wget --no-check-certificate  --quiet -O $xtflog `grep -w ${tmp}.out.bad.diff $full_log` || \
+				echo Download $tmp bad diff log failed
 			fi
 			if [ -s $DIR/$id-tt-$tmp ] ; then
 				echo -en "\n\n\e[33m--->$tmp Fail log:\e[0m"
@@ -130,7 +146,8 @@ get_task_output()
 		if ! test -s $faillog && grep -q TESTOUT $full_log && \
 			( test $2 -eq 1 || test $lx -eq 0 || test $lx -eq 1 -a $2 -eq 1 ); then
 			# only download OUTPUT when 1) unfinished 2) non ltp/xfstests 3) ltp/xfstests unfinished
-			wget --quiet -O $faillog `grep TESTOUT $full_log`
+			wget --no-check-certificate  --quiet -O $faillog `grep TESTOUT $full_log` || \
+			echo Download TESTOUT log failed
 			sed -i -e '/.*%.*ETA/d' $faillog # remove wget process output
 		fi
 		if test -s $faillog && grep -qiE FAIL\|error\|WARN $faillog && test $lx -eq 0 ; then
@@ -159,7 +176,8 @@ get_task_output()
 
 	local dmesglog=$DIR/$id-$name-$rcparch-dmesglog
 	if ! test -s $dmesglog && grep -q test_log.*dmesg.log $full_log ; then
-		wget --quiet -O $dmesglog `grep test_log.*dmesg.log $full_log` > /tmp/cserr 2>&1
+		wget --no-check-certificate  --quiet -O $dmesglog `grep test_log.*dmesg.log $full_log` || \
+		echo Download $id dmesg log failed
 	fi
 	if test -s $dmesglog ; then
 		echo -en "\n\e[34m---> Dmesg Catches:\e[0m\n\
@@ -232,7 +250,7 @@ xmllint_task()
 		console_flag=1
 		unf=1
 		unf_task=1
-		echo -ne "\n\e[1;31m$taskname  $taskrslt\e[21;0m   "
+		echo -ne "\n\e[1;44m$taskname  $taskrslt\e[21;0m   "
 		;;
 	"Warn")
 		console_flag=1
@@ -242,14 +260,14 @@ xmllint_task()
 		echo -ne "\n\e[101m$taskname\e[0m  \e[101m$taskrslt\e[0m   "
 		;;
 	*)
-		echo -ne "$taskname  $taskrslt   "
+		echo -ne "$taskname \e[95m$taskrslt\e[0m   "
 		;;
 	esac
 
 	xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@status" "  "
 	xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@id" "  "
 	xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@duration" "  "
-	local taskduration=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@duration"`
+	xmlpath "$rs/recipeSet[$i]/recipe[$k]/task[$l]/@role" " "
 
 	get_param $i $k $l FSTYP
 	get_param $i $k $l KERNELARGVERSION
@@ -304,7 +322,20 @@ xmllint_task()
 			if [[ $rs_ult =~ Fail|Panic|Warn ]] ; then
 				echo -ne "\n--->"
 				echo -ne "${rs_path}\t${rs_ult}"
-				if [[ $rs_path =~ dmesg ]] ;  then console_flag=1; fi
+				if [[ $rs_path =~ dmesg ]]; then
+					console_flag=1
+					echo -ne "\n"
+					local full_log="$DIR/task-$taskid-loglist-full"
+					local dmesglog=$DIR/$taskid-${taskname////-}-$rcparch-${rs_path////-}.log
+					test -s $full_log || bkr job-logs T:$taskid > $full_log
+					if ! test -s $dmesglog && grep -q test_log-${rs_path////-}.log $full_log ; then
+						wget --no-check-certificate --quiet -O $dmesglog \
+							`grep test_log-${rs_path////-}.log $full_log` || \
+							echo "Download task $taskid $rs_path log failed"
+					fi
+					test -s $dmesglog && grep -wE WARNING\|BUG\|panic\|Oops\|tainted \
+						$dmesglog | sed -e 's/^[[0-9. ]*\]//' | uniq
+				fi
 				((opcnt=$opcnt+1))
 				parse_xfstests $rs_path $taskid
 				if test $fail_flag -eq 0 ; then fail_flag=1; fi
@@ -392,7 +423,8 @@ xmllint_result()
 			unf_task=0
 			rid=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/@id"`
 			test $k -ne 1 && echo ""
-			echo -ne "recipe R:"
+			echo -ne "---- recipe R:"
+
 			echo -n "$rid "
 			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@whiteboard" " "
 			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@arch" " "
@@ -401,6 +433,8 @@ xmllint_result()
 			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@role" " "
 			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@duration" " "
 			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@result"  " ----\n"
+			echo -n "Host: http://beaker.engineering.redhat.com/view/"
+			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@system" "\n"
 			echo https://beaker.engineering.redhat.com/recipes/$rid
 
 			rcparch=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/@arch"`
@@ -414,7 +448,7 @@ xmllint_result()
 					xmllint_task "$rs" $i $k $l $rcparch
 				fi
 			done  # task
-			if test $console_flag -ne 0 -a $log_flag -eq 1 ; then
+			if test $console_flag -ne 0 -o $log_flag -eq 1 ; then
 				get_recipe_console_log `xmlpath "$rs/recipeSet[$i]/recipe[$k]/@id"` $unf_task
 			fi
 		done  # recipe
@@ -667,7 +701,7 @@ Usage()
 		\t\t\t\t: to check hitory: cs -s xfs/xfstests 6.8 \"\" \"\" \"\" \"\" "g/102"\n\
 		\t\t\t\t: to check hitory: cs -s xfs/xfstests 7 \"upstream v4.2\" \"\" \"\" \"\" "g/102"\n\
 		\t\t\t\t: to check hitory: cs -s xfs/xfstests 7.2 325.el7 x86_64 xfs 2048"
-	exit 0
+	exit $1
 }
 
 if ! type xmllint > /dev/null 2>&1 ; then
@@ -716,18 +750,20 @@ RS:[0-9]*)	# Specific RecipeSet, turn on log
 	main_func
 	#build_results "$results_dir" "$2" # not for RecipeSet
 	;;
-"-r")
-	[[ "$2" =~ ^[0-9]+$ ]] || Usage
+"-r")		# reload xml file
+	[[ "$2" =~ ^[0-9]+$ ]] || Usage 1
 	JOBS="J:$2"
 	DIR=${HOMEDIR}/tmp/$2
 	rm -f $DIR/.xmlresult
+	rm -f ${DIR}.rs
+	rm -f ${DIR}.rs-l
 	xmlfile=$DIR/.xmlresult
 	main_func
 	build_results "$results_dir" "$2" # add to db
 	;;
 "-f")
-	[ -z "$2" ] && Usage
-	[ ! -s "$2" ] && Usage
+	[ -z "$2" ] && Usage 1
+	[ ! -s "$2" ] && Usage 1
 	xmlfile="$2"
 	JOBS="J:$3"
 	DIR=${HOMEDIR}/tmp/$3
@@ -737,11 +773,14 @@ RS:[0-9]*)	# Specific RecipeSet, turn on log
 	build_results "$results_dir"
 	;;
 "-s")
-	[ $# -lt 2 ] && Usage
-	[ -z "$2" ] && Usage
+	[ $# -lt 2 ] && Usage 1
+	[ -z "$2" ] && Usage 1
 	show_results "$2" "$3" "$4" "$5" "$6" "$7" "$8"
 	;;
+"-h")
+	Usage 0
+	;;
 *)
-	Usage
+	Usage 1
 	;;
 esac

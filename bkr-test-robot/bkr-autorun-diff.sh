@@ -10,6 +10,7 @@ Usage() {
 	echo "  --bc                 #Use beyond compare as diff tool"
 	echo "  --db </path/dbfile>  #Use specified dbfile"
 }
+
 _at=`getopt -o hr \
 	--long help \
 	--long db: \
