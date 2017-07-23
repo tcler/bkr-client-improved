@@ -29,6 +29,7 @@ get_recipe_console_log()
 			wget --no-check-certificate  --quiet -O $tmpclog $j || \
 			echo Download console log failed
 		fi
+
 		if [ -s $tmpclog ] ; then
 			echo -e "\e[101m---> Console Catches:\e[0m"
 			# searching
@@ -423,6 +424,7 @@ xmllint_result()
 			rid=`xmlpath "$rs/recipeSet[$i]/recipe[$k]/@id"`
 			test $k -ne 1 && echo ""
 			echo -ne "---- recipe R:"
+
 			echo -n "$rid "
 			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@whiteboard" " "
 			xmlpath "$rs/recipeSet[$i]/recipe[$k]/@arch" " "

@@ -118,6 +118,7 @@ if [info exist Opt(lsrun)] {
 			trun.res as res,
 			trun.resdetail as resdetail,
 			trun.abortedCnt as abortedCnt,
+			trun.taskuri as taskuri,
 			ti.test as test,
 			trun.testid as testid,
 			ti.pkgName as pkgName
@@ -160,8 +161,11 @@ if [info exist Opt(lsrun)] {
 				set testobj [format "{%s} {%s} {%s} {%s} {%s} %s {%s} %s" $distro_rgset $jobid $tstat $rstat $res $abortedCnt $shortcat $pkgName]
 				if [info exist Opt(lsres)] {
 					set testn [regsub {: {}} [regsub "attr:\[^\}]*\}(, )?" $test {}] {}]
+					set testn [regsub {Attr:[^,]+,?} $testn {}]
+					set taskuri [regsub -all {(^| )} $taskuri {&https://beaker.engineering.redhat.com/recipes/}]
 					set resdetailn [regsub -all {\n} $resdetail {&  }]
-					set testobj [format "%s\n  {%s}\n  %s" $testn $rstat $resdetailn]
+					set resdetailn [string trim $resdetailn]
+					set testobj [format "TEST_ID: %s\n%s\n%s\n  {%s}\n  %s\n" $testid $testn $taskuri $rstat $resdetailn]
 				}
 				puts "$testobj"
 			}

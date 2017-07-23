@@ -14,7 +14,9 @@ install install_runtest: _isroot
 	fi
 	@rpm -q tcl >/dev/null || yum install -y tcl #package that in default RHEL repo
 	@yum install -y tcllib  #epel
-	@libpath=$$(rpm -ql tcllib|egrep 'tcl8../tcllib-[.0-9]+$$'); ln -s $${libpath} /usr/lib/$${libpath##*/}
+	@if [[ $$(lsb_release -si) != Fedora ]]; then \
+	  libpath=$$(rpm -ql tcllib|egrep 'tcl8../tcllib-[.0-9]+$$'); ln -sf $${libpath} /usr/lib/$${libpath##*/}; \
+	fi
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
 	mkdir -p /etc/bkr-client-improved && cp -n -r -d conf/* /etc/bkr-client-improved/.
 	cp -f conf/*.example /etc/bkr-client-improved/.
