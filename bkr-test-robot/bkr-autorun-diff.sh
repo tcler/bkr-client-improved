@@ -62,6 +62,7 @@ if [[ -z "$diffv" ]]; then
 	diff2=${resf2}-
 	grep -v ^http ${resf1} >${diff1}
 	grep -v ^http ${resf2} >${diff2}
+	rm -f ${resf1} ${resf2}
 	Diff=vimdiff
 	[[ "$BC" = yes ]] && which bcompare && Diff=bcompare
 	$Diff ${diff1} ${diff2}
@@ -75,14 +76,18 @@ else
 		done
 		taskurl=$(grep $id ${resf1} ${resf2} -A2|sed -n -e '/http/{s/_.[0-9]*.res-/\n  /;p}')
 		if ! cmp -s ${resf1%.res}/$id ${resf2%.res}/$id; then
-			echo -e "\n----------------------------------------"
-			echo "Test result different:"
-			echo "$taskurl"
-			diff -pNur ${resf1%.res}/$id ${resf2%.res}/$id
-		elif egrep -q '^  (F|W|A)' ${resf1%.res}/$id ${resf2%.res}/$id; then
-			echo -e "\n----------------------------------------"
+			if egrep -q '^  (F|W|A)' ${resf2%.res}/$id; then
+				echo -en "\n=== "
+				sed -n '2{p;q}' ${resf1%.res}/$id
+				echo "Test result different:"
+				echo -e "$taskurl\n"
+				diff -pNur ${resf1%.res}/$id ${resf2%.res}/$id
+			fi
+		elif egrep -q '^  (F|W|A)' ${resf1%.res}/$id; then
+			echo -en "\n=== "
+			sed -n '2{p;q}' ${resf1%.res}/$id
 			echo "Test result same, but fail:"
-			echo "$taskurl"
+			echo -e "$taskurl"
 		fi
 	done | less
 	rm -rf $resf1 $resf2 ${resf1%.res} ${resf2%.res}
