@@ -461,6 +461,11 @@ foreach {tkey tvalue} [array get TestGroup] {
 	set jobinfo [regsub -all {_+} $jobinfo {_}];		  # merge duplicate underlines
 	set xmlf [string range $jobinfo 0 128].[expr {int(rand()*10000)}].xml; # limit filename length
 
+	if [regexp -- {--?distro=} $gset] {
+		set Distro [regsub {.*--?distro=([^ ]+).*} $gset {\1}]
+		set gset [regsub -- {--?distro=([^ ]+)} $gset {}]
+		set Distro [expandDistro $Distro]
+	}
 	if {![catch {set fp \
 	  [open "|gen_job_xml -distro=$Distro -F - {-wb=$WB} $SubcmdOpt $gset >$xmlf" w]} err]} {
 		foreach t $testList { puts $fp "$t" }
