@@ -74,28 +74,25 @@ else
 		for f in ${resf1} ${resf2}; do
 			awk "BEGIN{RS=\"\"} /$id/" $f | sed '/^http/d' >${f%.res}/$id
 		done
-		taskurl=$(grep $id ${resf1} ${resf2} -A2|sed -n -e '/http/{s/_.[0-9]*.res-/\n  /;p}')
+		taskurl=$(grep $id ${resf1} ${resf2} -A2|sed -n -e 's/^\.[a-z0-9-]*__//' -e '/http/{s/_.[0-9]*.res-/\n  /;p}')
 		if ! cmp -s ${resf1%.res}/$id ${resf2%.res}/$id; then
 			if egrep -q '^  (F|W|A)' ${resf2%.res}/$id; then
 				diffres=$(diff -pNur ${resf1%.res}/$id ${resf2%.res}/$id)
 				if grep -q '^+[^+]' <<<"$diffres"; then
-					echo -en "\n=== "
-					sed -n '2{p;q}' ${resf1%.res}/$id
-					echo "Test result different, and has New Fail"
-					echo -e "$taskurl\n"
+					echo -e "\n#Test result different, and has New Fail"
+					sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
+					echo -e "$taskurl\n."
 					echo "$diffres"
 				else
-					echo -en "\n=== "
-					sed -n '2{p;q}' ${resf1%.res}/$id
-					echo "Test result different, but no New Fail"
-					echo -e "$taskurl\n"
+					echo -e "\n#Test result different, but no New Fail"
+					sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
+					echo -e "$taskurl\n."
 					echo "$diffres"
 				fi
 			fi
 		elif egrep -q '^  (F|W|A)' ${resf1%.res}/$id; then
-			echo -en "\n=== "
-			sed -n '2{p;q}' ${resf1%.res}/$id
-			echo "Test result same, but Fail:"
+			echo -e "\n#Test result same, but Fail:"
+			sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
 			echo -e "$taskurl"
 		fi
 	done | less
