@@ -5,13 +5,13 @@ export LANG=C
 P=${0##*/}
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [-h|--help] [-r] [--bc] [--db <dbfile>]"
+	echo "Usage: $P [-h|--help] [-r] [--db <dbfile>] [--bc] [--diff [-o ofile]]"
 	echo "Options:"
 	echo "  --bc                 #Use beyond compare as diff tool"
 	echo "  --db </path/dbfile>  #Use specified dbfile"
 }
 
-_at=`getopt -o hr \
+_at=`getopt -o hro: \
 	--long help \
 	--long db: \
 	--long bc \
@@ -26,6 +26,7 @@ while true; do
 	--db)       dbfile=$2; shift 2;;
 	--bc)       BC=yes; shift 1;;
 	--diff)     diffv=yes; shift 1;;
+	-o)         OF=$2; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -68,6 +69,7 @@ if [[ -z "$diffv" ]]; then
 	$Diff ${diff1} ${diff2}
 	rm -f ${diff1} ${diff2}
 else
+	tmpf="${OF}.$$.diffs"
 	mkdir ${resf1%.res} ${resf2%.res}
 	id_list=$(awk '$1 == "TEST_ID:"{print $2}' ${resf1} ${resf2} | sort -u)
 	for id in $id_list; do
@@ -95,6 +97,8 @@ else
 			sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
 			echo -e "$taskurl"
 		fi
-	done | less
+	done >"$tmpf"
+	less "$tmpf"
+	[[ -n "$OF" ]] && mv "$tmpf" "$OF" || rm -f "$tmpf"
 	rm -rf $resf1 $resf2 ${resf1%.res} ${resf2%.res}
 fi
