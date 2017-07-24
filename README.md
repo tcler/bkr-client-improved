@@ -63,8 +63,9 @@ Notes:
 
     1. To create/delete test items for the monitor: `bkr-autorun-create/bkr-autorun-del`
     2. To monitor test items' status and save results: `bkr-autorun-monitor` (It will automatically be triggered by crontab)
-    3. To check the content and result of the monitor (by CLI): `bkr-autorun-stat`
-    4. To check the content and result of the moniter (by Web page): `wub-service.sh start` then check `http://$url:$port`. (use `wub-service.sh stat|tail -n1` get the $url:$port info)
+    3. To check the stat and result of the test-run (by CLI): `bkr-autorun-stat`
+    4. To check the stat and result of the test-run (by Web page): `wub-service.sh start` then check `http://$url:$port`. (use `wub-service.sh stat|tail -n1` get the $url:$port info)
+    5. To compare/diff two test-runs: `bkr-autorun-diff.sh`
 
       (Use `-h` option to study each tool's usage)
 
