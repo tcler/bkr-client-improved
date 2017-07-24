@@ -7,8 +7,11 @@ P=${0##*/}
 Usage() {
 	echo "Usage: $P [-h|--help] [-r] [--db <dbfile>] [--bc] [--diff [-o ofile]]"
 	echo "Options:"
-	echo "  --bc                 #Use beyond compare as diff tool"
+	echo "  --bc                 #Use 'Beyond Compare' instead default vimdiff"
 	echo "  --db </path/dbfile>  #Use specified dbfile"
+	echo "  --diff               #Use diff command"
+	echo "  -o <ofile>           #Output file used to save output of --diff option"
+	echo "  -r                   #Reverse the order of comparison"
 }
 
 _at=`getopt -o hro: \
