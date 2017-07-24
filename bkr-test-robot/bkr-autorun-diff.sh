@@ -77,16 +77,25 @@ else
 		taskurl=$(grep $id ${resf1} ${resf2} -A2|sed -n -e '/http/{s/_.[0-9]*.res-/\n  /;p}')
 		if ! cmp -s ${resf1%.res}/$id ${resf2%.res}/$id; then
 			if egrep -q '^  (F|W|A)' ${resf2%.res}/$id; then
-				echo -en "\n=== "
-				sed -n '2{p;q}' ${resf1%.res}/$id
-				echo "Test result different:"
-				echo -e "$taskurl\n"
-				diff -pNur ${resf1%.res}/$id ${resf2%.res}/$id
+				diffres=$(diff -pNur ${resf1%.res}/$id ${resf2%.res}/$id)
+				if grep -q '^+[^+]' <<<"$diffres"; then
+					echo -en "\n=== "
+					sed -n '2{p;q}' ${resf1%.res}/$id
+					echo "Test result different, and has New Fail"
+					echo -e "$taskurl\n"
+					echo "$diffres"
+				else
+					echo -en "\n=== "
+					sed -n '2{p;q}' ${resf1%.res}/$id
+					echo "Test result different, but no New Fail"
+					echo -e "$taskurl\n"
+					echo "$diffres"
+				fi
 			fi
 		elif egrep -q '^  (F|W|A)' ${resf1%.res}/$id; then
 			echo -en "\n=== "
 			sed -n '2{p;q}' ${resf1%.res}/$id
-			echo "Test result same, but fail:"
+			echo "Test result same, but Fail:"
 			echo -e "$taskurl"
 		fi
 	done | less
