@@ -716,7 +716,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						set NFSSERVER "ibm-x3250m4-06.rhts.eng.pek2.redhat.com"
 					}
 					if { [ string length $VMCOREPATH ] == 0 } {
-						set VMCOREPATH "/srv/nfs/workspace/vmcore"
+						set VMCOREPATH "/workspace/vmcore"
 					}
 					task name=/kernel/kdump/setup-nfsdump role=$role ! {
 						params ! {
