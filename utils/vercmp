@@ -24,8 +24,8 @@ vercmp() {
 	=|eq) [ "$eq" = 1 ] && res=0;;
 	\>|gt) [ "$eq" != 1 -a "$vl" = "$vmax" ] && res=0;;
 	\<|lt) [ "$eq" != 1 -a "$vr" = "$vmax" ] && res=0;;
-	\>=|lt) [ "$vl" = "$vmax" ] && res=0;;
-	\<=|lt) [ "$vr" = "$vmax" ] && res=0;;
+	\>=|ge) [ "$vl" = "$vmax" ] && res=0;;
+	\<=|le) [ "$vr" = "$vmax" ] && res=0;;
 	*) echo "$vl" | egrep -q "$vr"; res=$?;;
 	esac
 
