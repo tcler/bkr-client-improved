@@ -179,9 +179,6 @@ if [info exist Opt(distro)] {
 	foreach e $Opt(distro) {lappend _ldistro {*}[split $e ", "]}
 	set prev {}
 	foreach d $_ldistro {
-		if [regexp -- {^[0-9]} $d] {
-			set d [expandDistro $d]
-		}
 		if {[string length $d] > 0} {
 			lappend DISTRO_L $d
 			set prev $d
