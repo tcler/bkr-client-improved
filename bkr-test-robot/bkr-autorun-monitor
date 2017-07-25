@@ -18,6 +18,9 @@ namespace import ::getOpt::* ::runtestlib::*
 exec bash -c {recipe.sh $(klist | awk -F'[ :@]+' '/Default principal/{print $3}') >/dev/null}
 
 source $autorunConf
+if ![info exist maxAbortRetry] {
+	set maxAbortRetry 6
+}
 foreach {key val} [array get HostAvilable] { set HostMax($key) [expr ($val+5)/10] }
 
 #parray HostMax
@@ -40,7 +43,6 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 	# call bkr-runtest -n, and submit xml
 	set cnt 0
 	global alone
-	set alone {}
 	if {![catch {set fp [open "|bkr-runtest -n $distro - ${alone} $rgset --random --kdump" w]} err]} {
 		foreach T $testlist { puts $fp $T }
 		catch {close $fp} err
@@ -262,9 +264,10 @@ db eval {
 	trun.distro_rgset as distro_rgset, ti.test as test, trun.testid as testid, trun.abortedCnt as abrtCnt
     from testrun trun
     join testinfo ti on
-	trun.testid = ti.testid and (trun.testStat = '' or trun.testStat = 'aborted' or trun.testStat = 'cancelled' or trun.jobid = '') and trun.abortedCnt < 10
+	trun.testid = ti.testid and (trun.testStat = '' or trun.testStat = 'aborted' or trun.testStat = 'cancelled' or trun.jobid = '') and trun.abortedCnt < $maxAbortRetry
 } {
-	if {$abrtCnt > 5} {set alone {-alone}}
+	set alone {}
+	if {$abrtCnt > $maxAbortRetry/2} {set alone {-alone}}
 	if ![regexp -- {-arch=([a-z0-9_]+)} $test _arch arch] {
 		set arch x86_64
 	}
