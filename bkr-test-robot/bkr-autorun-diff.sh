@@ -8,10 +8,15 @@ Usage() {
 	echo "Usage: $P [-h|--help] [-r] [--db <dbfile>] [--bc] [--diff [-o ofile]]"
 	echo "Options:"
 	echo "  --bc                 #Use 'Beyond Compare' instead default vimdiff"
-	echo "  --db </path/dbfile>  #Use specified dbfile"
+	echo "  --db </path/dbfile>  #Use specified dbfile, can use more than one time"
 	echo "  --diff               #Use diff command"
 	echo "  -o <ofile>           #Output file used to save output of --diff option"
 	echo "  -r                   #Reverse the order of comparison"
+	echo "Examples:"
+	echo "  $P"
+	echo "  $P -r --bc"
+	echo "  $P --db ~/testrun.db.orig --diff"
+	echo "  $P --db ~/testrun.db.orig --db ~/.testrundb/testrun.db --diff"
 }
 
 _at=`getopt -o hro: \
@@ -22,44 +27,69 @@ _at=`getopt -o hro: \
     -a -n 'bkr-autorun-diff.sh' -- "$@"`
 eval set -- "$_at"
 
+dbs=()
+runs=()
 while true; do
 	case "$1" in
-	-h|--help)  Usage; shift 1; exit 0;;
-	-r)         reverse=yes; shift 1;;
-	--db)       dbfile=$2; shift 2;;
-	--bc)       BC=yes; shift 1;;
-	--diff)     diffv=yes; shift 1;;
-	-o)         OF=$2; shift 2;;
-	--) shift; break;;
+	-h|--help)
+		Usage; shift 1; exit 0;;
+	-r)
+		reverse=yes; shift 1;;
+	--db)
+		if [ -f "$2" ]; then
+			dbs+=("$2");
+		else
+			echo "file '$2' not exist" >&2
+			exit 1
+		fi
+		shift 2;;
+	--bc)
+		BC=yes; shift 1;;
+	--diff)
+		diffv=yes; shift 1;;
+	-o)
+		OF=$2; shift 2;;
+	--)
+		shift; break;;
 	esac
 done
 
-dialogres=.$$.res
-eval dialog --backtitle "bkr-autorun-diff" --checklist "testrun_list" 30 120 28  $(bkr-autorun-stat -r --db=$dbfile|sed 's/.*/"&" "" 1/')  2>$dialogres
-oIFS=$IFS; IFS=$'\n' runs=($(eval set -- $(< $dialogres); for v; do echo "$v"; done|sort -V)); IFS=$oIFS
-rm -f $dialogres
+[[ ${#dbs[@]} = 0 ]] && dbs=(~/.testrundb/testrun.db)
+for dbfile in "${dbs[@]}"; do
+	dialogres=.$$.res
+	eval dialog --backtitle "bkr-autorun-diff" --separate-output --checklist "testrun_list-$dbfile" 30 120 28  $(bkr-autorun-stat -r --db=$dbfile|sed 's/.*/"&" "" 1/')  2>$dialogres
+	while read run; do
+		runs+=("${dbfile}::${run}")
+	done <$dialogres
+	rm -f $dialogres
+done
 
-echo ${runs[0]}
-echo ${runs[1]}
+for run in "${runs[@]}"; do
+	echo "$run"
+done
+
 [[ ${#runs[@]} < 2 ]] && {
 	echo "{Error} you must select more than 1 testrun to diff" >&2
 	exit
 }
 
-resf1=.${runs[0]//[ \']/_}.$$.res
-resf2=.${runs[1]//[ \']/_}.$$.res
+read dbfile1 run1 <<<"${runs[0]/::/ }"
+read dbfile2 run2 <<<"${runs[1]/::/ }"
 [[ "$reverse" = yes ]] && {
-	resf1=.${runs[1]//[ \']/_}.$$.res
-	resf2=.${runs[0]//[ \']/_}.$$.res
+	read dbfile1 run1 <<<"${runs[1]/::/ }"
+	read dbfile2 run2 <<<"${runs[0]/::/ }"
 }
+resf1=.${run1//[ \']/_}.$$.1.res
+resf2=.${run2//[ \']/_}.$$.2.res
+
 trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
 sigproc() {
 	rm -fr ${resf1}* ${resf2}* ${resf1%.res} ${resf2%.res}
 	exit
 }
 
-eval bkr-autorun-stat --db=$dbfile --lsres ${runs[0]}  >${resf1}
-eval bkr-autorun-stat --db=$dbfile --lsres ${runs[1]}  >${resf2}
+eval bkr-autorun-stat --db=$dbfile1 --lsres ${run1}  >${resf1}
+eval bkr-autorun-stat --db=$dbfile2 --lsres ${run2}  >${resf2}
 
 if [[ -z "$diffv" ]]; then
 	diff1=${resf1}-
@@ -79,7 +109,7 @@ else
 		for f in ${resf1} ${resf2}; do
 			awk "BEGIN{RS=\"\"} /$id/" $f | sed '/^http/d' >${f%.res}/$id
 		done
-		taskurl=$(grep $id ${resf1} ${resf2} -A2|sed -n -e 's/^\.[a-z0-9-]*__//' -e '/http/{s/_.[0-9]*.res-/\n  /;p}')
+		taskurl=$(grep $id ${resf1} ${resf2} -A2|sed -n -e 's/^\.[a-z0-9-]*__//' -e '/http/{s/_.[0-9]*.[12].res-/\n  /;p}')
 		if ! cmp -s ${resf1%.res}/$id ${resf2%.res}/$id; then
 			if egrep -q '^  (F|W|A)' ${resf2%.res}/$id; then
 				diffres=$(diff -pNur ${resf1%.res}/$id ${resf2%.res}/$id)
