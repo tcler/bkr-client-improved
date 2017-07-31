@@ -46,7 +46,7 @@ shift
 getLatestRHEL() {
 	[ $type = stb ] && sufix="$"
 	rttList=$res
-	[ -z "$1" -o "$1" = all ] && set 5c 5s 6 7 8 9 10
+	[ -z "$1" -o "$1" = all ] && set 5c 5s 6 7 alt-7 8 9 10
 	for VER in "$@"; do
 		[ ${VER:0:1} = 5 ] && {
 			subv="[0-9]"; [ -n "${VER:2:1}" ] && subv=${VER:2:1}
