@@ -43,7 +43,7 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 	# call bkr-runtest -n, and submit xml
 	set cnt 0
 	global alone
-	if {![catch {set fp [open "|bkr-runtest -n $distro - ${alone} $rgset --random --kdump" w]} err]} {
+	if {![catch {set fp [open "|bkr-runtest -n $distro - ${alone} $rgset --random" w]} err]} {
 		foreach T $testlist { puts $fp $T }
 		catch {close $fp} err
 		foreach xml [glob -nocomplain *.xml] {

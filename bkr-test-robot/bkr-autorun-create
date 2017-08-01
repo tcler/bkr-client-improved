@@ -103,7 +103,8 @@ set OptionList {
 	scratch			{forward y arg m  help {same as Scratch, but every specified just apply one host, if in multihost mode}}
 	dbgk			{forward y arg n	help {Use the debug kernel}}
 	kcov			{forward y arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs,drivers/net"}}
-	kdump			{forward y arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
+	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
+	nokdump			{arg n	help {disable kdump, some tests can not work with kdump}}
 	cmd			{forward y arg m	help {Add /distribution/command before test task}}
 	cmdb			{forward y arg m	help {Add /distribution/command before install kernel}}
 	leap-second		{forward y arg n	help {Add leap-second task}}
@@ -166,6 +167,8 @@ set pkgName $Opt(pkg)
 
 # Get subcmd options
 set SubcmdOpt $ForwardOpt
+if ![info exist Opt(kdump)] {set Opt(kdump) ""}
+if ![info exist Opt(nokdump)] {append SubcmdOpt " --kdump=$Opt(kdump)"}
 set TestArgList {}
 set Idx [lsearch $Args {--}]
 if {$Idx == -1} {
@@ -183,7 +186,9 @@ if [info exist Opt(d)] {
 set Distro [lindex $Args 0]
 set Distro [expandDistro $Distro]   ;#If Distro is short format
 set Gset {}
-foreach e $SubcmdOpt {lappend Gset [regsub {^--} $e {-}]}
+foreach e $SubcmdOpt {
+	lappend Gset [regsub {^--} $e {-}]
+}
 
 if ![regexp -- {-nvr=} $Gset] {
 	set nvr [exec bash -c "vershow ^kernel-\[0-9\] /$Distro$|sed -rn '/^kernel-/{s/\.\[^.\]+\.\[^.\]+$//;p;q}'"]
