@@ -257,14 +257,20 @@ foreach {jobID taskList} [array get runningTest] {
 }
 
 #Get the test list that not submitted and aborted
+set pkg [lindex $::argv 0]
+if {$pkg == ""} {set pkg {%}}
+set run [lindex $::argv 1]
+if {$run == ""} {set run {%}}
 parray HostUsed
+puts "pkg=$pkg; run=$run"
 array set waitSubmitedTest {}
 db eval {
     select
 	trun.distro_rgset as distro_rgset, ti.test as test, trun.testid as testid, trun.abortedCnt as abrtCnt
     from testrun trun
     join testinfo ti on
-	trun.testid = ti.testid and (trun.testStat = '' or trun.testStat = 'aborted' or trun.testStat = 'cancelled' or trun.jobid = '') and trun.abortedCnt < $maxAbortRetry
+        ti.pkgName LIKE $pkg and trun.distro_rgset LIKE $run and
+        trun.testid = ti.testid and (trun.testStat = '' or trun.testStat = 'aborted' or trun.testStat = 'cancelled' or trun.jobid = '') and trun.abortedCnt < $maxAbortRetry
 } {
 	set alone {}
 	if {$abrtCnt > $maxAbortRetry/2} {set alone {-alone}}
