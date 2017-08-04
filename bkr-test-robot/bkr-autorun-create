@@ -42,7 +42,7 @@ set OptionList {
 	repo-post		{forward y arg m	help {Configure repo at <URL> as part of kickstart %post execution}}
 	recipe			{forward y arg n	help {Just generate recipeSet node, internal use for runtest -merge}}
 	rwb			{forward y arg y	help {Set the whiteboard for the recipe}}
-	flag                    {forward y arg y	help {for distinguish repeated run}}
+	{info flag}             {forward y arg y	help {for distinguish repeated run}}
 	retention-tag           {forward y arg y        help {e.g: scratch, 60days, 120days, active, active+1, audit}}
 	product                 {forward y arg y        help {e.g: cpe:/o:redhat:enterprise_linux:$x:$y}}
   }
@@ -196,7 +196,7 @@ if ![regexp -- {-nvr=} $Gset] {
 		set nvr [exec bash -c "vershow ^kernel-\[0-9\] /[string map {RHEL- {}} $Distro]$|sed -rn '/^kernel-/{s/\.\[^.\]+\.\[^.\]+$//;p;q}'"]
 	}
 	if {$nvr != ""} {
-		set Gset [concat "-nvr=$nvr" $Gset]
+		set Gset [concat "-info=[regsub kernel- $nvr {}]" $Gset]
 	}
 }
 

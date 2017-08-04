@@ -43,6 +43,7 @@ set OptionList {
 	repo-post		{arg m	help {Configure repo at <URL> as part of kickstart %post execution}}
 	recipe			{arg n	help {Just generate recipeSet node, internal use for runtest -merge}}
 	rwb			{arg y	help {Set the whiteboard for the recipe}}
+	{info flag}             {arg y	help {do nothinig, just used by caller} hide yes}
 	retention-tag           {arg y  help {e.g: scratch, 60days, 120days, active, active+1, audit}}
 	product                 {arg y  help {e.g: cpe:/o:redhat:enterprise_linux:$x:$y}}
   }

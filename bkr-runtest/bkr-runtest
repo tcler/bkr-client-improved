@@ -44,7 +44,7 @@ set OptionList {
 	repo-post		{forward y arg m	help {Configure repo at <URL> as part of kickstart %post execution}}
 	recipe			{forward y arg n	help {Just generate recipeSet node, internal use for runtest -merge}}
 	rwb			{forward y arg y	help {Set the whiteboard for the recipe}}
-	flag                    {forward y arg y	help {for distinguish repeated run}}
+	{info flag}             {forward y arg y	help {for distinguish repeated run} hide yes}
 	retention-tag           {forward y arg y        help {e.g: scratch, 60days, 120days, active, active+1, audit}}
 	product                 {forward y arg y        help {e.g: cpe:/o:redhat:enterprise_linux:$x:$y}}
 	ignore-panic            {forward y arg n        help {Do not abort job if panic message appears on serial console}}
@@ -418,7 +418,7 @@ if {[info exist Opt(kdump)] } {
 }
 
 if [info exist jobOwner] {
-	lappend SubcmdOpt "-job-owner=$jobOwner"
+	set SubcmdOpt [linsert $SubcmdOpt 0 "-job-owner=$jobOwner"]
 }
 
 if [info exist Opt(merge)] {
