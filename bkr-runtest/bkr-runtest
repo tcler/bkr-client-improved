@@ -464,6 +464,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 	if [regexp -- {--?distro=} $gset] {
 		set Distro [regsub {.*--?distro=([^ ]+).*} $gset {\1}]
 		set gset [regsub -- {--?distro=([^ ]+)} $gset {}]
+		set gset [regsub -all -- {--?nvr=([^ ]+)} $gset {}]
 		set Distro [expandDistro $Distro]
 	}
 	if {![catch {set fp \
