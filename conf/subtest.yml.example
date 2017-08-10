@@ -15,7 +15,6 @@
 # - setup:       #option list of bkr workflow-*, bkr-runtest, gen_job_xml:
 #     --topo=singlehost
 #     --topo=multihost.1.2
-#     --arch=<arch>            #Run for specified arch
 #     --kernel-options=k=v     #same as bkr workflow/gen_job_xml option
 #     --hostrequire=k=v        #same as bkr workflow/gen_job_xml option
 #     --keyvalue=k=v           #same as bkr workflow/gen_job_xml option
