@@ -85,10 +85,10 @@ proc updateJobTask {jobid distro_rgset} {
 			set taskNode [[$paramNode parentNode] parentNode]
 			set recipeNode [$taskNode parentNode]
 			set recipeid [$recipeNode @id]
-			set endNodes [$recipeNode selectNodes {//task[@name="/kernel/kcov/end"]}]
+			set kcovendNodes [$recipeNode selectNodes {//task[@name="/kernel/kcov/end"]}]
 
-			if {$endNodes != {}} {
-				set endNode [lindex $endNodes $recipeIdx]
+			if {$kcovendNodes != {}} {
+				set endNode [lindex $kcovendNodes $recipeIdx]
 				set res [$endNode @result]
 				set stat [$endNode @status]
 			} else {
@@ -165,9 +165,9 @@ foreach {jobID taskList} [array get runningTest] {
 			set name [$taskNode @name]
 			set recipeNode [$taskNode parentNode]
 
-			set endNodes [$recipeNode selectNodes {//task[@name="/kernel/kcov/end"]}]
-			if {$endNodes != {}} {
-				set taskNode [lindex $endNodes $recipeIdx]
+			set kcovendNodes [$recipeNode selectNodes {//task[@name="/kernel/kcov/end"]}]
+			if {$kcovendNodes != {}} {
+				set taskNode [lindex $kcovendNodes $recipeIdx]
 			}
 
 			set res  [$taskNode @result]
@@ -262,7 +262,7 @@ if {$pkg == ""} {set pkg {%}}
 set run [lindex $::argv 1]
 if {$run == ""} {set run {%}}
 parray HostUsed
-puts "pkg=$pkg; run=$run"
+puts "{Debug}=> pkg=$pkg; run=$run"
 array set waitSubmitedTest {}
 db eval {
     select
@@ -272,7 +272,9 @@ db eval {
         ti.pkgName LIKE $pkg and trun.distro_rgset LIKE $run and
         trun.testid = ti.testid and (trun.testStat = '' or trun.testStat = 'aborted' or trun.testStat = 'cancelled' or trun.jobid = '') and trun.abortedCnt < $maxAbortRetry
 } {
+puts "{Debug}=> $test; abrtCnt = $abrtCnt /$maxAbortRetry"
 	set alone {}
+	if {$abrtCnt > $maxAbortRetry} {continue}
 	if {$abrtCnt > $maxAbortRetry/2} {set alone {-alone}}
 	if ![regexp -- {-arch=([a-z0-9_]+)} $test _arch arch] {
 		set arch x86_64
