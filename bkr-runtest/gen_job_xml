@@ -265,7 +265,7 @@ foreach T $TestList {
 	set tdict [lindex $tdict 1]
 
 	if [dict exist $tdict param] {
-		lappend TaskList [concat $tname $GlobalParam [dict get $tdict param]]
+		lappend TaskList [concat $tname [dict get $tdict param] $GlobalParam]
 	} else {
 		lappend TaskList [concat $tname $GlobalParam]
 	}
