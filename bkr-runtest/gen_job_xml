@@ -105,6 +105,7 @@ set OptionList {
 	Scratch			{arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times}}
 	scratch			{arg m  help {same as Scratch, but every specified just apply one host, if in multihost mode}}
 	dbgk			{arg n	help {Use the debug kernel}}
+	gcov			{arg y	help {Enable gcov for coverage data collection, use arg to specify Package, example: --gcov="nfs-utils"}}
 	kcov			{arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs, drivers/net"}}
 	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
 	nokdump			{arg n	help {disable kdump, some tests can not work with kdump}}
@@ -767,7 +768,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						}
 					}
 				}
-				# --kcov task
+				# --kcov --gcov task
 				if [info exist Opt(kcov)] {
 					if {$Opt(kcov) != ""} {
 						set kdir $Opt(kcov)
@@ -783,6 +784,13 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 					task name=/kernel/kcov/start role=$role ! {
 						params -
+					}
+				}
+				if [info exist Opt(gcov)] {
+					task name=/kernel/kcov/gcov-userspace-start role=$role ! {
+						params ! {
+							param name=PACKAGE_NAME value=$Opt(gcov) -
+						}
 					}
 				}
 
@@ -826,7 +834,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 				}
 
-				# --kcov task
+				# --kcov --gcov task
 				if [info exist Opt(kcov)] {
 					task name=/kernel/kcov/end role=$role ! {
 						params ! {
@@ -842,6 +850,14 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						#}
 					}
 				}
+				if [info exist Opt(gcov)] {
+					task name=/kernel/kcov/gcov-userspace-end role=$role ! {
+						params ! {
+							param name=PACKAGE_NAME value=$Opt(gcov) -
+						}
+					}
+				}
+
 				# command in the end of the recipe
 				if [info exist Opt(cmd-end)] {
 					foreach cmd $Opt(cmd-end) {

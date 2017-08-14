@@ -107,7 +107,8 @@ set OptionList {
 	Scratch			{forward y arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times}}
 	scratch			{forward y arg m  help {same as Scratch, but every specified just apply one host, if in multihost mode}}
 	dbgk			{forward y arg n	help {Use the debug kernel}}
-	kcov			{forward y arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs,drivers/net"}}
+	gcov			{forward y arg y	help {Enable gcov for coverage data collection, use arg to specify Package, example: --gcov="nfs-utils"}}
+	kcov			{arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs,drivers/net"}}
 	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
 	nokdump			{arg n	help {disable kdump, some tests can not work with kdump}}
 	cmd			{forward y arg m	help {Add /distribution/command before test task}}
@@ -415,6 +416,13 @@ if {[info exist Opt(kdump)] } {
 		set Opt(kdump) $KDUMP_ADDR
 	}
 	lappend SubcmdOpt "-kdump=$Opt(kdump)"
+}
+
+if {[info exist Opt(kcov)] } {
+	if {$Opt(kcov) == "" && [info exist KCOV_PARAM]} {
+		set Opt(kcov) $KCOV_PARAM
+	}
+	lappend SubcmdOpt "-kcov=$Opt(kcov)"
 }
 
 if [info exist jobOwner] {
