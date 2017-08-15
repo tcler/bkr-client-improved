@@ -10,6 +10,7 @@ Usage() {
 	echo "  --bc                 #Use 'Beyond Compare' instead default vimdiff"
 	echo "  --db </path/dbfile>  #Use specified dbfile, can use more than one time"
 	echo "  --diff               #Use diff command"
+	echo "  --diffr              #Alias: --diff -r"
 	echo "  -o <ofile>           #Output file used to save output of --diff option"
 	echo "  -r                   #Reverse the order of comparison"
 	echo "Examples:"
@@ -24,6 +25,7 @@ _at=`getopt -o hro: \
 	--long db: \
 	--long bc \
 	--long diff \
+	--long diffr \
     -a -n 'bkr-autorun-diff.sh' -- "$@"`
 eval set -- "$_at"
 
@@ -47,6 +49,8 @@ while true; do
 		BC=yes; shift 1;;
 	--diff)
 		diffv=yes; shift 1;;
+	--diffr)
+		diffv=yes; reverse=yes; shift 1;;
 	-o)
 		OF=$2; shift 2;;
 	--)
