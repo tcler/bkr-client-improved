@@ -176,7 +176,7 @@ if [info exist Opt(lsrun)] {
 
 			puts "$pkgName '$distro_rgset'"
 			foreach {stat cnt} [array get count] {
-				puts "\t($stat)\t$cnt\t[expr $cnt.0 / $sum * 100]%"
+				puts [format "\t%-20s\t%4s\t%5.2f%%" "($stat)" $cnt [expr $cnt.0 / $sum * 100]]
 			}
 			puts ""
 		}
