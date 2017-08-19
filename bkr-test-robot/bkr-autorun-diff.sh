@@ -117,7 +117,7 @@ else
 		if ! cmp -s ${resf1%.res}/$id ${resf2%.res}/$id; then
 			if egrep -q '^  (F|W|A)' ${resf2%.res}/$id; then
 				diffres=$(diff -pNur ${resf1%.res}/$id ${resf2%.res}/$id)
-				if egrep -q '^+[^+].*(Warn|Fail|Panic|Abort)$' <<<"$diffres"; then
+				if egrep -q '^\+[^+].*(Warn|Fail|Panic|Abort)$' <<<"$diffres"; then
 					echo -e "\n#Test result different, and has New Fail"
 					sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
 					echo -e "$taskurl\n."
