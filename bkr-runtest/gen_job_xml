@@ -101,6 +101,7 @@ set OptionList {
 	install			{arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
 	upstream		{arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d][#tag]
 				default: git://git.app.eng.bos.redhat.com/linux.git#master}}
+	upstream-patch		{arg y	help {apply specified patch[es] before compile upstream kernel}}
 	upstream-kernel-kasan   {arg n  help {Flag to enable upstream kernel kasan support}}
 	Scratch			{arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times}}
 	scratch			{arg m  help {same as Scratch, but every specified just apply one host, if in multihost mode}}
@@ -682,6 +683,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							param name=ABORT_IF_FAIL value=1 -
 							if [info exist Opt(upstream-kernel-kasan)] {
 								param name=ENABLE_KASAN value=1 -
+							}
+							if [info exist Opt(upstream-patch)] {
+								param name=PATCH_URLS value=$Opt(upstream-patch) -
 							}
 						}
 					}
