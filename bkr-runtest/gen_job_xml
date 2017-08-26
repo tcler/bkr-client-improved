@@ -345,8 +345,8 @@ if [info exist Opt(topo)] {
 		if {$Opt(clients) == ""} {set Opt(clients) 1}
 	}
 }
-if [info exist Opt(servers)] { lappend ROLE_LIST {*}[lrepeat $Opt(servers) SERVERS] }
-if [info exist Opt(clients)] { lappend ROLE_LIST {*}[lrepeat $Opt(clients) CLIENTS] }
+if {[info exist Opt(servers)] && $Opt(servers) != 0} { lappend ROLE_LIST {*}[lrepeat $Opt(servers) SERVERS] }
+if {[info exist Opt(clients)] && $Opt(clients) != 0} { lappend ROLE_LIST {*}[lrepeat $Opt(clients) CLIENTS] }
 if {[llength $ROLE_LIST] == 0} { set ROLE_LIST STANDALONE }
 
 # handle network-qe private NIC machines
