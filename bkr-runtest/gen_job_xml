@@ -63,6 +63,7 @@ set OptionList {
 	{clients c}		{arg y	help {Include NUMBER client hosts for multi-host test}}
 	{sr sysrequire}		{arg m	help {Additional <hostRequires><system/> for job, example: --sysrequire=numanodes>=4}}
 	{hr hostrequire}	{arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
+	{hr-alias}		{arg y	help {alias of long and changeable options combination}}
 	{kv keyvalue}		{arg m	help {Require system with matching legacy key-value, example: --keyvalue=NETWORK=e1000}}
 	machine			{arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
 	systype			{arg m	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
@@ -155,7 +156,16 @@ proc getDefaultNVR {_distro} {
 }
 
 # _parse_ argument
-getOptions $OptionList $::argv Opt InvalidOpt NotOptions
+set ARGV $::argv
+getOptions $OptionList $ARGV Opt InvalidOpt NotOptions
+if {[info exist Opt(hr-alias)] && $Opt(hr-alias) != ""} {
+	set alias $Opt(hr-alias)
+	exec wget ftp://fs-qe.usersys.redhat.com/pub/hr-alias.tcl
+	source hr-alias.tcl
+	getOptions $OptionList [concat $ARGV $Alias($alias)] Opt InvalidOpt NotOptions
+	exec rm hr-alias.tcl
+}
+
 proc debug {} {
 	puts "NotOptions: $NotOptions"
 	parray InvalidOpt
