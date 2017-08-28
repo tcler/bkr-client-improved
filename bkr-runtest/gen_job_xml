@@ -160,8 +160,9 @@ set ARGV $::argv
 getOptions $OptionList $ARGV Opt InvalidOpt NotOptions
 if {[info exist Opt(hr-alias)] && $Opt(hr-alias) != ""} {
 	set alias $Opt(hr-alias)
-	exec wget ftp://fs-qe.usersys.redhat.com/pub/hr-alias.tcl
+	exec bash -c "wget ftp://fs-qe.usersys.redhat.com/pub/hr-alias.tcl 2>/dev/null"
 	source hr-alias.tcl
+	#puts stderr $Alias($alias)
 	getOptions $OptionList [concat $ARGV $Alias($alias)] Opt InvalidOpt NotOptions
 	exec rm hr-alias.tcl
 }
