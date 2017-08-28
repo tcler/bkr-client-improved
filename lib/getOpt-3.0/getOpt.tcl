@@ -167,12 +167,15 @@ proc ::getOpt::getOptions {optLists argv validOptionVar invalidOptionVar notOpti
 	upvar $notOptionVar notOption
 	upvar $forwardOptionVar forwardOption
 
-	set optList "[concat {*}[dict values $optLists]]"
+	#clear out var
+	array unset validOption *
+	array unset invalidOption *
 	set notOption [list]
+
+	set optList "[concat {*}[dict values $optLists]]"
 	set opt ""
 	set optarg ""
 	set nargv $argv
-	set forwardOpts ""
 	#set argc [llength $nargv]
 
 	while {1} {
