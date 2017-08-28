@@ -178,7 +178,7 @@ _caseInfo() {
 			#get the setup list
 			[[ -n "${Setup[*]}" ]] && Setup2=("${Setup[@]}")
 			while read s; do
-				if [[ "$s" =~ topo= ]]; then
+				if [[ "$s" =~ topo= && "${Setup[*]}" =~ topo= ]]; then
 					for i in ${!Setup2[@]}; do
 						[[ "${Setup2[$i]}" =~ topo= ]] && Setup2[$i]=$s
 					done
