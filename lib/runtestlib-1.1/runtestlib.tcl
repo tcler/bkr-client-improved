@@ -101,7 +101,7 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 
 	# Gen topo descrition
 	set topoDesc S
-	if [string match *topo=* $gset] {
+	if [regexp -- {topo=[^0-9 ]*([0-9]+)[^0-9 ]+([0-9]+)} $gset] {
 		lassign [regsub {.*topo=[^0-9]*([0-9]+)[^0-9]+([0-9]+).*} $gset {\1 \2}] servNum clntNum
 		set topoDesc M.$servNum.$clntNum
 	}
