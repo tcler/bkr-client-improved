@@ -479,7 +479,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 		set testDistro [expandDistro $testDistro]
 	}
 	if {![catch {set fp \
-	  [open "|gen_job_xml -distro=$testDistro -F - {-wb=$WB} $SubcmdOpt $gset >$xmlf" w]} err]} {
+	  [open "|gen_job_xml -distro=$testDistro -F - {-wb=$WB} $gset $SubcmdOpt >$xmlf" w]} err]} {
 		foreach t $testList { puts $fp "$t" }
 		catch {close $fp} err
 
