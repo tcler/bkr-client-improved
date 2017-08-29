@@ -64,6 +64,7 @@ set OptionList {
 	{servers s}		{forward y arg y	help {Include NUMBER server hosts for multi-host test}}
 	{clients c}		{forward y arg y	help {Include NUMBER client hosts for multi-host test}}
 	{hr hostrequire}	{forward y arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
+	{hr-alias}		{forward y arg y	help {alias of long and changeable options combination}}
 	{sr sysrequire}		{forward y arg m	help {Additional <hostRequires><system/> for job, example: --sysrequire=numanodes>=4}}
 	{kv keyvalue}		{forward y arg m	help {Require system with matching legacy key-value, example: --keyvalue=NETWORK=e1000}}
 	machine			{forward y arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
