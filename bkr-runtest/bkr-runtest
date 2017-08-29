@@ -448,7 +448,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 	if [info exist Opt(wb-format)] { set wbFormat $Opt(wb-format) }
 
 	set gset {*}[lrange $testGset 1 end]
-	set WB [genWhiteboard $Distro $testGset $testList "$wbFormat" $wbComment]
+	set WB [genWhiteboard $Distro "$testGset $SubcmdOpt" $testList "$wbFormat" $wbComment]
 	if {[llength $testList] == 1} {
 		set test [lindex $testList 0]
 		set tdict [lindex [::yaml::yaml2dict $test] 1]
@@ -456,7 +456,6 @@ foreach {tkey tvalue} [array get TestGroup] {
 			append WB "[dict get $tdict param]"
 		}
 	}
-
 	if {[string length $SubcmdOpt]>0} {
 		set _opts $SubcmdOpt
 		if {[info exist Opt(kdump)] && $Opt(kdump) != ""} {

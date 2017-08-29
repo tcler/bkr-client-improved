@@ -94,18 +94,19 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 	if {![info exist pkg] || $pkg == ""} {set pkg ?}
 
 	# Gen gset string
-	lassign $testkey _ssched gset
-
-	# Get task number
-	set tnum [llength $testList]
+	set gset [lindex $testkey 1]
+	set options [lrange $testkey 2 end]
 
 	# Gen topo descrition
 	set topoDesc S
-	if [regexp -- {topo=[^0-9 ]*([0-9]+)[^0-9 ]+([0-9]+)} $gset] {
-		lassign [regsub {.*topo=[^0-9]*([0-9]+)[^0-9]+([0-9]+).*} $gset {\1 \2}] servNum clntNum
+	if [regexp -- {topo=[^0-9 ]*([0-9]+)[^0-9 ]+([0-9]+)} "$gset $options"] {
+		lassign [regsub {.*topo=[^0-9]*([0-9]+)[^0-9]+([0-9]+).*} "$gset $options" {\1 \2}] servNum clntNum
 		set topoDesc M.$servNum.$clntNum
 	}
 	if {$pkg in {merged}} { set topoDesc X }
+
+	# Get task number
+	set tnum [llength $testList]
 
 	# Get common directory path as test summary prefix
 	set tnameList {}
