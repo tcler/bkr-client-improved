@@ -158,14 +158,13 @@ proc getDefaultNVR {_distro} {
 
 # _parse_ argument
 set hostrequire-alias http://pkgs.devel.redhat.com/cgit/tests/kernel/plain/filesystems/Inventory/hostrequire-alias.tcl
-if {[info exist Opt(hr-alias-file)] && $Opt(hr-alias-file) != ""} {
-	set hostrequire-alias $Opt(hr-alias-file)
-}
-
 set ARGV $::argv
 getOptions $OptionList $ARGV Opt InvalidOpt NotOptions
 if {[info exist Opt(hr-alias)] && $Opt(hr-alias) != ""} {
 	set alias $Opt(hr-alias)
+	if {[info exist Opt(hr-alias-file)] && $Opt(hr-alias-file) != ""} {
+		set hostrequire-alias $Opt(hr-alias-file)
+	}
 	exec bash -c "wget -q ${hostrequire-alias} -O alias.tcl"
 	source alias.tcl
 	#puts stderr $Alias($alias)
