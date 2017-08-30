@@ -431,6 +431,11 @@ if {[info exist Opt(kcov)] } {
 if [info exist jobOwner] {
 	set SubcmdOpt [linsert $SubcmdOpt 0 "-job-owner=$jobOwner"]
 }
+if [info exist hostRequireAlias] {
+	if ![string match {*-hr-alias-file=*} $SubcmdOpt] {
+		set SubcmdOpt [linsert $SubcmdOpt 0 "-hr-alias-file=$hostRequireAlias"]
+	}
+}
 
 if [info exist Opt(merge)] {
 	set xmlf_merged "job_merged.[clock format [clock seconds] -format %Y%m%d_%H%M].[expr {int(rand()*10000)}].xml"
@@ -459,8 +464,8 @@ foreach {tkey tvalue} [array get TestGroup] {
 	}
 	if {[string length $SubcmdOpt]>0} {
 		set _opts $SubcmdOpt
-		if [string match {*alias-file=*} $_opts] {
-			regsub -all {alias-file=[^ ]+} $_opts {alias-file=*} _opts
+		if [string match {*-hr-alias-file=*} $_opts] {
+			regsub -all {hr-alias-file=[^ ]+} $_opts {hr-alias-file=*} _opts
 		}
 		if {[info exist Opt(kdump)] && $Opt(kdump) != ""} {
 			regsub -all {kdump=[^ ]+} $_opts {kdump=*} _opts
