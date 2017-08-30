@@ -459,8 +459,11 @@ foreach {tkey tvalue} [array get TestGroup] {
 	}
 	if {[string length $SubcmdOpt]>0} {
 		set _opts $SubcmdOpt
+		if [string match {*alias-file=*} $_opts] {
+			regsub -all {alias-file=[^ ]+} $_opts {alias-file=*} _opts
+		}
 		if {[info exist Opt(kdump)] && $Opt(kdump) != ""} {
-			regsub -line {kdump=[^ ]+} $_opts {kdump=*} _opts
+			regsub -all {kdump=[^ ]+} $_opts {kdump=*} _opts
 		}
 		regsub -all "%O" $WB "{$_opts}" WB
 	} else {
