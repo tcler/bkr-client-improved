@@ -197,6 +197,11 @@ cleanup() {  #fix me: add more cleanup action
 	rm -rf \$expdir \$nfsmp   #remove added dir/file
 }
 
+#param
+#REMOTE_SHARE
+#MOUNT_OPTIONS
+#NFS_VERS
+
 #global var define
 $(if [ -n "$multihost" ]; then
     echo 'BZ=bugid  #suffix to show distinction with other cases'
@@ -207,41 +212,82 @@ $(if [ -n "$multihost" ]; then
 expdir=/exportdir-\$BZ #fix me:
 nfsmp=/mnt/nfsmp-\$BZ  #fix me:
 
+mntSrc=\${REMOTE_SHARE:-\$HOSTNAME:\$expdir}
+
 $(if test -z "$multihost"; then
   echo 'rlJournalStart
-    rlPhaseStartSetup do-Setup-
+rlPhaseStartSetup do-Setup-
 	rlFileBackup /etc/exports /etc/sysconfig/nfs
 	rlFileBackup /etc/auto.master /etc/sysconfig/autofs
-    rlPhaseEnd
+	run "mkdir -p $expdir $nfsmp"
+	run '"'echo \"\$expdir *(rw,no_root_squash)\" >/etc/exports'"'
+	run '"'service_nfs restart'"'
+	nfsvers=$NFS_VERS
+	[ -z "$nfsvers" ] && nfsvers=$(ls_nfsvers)
+rlPhaseEnd
 
-    rlPhaseStartTest do-Test-
-    rlPhaseEnd
+for V in $nfsvers; do
+rlPhaseStartTest do-Test-
+	run '"'mount \$MOUNT_OPTIONS -overs=\$V \$mntSrc \$nfsmp'"'
+rlPhaseEnd
+done
 
-    rlPhaseStartCleanup do-Cleanup-
+rlPhaseStartCleanup do-Cleanup-
 	rlFileRestore
-    rlPhaseEnd
+rlPhaseEnd
 rlJournalEnd'
 else
-  flist=$(for i in $(seq 1 $ServNum); do [[ $i = 1 ]] && i=;echo Server$i; done
-          for i in $(seq 1 $ClntNum); do [[ $i = 1 ]] && i=;echo Client$i; done)
-  for f in $flist; do
+  sflist=$(for i in $(seq 1 $ServNum); do [[ $i = 1 ]] && i=;echo Server$i; done)
+  cflist=$(for i in $(seq 1 $ClntNum); do [[ $i = 1 ]] && i=;echo Client$i; done)
+  for f in $sflist; do
     #[[ "$f" =~ (Server|Client)$ ]] && continue
     echo "$f() {"
-    echo '    rlPhaseStartSetup do-$role-Setup-
+    echo 'rlPhaseStartSetup do-$role-Setup-
 	rlFileBackup /etc/exports /etc/sysconfig/nfs
 	rlFileBackup /etc/auto.master /etc/sysconfig/autofs
-    rlPhaseEnd
+	run "mkdir -p $expdir"
+	run '"'echo \"\$expdir *(rw,no_root_squash)\" >/etc/exports'"'
+	run '"'service_nfs restart'"'
+rlPhaseEnd
 
-    rlPhaseStartTest do-$role-Test-
-	run "rhts-sync-set -s '$(echo $f|sed -e 's/Server/servReady/' -e 's/Client/testDone/')'" #fix me:
-	run "rhts-sync-block -s '$(echo $f|sed -e 's/Server/testDone $CLIENT/' -e 's/Client/servReady $SERVER/')'" #fix me:
-    rlPhaseEnd
+rlPhaseStartTest do-$role-Test-
+	run '"'rhts-sync-set -s servReady'"'
+	run '"'rhts-sync-block -s testDone \$CLIENT'"'  #fix me
+rlPhaseEnd
 
-    rlPhaseStartCleanup do-$role-Cleanup-
+rlPhaseStartCleanup do-$role-Cleanup-
 	rlFileRestore
-    rlPhaseEnd'
+rlPhaseEnd'
     echo "}"
   done
+  echo
+  for f in $cflist; do
+    #[[ "$f" =~ (Server|Client)$ ]] && continue
+    echo "$f() {"
+    echo 'rlPhaseStartSetup do-$role-Setup-
+	rlFileBackup /etc/auto.master /etc/sysconfig/autofs
+	run "mkdir -p $nfsmp"
+	nfsvers=$NFS_VERS
+	[[ -n "$SERVER" ]] && {
+		run '"'rhts-sync-block -s servReady \$SERVER'"'  #fix me
+		nfsvers=$(ls_nfsvers $SERVER)
+	}
+	run "test -n '"'\$nfsvers'"'"
+rlPhaseEnd
+
+for V in $nfsvers; do
+rlPhaseStartTest do-$role-Test-
+	run '"'mount \$MOUNT_OPTIONS -overs=\$V \$mntSrc \$nfsmp'"'
+rlPhaseEnd
+done
+
+rlPhaseStartCleanup do-$role-Cleanup-
+	[[ -n "$SERVER" ]] && run '"'rhts-sync-set -s testDone'"'  #fix me
+	rlFileRestore
+rlPhaseEnd'
+    echo "}"
+  done
+  echo
   echo 'rlJournalStart'
   echo 'case "$HOSTNAME" in'
   hlist=$(for i in $(seq 1 $ServNum); do [[ $i = 1 ]] && i=;echo \$SERVER$i; done
