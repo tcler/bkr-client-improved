@@ -167,8 +167,11 @@ if {[info exist Opt(hr-alias)] && $Opt(hr-alias) != ""} {
 	}
 	exec bash -c "wget -q ${hostrequire-alias} -O alias.tcl"
 	source alias.tcl
-	#puts stderr $Alias($alias)
-	getOptions $OptionList [concat $ARGV $Alias($alias)] Opt InvalidOpt NotOptions
+	set idx [lindex [lsearch -all -regexp $ARGV {-hr-alias(=.*)?$}] end]
+	if [string match *-hr-alias [lindex $ARGV $idx]] {set ARGV [lreplace $ARGV $idx+1 $idx+1]}
+	set ARGV [lreplace $ARGV $idx $idx]
+	set NARGV [linsert $ARGV $idx {*}$Alias($alias)]
+	getOptions $OptionList $NARGV Opt InvalidOpt NotOptions
 	exec rm alias.tcl
 }
 
