@@ -465,7 +465,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 	if {[string length $SubcmdOpt]>0} {
 		set _opts $SubcmdOpt
 		if [string match {*-hr-alias-file=*} $_opts] {
-			regsub -all {hr-alias-file=[^ ]+} $_opts {hr-alias-file=*} _opts
+			regsub -all -- {--*hr-alias-file=[^ ]+ *} $_opts {} _opts
 		}
 		if {[info exist Opt(kdump)] && $Opt(kdump) != ""} {
 			regsub -all {kdump=[^ ]+} $_opts {kdump=*} _opts
