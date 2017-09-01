@@ -4,11 +4,20 @@
 #This is a beaker recipe use status checker, that invoked by cron
 
 declare -A HostMax
-HostMax[x86_64]=75
-HostMax[i386]=65
-HostMax[ppc64]=24
-HostMax[s390x]=10
-HostMax[ppc64le]=10
+
+eval "$(tclsh <<EOF
+$(cat /etc/bkr-client-improved/bkr-autorun.conf ~/.bkr-client-improved/bkr-autorun.confx 2>/dev/null)
+puts "
+HostMax\[x86_64\]=\$HostAvilable(x86_64)
+HostMax\[i386\]=\$HostAvilable(i386)
+HostMax\[ppc64\]=\$HostAvilable(ppc64)
+HostMax\[ppc64le\]=\$HostAvilable(ppc64le)
+HostMax\[aarch64\]=\$HostAvilable(aarch64)
+HostMax\[s390x\]=\$HostAvilable(s390x)
+"
+EOF
+)"
+
 ret=0
 users="$1"
 
