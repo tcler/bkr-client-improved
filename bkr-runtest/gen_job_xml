@@ -472,9 +472,19 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				set ARCH [lindex $ARCH_L 0]
 				set ARCH_L [lrange $ARCH_L 1 end]
 			}
+
 			lassign [split $ARCH .] ARCH Vendor
 			if ![string length $ARCH] {set ARCH auto}
 			if [string equal $ARCH "auto"] {set ARCH x86_64}
+
+			set MACHINE {}
+			if [llength $MACHINE_L] {
+				set MACHINE [lindex $MACHINE_L 0]
+				set MACHINE_L [lrange $MACHINE_L 1 end]
+				if {[string length $MACHINE] > 0} {
+					set ARCH {}
+				}
+			}
 
 			if ![info exist Opt(k-opts)] {set Opt(k-opts) ""}
 			if ![info exist Opt(k-opts-post)] {set Opt(k-opts-post) ""}
@@ -523,12 +533,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 
 					and ! {
-						set MACHINE {}
-						if [llength $MACHINE_L] {
-							set MACHINE [lindex $MACHINE_L 0]
-							set MACHINE_L [lrange $MACHINE_L 1 end]
-						}
-
 						doTag system ! {
 							if [info exist Opt(sr)] {
 								foreach kv $Opt(sr) {
