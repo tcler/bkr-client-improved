@@ -49,3 +49,5 @@ setup: [--keyvalue=CPUFLAGS=avx2]
 setup: [--keyvalue=hypervisor=]
 
 setup: [--ignore-panic]
+
+setup: [--hr-alias=netapp-cifs]
