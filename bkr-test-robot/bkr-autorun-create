@@ -94,6 +94,7 @@ set OptionList {
 	task			{forward y arg m	help {Include named task in job, can use multiple times}}
 	{param taskparam}	{forward y arg m	help {Set task params, can use multiple times.
 				Use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
+	noavc			{forward y arg n	help {alias of --param=AVC_ERROR=+no_avc_check}}
 	nvr			{forward y arg m	help {Specify the kernel(Name-Version-Release) to be installed}}
 	install			{forward y arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
 	upstream		{forward y arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d][#tag]
