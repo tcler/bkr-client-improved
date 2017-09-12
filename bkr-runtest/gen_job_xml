@@ -99,6 +99,7 @@ set OptionList {
 	taskn			{arg y	help {repeat task 'N' times}}
 	{param taskparam}	{arg m	help {Set task params, can use multiple times.
 				Use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
+	noavc			{arg n	help {alias of --param=AVC_ERROR=+no_avc_check}}
 	nvr			{arg m	help {Specify the kernel(Name-Version-Release) to be installed}}
 	install			{arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
 	upstream		{arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d][#tag]
@@ -189,6 +190,7 @@ if [info exist Opt(help)] {
 # process --param= option
 set GlobalParam {}
 if [info exist Opt(param)] { lappend GlobalParam {*}$Opt(param) }
+if [info exist Opt(noavc)] { lappend GlobalParam "AVC_ERROR=+no_avc_check" }
 
 # process --distro= option
 set DISTRO_L {}
