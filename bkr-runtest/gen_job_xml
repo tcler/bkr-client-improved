@@ -487,9 +487,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 			if [llength $MACHINE_L] {
 				set MACHINE [lindex $MACHINE_L 0]
 				set MACHINE_L [lrange $MACHINE_L 1 end]
-				if {[string length $MACHINE] > 0} {
-					set ARCH {}
-				}
+				#if {[string length $MACHINE] > 0} { set ARCH {} }
 			}
 
 			if ![info exist Opt(k-opts)] {set Opt(k-opts) ""}
