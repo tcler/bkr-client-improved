@@ -126,6 +126,7 @@ set OptionList {
 
   "\n  Options for installation:" {
 	{part partition}	{arg m	help {Additional <partitions/> for job, example: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
+	method			{arg y	help {Installation source method (nfs, http, ftp)}}
 	ks-meta			{arg m  help {Pass kickstart metadata OPTIONS when generating kickstart}}
 	ks-append		{arg m	help {Specify additional kickstart commands to add to the base kickstart file}}
 	ks			{link ks-append hide y}
@@ -295,6 +296,9 @@ foreach T $TestList {
 }
 
 set METHOD "nfs"
+if [info exist Opt(method)] {
+	set METHOD $Opt(method)
+}
 
 set SystemTypeList {}
 if [info exist Opt(systype)] {
