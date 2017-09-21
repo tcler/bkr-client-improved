@@ -412,7 +412,7 @@ set TestSumm {}
 set gen_opts {}
 set jobN 1
 if [info exist Opt(jobn)] {
-	regsub {.*([1-9][0-9]*).*} $Opt(jobn) {\1} jobN
+	regsub {[^0-9]*([1-9][0-9]*).*} $Opt(jobn) {\1} jobN
 	if {$jobN == ""} {set jobN 1}
 }
 
