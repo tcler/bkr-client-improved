@@ -493,7 +493,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 		foreach t $testList { puts $fp "$t" }
 		catch {close $fp} err
 
-		puts "\[$prog\]: processing GlobalSetup: {$gset}"
+		puts "\[$prog\]: Test require: {$gset}"
 		puts "\[$prog\]: Generate job XML ==> '$xmlf'"
 
 		if [info exist xmlf_merged] {
