@@ -160,6 +160,7 @@ proc getDefaultNVR {_distro} {
 
 # _parse_ argument
 set hostrequire-alias http://pkgs.devel.redhat.com/cgit/tests/kernel/plain/filesystems/Inventory/hostrequire-alias.tcl
+set aliasf alias.tcl
 set ARGV $::argv
 getOptions $OptionList $ARGV Opt InvalidOpt NotOptions
 if {[info exist Opt(hr-alias)] && $Opt(hr-alias) != ""} {
@@ -167,14 +168,20 @@ if {[info exist Opt(hr-alias)] && $Opt(hr-alias) != ""} {
 	if {[info exist Opt(hr-alias-file)] && $Opt(hr-alias-file) != ""} {
 		set hostrequire-alias $Opt(hr-alias-file)
 	}
-	exec bash -c "wget -q ${hostrequire-alias} -O alias.tcl"
-	source alias.tcl
+	if [file isfile ${hostrequire-alias}] {
+		set aliasf ${hostrequire-alias}
+	} else {
+		exec bash -c "wget -q ${hostrequire-alias} -O ${aliasf}"
+	}
+	source ${aliasf}
 	set idx [lindex [lsearch -all -regexp $ARGV {-hr-alias(=.*)?$}] end]
 	if [string match *-hr-alias [lindex $ARGV $idx]] {set ARGV [lreplace $ARGV $idx+1 $idx+1]}
 	set ARGV [lreplace $ARGV $idx $idx]
 	set NARGV [linsert $ARGV $idx {*}$Alias($alias)]
 	getOptions $OptionList $NARGV Opt InvalidOpt NotOptions
-	exec rm alias.tcl
+	if ![file isfile ${hostrequire-alias}] {
+		exec rm ${aliasf}
+	}
 }
 
 proc debug {} {
