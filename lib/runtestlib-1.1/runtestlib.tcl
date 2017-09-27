@@ -200,7 +200,7 @@ proc ::runtestlib::expandDistro {distroStr} {
 	lappend distrol {*}[split $distroStr ", "]
 	set distronl {}
 	foreach d $distrol {
-		if [regexp -- {^[0-9]} $d] { set d [exec getLatestRHEL $d] }
+		if [regexp -- {^(alt-)?[0-9]} $d] { set d [exec getLatestRHEL $d] }
 		lappend distronl ${d}
 	}
 	set distroStr [join $distronl ,]
