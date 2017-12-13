@@ -869,6 +869,10 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								}
 							}
 						}
+
+						if {[llength ${TaskList}] > 1} {
+							task name=/distribution/utils/reboot role=$role -
+						}
 					}
 				}
 
