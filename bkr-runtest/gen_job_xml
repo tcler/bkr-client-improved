@@ -840,7 +840,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 
 				# task list
+				set llen [llength ${TaskList}]
 				for {set i 0} {$i < $taskN} {incr i} {
+					set iter 1
 					foreach task ${TaskList} {
 						set name [lindex $task 0]
 						set arglist [lrange $task 1 end]
@@ -870,9 +872,10 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							}
 						}
 
-						if {[llength ${TaskList}] > 1} {
+						if {$iter < $llen} {
 							task name=/distribution/utils/reboot role=$role -
 						}
+						incr iter
 					}
 				}
 
