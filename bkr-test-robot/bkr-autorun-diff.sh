@@ -11,6 +11,7 @@ Usage() {
 	echo "  --db </path/dbfile>  #Use specified dbfile, can use more than one time"
 	echo "  --diff               #Use diff command"
 	echo "  --diffr              #Alias: --diff -r"
+	echo "  --short              #Print new failures only"
 	echo "  -o <ofile>           #Output file used to save output of --diff option"
 	echo "  -r                   #Reverse the order of comparison"
 	echo "Examples:"
@@ -26,6 +27,7 @@ _at=`getopt -o hro: \
 	--long bc \
 	--long diff \
 	--long diffr \
+	--long short \
     -a -n 'bkr-autorun-diff.sh' -- "$@"`
 eval set -- "$_at"
 
@@ -51,6 +53,8 @@ while true; do
 		diffv=yes; shift 1;;
 	--diffr)
 		diffv=yes; reverse=yes; shift 1;;
+	--short)
+		diffv=yes; short=yes; shift 1;;
 	-o)
 		OF=$2; shift 2;;
 	--)
@@ -107,6 +111,8 @@ if [[ -z "$diffv" ]]; then
 	rm -f ${diff1} ${diff2}
 else
 	tmpf="${OF}.$$.diffs"
+	echo -e "# New fail of testrun: ${run2}" >"$tmpf"
+	echo -e "# Compared to testrun: ${run1}" >>"$tmpf"
 	mkdir ${resf1%.res} ${resf2%.res}
 	id_list=$(awk '$1 == "TEST_ID:"{print $2}' ${resf1} ${resf2} | sort -u)
 	for id in $id_list; do
@@ -118,24 +124,36 @@ else
 			if egrep -q '^  (F|W|A)' ${resf2%.res}/$id; then
 				diffres=$(diff -pNur ${resf1%.res}/$id ${resf2%.res}/$id)
 				if egrep -q '^\+[^+].*(Warn|Fail|Panic|Abort)$' <<<"$diffres"; then
-					echo -e "\n#Test result different, and has New Fail"
-					sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
-					echo -e "$taskurl\n."
-					echo "$diffres"
+					if [[ "$short" != "yes" ]]; then
+						echo -e "\n#Test result different, and has New Fail"
+						sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
+						echo -e "$taskurl\n."
+						echo "$diffres"
+					else
+						sed -n '2{s/^/- /;p;q}' ${resf1%.res}/$id
+					fi
 				else
-					echo -e "\n#Test result different, but no New Fail"
-					sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
-					echo -e "$taskurl\n."
-					echo "$diffres"
+					if [[ "$short" != "yes" ]]; then
+						echo -e "\n#Test result different, but no New Fail"
+						sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
+						echo -e "$taskurl\n."
+						echo "$diffres"
+					fi
 				fi
 			fi
 		elif egrep -q '^  (F|W|A)' ${resf1%.res}/$id; then
-			echo -e "\n#Test result same, but Fail:"
-			sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
-			echo -e "$taskurl"
+			if [[ "$short" != "yes" ]]; then
+				echo -e "\n#Test result same, but Fail:"
+				sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
+				echo -e "$taskurl"
+			fi
 		fi
-	done >"$tmpf"
-	less "$tmpf"
+	done >>"$tmpf"
+	if [[ "$short" != "yes" ]]; then
+		less "$tmpf"
+	else
+		cat "$tmpf"
+	fi
 	[[ -n "$OF" ]] && mv "$tmpf" "$OF" || rm -f "$tmpf"
 	rm -rf $resf1 $resf2 ${resf1%.res} ${resf2%.res}
 fi
