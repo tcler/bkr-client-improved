@@ -5,7 +5,7 @@ export LANG=C
 P=${0##*/}
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [-h|--help] [-r] [--db <dbfile>] [--bc] [--diff [-o ofile]] [--short]"
+	echo "Usage: $P [-h|--help] [-r] [-v] [--db <dbfile>] [--bc] [--diff [-o ofile]] [--short]"
 	echo "Options:"
 	echo "  --bc                 #Use 'Beyond Compare' instead default vimdiff"
 	echo "  --db </path/dbfile>  #Use specified dbfile, can use more than one time"
@@ -14,6 +14,8 @@ Usage() {
 	echo "  --short              #Print new failures only"
 	echo "  -o <ofile>           #Output file used to save output of --diff option"
 	echo "  -r                   #Reverse the order of comparison"
+	echo "  -v                   #Be verbose"
+	echo "  -h|--help            #Show this help message"
 	echo "Examples:"
 	echo "  $P"
 	echo "  $P -r --bc"
@@ -21,7 +23,7 @@ Usage() {
 	echo "  $P --db ~/testrun.db.orig --db ~/.testrundb/testrun.db --diff"
 }
 
-_at=`getopt -o hro: \
+_at=`getopt -o hrvo: \
 	--long help \
 	--long db: \
 	--long bc \
@@ -33,12 +35,21 @@ eval set -- "$_at"
 
 dbs=()
 runs=()
+reverse=""
+verbose=""
+BC=""
+diffv=""
+short=""
+OF=""
+
 while true; do
 	case "$1" in
 	-h|--help)
 		Usage; shift 1; exit 0;;
 	-r)
 		reverse=yes; shift 1;;
+	-v)
+		verbose=yes; shift 1;;
 	--db)
 		dbs+=("$2"); shift 2;;
 	--bc)
@@ -70,9 +81,11 @@ for dbfile in "${dbs[@]}"; do
 	rm -f $dialogres
 done
 
-for run in "${runs[@]}"; do
-	echo "$run"
-done
+[[ "$verbose" = yes ]] && {
+	for run in "${runs[@]}"; do
+		echo "$run"
+	done
+}
 
 [[ ${#runs[@]} < 2 ]] && {
 	echo "{Error} you must select more than 1 testrun to diff" >&2
