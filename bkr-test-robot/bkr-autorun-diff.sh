@@ -5,7 +5,7 @@ export LANG=C
 P=${0##*/}
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [-h|--help] [-r] [--db <dbfile>] [--bc] [--diff [-o ofile]]"
+	echo "Usage: $P [-h|--help] [-r] [--db <dbfile>] [--bc] [--diff [-o ofile]] [--short]"
 	echo "Options:"
 	echo "  --bc                 #Use 'Beyond Compare' instead default vimdiff"
 	echo "  --db </path/dbfile>  #Use specified dbfile, can use more than one time"
@@ -109,7 +109,11 @@ if [[ -z "$diffv" ]]; then
 	rm -f ${diff1} ${diff2}
 else
 	tmpf="${OF}.$$.diffs"
-	echo -e "# New fail of testrun: ${run2}" >"$tmpf"
+	if [[ "$short" != "yes" ]]; then
+		echo -e "# Dig diff of testrun: ${run2}" >"$tmpf"
+	else
+		echo -e "# New fail of testrun: ${run2}" >"$tmpf"
+	fi
 	echo -e "# Compared to testrun: ${run1}" >>"$tmpf"
 	mkdir ${resf1%.res} ${resf2%.res}
 	id_list=$(awk '$1 == "TEST_ID:"{print $2}' ${resf1} ${resf2} | sort -u)
