@@ -40,13 +40,7 @@ while true; do
 	-r)
 		reverse=yes; shift 1;;
 	--db)
-		if [ -f "$2" ]; then
-			dbs+=("$2");
-		else
-			echo "file '$2' not exist" >&2
-			exit 1
-		fi
-		shift 2;;
+		dbs+=("$2"); shift 2;;
 	--bc)
 		BC=yes; shift 1;;
 	--diff)
@@ -64,6 +58,10 @@ done
 
 [[ ${#dbs[@]} = 0 ]] && dbs=(~/.testrundb/testrun.db)
 for dbfile in "${dbs[@]}"; do
+	if [ ! -f "$dbfile" ]; then
+		echo "{Error} cannot find db file $dbfile" >&2
+		exit 1
+	fi
 	dialogres=.$$.res
 	eval dialog --backtitle "bkr-autorun-diff" --separate-output --checklist "testrun_list-$dbfile" 30 120 28  $(bkr-autorun-stat -r --db=$dbfile|sed 's/.*/"&" "" 1/')  2>$dialogres
 	while read run; do
