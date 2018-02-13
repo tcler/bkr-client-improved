@@ -8,7 +8,7 @@ baseUrl=https://beaker.engineering.redhat.com
 
 hostinfo() {
 	local h=$1 wikiIdx=$2
-	sysinfo=$(curl -L -k -s $baseUrl/systems/$h);
+	local sysinfo=$(curl -L -k -s $baseUrl/systems/$h);
 
 	: <<-END
 	memory=$(echo "$sysinfo" | sed -nr '/memory/{s/.*: //;s/,$//;p}');
