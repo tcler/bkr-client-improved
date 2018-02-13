@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #Usage
-#[wiki=1] bkr-hostinfo.sh [$owner]
+#[wiki=1] bkr-hosts.sh [$owner]
 
 owner=${1:-fs-qe}
 baseUrl=https://beaker.engineering.redhat.com
