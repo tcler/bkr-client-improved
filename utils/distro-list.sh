@@ -27,7 +27,7 @@ export type=${1-rtt}
 }
 case $type in
 al|all) url="${baseurl}?";;
-rt|rtt) url="${baseurl}?distrosearch-0.table=Tag&distrosearch-0.operation=is&distrosearch-0.value=RTT_ACCEPTED&Search=Search";;
+rt|rtt) url="${baseurl}?distrosearch-0.table=Tag&distrosearch-0.operation=is&distrosearch-0.value=RTT_ACCEPTED*";;
 s|st|stb) url="${baseurl}?distrosearch-0.table=Tag&distrosearch-0.operation=is&distrosearch-0.value=STABLE&Search=Search";;
 re|rel) url="${baseurl}?distrosearch-0.table=Tag&distrosearch-0.operation=is&distrosearch-0.value=RELEASED&Search=Search";;
 i|in|ins) url="${baseurl}?distrosearch-0.table=Tag&distrosearch-0.operation=is&distrosearch-0.value=INSTALLS&Search=Search";;
