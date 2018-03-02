@@ -497,9 +497,17 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				#if {[string length $MACHINE] > 0} { set ARCH {} }
 			}
 
-			if ![info exist Opt(k-opts)] {set Opt(k-opts) ""}
-			if ![info exist Opt(k-opts-post)] {set Opt(k-opts-post) ""}
-			recipe kernel_options=$Opt(k-opts) kernel_options_post=$Opt(k-opts-post) whiteboard=$Opt(wb) ks_meta=$recipe_ks_meta ! {
+			set KOPTS ""
+			set KOPTS_POST ""
+			if [info exist Opt(k-opts)] {
+				set KOPTS $Opt(k-opts)
+				if {[llength $Opt(k-opts)] > 1} { set KOPTS [lindex $Opt(k-opts) $R]}
+			}
+			if [info exist Opt(k-opts-post)] {
+				set KOPTS_POST $Opt(k-opts-post)
+				if {[llength $Opt(k-opts-post)] > 1} { set KOPTS_POST [lindex $Opt(k-opts-post) $R]}
+			}
+			recipe kernel_options=$KOPTS kernel_options_post=$KOPTS_POST whiteboard=$Opt(wb) ks_meta=$recipe_ks_meta ! {
 				set pick "false"
 				if [info exist Opt(random)] {set pick "true"}
 				doTag autopick random=$pick -
