@@ -92,6 +92,7 @@ set OptionList {
 
   "\n  Options for setting tasks:" {
 	task			{forward y arg m	help {Include named task in job, can use multiple times}}
+	reboot			{forward y arg y	help {add reboot after each task}}
 	{param taskparam}	{forward y arg m	help {Set task params, can use multiple times.
 				Use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
 	noavc			{forward y arg n	help {alias of --param=AVC_ERROR=+no_avc_check}}
