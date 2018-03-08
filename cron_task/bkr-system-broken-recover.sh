@@ -4,7 +4,7 @@ Usage() {
 	echo "Usage: $0 [-o owner] [-f emailFrom] [-c emailCc]" >&2
 }
 
-_at=`getopt -o ho:c: \
+_at=`getopt -o ho:f:c: \
 	--long help \
 	--long owner: \
     -n "$0" -- "$@"`
