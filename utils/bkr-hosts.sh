@@ -1,9 +1,28 @@
 #!/bin/bash
 
-#Usage
-#[wiki=1] bkr-hosts.sh [$owner]
+Usage() {
+	echo "Usage: [wiki=1] $0 [-o <owner> | [FQDN1 FQDN2 ...]]" >&2
+}
 
-owner=${1:-fs-qe}
+_at=`getopt -o ho: \
+	--long help \
+	--long owner: \
+    -n "$0" -- "$@"`
+eval set -- "$_at"
+while true; do
+	case "$1" in
+	-h|--help)   Usage; shift 1; exit 0;;
+	-o|--owner)  owner=$2; shift 2;;
+	--) shift; break;;
+	esac
+done
+
+owner=${owner:-fs-qe}
+hosts="$@"
+[ -z "$hosts" ] && {
+	hosts=$(bkr list-systems --xml-filter='<system><owner op="==" value="'"$owner"'"/></system>')
+}
+
 baseUrl=https://beaker.engineering.redhat.com
 
 hostinfo() {
@@ -45,6 +64,6 @@ hostinfo() {
 	echo "|| '''Idx''' || '''Hostname''' || '''CPU''' || '''Memory''' || '''Condition''' || '''Loaned''' || '''Notes''' ||"
 
 i=1
-for host in $(bkr list-systems --xml-filter='<system><owner op="==" value="'"$owner"'"/></system>'); do
+for host in $hosts; do
 	hostinfo $host ${wiki:+$((i++))}
 done
