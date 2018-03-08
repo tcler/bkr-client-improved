@@ -45,6 +45,6 @@ hostinfo() {
 	echo "|| '''Idx''' || '''Hostname''' || '''CPU''' || '''Memory''' || '''Condition''' || '''Loaned''' || '''Notes''' ||"
 
 i=1
-for host in $(bkr system-list --xml-filter='<system><owner op="==" value="'"$owner"'"/></system>'); do
+for host in $(bkr list-systems --xml-filter='<system><owner op="==" value="'"$owner"'"/></system>'); do
 	hostinfo $host ${wiki:+$((i++))}
 done
