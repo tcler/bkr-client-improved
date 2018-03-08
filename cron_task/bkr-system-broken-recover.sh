@@ -14,7 +14,7 @@ for h in $brokenList; do
 
 		# send e-mail
 		read key user < <(grep LoanedTo: <<<"$hinfo")
-		cat <<-EOF | sendmail.sh -p '[Notice] ' -f "QE-Assistant <jiyin@redhat.com>" -c "${user}@redhat.com" - "Broken host remind"  &>/dev/null
+		cat <<-EOF | sendmail.sh -p '[Notice] ' -f "QE-Assistant <jiyin@redhat.com>" -t "${owner}@redhat.com" -c "${user}@redhat.com" - "Broken host remind"  &>/dev/null
 		Hi ${user}
 
 		host $h loaned to you was broken, I have recovered it to 'Manual'
