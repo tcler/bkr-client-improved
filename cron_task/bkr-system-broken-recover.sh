@@ -36,8 +36,10 @@ for h in $brokenList; do
 		cat <<-EOF | sendmail.sh -p '[Notice] ' -f "$from" -t "${user}@redhat.com" -c "$cc" - "Broken host remind"  &>/dev/null
 		Hi ${user}
 
-		host $h loaned to you was broken, I have recovered it to 'Manual'
-		if that's not your expected, please try use follow command update the status:
+		host $h loaned to you was broken, I have recovered it to 'Manual':
+		$(bkr-hosts.sh $h)
+
+		if it isn't your expected.. please try use follow command update the status:
 		  bkr system-modify --condition Automated $h
 		EOF
 	fi
