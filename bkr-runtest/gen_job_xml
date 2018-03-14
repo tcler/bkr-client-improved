@@ -717,6 +717,19 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						}
 						set UP 1
 					}
+				} elseif {[info exist Opt(dbgk)] && ![info exist Opt(upstream)]} {
+					set NVR [getDefaultNVR $DISTRO]
+					task name=/distribution/kernelinstall role=$role ! {
+						params ! {
+							set KN [regsub {((^[a-z][a-z-]*)-)?.*} $NVR {\2}]
+							if {$KN == ""} {set KN kernel}
+							set KVR [regsub {^[a-z-]*} $NVR {}]
+							param name=KERNELARGNAME value=$KN -
+							param name=KERNELARGVERSION value=$KVR -
+							param name=KERNELARGVARIANT value=$KVARIANT -
+							param name=NoDeps value=--nodeps -
+						}
+					}
 				}
 				if {[info exist Opt(upstream)] || $UP != ""} {
 					task name=/kernel/distribution/upstream-kernel/install role=$role ! {
