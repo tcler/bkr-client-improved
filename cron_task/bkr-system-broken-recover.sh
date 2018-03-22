@@ -27,7 +27,15 @@ brokenList=$(bkr list-systems --xml-filter='<system><owner op="==" value="'"$own
 for h in $brokenList; do
 	hinfo=$(bkr-hosts.sh $h)
 	if ! grep -q LoanedTo: <<<"$hinfo"; then
+		#skip if there is Broken flag in Notes
+		#continue
+
+		#try reboot and change condition back to Automated
+		bkr system-power off $h
+		bkr system-power on $h
 		bkr system-modify --condition Automated $h
+
+		#try reserve this host to see if it's real works fine
 	else
 		bkr system-modify --condition Manual $h
 
