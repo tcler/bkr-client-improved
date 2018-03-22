@@ -4,7 +4,7 @@
 expdir=$1
 urlroot=$2
 mailCc=${3:-jiyin@redhat.com}
-mailFrom=jiyin@redhat.com
+mailFrom='vmcore monitor <jiyin@redhat.com>'
 
 cd $expdir || exit 1
 ls >/dev/null  # make sure autofs mount
