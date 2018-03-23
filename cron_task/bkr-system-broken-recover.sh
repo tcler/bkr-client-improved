@@ -19,16 +19,21 @@ while true; do
 	esac
 done
 
+logf=/tmp/bkr-system-broken-recover.log
+baseUrl=http://beaker.engineering.redhat.com
 owner=${owner:-fs-qe}
 from=${from:-QE Assistant <jiyin@redhat.com>}
 
 brokenList=$(bkr list-systems --xml-filter='<system><owner op="==" value="'"$owner"'"/></system>' --status Broken)
 
+echo -n >$logf
 for h in $brokenList; do
 	hinfo=$(bkr-hosts.sh $h)
 	if ! grep -q LoanedTo: <<<"$hinfo"; then
+		echo "$hinfo" >>$logf
+
 		#skip if there is Broken flag in Notes
-		#continue
+		egrep -qi '""" *(Ticket|Broken):' <<<"$hinfo" && continue
 
 		#try reboot and change condition back to Automated
 		bkr system-power off $h
@@ -48,7 +53,9 @@ for h in $brokenList; do
 		$(bkr-hosts.sh $h)
 
 		if it isn't your expected.. please try use follow command update the status:
-		  bkr system-modify --condition Automated $h
+		    bkr system-power off $h && bkr system-power on $h
+		    bkr system-modify --condition Automated $h
+		or update from webUI: $baseUrl/view/$h
 		EOF
 	fi
 done

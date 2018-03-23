@@ -43,9 +43,9 @@ hostinfo() {
 	loanedTo=$(echo "$sysinfo" | sed -ne '/"current_loan": {/ { :loop /recipient/! {N; b loop}; s/.*: //; s/[,"]//g; p'});
 
 	raw_notes=$(curl -s -u : -L "$baseUrl/view/$h#notes")
-	notes=$(echo "$raw_notes" | sed -ne '/<tr id="note_/ { :loop /<\/p>/! {N; b loop}; s/.*<p>/\n"""/; s/<\/p>.*/"""/; p}')
-	wikiNote=$(echo "$raw_notes" | sed -ne '/<tr id="note_/ { :loop /<\/p>/! {N; b loop}; s/.*<p>//; s/<\/p>.*//; /wiki_note: */{s///;p}}')
-	brokenNote=$(echo "$raw_notes" | sed -ne '/<tr id="note_/ { :loop /<\/p>/! {N; b loop}; s/.*<p>//; s/<\/p>.*//; /broken: */{s///;p}}')
+	notes=$(echo "$raw_notes" | sed -rne '/<tr id="note_/ { :loop /<\/p>/! {N; b loop}; s/.*<p>/"""/; s/<\/p>.*/"""/; p}')
+	wikiNote=$(echo "$raw_notes" | sed -rne '/<tr id="note_/ { :loop /<\/p>/! {N; b loop}; s/.*<p>//; s/<\/p>.*//; /wiki_note: */{s///;p}}')
+	brokenNote=$(echo "$raw_notes" | sed -rne '/<tr id="note_/ { :loop /<\/p>/! {N; b loop}; s/.*<p>//; s/<\/p>.*//; /(Broken|Ticket): */{s///;p}}')
 
 	if [[ -z "$wikiIdx" ]]; then
 		echo $h;
@@ -54,7 +54,7 @@ hostinfo() {
 			echo "Memory: $memory"
 			echo "Condition: $status"
 			[[ -n "$loanedTo" ]] && echo "LoanedTo: $loanedTo"
-			[[ -n "$notes" ]] && echo "Notes: {$notes}"
+			[[ -n "$notes" ]] && echo -e "Notes: {\n$notes\n}"
 		} | sed 's/^ */  /'
 		echo
 	else
