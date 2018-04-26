@@ -52,6 +52,7 @@ set OptionList {
 	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
 	tag			{arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE)}}
 	distro			{arg y	help {Use named distro for job)}}
+	distrot			{arg y	help {define distro template for multihost test, eg: --distrot=6,6,%D)}}
 	variant			{arg m	help {Specify the distro variant}}
 	arch			{arg y	help {Specify the distro arch}}
 	{dr distrorequire}	{arg m	help {distrorequire -dr=key="value"}}
@@ -209,6 +210,9 @@ set _ldistro {}
 set _lfamily {}
 set _ltag {STABLE}
 if [info exist Opt(distro)] {
+	if [info exist Opt(distrot)] {
+		set Opt(distro) [string map "%D $Opt(distro)" $Opt(distrot)]
+	}
 	foreach e $Opt(distro) {lappend _ldistro {*}[split $e ", "]}
 	set prev {}
 	foreach d $_ldistro {
