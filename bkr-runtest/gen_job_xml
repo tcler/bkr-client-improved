@@ -11,7 +11,8 @@ lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require yaml
 package require xmlgen
 package require getOpt 3.0
-namespace import ::xmlgen::* ::getOpt::*
+package require runtestlib 1.1
+namespace import ::xmlgen::* ::getOpt::* ::runtestlib::*
 
 declaretags job whiteboard notify cc
 declaretags recipeSet recipe and or not
@@ -211,7 +212,7 @@ set _lfamily {}
 set _ltag {STABLE}
 if [info exist Opt(distro)] {
 	if [info exist Opt(distrot)] {
-		set Opt(distro) [string map "%D $Opt(distro)" $Opt(distrot)]
+		set Opt(distro) [string map "%D $Opt(distro)" [expandDistro $Opt(distrot)]]
 	}
 	foreach e $Opt(distro) {lappend _ldistro {*}[split $e ", "]}
 	set prev {}
