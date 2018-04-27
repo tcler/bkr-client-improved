@@ -52,9 +52,6 @@ if {[llength $Args] < 1} {
 	Usage $argv0
 	exit 1
 }
-if {[lindex $Args 0] == {--}} {
-	set Args [lrange $Args 1 end]
-}
 
 set pkgName {}
 if [info exist Opt(delpkg)] {

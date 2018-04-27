@@ -50,9 +50,8 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 		return $::getOpt::flag(NOTOPT)
 	}
 	if {$rarg in {--}} {
-		set optArg [lrange $argv 1 end]
-		set argv [list]
-		return $::getOpt::flag(NOTOPT)
+		set argv [lrange $argv 1 end]
+		return $::getOpt::flag(END)
 	}
 
 	set argv [lrange $argv 1 end]
@@ -227,7 +226,8 @@ proc ::getOpt::getOptions {optLists argv validOptionVar invalidOptionVar notOpti
 			#unknown options
 			set invalidOption($opt) "unkown options"
 		} elseif {$ret == $::getOpt::flag(END)} {
-			#end of nargv
+			#end of nargv or get --
+			set notOption [concat $notOption $nargv]
 			break
 		}
 	}
