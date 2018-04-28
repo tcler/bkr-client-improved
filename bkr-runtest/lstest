@@ -268,7 +268,8 @@ else
 	setupyList=$(while read setup; do echo $(eval set -- $setup; for a; do ymllist "--$a"; done); done <<<"$setupList")
 
 	while read setup; do
-		echo "$testListWithSetup" | sed "s/] *}$/, ${setup%,}&/"
-		echo "$testListWithOutSetup" | sed "s/}$/, setup: [${setup%,}]&/"
+		setup=${setup//;/\\;}
+		echo "$testListWithSetup" | sed "s;] *}$;, ${setup%,}&;"
+		echo "$testListWithOutSetup" | sed "s;}$;, setup: [${setup%,}]&;"
 	done <<<"$setupyList"
 fi
