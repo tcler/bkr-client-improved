@@ -5,7 +5,7 @@ export LANG=C
 P=${0##*/}
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [-h|--help] [-r] [-v] [--db <dbfile>] [--bc] [--diff [-o ofile]] [--short]"
+	echo "Usage: $P [-h|--help] [-r] [-v] [--db <dbfile>] [--bc] [--diff [-o ofile [--override|--append]]] [--short]"
 	echo "Options:"
 	echo "  --bc                 #Use 'Beyond Compare' instead default vimdiff"
 	echo "  --db </path/dbfile>  #Use specified dbfile, can use more than one time"
@@ -13,6 +13,8 @@ Usage() {
 	echo "  --diffr              #Alias: --diff -r"
 	echo "  --short              #Print new failures only"
 	echo "  -o <ofile>           #Output file used to save output of --diff option"
+	echo "  --override           #Override it if the output file exists (along with '-o ofile')"
+	echo "  --append             #Append to it if the output file exists (along with '-o ofile')"
 	echo "  -r                   #Reverse the order of comparison"
 	echo "  -v                   #Be verbose"
 	echo "  -h|--help            #Show this help message"
@@ -30,6 +32,8 @@ _at=`getopt -o hrvo: \
 	--long diff \
 	--long diffr \
 	--long short \
+	--long override \
+	--long append \
     -a -n 'bkr-autorun-diff.sh' -- "$@"`
 eval set -- "$_at"
 
@@ -41,6 +45,9 @@ BC=""
 diffv=""
 short=""
 OF=""
+override=""
+append=""
+leave=""
 
 while true; do
 	case "$1" in
@@ -62,6 +69,10 @@ while true; do
 		diffv=yes; short=yes; shift 1;;
 	-o)
 		OF=$2; shift 2;;
+	--override)
+		override=yes; shift 1;;
+	--append)
+		append=yes; shift 1;;
 	--)
 		shift; break;;
 	esac
@@ -169,6 +180,46 @@ else
 	else
 		cat "$tmpf"
 	fi
-	[[ -n "$OF" ]] && mv "$tmpf" "$OF" || rm -f "$tmpf"
+	if [[ -n "$OF" ]]; then
+		if [[ -e "$OF" ]]; then
+			# need decision: override, append or leave
+			while [[ "$override" != "yes" && "$append" != "yes" && "leave" != "yes" ]]; do
+				read -p "File '$OF' exists already. Do you want to override (o), append (a) or just leave (l) it? " answer
+				case $answer in
+				[Oo]* )
+					override=yes
+					echo "{INFO} Can use '--override' (along with '-o ofile') for non-interactive shell."
+					break;;
+				[Aa]* )
+					append=yes
+					echo "{INFO} Can use '--append' (along with '-o ofile') for non-interactive shell."
+					break;;
+				[Ll]* )
+					leave=yes
+					echo "{INFO} So you regret that '-o ofile' was used now :)"
+					break;;
+				* )
+					echo "{WARN} Please answer override (o), append (a) or leave (l)."
+					continue;;
+				esac
+			done
+		else
+			# just override if no original one
+			override=yes
+		fi
+	else
+		# just leave it if no output file specified
+		leave=yes
+	fi
+	if [[ "$override" == "yes" ]]; then
+		mv "$tmpf" "$OF"
+	elif [[ "$append" == "yes" ]]; then
+		cat "$tmpf" >> "$OF"
+		rm -f "$tmpf"
+	elif [[ "$leave" == "yes" ]]; then
+		rm -f "$tmpf"
+	else
+		echo "{WARN} Something wrong occurs, should not be here."
+	fi
 	rm -rf $resf1 $resf2 ${resf1%.res} ${resf2%.res}
 fi
