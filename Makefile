@@ -1,7 +1,6 @@
 
 export PATH:=${PATH}:/usr/local/bin:~/bin
 _bin=/usr/local/bin
-_bkr_client_cmd=/usr/lib/python2.7/site-packages/bkr/client/commands
 completion_path=/usr/share/bash-completion/completions
 
 install install_runtest: _isroot
@@ -28,7 +27,6 @@ install install_runtest: _isroot
 	@ps axf|grep -v grep|grep -q vershow || $(_bin)/vershow -uu >/dev/null &
 	@yum install -y bash-completion
 	cp -fd bash-completion/* ${completion_path}/.||cp -fd bash-completion/* $${completion_path/\/*/}/.
-	@-cp -f bkr-client-cmd/* $(_bkr_client_cmd)/.
 
 install_all: install_robot _install_web
 
