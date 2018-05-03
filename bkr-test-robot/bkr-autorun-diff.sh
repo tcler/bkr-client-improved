@@ -11,7 +11,7 @@ Usage() {
 	echo "  --db </path/dbfile>  #Use specified dbfile, can use more than one time"
 	echo "  --diff               #Use diff command"
 	echo "  --diffr              #Alias: --diff -r"
-	echo "  --short              #Print new failures only"
+	echo "  --short              #Only print new failures of diff command (Alias: --diff --short)"
 	echo "  -o <ofile>           #Output file used to save output of --diff option"
 	echo "  --override           #Override it if the output file exists (along with '-o ofile')"
 	echo "  --append             #Append to it if the output file exists (along with '-o ofile')"
