@@ -63,7 +63,7 @@ for f in $kfList; do
 		continue
 	}
 
-	V=${f%*-}
+	V=${f#*-}
 	newkernel=
 	available=1
 	patch=${PWD}/${f}.patch
@@ -73,7 +73,7 @@ for f in $kfList; do
 	grep '^+[^+]' ${patch} || continue
 	newkernel=$(sed 's/^+//' ${patch})
 
-	url=https://home.corp.redhat.com/wiki/rhel${V}changelog
+	#url=https://home.corp.redhat.com/wiki/rhel${V}changelog  # no update since 2015
 	url=http://patchwork.lab.bos.redhat.com/status/rhel${V}/changelog.html
 	urlAlt=http://patchwork.lab.bos.redhat.com/status/rhel-alt-7.5/changelog.html
 	for nvr in $newkernel; do
