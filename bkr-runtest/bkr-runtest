@@ -477,7 +477,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 	} else {
 		regsub -all "%O" $WB "" WB
 	}
-	set WB [string map {"<" "{" ">" "}"} $WB]
+	set WB [string map {"<" "_" ">" "_"} $WB]
 
 	set jobinfo job_[regsub -all {[^-?,=_a-zA-Z0-9]} $WB {_}]; # substitute special characters
 	set jobinfo [regsub -all {_+} $jobinfo {_}];		   # merge duplicate underlines
