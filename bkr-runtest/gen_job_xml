@@ -50,24 +50,34 @@ set OptionList {
   }
 
   "\n  Options for selecting distro tree(s):" {
-	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
-	tag			{arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE)}}
-	distro			{arg y	help {Use named distro for job)}}
+	{dr distrorequire}	{arg m	help {distrorequire --dr=key="value"}}
+	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6", same as --dr=distro_family=\$FAMILY}}
+	tag			{arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE), same as --dr=distro_tag=\$TAG}}
+	distro			{arg y	help {Use named distro for job, same as --dr=distro_name=\$DISTRO}}
 	distrot			{arg y	help {define distro template for multihost test, eg: --distrot=6,6,%D)}}
-	variant			{arg m	help {Specify the distro variant}}
-	arch			{arg y	help {Specify the distro arch}}
-	{dr distrorequire}	{arg m	help {distrorequire -dr=key="value"}}
+	variant			{arg m	help {Specify the distro variant, same as --dr=distro_variant=\$VARIANT}}
+	arch			{arg y	help {Specify the distroRequire.disro_arch and hostRequire.arch, same as: --dr=distro_arch=\$ARCH --hr=arch=\$ARCH}}
   }
 
   "\n  Options for selecting system(s):" {
 	{topo}			{arg y	help {Include NUMBER server and client hosts for multi-host test. eg --topo=multiHost.1.1}}
 	{servers s}		{arg y	help {Include NUMBER server hosts for multi-host test}}
 	{clients c}		{arg y	help {Include NUMBER client hosts for multi-host test}}
-	{sr sysrequire}		{arg m	help {Additional <hostRequires><system/> for job, example: --sysrequire=numanodes>=4}}
-	{hr hostrequire}	{arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
+	{hr hostrequire}	{arg m	help {Additional <hostRequires/> for job, example:
+				--hr cpu_count>=4
+				--hr memory>=4096
+				--hr labcontroller=lab-01.rhts.eng.pek2.redhat.com
+				--hr device:type=STORAGE,driver=nvme
+				--hr disk.phys_sector_size=4096,unit=bytes
+				--hr key_value:CPUVENDOR=\$Vendor  #same as --kv CPUVENDOR=\$Vendor
+				--hr 'key_value:DISKSPACE>=60000'  #same as --kv 'DISKSPACE>=60000'
+				--hr 'system.numanodes>=4'         #same as --sr 'numanodes>=4'
+				--hr system.not.fqdn~%rdma%
+				}}
+	{kv keyvalue}		{arg m	help {Require system with matching legacy key-value, same as '--hr=key_value:key=value' example: --kv NETWORK=e1000}}
+	{sr sysrequire}		{arg m	help {Additional <hostRequires><system/> for job, same as '--hr=system.key=value' example: --sr numanodes=4}}
 	{hr-alias}		{arg y	help {alias of long and changeable options combination}}
 	{hr-alias-file}		{arg y	help {hr-alias will search alias in this file}}
-	{kv keyvalue}		{arg m	help {Require system with matching legacy key-value, example: --keyvalue=NETWORK=e1000}}
 	machine			{arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
 	systype			{arg m	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
 	ormachine		{arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
@@ -453,6 +463,17 @@ if [info exist Opt(retention-tag)] {
 	}
 }
 
+proc makeTag {taginfo} {
+	set _tag [split $taginfo ,]
+	lassign [regsub (.*?)(:|=|!=|>|>=|<|<=|~)(.*$) [lindex $_tag 0] {\1 op=\2 {value=\3}}] t op v
+	if {$op == "op=:"} {
+		doTag $t [string range $v 6 end] {*}[lrange $_tag 1 end] -
+	} else {
+		if {$op == "op=~"} {set op "op=like"}
+		doTag $t $op $v {*}[lrange $_tag 1 end] -
+	}
+}
+
 # start generate xml
 job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 	if ![info exist Opt(wb)] {
@@ -523,78 +544,62 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					and ! {
 						if {$DISTRO ni {"" "family"}} {
 							if ![regexp -- {^RedHatEnterpriseLinux} $DISTRO] {
-								distro_name op== value=${DISTRO} -
+								lappend Opt(dr) distro_name=${DISTRO}
 							} else {
-								distro_family op== value=${DISTRO} -
-								distro_tag op== value=${TAG} -
+								lappend Opt(dr) distro_family=${FAMILY} distro_tag=${TAG}
 							}
 						} else {
-							distro_family op== value=${FAMILY} -
-							distro_tag op== value=${TAG} -
+							lappend Opt(dr) distro_family=${FAMILY} distro_tag=${TAG}
 						}
 
 						if [llength $VARIANT_L] {
 							set VARIANT [lindex $VARIANT_L 0]
 							set VARIANT_L [lrange $VARIANT_L 1 end]
 						}
-						if {$VARIANT ni ""} {
-							distro_variant op== value=$VARIANT -
-						}
-						distro_method op== value=${METHOD} -
-						distro_arch op== value=${ARCH} -
-						if [info exist Opt(dr)] {
-							foreach kv $Opt(dr) {
-								lassign [regsub (.*?)(=|!=|>|>=|<|<=)(.*$) $kv {\1 op=\2 {value=\3}}] k op v
-								doTag $k $op $v -
-							}
+						lappend Opt(dr) distro_variant=$VARIANT
+						lappend Opt(dr) distro_method=${METHOD} distro_arch=${ARCH}
+
+						foreach taginfo $Opt(dr) {
+							makeTag $taginfo
 						}
 					}
 				}
 				hostRequires ! {
-					if [llength $SystemTypeList] {
-						set SystemType [lindex $SystemTypeList 0]
-						set SystemTypeList [lrange $SystemTypeList 1 end]
-					}
-
 					and ! {
-						doTag system ! {
-							if [info exist Opt(sr)] {
-								foreach kv $Opt(sr) {
-									lassign [regsub (.*?)(=|!=|>|>=|<|<=)(.*$) $kv {\1 op=\2 {value=\3}}] k op v
-									doTag $k $op $v -
-								}
-							}
-						}
 						if {[string length $MACHINE] > 0} {
 							hostname op=like value=$MACHINE -
 						} else {
-							arch op== value=${ARCH} -
+							if [info exist Opt(sr)] {lappend Opt(hr) {*}[lmap e $Opt(sr) {format "system.%s" $e}]}
 							if {![info exist Opt(hr)] || [lsearch -glob $Opt(hr) hypervisor*]} {
 								if [string match ppc64* $ARCH] {
 									lappend Opt(hr) {hypervisor!=}
 								}
 							}
-							if [info exist Opt(hr)] {
-								foreach kv $Opt(hr) {
-									lassign [regsub (.*?)(=|!=|>|>=|<|<=)(.*$) $kv {\1 op=\2 {value=\3}}] k op v
-									doTag $k $op $v -
-								}
+							lappend Opt(hr) arch=$ARCH
+
+							if {$Vendor != ""} {lappend Opt(kv) CPUVENDOR=$Vendor}
+							if [info exist Opt(kv)] {lappend Opt(hr) {*}[lmap e $Opt(kv) {
+								lassign [regsub (.*?)(=|!=|>|>=|<|<=|~)(.*$) $e {key=\1 op=\2 {value=\3}}] k op v
+								if {$op == "op=~"} {set op "op=like"}
+								format "key_value:%s,%s,%s" $k $op $v
+							}]}
+
+							foreach taginfo $Opt(hr) {
+								makeTag $taginfo
 							}
-							if {$Vendor != ""} {
-								doTag key_value key=CPUVENDOR op== value=$Vendor -
-							}
-							if [info exist Opt(kv)] {
-								foreach kv $Opt(kv) {
-									lassign [regsub (.*?)(=|!=|>|>=|<|<=)(.*$) $kv {key=\1 op=\2 {value=\3}}] k op v vv
-									doTag key_value $k $op $v -
-								}
-							}
+
 							if [info exist Opt(hrxml)] {
 								puts $Opt(hrxml)
 							}
 						}
 					}
+
+					if [llength $SystemTypeList] {
+						set SystemType [lindex $SystemTypeList 0]
+						set SystemTypeList [lrange $SystemTypeList 1 end]
+					}
 					system_type op== value=${SystemType} -
+
 					or ! {
 						foreach m "$ORMACHINE_L $NETQE_NIC_MACHINE($role)" {
 							hostname op=like value=$m -

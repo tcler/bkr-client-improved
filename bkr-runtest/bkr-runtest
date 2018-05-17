@@ -52,27 +52,37 @@ set OptionList {
 
   "\n  Options for selecting distro tree(s):" {
 	distro			{          arg y	help {Use named distro for job)}}
-	family			{forward y arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6"}}
-	tag			{forward y arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE)}}
-	variant			{forward y arg m	help {Specify the distro variant}}
-	arch			{forward y arg y	help {Specify the distro arch}}
-	{dr distrorequire}	{forward y arg m	help {distrorequire -dr=key="value"}}
+	{dr distrorequire}	{forward y arg m	help {distrorequire --dr=key="value"}}
+	family			{forward y arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6", same as --dr=distro_family=\$FAMILY}}
+	tag			{forward y arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE), same as --dr=distro_tag=\$TAG}}
+	variant			{forward y arg m	help {Specify the distro variant, same as --dr=distro_variant=\$VARIANT}}
+	arch			{forward y arg y	help {Specify the distroRequire.disro_arch and hostRequire.arch, same as: --dr=distro_arch=\$ARCH --hr=arch=\$ARCH}}
   }
 
   "\n  Options for selecting system(s):" {
 	{topo}			{forward y arg y	help {Include NUMBER server and client hosts for multi-host test. eg --topo=multiHost.1.1}}
 	{servers s}		{forward y arg y	help {Include NUMBER server hosts for multi-host test}}
 	{clients c}		{forward y arg y	help {Include NUMBER client hosts for multi-host test}}
-	{hr hostrequire}	{forward y arg m	help {Additional <hostRequires/> for job, example: --hostrequire=labcontroller="lab.example.com"}}
+	{hr hostrequire}	{forward y arg m	help {Additional <hostRequires/> for job, example:
+				--hr cpu_count>=4
+				--hr memory>=4096
+				--hr labcontroller=lab-01.rhts.eng.pek2.redhat.com
+				--hr device:type=STORAGE,driver=nvme
+				--hr disk.phys_sector_size=4096,unit=bytes
+				--hr key_value:CPUVENDOR=\$Vendor  #same as --kv CPUVENDOR=\$Vendor
+				--hr 'key_value:DISKSPACE>=60000'  #same as --kv 'DISKSPACE>=60000'
+				--hr 'system.numanodes>=4'         #same as --sr 'numanodes>=4'
+				--hr system.not.fqdn~%rdma%
+				}}
+	{kv keyvalue}		{forward y arg m	help {Require system with matching legacy key-value, same as '--hr=key_value:key=value' example: --kv NETWORK=e1000}}
+	{sr sysrequire}		{forward y arg m	help {Additional <hostRequires><system/> for job, same as '--hr=system.key=value' example: --sr numanodes=4}}
 	{hr-alias}		{forward y arg y	help {alias of long and changeable options combination}}
 	{hr-alias-file}		{forward y arg y	help {hr-alias will search alias in this file}}
-	{sr sysrequire}		{forward y arg m	help {Additional <hostRequires><system/> for job, example: --sysrequire=numanodes>=4}}
-	{kv keyvalue}		{forward y arg m	help {Require system with matching legacy key-value, example: --keyvalue=NETWORK=e1000}}
 	machine			{forward y arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
 	systype			{forward y arg m	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
 	ormachine		{forward y arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
-	random                  {forward y arg n        help {autopick type}}
-	hrxml                   {forward y arg y        help {add raw filter in hostrequire node, example: --hrxml='<system><not><fqdn op="like" value="%rmda%" /></not></system>'}}
+	random                  {forward y arg n	help {autopick type}}
+	hrxml                   {forward y arg y	help {add raw filter in hostrequire node, example: --hrxml='<system><not><fqdn op="like" value="%rmda%" /></not></system>'}}
   }
 
   "\n  Options for selecting special system(s) of networ-qe:" {
