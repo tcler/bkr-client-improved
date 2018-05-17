@@ -69,12 +69,16 @@ set OptionList {
 				--hr labcontroller=lab-01.rhts.eng.pek2.redhat.com
 				--hr device:type=STORAGE,driver=nvme
 				--hr disk.phys_sector_size=4096,unit=bytes
-				--hr key_value:CPUVENDOR=\$Vendor  #same as --kv CPUVENDOR=\$Vendor
-				--hr 'key_value:DISKSPACE>=60000'  #same as --kv 'DISKSPACE>=60000'
+				--hr key_value:key=CPUVENDOR,op==,value=\$Vendor  #same as --kv CPUVENDOR=\$Vendor
+				--hr 'key_value:key=DISKSPACE,op=>=,value=60000'  #same as --kv 'DISKSPACE>=60000'
 				--hr 'system.numanodes>=4'         #same as --sr 'numanodes>=4'
 				--hr system.not.fqdn~%rdma%
 				}}
-	{kv keyvalue}		{forward y arg m	help {Require system with matching legacy key-value, same as '--hr=key_value:key=value' example: --kv NETWORK=e1000}}
+	{HR}			{forward y arg m	help {hostRequires for multi-host test. e.g:
+				--HR= --HR="memory>4096 key_value:key=DISK,op=>,value=80000"
+				#means no requires for 1st host, and 2nd need more than 4096M ram and more than 80G disk size
+				}}
+	{kv keyvalue}		{forward y arg m	help {Require system with matching legacy key-value, same as '--hr=key_value:key=K,op=Op,value=Val' example: --kv NETWORK=e1000}}
 	{sr sysrequire}		{forward y arg m	help {Additional <hostRequires><system/> for job, same as '--hr=system.key=value' example: --sr numanodes=4}}
 	{hr-alias}		{forward y arg y	help {alias of long and changeable options combination}}
 	{hr-alias-file}		{forward y arg y	help {hr-alias will search alias in this file}}
