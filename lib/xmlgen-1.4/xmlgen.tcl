@@ -169,6 +169,19 @@ proc ::xmlgen::channel {chan body} {
   return
 }
 
+proc ::xmlgen::openTag {tagname} {
+	set taglist [split $tagname .]
+	return "[string range [lmap e $taglist {format "<%s>" $e}] 0 end-1]"
+}
+proc ::xmlgen::closeTag {tagname self} {
+	set taglist [lreverse [split $tagname .]]
+	if {$self == "self"} {
+		return "[lmap e [lrange $taglist 1 end] {format "</%s>" $e}]"
+	} else {
+		return "[lmap e $taglist {format "</%s>" $e}]"
+	}
+}
+
 ## See manual page for description of this function.
 proc ::xmlgen::makeTagAndBody {tagname l {specialAttributes {}} } {
   variable attrre
@@ -192,7 +205,7 @@ proc ::xmlgen::makeTagAndBody {tagname l {specialAttributes {}} } {
   ##    p $align - {Some text, sometimes centered}
   ## If $align=="", it will not stop attribute processing.
   ##
-  set opentag "<$tagname"
+  set opentag "[openTag $tagname]"
   set L [llength $l]
   for {set i 0} {$i<$L} {incr i} {
     set arg [lindex $l $i]
@@ -238,7 +251,7 @@ proc ::xmlgen::makeTagAndBody {tagname l {specialAttributes {}} } {
       set body [join $body]
     }
     append opentag ">"
-    set closetag "</$tagname>"
+    set closetag "[closeTag $tagname notself]"
 
     ## Do some indenting.
     set opentag [formatTag ${control}o $indent $opentag]
@@ -251,7 +264,7 @@ proc ::xmlgen::makeTagAndBody {tagname l {specialAttributes {}} } {
     ## added by jiyin@redhat.com
       set opentag [formatTag ${control}o $indent $opentag]
     append opentag " />"
-    set closetag ""
+    set closetag "[closeTag $tagname self]"
   }
   
   ## Put on the safety belt. If we did not have a control character
