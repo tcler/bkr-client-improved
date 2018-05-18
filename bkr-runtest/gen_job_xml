@@ -474,12 +474,11 @@ proc makeTag {taginfo} {
 	if {[llength $_tag] > 1} {lappend _attrs {*}[lrange $_tag 1 end]}
 
 	lassign [regsub (.*?)(:|=|!=|>|>=|<|<=|~)(.*$) $_tag0 {\1 op=\2 {value=\3}}] t op v
-
 	if {$op == "op=~"} {set op "op=like"}
 	if {$op == "op=:"} {
-		lappend _attrs [string range $v 6 end]
+		set _attrs [linsert $_attrs 0 [string range $v 6 end]]
 	} else {
-		lappend _attrs $op $v
+		set _attrs [linsert $_attrs 0 $op $v]
 	}
 	doTag $t {*}$_attrs -
 }
