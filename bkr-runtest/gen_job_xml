@@ -93,8 +93,8 @@ set OptionList {
 				--hr device:type=STORAGE,driver=nvme
 				--hr disk.phys_sector_size=4096,unit=bytes
 				--hr key_value:key=CPUVENDOR,op==,value=\$Vendor  #same as --kv CPUVENDOR=\$Vendor
-				--hr 'key_value:key=DISKSPACE,op=>=,value=60000'  #same as --kv 'DISKSPACE>=60000'
-				--hr 'system.numanodes>=4'         #same as --sr 'numanodes>=4'
+				--hr 'kv-DISKSPACE>=60000'  #same as --kv 'DISKSPACE>=60000'
+				--hr 'system.numanodes>=4'  #same as --sr 'numanodes>=4'
 				--hr system.not.fqdn~%rdma%
 				}}
 	{HR}			{arg m	help {hostRequires for multi-host test. e.g:
@@ -491,19 +491,26 @@ if [info exist Opt(retention-tag)] {
 }
 
 proc makeTag {taginfo} {
-	set _tag [split $taginfo ,]
-	set _tag0 [lindex $_tag 0]
-	set _attrs [list]
-	if {[llength $_tag] > 1} {lappend _attrs {*}[lrange $_tag 1 end]}
-
-	lassign [regsub (.*?)(:|=|!=|>|>=|<|<=|~)(.*$) $_tag0 {\1 op=\2 {value=\3}}] t op v
-	if {$op == "op=~"} {set op "op=like"}
-	if {$op == "op=:"} {
-		set _attrs [linsert $_attrs 0 [string range $v 6 end]]
+	if {[string range $taginfo 0 2] == "kv-"} {
+		set t [string range $taginfo 3 end]
+		lassign [regsub (.*?)(=|!=|>|>=|<|<=|~)(.*$) $t {key=\1 op=\2 {value=\3}}] k op v
+		if {$op == "op=~"} {set op "op=like"}
+		doTag key_value $k $op $v -
 	} else {
-		set _attrs [linsert $_attrs 0 $op $v]
+		set _tag [split $taginfo ,]
+		set _tag0 [lindex $_tag 0]
+		set _attrs [list]
+		if {[llength $_tag] > 1} {lappend _attrs {*}[lrange $_tag 1 end]}
+
+		lassign [regsub (.*?)(:|=|!=|>|>=|<|<=|~)(.*$) $_tag0 {\1 op=\2 {value=\3}}] t op v
+		if {$op == "op=~"} {set op "op=like"}
+		if {$op == "op=:"} {
+			set _attrs [linsert $_attrs 0 [string range $v 6 end]]
+		} else {
+			set _attrs [linsert $_attrs 0 $op $v]
+		}
+		doTag $t {*}$_attrs -
 	}
-	doTag $t {*}$_attrs -
 }
 
 # start generate xml

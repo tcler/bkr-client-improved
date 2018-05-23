@@ -70,8 +70,8 @@ set OptionList {
 				--hr device:type=STORAGE,driver=nvme
 				--hr disk.phys_sector_size=4096,unit=bytes
 				--hr key_value:key=CPUVENDOR,op==,value=\$Vendor  #same as --kv CPUVENDOR=\$Vendor
-				--hr 'key_value:key=DISKSPACE,op=>=,value=60000'  #same as --kv 'DISKSPACE>=60000'
-				--hr 'system.numanodes>=4'         #same as --sr 'numanodes>=4'
+				--hr 'kv-DISKSPACE>=60000'  #same as --kv 'DISKSPACE>=60000'
+				--hr 'system.numanodes>=4'  #same as --sr 'numanodes>=4'
 				--hr system.not.fqdn~%rdma%
 				}}
 	{HR}			{forward y arg m	help {hostRequires for multi-host test. e.g:
