@@ -53,6 +53,9 @@ set OptionList {
   "\n  Options for selecting distro tree(s):" {
 	distro			{          arg y	help {Use named distro for job)}}
 	{dr distrorequire}	{forward y arg m	help {distrorequire --dr=key="value"}}
+	{DR}			{forward y arg m	help {distroRequires for multi-host test. e.g:
+				--DR="distro_arch=x86_64"
+				}}
 	family			{forward y arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6", same as --dr=distro_family=\$FAMILY}}
 	tag			{forward y arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE), same as --dr=distro_tag=\$TAG}}
 	variant			{forward y arg m	help {Specify the distro variant, same as --dr=distro_variant=\$VARIANT}}

@@ -74,6 +74,9 @@ set OptionList {
 
   "\n  Options for selecting distro tree(s):" {
 	{dr distrorequire}	{arg m	help {distrorequire --dr=key="value"}}
+	{DR}			{arg m	help {distroRequires for multi-host test. e.g:
+				--DR="distro_arch=x86_64"
+				}}
 	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6", same as --dr=distro_family=\$FAMILY}}
 	tag			{arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE), same as --dr=distro_tag=\$TAG}}
 	distro			{arg y	help {Use named distro for job, same as --dr=distro_name=\$DISTRO}}
@@ -601,7 +604,15 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							set VARIANT_L [lrange $VARIANT_L 1 end]
 						}
 						lappend drs distro_variant=$VARIANT
-						lappend drs distro_method=${METHOD} distro_arch=${ARCH}
+						lappend drs distro_method=${METHOD}
+
+						if [info exist Opt(DR)] {
+							set DRs [lindex $Opt(DR) $R]
+							if {$DRs != ""} {lappend drs {*}[split $DRs " "]}
+						}
+						if {[lsearch -glob $drs distro_arch=*] == -1} {
+							lappend drs distro_arch=${ARCH}
+						}
 
 						foreach taginfo $drs {
 							makeTag $taginfo
@@ -619,7 +630,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 									lappend hrs {hypervisor!=}
 								}
 							}
-							lappend hrs arch=$ARCH
 
 							if {$Vendor != ""} {lappend Opt(kv) CPUVENDOR=$Vendor}
 							if [info exist Opt(kv)] {lappend hrs {*}[lmap e $Opt(kv) {
@@ -631,6 +641,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							if [info exist Opt(HR)] {
 								set HRs [lindex $Opt(HR) $R]
 								if {$HRs != ""} {lappend hrs {*}[split $HRs " "]}
+							}
+							if {[lsearch -glob $hrs arch=*] == -1} {
+								lappend hrs arch=$ARCH
 							}
 
 							foreach taginfo $hrs {
