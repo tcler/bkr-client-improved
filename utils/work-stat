@@ -1,0 +1,137 @@
+#!/bin/bash
+
+# __main__
+#===============================================================================
+export LANG=C
+P=${0##*/}
+#-------------------------------------------------------------------------------
+Usage() {
+	echo "Usage: $P <-u user> [-w nweek] <\$repodir...>"
+}
+weekago() {
+	local w=${1:-1};
+	local to=$2
+
+	weekday=$(date +%w);
+	[[ $weekday = 0 ]] && weekday=7
+	date -d"now-$((weekday-1)) days -$((w)) weeks" +%Y-%m-%d
+	if [[ "$to" = now || $w = 0 ]]; then
+		date -d"now" +%Y-%m-%d
+	elif [[ "$to" = lastweek ]]; then
+		date -d"now-$((weekday)) days" +%Y-%m-%d
+	else
+		date -d"now-$((weekday-1)) days -$((w)) weeks +6 days" +%Y-%m-%d
+	fi
+}
+is_git() {
+	local repo=${1:-.}
+	(cd $repo; git worktree list | sed -r 's|^.*(/[^ ]*).*$|\1|;q')
+}
+case_root() {
+	for d; do
+		while d=${d%/*} && test -d $d; do
+			[[ -f $d/Makefile && -f $d/runtest.sh ]] && { echo $d; break; }
+		done
+	done | sort -u
+}
+
+_at=`getopt -o hw:u: \
+	--long help \
+	--long tonow \
+	--long tolast \
+    -n "$P" -- "$@"`
+eval set -- "$_at"
+
+while true; do
+	case "$1" in
+	-h|--help) Usage; shift 1; exit 0;;
+	-w) Weekago=$2; shift 2;;
+	-u) User=$2; shift 2;;
+	--tonow) To=now; shift 1;;
+	--tolast) To=lastweek; shift 1;;
+	--) shift; break;;
+	esac
+done
+[[ -z "$User" ]] && { Usage >&2; exit 1; }
+{ read from; read to; } <<<$(weekago ${Weekago:-1} $To)
+
+testcase() {
+	local User=$1 from=$2 to=$3
+	shift 3
+
+	local update= new=
+	for repo; do
+		prefix=$(is_git $repo)/ || continue
+		pushd $(cd $repo; git rev-parse --show-toplevel) &>/dev/null
+		gitlog=$(git log -E --author="$User" --name-status --since=$from --until=$to --oneline)
+		update+=$(case_root $(awk '/^M.*/ {print $2}' <<<"$gitlog") | sed -e "s;^;\t$prefix;")
+		new+=$(case_root $(awk '/^A.*Makefile/ {print $2}' <<<"$gitlog") | sed -e "s;^;\t$prefix;")
+		[[ -n "$update" ]] && update+=$'\n'
+		[[ -n "$new" ]] && new+=$'\n'
+		popd &>/dev/null
+	done
+	[[ -n "$update" ]] && echo -en "update test cases\n${update}\n"
+	[[ -n "$new" ]] && echo -en "new test cases\n${new}\n"
+}
+bug_report() {
+	local User=$1 from=$2 to=$3
+
+	# replace space with %20
+	reporter=`echo $User | sed 's/ /%20/g'`
+	# the template query url is copied from a real search
+	query_url="https://bugzilla.redhat.com/buglist.cgi?chfield=[Bug%20creation]&"
+	# specify the correct date
+	query_url+="chfieldfrom=$from&chfieldto=$to&"
+	# fill the reporter
+	query_url+="f1=reporter&o1=anywordssubstr&v1=$reporter&"
+	# resolution doesn't have NOTABUG WORKSFORME DUPLICATE INSUFFICIENT_DATA
+	query_url+="f2=resolution&o2=nowordssubstr&v2=NOTABUG%20WORKSFORME%20DUPLICATE%20INSUFFICIENT_DATA&"
+	# not a tracker bug
+	query_url+="f3=keywords&o3=notsubstring&v3=track&"
+	query_url+="query_format=advanced"
+	outputformat="%{keywords} Bug %{id} - %{product} - %{reporter} - %{bug_status} - %{summary}"
+	bugzilla query --from-url="$query_url" --outputformat="$outputformat"|sed -e 's/^\[] //' -e 's/Red Hat Enterprise Linux /RHEL-/'
+}
+bug_verify() {
+	# replace space with %20
+	qa_contact=`echo $User | sed 's/ /%20/g'`
+	# setup query urls
+	verify_query_url="https://bugzilla.redhat.com/buglist.cgi?chfield=bug_status&chfieldvalue=VERIFIED&"
+	verify_query_url+="chfieldfrom=$from&chfieldto=$to&"
+	verify_query_url+="f1=qa_contact&o1=anywordssubstr&v1=$qa_contact&"
+	verify_query_url+="f2=cf_verified&o2=notsubstring&v2=SanityOnly&"
+	verify_query_url+="query_format=advanced"
+	outputformat="Bug %{id} - %{qa_contact} - %{bug_status} - %{summary}"
+	bugzilla query --from-url="$verify_query_url" --outputformat="$outputformat" | sort -k4,4 -k2.2n
+
+	sanityonly_query_url="https://bugzilla.redhat.com/buglist.cgi?chfield=cf_verified&chfieldvalue=SanityOnly&"
+	sanityonly_query_url+="chfieldfrom=$from&chfieldto=$to&"
+	sanityonly_query_url+="f1=qa_contact&o1=anywordssubstr&v1=$qa_contact&"
+	sanityonly_query_url+="f2=cf_verified&o2=anywordssubstr&v2=SanityOnly&"
+	sanityonly_query_url+="query_format=advanced"
+	outputformat="Bug %{id} - %{qa_contact} - %{bug_status}/Sanity - %{summary}"
+	bugzilla query --from-url="$sanityonly_query_url" --outputformat="$outputformat" | sort -k4,4 -k2.2n
+}
+
+repos="$@"
+[[ $# = 0 ]] && repos=.
+
+case $P in
+*testcase*)
+	testcase "$User" $from $to $repos
+	;;
+*bug-repor*)
+	bug_report "$User" $from $to
+	;;
+*bug-verif*)
+	bug_verify "$User" $from $to
+	;;
+*)
+	testcase "$User" $from $to $repos
+	echo "reported bug:"
+	bug_report "$User" $from $to|sed 's/^/\t/'
+	echo
+	echo "verified bug:"
+	bug_verify "$User" $from $to|sed 's/^/\t/'
+	;;
+esac
