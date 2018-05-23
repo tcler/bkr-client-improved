@@ -191,7 +191,8 @@ envinfo
 #===============================================================================
 
 #signal trap
-trap "cleanup" SIGINT SIGTERM SIGHUP SIGQUIT  #fix me: add more signal name
+#Specify the exit code if you need
+trap "cleanup; exit" SIGINT SIGTERM SIGHUP SIGQUIT  #fix me: add more signal name
 cleanup() {  #fix me: add more cleanup action
 	rlFileRestore   #restore changed file/dir
 	rm -rf \$expdir \$nfsmp   #remove added dir/file
