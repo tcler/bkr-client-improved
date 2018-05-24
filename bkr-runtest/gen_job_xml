@@ -700,6 +700,13 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 
 				ks_appends ! {
+					ks_append ! {
+						puts {<![CDATA[}
+						puts {%post}
+							puts "test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf"
+						puts {%end}
+						puts -nonewline {]]>}
+					}
 					if [info exist Opt(repo-post)] {
 						ks_append ! {
 							puts {<![CDATA[}
