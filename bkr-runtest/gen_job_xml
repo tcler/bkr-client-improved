@@ -611,7 +611,15 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							if {$DRs != ""} {lappend drs {*}[split $DRs " "]}
 						}
 						if {[lsearch -glob $drs distro_arch=*] == -1} {
-							lappend drs distro_arch=${ARCH}
+							set distro_arch $ARCH
+							if [info exist Opt(HR)] {
+								set HRs [lindex $Opt(HR) $R]
+								set archindex [lsearch -glob $HRs arch=*]
+								if {$archindex != -1} {
+									set distro_arch [string range [lindex $HRs $archindex] 5 end]
+								}
+							}
+							lappend drs distro_arch=${distro_arch}
 						}
 
 						foreach taginfo $drs {
