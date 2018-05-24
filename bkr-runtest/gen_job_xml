@@ -625,12 +625,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							hostname op=like value=$MACHINE -
 						} else {
 							if [info exist Opt(sr)] {lappend hrs {*}[lmap e $Opt(sr) {format "system.%s" $e}]}
-							if {![info exist hrs] || [lsearch -glob $hrs hypervisor*]} {
-								if [string match ppc64* $ARCH] {
-									lappend hrs {hypervisor!=}
-								}
-							}
-
 							if {$Vendor != ""} {lappend Opt(kv) CPUVENDOR=$Vendor}
 							if [info exist Opt(kv)] {lappend hrs {*}[lmap e $Opt(kv) {
 								lassign [regsub (.*?)(=|!=|>|>=|<|<=|~)(.*$) $e {key=\1 op=\2 {value=\3}}] k op v
@@ -644,6 +638,13 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							}
 							if {[lsearch -glob $hrs arch=*] == -1} {
 								lappend hrs arch=$ARCH
+							}
+
+							#don't use ppc64 bare-metal machine
+							if {[lsearch -glob $hrs hypervisor=*] == -1} {
+								if [string match arch=ppc64* $hrs] {
+									lappend hrs {hypervisor!=}
+								}
 							}
 
 							foreach taginfo $hrs {
