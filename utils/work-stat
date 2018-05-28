@@ -28,7 +28,7 @@ is_git() {
 	local ret=0
 
 	pushd $repo &>/dev/null
-	{ git worktree list 2>/dev/null; ret=$?; } > >(sed -r 's|^.*(/[^ ]*).*$|\1|;q')
+	{ git remote -v 2>/dev/null; ret=$?; } > >(sed -r 's|^.*(/[^ ]*).*$|\1|;q')
 	popd &>/dev/null
 
 	return $ret
