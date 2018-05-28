@@ -25,7 +25,13 @@ weekago() {
 }
 is_git() {
 	local repo=${1:-.}
-	(cd $repo; git worktree list | sed -r 's|^.*(/[^ ]*).*$|\1|;q')
+	local ret=0
+
+	pushd $repo &>/dev/null
+	{ git worktree list 2>/dev/null; ret=$?; } > >(sed -r 's|^.*(/[^ ]*).*$|\1|;q')
+	popd &>/dev/null
+
+	return $ret
 }
 case_root() {
 	for d; do
@@ -34,6 +40,11 @@ case_root() {
 		done
 	done | sort -u
 }
+
+krbUser=$(klist 2>/dev/null | awk -F'[@: ]+' '/^Default principal/{print $3}')
+if [[ -n "$krbUser" ]]; then
+	User=$krbUser
+fi
 
 _at=`getopt -o hw:u: \
 	--long help \
@@ -52,26 +63,37 @@ while true; do
 	--) shift; break;;
 	esac
 done
-[[ -z "$User" ]] && { Usage >&2; exit 1; }
 { read from; read to; } <<<$(weekago ${Weekago:-1} $To)
 
 testcase() {
 	local User=$1 from=$2 to=$3
 	shift 3
 
-	local update= new=
-	for repo; do
-		prefix=$(is_git $repo)/ || continue
+	local Update= New=
+	for repo in "$@"; do
+		prefix=$(is_git $repo)/ || {
+			echo "{Warn} [$repo] is not git repo, skip it" >&2;
+			continue
+		}
 		pushd $(cd $repo; git rev-parse --show-toplevel) &>/dev/null
-		gitlog=$(git log -E --author="$User" --name-status --since=$from --until=$to --oneline)
-		update+=$(case_root $(awk '/^M.*/ {print $2}' <<<"$gitlog") | sed -e "s;^;\t$prefix;")
-		new+=$(case_root $(awk '/^A.*Makefile/ {print $2}' <<<"$gitlog") | sed -e "s;^;\t$prefix;")
-		[[ -n "$update" ]] && update+=$'\n'
-		[[ -n "$new" ]] && new+=$'\n'
+		[[ -z "$User" ]] && {
+			gitMail=$(git config user.email 2>/dev/null)
+			[[ "$gitMail" = *@redhat.com ]] && User=${gitMail%@redhat.com}
+		}
+		[[ -z "$User" ]] && {
+			echo "{Warn} [$PWD] no user is specified, and can not get possible user, skip it" >&2;
+			popd; continue;
+		}
+
+		gitlog=$(git log -E --author="$User" --name-status --since=$from --until=$to --oneline 2>/dev/null)
+		update=$(case_root $(awk '/^M.*/ {print $2}' <<<"$gitlog") | sed -e "s;^;\t$prefix;")
+		new=$(case_root $(awk '/^A.*Makefile/ {print $2}' <<<"$gitlog") | sed -e "s;^;\t$prefix;")
+		[[ -n "$update" ]] && Update+=$update$'\n'
+		[[ -n "$new" ]] && New+=$new$'\n'
 		popd &>/dev/null
 	done
-	[[ -n "$update" ]] && echo -en "update test cases\n${update}\n"
-	[[ -n "$new" ]] && echo -en "new test cases\n${new}\n"
+	[[ -n "$Update" ]] && echo -en "update test cases\n${Update}\n"
+	[[ -n "$New" ]] && echo -en "new test cases\n${New}\n"
 }
 bug_report() {
 	local User=$1 from=$2 to=$3
