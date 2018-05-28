@@ -46,7 +46,7 @@ if [[ -n "$krbUser" ]]; then
 	User=$krbUser
 fi
 
-_at=`getopt -o hw:u: \
+_at=`getopt -o hw:u:d \
 	--long help \
 	--long tonow \
 	--long tolast \
@@ -58,12 +58,16 @@ while true; do
 	-h|--help) Usage; shift 1; exit 0;;
 	-w) Weekago=$2; shift 2;;
 	-u) User=$2; shift 2;;
+	-d) Debug=yes; shift 1;;
 	--tonow) To=now; shift 1;;
 	--tolast) To=lastweek; shift 1;;
 	--) shift; break;;
 	esac
 done
 { read from; read to; } <<<"$(weekago ${Weekago:-1} $To)"
+[[ "$Debug" = yes ]] && {
+	echo "{Info} $from ~ $to" >&2
+}
 
 testcase() {
 	local User=$1 from=$2 to=$3
