@@ -721,6 +721,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							set path nightly/BUILDROOT-$verxy-RHEL-8-$vertime
 						} elseif [string match ????????.? $vertime] {
 							set path rel-eng/BUILDROOT-$verxy-RHEL-8-$vertime
+						} else {
+							set path rel-eng/latest-BUILDROOT-8-RHEL-8
 						}
 						if {$path != ""} {
 							ks_append ! {
