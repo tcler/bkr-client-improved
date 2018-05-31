@@ -703,46 +703,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 
 				ks_appends ! {
-					ks_append ! {
-						puts {<![CDATA[}
-						puts {%post}
-							puts "test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf"
-						puts {%end}
-						puts -nonewline {]]>}
-					}
-
-					# workaround: RHEL-8 BUILDROOT repo, delete me if no need
-					if [string match RHEL-8* $DISTRO] {
-						set index [lsearch -glob $drs distro_arch=*]
-						set arch [string range [lindex $drs $index] 12 end]
-						lassign [regsub {^RHEL-([^-]+)-(.+)$} $DISTRO {\1 \2}] verxy vertime
-						set path ""
-						if [string match ????????.n.? $vertime] {
-							set path nightly/BUILDROOT-$verxy-RHEL-8-$vertime
-						} elseif [string match ????????.? $vertime] {
-							set path rel-eng/BUILDROOT-$verxy-RHEL-8-$vertime
-						} else {
-							set path rel-eng/latest-BUILDROOT-8-RHEL-8
-						}
-						if {$path != ""} {
-							ks_append ! {
-								set url http://download.devel.redhat.com/$path/compose/Buildroot/$arch/os
-								puts {<![CDATA[}
-								puts {%post}
-								puts "cat <<-EOF >/etc/yum.repos.d/beaker-buildroot.repo
-								\[beaker-buildroot\]
-								name=beaker-buildroot
-								baseurl=$url
-								enabled=1
-								gpgcheck=0
-								skip_if_unavailable=1
-								EOF"
-								puts {%end}
-								puts -nonewline {]]>}
-							}
-						}
-					}
-
 					if [info exist Opt(repo-post)] {
 						ks_append ! {
 							puts {<![CDATA[}
@@ -764,6 +724,14 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						}
 					}
 
+					set default-ksf "/etc/beaker/default-ks.cfg"
+					if [file isfile ${default-ksf}] {
+						if {![catch {set fp [open ${default-ksf}]} err]} {
+							set data [read $fp]
+							close $fp
+							lappend Opt(ks-append) $data
+						}
+					}
 					if [info exist Opt(ksf)] {
 						if {![catch {set fp [open $Opt(ksf)]} err]} {
 							set data [read $fp]
@@ -775,9 +743,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						foreach ks $Opt(ks-append) {
 							ks_append ! {
 								puts {<![CDATA[}
-								puts {%post}
 								puts $ks
-								puts {%end}
 								puts -nonewline {]]>}
 							}
 						}
