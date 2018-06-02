@@ -73,25 +73,25 @@ set OptionList {
 				--hr device:type=STORAGE,driver=nvme
 				--hr disk.phys_sector_size=4096,unit=bytes
 				--hr key_value:key=CPUVENDOR,op==,value=\$Vendor  #same as --kv CPUVENDOR=\$Vendor
-				--hr 'kv-DISKSPACE>=60000'  #same as --kv 'DISKSPACE>=60000'
-				--hr 'system.numanodes>=4'  #same as --sr 'numanodes>=4'
-				--hr top-tag=value
+				--hr 'kv-DISKSPACE>=60000'      #same as --kv 'DISKSPACE>=60000'
+				--hr 'system.numanodes>=4'      #same as --sr 'numanodes>=4'
+				--hr 'top-system_type=Machine'  #same as --systype=Machine
 				--hr or-tag=value
-				--hr not-system.fqdn~%rdma%
+				--hr not-kv-CPUVENDOR=GenuineIntel
 				}}
 	{HR}			{forward y arg m	help {hostRequires for multi-host test. e.g:
 				--HR= --HR="memory>4096 key_value:key=DISK,op=>,value=80000"
 				#means no requires for 1st host, and 2nd need more than 4096M ram and more than 80G disk size
 				}}
 	{kv keyvalue}		{forward y arg m	help {Require system with matching legacy key-value, same as '--hr=key_value:key=K,op=Op,value=Val' example: --kv NETWORK=e1000}}
-	{sr sysrequire}		{forward y arg m	help {Additional <hostRequires><system/> for job, same as '--hr=system.key=value' example: --sr numanodes=4}}
+	{sr sysrequire}		{forward y arg m	help {Additional <hostRequires><and><system/> for job, same as '--hr=system.key=value' example: --sr numanodes=4}}
 	{hr-alias}		{forward y arg y	help {alias of long and changeable options combination}}
 	{hr-alias-file}		{forward y arg y	help {hr-alias will search alias in this file}}
 	machine			{forward y arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
 	systype			{forward y arg m	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
 	ormachine		{forward y arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
 	random                  {forward y arg n	help {autopick type}}
-	hrxml                   {forward y arg y	help {add raw filter in hostrequire node, example: --hrxml='<system><not><fqdn op="like" value="%rmda%" /></not></system>'}}
+	hrxml                   {forward y arg y	help {deprecated, see --hr option}}
   }
 
   "\n  Options for selecting special system(s) of networ-qe:" {
