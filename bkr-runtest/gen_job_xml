@@ -89,7 +89,7 @@ set OptionList {
 	{topo}			{arg y	help {Include NUMBER server and client hosts for multi-host test. eg --topo=multiHost.1.1}}
 	{servers s}		{arg y	help {Include NUMBER server hosts for multi-host test}}
 	{clients c}		{arg y	help {Include NUMBER client hosts for multi-host test}}
-	{hr hostrequire}	{arg m	help {Additional <hostRequires/> for job, example:
+	{hr hostrequire}	{arg m	help {Additional <hostRequires><and/> for job, example:
 				--hr cpu_count>=4
 				--hr memory>=4096
 				--hr labcontroller=lab-01.rhts.eng.pek2.redhat.com
@@ -98,7 +98,9 @@ set OptionList {
 				--hr key_value:key=CPUVENDOR,op==,value=\$Vendor  #same as --kv CPUVENDOR=\$Vendor
 				--hr 'kv-DISKSPACE>=60000'  #same as --kv 'DISKSPACE>=60000'
 				--hr 'system.numanodes>=4'  #same as --sr 'numanodes>=4'
-				--hr system.not.fqdn~%rdma%
+				--hr top-tag=value
+				--hr or-tag=value
+				--hr not-system.fqdn~%rdma%
 				}}
 	{HR}			{arg m	help {hostRequires for multi-host test. e.g:
 				--HR= --HR="memory>4096 key_value:key=DISK,op=>,value=80000"
@@ -659,11 +661,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							}
 
 							foreach taginfo $hrs {
+								if {[regexp -- {^(top|or|not)-} $taginfo] == 1} continue
 								makeTag $taginfo
 							}
 
 							if [info exist Opt(hrxml)] {
-								puts $Opt(hrxml)
+								puts "\n$Opt(hrxml)"
 							}
 						}
 					}
@@ -674,13 +677,31 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 					system_type op== value=${SystemType} -
 
+					foreach taginfo $hrs {
+						if {[regexp -- {^top-} $taginfo] == 1} {
+							set taginfo [string range $taginfo 4 end]
+							makeTag $taginfo
+						}
+					}
+
 					or ! {
 						foreach m "$ORMACHINE_L $NETQE_NIC_MACHINE($role)" {
 							hostname op=like value=$m -
 						}
+						foreach taginfo $hrs {
+							if {[regexp -- {^or-} $taginfo] == 1} {
+								set taginfo [string range $taginfo 3 end]
+								makeTag $taginfo
+							}
+						}
 					}
 					not ! {
-						#
+						foreach taginfo $hrs {
+							if {[regexp -- {^not-} $taginfo] == 1} {
+								set taginfo [string range $taginfo 4 end]
+								makeTag $taginfo
+							}
+						}
 					}
 				}
 				repos ! {
