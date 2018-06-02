@@ -522,7 +522,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 		set Time [clock format [clock seconds] -format %Y-%m-%d~%H:%M]
 		set Opt(wb) "\[$Time\] $DISTRO_L \\[llength $TaskList]/[file tail [lindex [lindex $TaskList 0] 0]],... arch=$ARCH_L "
 	}
-	whiteboard $wbCtl $Opt(wb)
+	whiteboard $wbCtl "<!\[CDATA\[$Opt(wb)]]>"
 	notify $notifyCtl {
 		if [info exist Opt(cc)] {
 			foreach e $Opt(cc) {
@@ -577,7 +577,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				if {[llength $Opt(k-opts-post)] > 1} { set KOPTS_POST [lindex $Opt(k-opts-post) $R]}
 			}
 			set recipe_wb $Opt(wb)
-			if [info exist Opt(rwb)] { set recipe_wb $Opt(rwb) }
+			if [info exist Opt(rwb)] { set recipe_wb "<!\[CDATA\[$Opt(rwb)]]>" }
 
 			lappend Opt(dr)
 			lappend Opt(hr)
