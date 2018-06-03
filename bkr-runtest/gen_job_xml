@@ -176,7 +176,7 @@ set OptionList {
 	ks-meta			{arg m  help {Pass kickstart metadata OPTIONS when generating kickstart}}
 	ks-append		{arg m	help {Specify additional kickstart commands to add to the base kickstart file}}
 	ks			{link ks-append hide y}
-	ksf			{arg m	help {Similar to --ks-append, but pass the content of a specified file}}
+	ksf			{arg o	help {Similar to --ks-append, but pass the content of a specified file}}
 	{k-opts kernel-options}	{arg m	help {Pass OPTIONS to kernel during installation}}
 	{k-opts-post kernel-options-post}	{arg m	help {Pass OPTIONS to kernel after installation}}
   }
@@ -747,14 +747,10 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 
 					set default-ksf "/etc/beaker/default-ks.cfg"
-					if [file isfile ${default-ksf}] {
-						if {![catch {set fp [open ${default-ksf}]} err]} {
-							set data [read $fp]
-							close $fp
-							lappend Opt(ks-append) $data
-						}
+					if {![info exist Opt(ksf)] || $Opt(ksf) == ""} {
+						set Opt(ksf) ${default-ksf}
 					}
-					if [info exist Opt(ksf)] {
+					if [file isfile $Opt(ksf)] {
 						if {![catch {set fp [open $Opt(ksf)]} err]} {
 							set data [read $fp]
 							close $fp
