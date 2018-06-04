@@ -16,11 +16,9 @@ namespace eval ::runtestlib {
 
 set runtestConf /etc/bkr-client-improved/bkr-runtest.conf
 set runtestConfPrivate $::env(HOME)/.bkr-client-improved/bkr-runtest.conf
-if [file exists $runtestConfPrivate] { set runtestConf $runtestConfPrivate }
 
 set autorunConf /etc/bkr-client-improved/bkr-autorun.conf
 set autorunConfPrivate $::env(HOME)/.bkr-client-improved/bkr-autorun.conf
-if [file exists $autorunConfPrivate] { set autorunConf $autorunConfPrivate }
 
 proc ::runtestlib::dbroot {} {
 	source $::autorunConf

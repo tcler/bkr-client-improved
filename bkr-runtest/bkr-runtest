@@ -12,7 +12,9 @@ package require yaml
 package require getOpt 3.0
 package require runtestlib 1.1
 namespace import ::getOpt::* ::runtestlib::*
+
 source $::runtestConf
+if [file exists $::runtestConfPrivate] { source $::runtestConfPrivate }
 
 # global var
 set prog [file tail $argv0]

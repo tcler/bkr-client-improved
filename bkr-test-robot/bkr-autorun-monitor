@@ -18,6 +18,8 @@ namespace import ::getOpt::* ::runtestlib::*
 exec bash -c {recipe.sh $(klist | awk -F'[ :@]+' '/Default principal/{print $3}') >/dev/null}
 
 source $autorunConf
+if [file exists $autorunConfPrivate] { source $autorunConfPrivate }
+
 if ![info exist maxAbortRetry] {
 	set maxAbortRetry 6
 }
