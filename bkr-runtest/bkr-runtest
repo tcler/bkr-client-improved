@@ -472,7 +472,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 	if [info exist Opt(wb-comment)] { set wbComment $Opt(wb-comment) }
 	if {$TestListFile != ""} { lappend wbComment "$TestListFile" }
 
-	set wbFormat {}
+	set wbFormat {[%T] [%P@%D %H:%N] %C%S/%s %G %O}
 	if [info exist WB_FORMAT] { set wbFormat $WB_FORMAT }
 	if [info exist Opt(wb-format)] { set wbFormat $Opt(wb-format) }
 
