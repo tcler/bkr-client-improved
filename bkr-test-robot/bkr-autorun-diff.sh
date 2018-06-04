@@ -109,8 +109,8 @@ read dbfile2 run2 <<<"${runs[1]/::/ }"
 	read dbfile1 run1 <<<"${runs[1]/::/ }"
 	read dbfile2 run2 <<<"${runs[0]/::/ }"
 }
-resf1=.${run1//[ \']/_}.$$.1.res
-resf2=.${run2//[ \']/_}.$$.2.res
+resf1=.${run1//[ \'\/]/_}.$$.1.res
+resf2=.${run2//[ \'\/]/_}.$$.2.res
 
 trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
 sigproc() {
