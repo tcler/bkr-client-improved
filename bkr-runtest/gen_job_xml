@@ -628,7 +628,25 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							lappend drs distro_arch=${distro_arch}
 						}
 
-						foreach taginfo $drs {
+						foreach taginfo [lsearch -regexp -inline -all -not $drs ^(top|or|not)-] {
+							makeTag $taginfo
+						}
+					}
+
+					foreach taginfo [lsearch -glob -inline -all $drs top-*] {
+						set taginfo [string range $taginfo 4 end]
+						makeTag $taginfo
+					}
+
+					or ! {
+						foreach taginfo [lsearch -glob -inline -all $drs or-*] {
+							set taginfo [string range $taginfo 3 end]
+							makeTag $taginfo
+						}
+					}
+					not ! {
+						foreach taginfo [lsearch -glob -inline -all $drs not-*] {
+							set taginfo [string range $taginfo 4 end]
 							makeTag $taginfo
 						}
 					}
@@ -661,8 +679,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								}
 							}
 
-							foreach taginfo $hrs {
-								if {[regexp -- {^(top|or|not)-} $taginfo] == 1} continue
+							foreach taginfo [lsearch -regexp -inline -all -not $hrs ^(top|or|not)-] {
 								makeTag $taginfo
 							}
 
@@ -678,30 +695,24 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 					system_type op== value=${SystemType} -
 
-					foreach taginfo $hrs {
-						if {[regexp -- {^top-} $taginfo] == 1} {
-							set taginfo [string range $taginfo 4 end]
-							makeTag $taginfo
-						}
+					foreach taginfo [lsearch -glob -inline -all $hrs top-*] {
+						set taginfo [string range $taginfo 4 end]
+						makeTag $taginfo
 					}
 
 					or ! {
 						foreach m "$ORMACHINE_L $NETQE_NIC_MACHINE($role)" {
 							hostname op=like value=$m -
 						}
-						foreach taginfo $hrs {
-							if {[regexp -- {^or-} $taginfo] == 1} {
-								set taginfo [string range $taginfo 3 end]
-								makeTag $taginfo
-							}
+						foreach taginfo [lsearch -glob -inline -all $hrs or-*] {
+							set taginfo [string range $taginfo 3 end]
+							makeTag $taginfo
 						}
 					}
 					not ! {
-						foreach taginfo $hrs {
-							if {[regexp -- {^not-} $taginfo] == 1} {
-								set taginfo [string range $taginfo 4 end]
-								makeTag $taginfo
-							}
+						foreach taginfo [lsearch -glob -inline -all $hrs not-*] {
+							set taginfo [string range $taginfo 4 end]
+							makeTag $taginfo
 						}
 					}
 				}
