@@ -38,7 +38,7 @@ kfList=$(eval echo $latestKernelF-{${VLIST// /,}})
 #echo $kfList
 debug=$1
 
-searchBrewBuild 'kernel(-alt)?-[-.0-9]+el'"[${VLIST// /}]".?'$' >.kernelList
+searchBrewBuild '^kernel(-alt)?-[-.0-9]+el'"[${VLIST// /}]"'.{0,2}$' >.kernelList
 test -n "`cat .kernelList`" &&
 	for V in ${VLIST}; do
 	    L=$(egrep 'kernel-alt-[-.0-9]+el'$V .kernelList | head -n4)
@@ -73,9 +73,10 @@ for f in $kfList; do
 	grep '^+[^+]' ${patch} || continue
 	newkernel=$(sed 's/^+//' ${patch})
 
-	#url=https://home.corp.redhat.com/wiki/rhel${V}changelog  # no update since 2015
 	url=http://patchwork.lab.bos.redhat.com/status/rhel${V}/changelog.html
-	urlAlt=http://patchwork.lab.bos.redhat.com/status/rhel-alt-7.5/changelog.html
+	urlAlt=http://patchwork.lab.bos.redhat.com/status/rhel-alt-7.6/changelog.html
+	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V
+	urlAlt=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/kernel-alt-changeLog-$V
 	for nvr in $newkernel; do
 		[[ -z "$nvr" || "$nvr" =~ ^\+\+\+ ]] && continue
 		changeUrl=$url
@@ -98,7 +99,7 @@ for f in $kfList; do
 		[ -f ${nvr}.src.rpm ] || {
 			available=0
 		}
-		if [[ $nvr =~ kernel-alt ]]; then
+		if [[ $nvr = kernel-alt* ]]; then
 			LANG=C rpm -qp --changelog ${nvr}.src.rpm >kernel-alt-changeLog-$V
 		else
 			LANG=C rpm -qp --changelog ${nvr}.src.rpm >changeLog-$V
@@ -107,10 +108,13 @@ for f in $kfList; do
 
 		vr=${nvr/kernel-/}
 		vr=${vr/alt-/}
+		vr=${vr%+*}
+		vr=${vr%a}
 		sed -r -n "/\*.*\[${vr}\]/,/^$/{p}" kernel-alt-changeLog-$V changeLog-$V >changeLog
 		sed -n '1p;q' changeLog
 		grep '^-' changeLog | sort -k2,2
 		echo
+		\cp -f changeLog-$V kernel-alt-changeLog-$V /var/ftp/pub/kernel-changelog/.
 	done >>$patch
 
 	echo -e "\n\n#===============================================================================" >>$patch

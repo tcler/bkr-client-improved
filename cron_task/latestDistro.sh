@@ -33,14 +33,14 @@ mailTo=fff@redhat.com
 mailCc=kkk@redhat.com
 
 kgitDir=/home/yjh/ws/code.repo
-VLIST="6 7"
+VLIST="6 7 8"
 DVLIST=$(echo $VLIST)
 latestDistroF=.latest.distro
 dfList=$(eval echo $latestDistroF{${DVLIST// /,}})
 #echo $dfList
 
 #getLatestRHEL all >.distroListr
-distro-list.sh all | egrep '^(RHEL|Pegas)-?[678]' >.distroListr
+distro-list.sh all | egrep '^(RHEL|RHEL-ALT)-?[678]' >.distroListr
 while read d; do
 	pkgList=$(awk -v d=$d 'BEGIN{ret=1} $1 == d {$1=""; print; ret=0} END{exit ret}' .distroList.orig) || {
 		r=$d
@@ -63,7 +63,7 @@ done <.distroListr >.distroList
 test -n "`cat .distroList`" &&
 	for V in $DVLIST; do
 	    v=${V//[cs]/} t=${V//[0-9]/}
-	    egrep -i "^(RHEL|Pegas)-?${v}.[0-9]+-${t}" .distroList >${latestDistroF}$V.tmp
+	    egrep -i "^(RHEL|RHEL-ALT)-?${v}.[0-9]+-${t}" .distroList >${latestDistroF}$V.tmp
 	done
 
 for f in $dfList; do
@@ -87,14 +87,14 @@ for f in $dfList; do
 	available=1
 	p=${PWD}/${f}.patch
 	diff -pNur -w $f ${f}.tmp >$p && continue
-	sed -i '/^[^+]/d' $p
+	sed -i '/^[^+]/d;/^+++/d' $p
 	grep '^+[^+]' ${p} || continue
 
 	Pegas=
 	while read l; do
 		[[ -z "$l" || "$l" =~ ^\+\+\+ ]] && continue
-		egrep -i pegas <<<$l || Pegas=and && {
-			Pegas+=" Pegas"
+		egrep -i kernel-alt <<<$l || Pegas=and && {
+			Pegas+=" kernel-alt"
 			break
 		}
 	done <$p
@@ -104,8 +104,8 @@ for f in $dfList; do
 
 		for chan in "#fs-qe" "#network-qe"; do
 			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
-				"${ircReverse}{Notice}${ircPlain} new distro: $l"
-			sleep 2
+				"${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $l"
+			sleep 1
 		done
 	done <$p
 
@@ -114,16 +114,15 @@ for f in $dfList; do
 
 	echo >>$p
 	echo "#-------------------------------------------------------------------------------" >>$p
-	url=https://home.corp.redhat.com/wiki/rhel${v%[cs]}changelog
-	url=http://patchwork.lab.bos.redhat.com/status/rhel${v%[cs]}/changelog.html
-	urlPegas=http://patchwork.lab.bos.redhat.com/status/pegas1/changelog.html
+	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V
+	urlAlt=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/kernel-alt-changeLog-$V
 	echo "# $url" >>$p
-	echo "# $urlPegas" >>$p
+	echo "# $urlAlt" >>$p
 	tagr=$(awk '$1 ~ /^+/ && $2 ~ /kernel-/ {print $2}' $p|head -n1|sed s/$/.el${v%[cs]}/)
 	(echo -e "\n{Info} ${tagr} change log:"
 
 	vr=${tagr/kernel-/}
-	vr=${vr/pegas-/}
+	vr=${vr/alt-/}
 	sed -n '/\*.*\['"${vr}"'\]/,/^$/{p}' /var/cache/kernelnvrDB/*changeLog${v%[cs]} >changeLog
 	sed -n '1p;q' changeLog
 	grep '^-' changeLog | sort -k2,2

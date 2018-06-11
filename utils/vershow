@@ -83,6 +83,10 @@ UpdateDB() {
 		_rpath=$rhel5rpath$(echo $distro|egrep -o 'Server|Client') || {
 			_rpath=$compose$rpath
 		}
+
+		[[ "$distro" = *RHEL-8* ]] && {
+			_rpath=compose/BaseOS/$arch/os/Packages/
+		}
 		echo "$distro"|grep -q released/ && _rpath=$rpath
 		echo "$distro"|grep -q released/RHEL-5 && _rpath=$arch/os/Server/
 
