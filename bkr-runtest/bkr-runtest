@@ -50,6 +50,7 @@ set OptionList {
 	retention-tag           {forward y arg y        help {e.g: scratch, 60days, 120days, active, active+1, audit}}
 	product                 {forward y arg y        help {e.g: cpe:/o:redhat:enterprise_linux:$x:$y}}
 	ignore-panic            {forward y arg n        help {Do not abort job if panic message appears on serial console}}
+	packages                {forward y arg y	help {e.g: --packages=gcc,screen,wget. or use '/' instead ','}}
   }
 
   "\n  Options for selecting distro tree(s):" {
