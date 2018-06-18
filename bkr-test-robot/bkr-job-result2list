@@ -9,7 +9,45 @@ exec tclsh "$0" ${1+"$@"}
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require tdom
-package require getOpt 1.0
+package require getOpt 3.0
+namespace import ::getOpt::*
+
+set prog [file tail $argv0]
+array set Opt {}
+array set InvalidOpt {}
+set Args [list]
+set ForwardOpt {}
+set OptionList {
+  "Options:" {
+	{help h}   {arg n	help {Print this usage}}
+	d          {arg n	help {debug mode} hide yes}
+	logs       {arg n	help {get all logs}}
+  }
+}
+
+# _parse_ argument
+getOptions $OptionList $::argv Opt InvalidOpt Args ForwardOpt
+if [info exist Opt(d)] {
+	puts "\[$prog\]: Arguments:{$Args}"
+	puts "\[$prog\]: ForwardOpt{$ForwardOpt}"
+	parray InvalidOpt
+	parray Opt
+}
+if {[array size InvalidOpt] > 0} {
+	puts stderr "{Error} got invalide option\[s\]:"
+	foreach {opt value} [array get InvalidOpt] {
+		puts stderr "  $opt -> $value"
+	}
+	exit 1
+}
+
+proc Usage {} {
+	getUsage $::OptionList
+}
+if [info exist Opt(help)] {
+	Usage
+	exit 0
+}
 
 proc getXML {jobID} {
 	set xml [exec bkr job-results --prettyxml $jobID]
@@ -72,17 +110,22 @@ proc parseJobResult {jobid} {
 				lappend test($tname) $tresult
 			}
 		}
-		puts "recipeSet $jobid->$recipeSetID $gSet"
-		foreach {Name Res} [array get test] {
-			set i 0
-			foreach reciperes $Res {
-				lassign $reciperes res subres
-				puts "  $res {$Name}"
-				foreach r $subres {
-					puts "        $r"
+		puts stderr "recipeSet $jobid->RS:$recipeSetID $gSet"
+		if [info exist ::Opt(logs)] {
+			set recipelog [exec bkr job-logs RS:$recipeSetID]
+			puts "$recipelog\n"
+		} else {
+			foreach {Name Res} [array get test] {
+				set i 0
+				foreach reciperes $Res {
+					lassign $reciperes res subres
+					puts "  $res {$Name}"
+					foreach r $subres {
+						puts "        $r"
+					}
+					puts ""
+					incr i
 				}
-				puts ""
-				incr i
 			}
 		}
 	}
@@ -90,7 +133,7 @@ proc parseJobResult {jobid} {
 
 #_main_
 #Update test status and result
-foreach jobID $::argv {
+foreach jobID $Args {
 	parseJobResult $jobID
 }
 
