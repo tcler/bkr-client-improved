@@ -42,6 +42,7 @@ if {[array size InvalidOpt] > 0} {
 }
 
 proc Usage {} {
+	puts "Usage0: $::prog \[options\] \[J:jobid\]"
 	getUsage $::OptionList
 }
 if [info exist Opt(help)] {
