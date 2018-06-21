@@ -151,9 +151,11 @@ set OptionList {
 	install			{arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
 	upstream		{arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d[#branch[ tag]]]
 				e.g: --upstream
-				e.g: --upstream=#master\ v4.18-rc1
+				e.g: --upstream=#v4.18-rc1
 				e.g: --upstream=git://git.linux-nfs.org/projects/bfields/linux.git#jbf-test-1}}
-	upstream-use-clone	{arg n	help {use git-clone instead default git-archive, in case some repo doesn't support git-archive}}
+	upstream-use-clone	{arg o	help {use git-clone instead default git-archive, in case some repo doesn't support git-archive
+				- the optional option param is additional option/param of git-clone
+				e.g: --upstream-use-clone=--depth=1}}
 	upstream-patch		{arg y	help {apply specified patch[es] before compile upstream kernel}}
 	upstream-kernel-kasan   {arg n  help {Flag to enable upstream kernel kasan support}}
 	Scratch			{arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times}}
@@ -879,6 +881,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							param name=ABORT_IF_FAIL value=1 -
 							if [info exist Opt(upstream-use-clone)] {
 								param name=USE_GIT_CLONE value=1 -
+								param name=GIT_CLONE_OPTION value=$Opt(upstream-use-clone) -
 							}
 							if [info exist Opt(upstream-kernel-kasan)] {
 								param name=ENABLE_KASAN value=1 -
