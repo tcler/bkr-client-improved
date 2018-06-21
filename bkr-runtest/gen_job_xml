@@ -149,8 +149,11 @@ set OptionList {
 	noavc			{arg n	help {alias of --param=AVC_ERROR=+no_avc_check}}
 	nvr			{arg m	help {Specify the kernel(Name-Version-Release) to be installed}}
 	install			{arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
-	upstream		{arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d][#tag]
-				default: git://git.app.eng.bos.redhat.com/linux.git#master}}
+	upstream		{arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d[#branch[ tag]]]
+				e.g: --upstream
+				e.g: --upstream=#master\ v4.18-rc1
+				e.g: --upstream=git://git.linux-nfs.org/projects/bfields/linux.git#jbf-test-1}}
+	upstream-use-clone	{arg n	help {use git-clone instead default git-archive, in case some repo doesn't support git-archive}}
 	upstream-patch		{arg y	help {apply specified patch[es] before compile upstream kernel}}
 	upstream-kernel-kasan   {arg n  help {Flag to enable upstream kernel kasan support}}
 	Scratch			{arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times}}
@@ -297,11 +300,13 @@ if [info exist Opt(tag)] {
 
 if [info exist Opt(upstream)] {
 	set upstreamUrl git://git.app.eng.bos.redhat.com/linux.git
-	set upstreamTag master
+	set upstreamBranch master
+	set upstreamTag HEAD
 	if {$Opt(upstream) != ""} {
-		set url [regsub {#.*} $Opt(upstream) {}]
-		set tag [regsub {[^#]*(#|$)} $Opt(upstream) {}]
+		lassign [split $Opt(upstream)] url_branch tag
+		lassign [split $url_branch "#"] url branch
 		if {[string trim $url] != ""} {set upstreamUrl $url}
+		if {[string trim $branch] != ""} {set upstreamBranch $branch}
 		if {[string trim $tag] != ""} {set upstreamTag $tag}
 	}
 }
@@ -838,12 +843,15 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					} else {
 						set UP [regsub {^upstream} $NVR {}]
 						set UP [regsub {^[:=]} $UP {}]
+
 						set upstreamUrl git://git.app.eng.bos.redhat.com/linux.git
-						set upstreamTag master
+						set upstreamBranch master
+						set upstreamTag HEAD
 						if {$UP != ""} {
-							set url [regsub {#.*} $UP {}]
-							set tag [regsub {[^#]*(#|$)} $UP {}]
+							lassign [split $UP] url_branch tag
+							lassign [split $url_branch "#"] url branch
 							if {[string trim $url] != ""} {set upstreamUrl $url}
+							if {[string trim $branch] != ""} {set upstreamBranch $branch}
 							if {[string trim $tag] != ""} {set upstreamTag $tag}
 						}
 						set UP 1
@@ -866,8 +874,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					task name=/kernel/distribution/upstream-kernel/install role=$role ! {
 						params ! {
 							param name=KERNEL_GIT_REPO value=$upstreamUrl -
+							param name=KERNEL_GIT_BRANCH value=$upstreamBranch -
 							param name=KERNEL_GIT_COMMIT value=$upstreamTag -
 							param name=ABORT_IF_FAIL value=1 -
+							if [info exist Opt(upstream-use-clone)] {
+								param name=USE_GIT_CLONE value=1 -
+							}
 							if [info exist Opt(upstream-kernel-kasan)] {
 								param name=ENABLE_KASAN value=1 -
 							}

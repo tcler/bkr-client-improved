@@ -98,8 +98,11 @@ set OptionList {
 	noavc			{forward y arg n	help {alias of --param=AVC_ERROR=+no_avc_check}}
 	nvr			{forward y arg m	help {Specify the kernel(Name-Version-Release) to be installed}}
 	install			{forward y arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
-	upstream		{forward y arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d][#tag]
-				default: git://git.app.eng.bos.redhat.com/linux.git#master}}
+	upstream		{forward y arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d[#branch[ tag]]]
+				e.g: --upstream
+				e.g: --upstream=#master\ v4.18-rc1
+				e.g: --upstream=git://git.linux-nfs.org/projects/bfields/linux.git#jbf-test-1}}
+	upstream-use-clone	{forward y arg n	help {use git-clone instead default git-archive, in case some repo doesn't support git-archive}}
 	upstream-patch		{forward y arg y	help {apply specified patch[es] before compile upstream kernel}}
 	upstream-kernel-kasan   {forward y arg n  help {Flag to enable upstream kernel kasan support}}
 	Scratch			{forward y arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times}}
