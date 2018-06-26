@@ -36,7 +36,8 @@ is_git() {
 case_root() {
 	for d; do
 		while d=${d%/*} && test -d $d; do
-			[[ -f $d/Makefile && -f $d/runtest.sh ]] && { echo $d; break; }
+			[[ -f $d/Makefile ]] && grep -q '\$(METADATA): *Makefile' $d/Makefile && { echo $d; break; }
+			[[ $d = */* ]] || break
 		done
 	done | sort -u
 }
