@@ -92,7 +92,7 @@ for f in $kfList; do
 	echo >>$patch
 	echo "#-------------------------------------------------------------------------------" >>$patch
 	echo "# $url" >>$patch
-	echo "# $urlAlt" >>$patch
+	grep -q "kernel-alt" $newkernel && echo "# $urlAlt" >>$patch
 	for nvr in $newkernel; do
 		echo -e "{Info} ${nvr} changelog read from pkg:"
 		downloadBrewBuild $nvr --arch=src
