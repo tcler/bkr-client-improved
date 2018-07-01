@@ -59,7 +59,9 @@ set OptionList {
   }
 
   "\n  Options for job configuration:" {
-	restraint		{arg o	help {Use restraint harness instead of beach}}
+	harness			{arg y	help {specify alternative harness, available value: beah|restraint; default: restraint}}
+	restraint-git		{arg y	help {specify restraint git repo}}
+	restraint		{arg o	help {deprecated} hide y}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
 	job-owner		{arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
 	{wb whiteboard}		{arg y	help {Set the whiteboard for this job}}
@@ -410,21 +412,23 @@ if [info exist Opt(fips)] {
 }
 
 set recipe_ks_meta {}
-if [info exist Opt(ks-meta)] { set recipe_ks_meta [concat {*}$Opt(ks-meta)] }
+set harness restraint
+if [info exist Opt(harness)] { set harness $Opt(harness) }
 
-set restraint {}
-set restraint_git "git://pkgs.devel.redhat.com/tests"
-if [info exist Opt(restraint)] {
-	set restraint "yes"
-	lappend recipe_ks_meta harness='restraint-rhts beakerlib'
-	if {$Opt(restraint) != ""} {
-		if [regexp {^\?} $Opt(restraint)] {
-			append restraint_git $Opt(restraint)
+if {$harness == "restraint"} {
+	set recipe_ks_meta "harness='restraint-rhts beakerlib'"
+	if {[info exist Opt(restraint-git)] && $Opt(restraint-git) != ""} {
+		set fetch_test_from_git yes
+		set restraint_git "git://pkgs.devel.redhat.com/tests"
+		if [regexp {^\?} $Opt(restraint-git)] {
+			append restraint_git $Opt(restraint-git)
 		} else {
-			set restraint_git $Opt(restraint)
+			set restraint_git $Opt(restraint-git)
 		}
 	}
 }
+
+if [info exist Opt(ks-meta)] { append recipe_ks_meta " $Opt(ks-meta)" }
 
 set ROLE_LIST {}
 if [info exist Opt(topo)] {
@@ -740,9 +744,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							repo name=myrepo_[incr i] url=$url -
 						}
 					}
-					if {$restraint == "yes"} {
-						repo name=restraint url=http://file.bos.redhat.com/~bpeck/restraint/el7--test/ -
-					}
 				}
 				partitions ! {
 					if [info exist Opt(part)] {
@@ -1015,7 +1016,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						set name [lindex $task 0]
 						set arglist [lrange $task 1 end]
 						task name=$name role=$role ! {
-							if {$restraint == "yes"} {
+							if [info exist fetch_test_from_git] {
 								set head kernel
 								if [regexp {^/CoreOS/} $name] {
 									set head [lindex [split $name /] 2]

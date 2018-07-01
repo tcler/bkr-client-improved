@@ -38,7 +38,9 @@ set OptionList {
   }
 
   "\n  Options for job configuration:" {
-	restraint		{forward y arg o	help {Use restraint harness instead of beach}}
+	harness			{forward y arg y	help {specify alternative harness, available value: beah|restraint; default: restraint}}
+	restraint-git		{forward y arg y	help {specify restraint git repo}}
+	restraint		{forward y arg o	help {deprecated} hide y}
 	cc			{forward y arg m	help {Notify additional e-mail address on job completion}}
 	job-owner		{forward y arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
 	{wb whiteboard}		{forward y arg y	help {Set the whiteboard for this job}}
