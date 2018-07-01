@@ -28,6 +28,7 @@ install install_runtest: _isroot
 	@ps axf|grep -v grep|grep -q vershow || $(_bin)/vershow -uu >/dev/null &
 	@yum install -y bash-completion
 	cp -fd bash-completion/* ${completion_path}/.||cp -fd bash-completion/* $${completion_path/\/*/}/.
+	rm -f /usr/lib/python2.7/site-packages/bkr/client/commands/cmd_recipes_list.py #remove old file
 
 install_all: install_robot _install_web
 
