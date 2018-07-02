@@ -95,7 +95,14 @@ for f in $kfList; do
 	grep -q "kernel-alt" $newkernel && echo "# $urlAlt" >>$patch
 	for nvr in $newkernel; do
 		echo -e "{Info} ${nvr} changelog read from pkg:"
+		count=0
 		downloadBrewBuild $nvr --arch=src
+		# wait at most 80 minutes (20*4) for brew pkg complete
+		while [ ! -f ${nvr}.src.rpm ] && [ $count -lt 4 ]; do
+			sleep 20m
+			count=$((count+1))
+			downloadBrewBuild $nvr --arch=src
+		done
 		[ -f ${nvr}.src.rpm ] || {
 			available=0
 		}
@@ -109,7 +116,6 @@ for f in $kfList; do
 		vr=${nvr/kernel-/}
 		vr=${vr/alt-/}
 		vr=${vr%+*}
-		vr=${vr%a}
 		sed -r -n "/\*.*\[${vr}\]/,/^$/{p}" kernel-alt-changeLog-$V changeLog-$V >changeLog
 		sed -n '1p;q' changeLog
 		grep '^-' changeLog | sort -k2,2
