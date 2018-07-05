@@ -172,7 +172,7 @@ cat >runtest.sh <<EOF
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Load beakerlib you needed
-rlImport kernel/base
+rlImport kernel/base |& grep INFO
 envinfo
 #disable_avc_check$(test -n "$multihost" && {
   echo -e "\n"
