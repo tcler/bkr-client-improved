@@ -447,18 +447,23 @@ if [info exist Opt(jobn)] {
 	if {$jobN == ""} {set jobN 1}
 }
 
-if {[info exist Opt(kdump)] } {
+if [info exist Opt(kdump)] {
 	if {$Opt(kdump) == "" && [info exist KDUMP_ADDR]} {
 		set Opt(kdump) $KDUMP_ADDR
 	}
 	lappend SubcmdOpt "-kdump=$Opt(kdump)"
 }
 
-if {[info exist Opt(kcov)] } {
+if [info exist Opt(kcov)] {
 	if {$Opt(kcov) == "" && [info exist KCOV_PARAM]} {
 		set Opt(kcov) $KCOV_PARAM
 	}
 	lappend SubcmdOpt "-kcov=$Opt(kcov)"
+}
+if ![regexp -- {--?harness=} $ForwardOpt] {
+	if [info exist defaultHarness] {
+		set SubcmdOpt [lappend SubcmdOpt "-harness=$defaultHarness"]
+	}
 }
 
 if [info exist jobOwner] {
