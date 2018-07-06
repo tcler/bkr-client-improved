@@ -415,7 +415,7 @@ set recipe_ks_meta {}
 set harness restraint
 if [info exist Opt(harness)] { set harness $Opt(harness) }
 
-if {$harness == "restraint"} {
+if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 	set recipe_ks_meta "harness='restraint-rhts beakerlib'"
 	if {[info exist Opt(restraint-git)] && $Opt(restraint-git) != ""} {
 		set fetch_test_from_git yes
