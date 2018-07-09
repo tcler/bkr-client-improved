@@ -62,8 +62,7 @@ done <.distroListr >.distroList
 
 test -n "`cat .distroList`" &&
 	for V in $DVLIST; do
-	    v=${V//[cs]/} t=${V//[0-9]/}
-	    egrep -i "^(RHEL|RHEL-ALT)-?${v}.[0-9]+-${t}" .distroList >${latestDistroF}$V.tmp
+	    egrep -i "^(RHEL|RHEL-ALT)-?${V}.[0-9]+" .distroList >${latestDistroF}$V.tmp
 	done
 
 for f in $dfList; do
@@ -114,8 +113,8 @@ for f in $dfList; do
 
 	echo >>$p
 	echo "#-------------------------------------------------------------------------------" >>$p
-	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V
-	urlAlt=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/kernel-alt-changeLog-$V
+	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$v
+	urlAlt=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/kernel-alt-changeLog-$v
 	echo "# $url" >>$p
 	echo "# $urlAlt" >>$p
 	tagr=$(awk '$1 ~ /^+/ && $2 ~ /kernel-/ {print $2}' $p|head -n1|sed s/$/.el${v%[cs]}/)
