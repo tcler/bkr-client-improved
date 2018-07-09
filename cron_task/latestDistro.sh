@@ -80,8 +80,7 @@ for f in $dfList; do
 		continue
 	}
 
-	v=${f/$latestDistroF/}
-	t=${f##*.}; t=${t/$v/}
+	V=${f/$latestDistroF/}
 
 	available=1
 	p=${PWD}/${f}.patch
@@ -89,21 +88,21 @@ for f in $dfList; do
 	sed -i '/^[^+]/d;/^+++/d' $p
 	grep '^+[^+]' ${p} || continue
 
-	Pegas=
-	while read l; do
-		[[ -z "$l" || "$l" =~ ^\+\+\+ ]] && continue
-		egrep -i kernel-alt <<<$l || Pegas=and && {
-			Pegas+=" kernel-alt"
+	Alt=
+	while read line; do
+		[[ -z "$line" || "$line" =~ ^\+\+\+ ]] && continue
+		egrep -i RHEL-ALT <<<"$line" && {
+			Alt="RHEL-ALT-$V"
 			break
 		}
 	done <$p
 
-	while read l; do
-		[[ -z "$l" || "$l" =~ ^\+\+\+ ]] && continue
+	while read line; do
+		[[ -z "$line" || "$line" =~ ^\+\+\+ ]] && continue
 
 		for chan in "#fs-qe" "#network-qe"; do
 			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
-				"${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $l"
+				"${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line"
 			sleep 1
 		done
 	done <$p
@@ -113,16 +112,16 @@ for f in $dfList; do
 
 	echo >>$p
 	echo "#-------------------------------------------------------------------------------" >>$p
-	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$v
-	urlAlt=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/kernel-alt-changeLog-$v
+	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V
+	urlAlt=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/kernel-alt-changeLog-$V
 	echo "# $url" >>$p
-	echo "# $urlAlt" >>$p
-	tagr=$(awk '$1 ~ /^+/ && $2 ~ /kernel-/ {print $2}' $p|head -n1|sed s/$/.el${v%[cs]}/)
+	curl $urlAlt &>/dev/null && echo "# $urlAlt" >>$p
+	tagr=$(awk '$1 ~ /^+/ && $2 ~ /kernel-/ {print $2}' $p|head -n1|sed s/$/.el${V}/)
 	(echo -e "\n{Info} ${tagr} change log:"
 
 	vr=${tagr/kernel-/}
 	vr=${vr/alt-/}
-	sed -n '/\*.*\['"${vr}"'\]/,/^$/{p}' /var/cache/kernelnvrDB/*changeLog${v%[cs]} >changeLog
+	sed -n '/\*.*\['"${vr}"'\]/,/^$/{p}' /var/cache/kernelnvrDB/*changeLog${V} >changeLog
 	sed -n '1p;q' changeLog
 	grep '^-' changeLog | sort -k2,2
 	echo) >>$p
@@ -132,7 +131,7 @@ for f in $dfList; do
 	echo -e "\n#cur:" >>$p; cat $f.tmp >>$p
 
 	[ $available = 1 ] && {
-		sendmail.sh -p '[Notice] ' -f "from@redhat.com" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${v} $Pegas ${t} available"  &>/dev/null
+		sendmail.sh -p '[Notice] ' -f "from@redhat.com" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${V} or $Alt available"  &>/dev/null
 		#cat $p
 		mv ${f}.tmp ${f}
 	}
