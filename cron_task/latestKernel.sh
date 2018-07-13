@@ -65,7 +65,7 @@ for f in $kfList; do
 
 	V=${f#*-}
 	newkernel=
-	available=1
+	available=0
 	patch=${PWD}/${f}.patch
 
 	diff -pNur $f ${f}.tmp >$patch && continue
@@ -95,21 +95,18 @@ for f in $kfList; do
 	grep -q "kernel-alt" $newkernel && echo "# $urlAlt" >>$patch
 	for nvr in $newkernel; do
 		echo -e "{Info} ${nvr} changelog read from pkg:"
-		count=0
-		downloadBrewBuild $nvr --arch=src
-		# wait at most 80 minutes (20*4) for brew pkg complete
-		while [ ! -f ${nvr}.src.rpm ] && [ $count -lt 4 ]; do
-			sleep 20m
-			count=$((count+1))
-			downloadBrewBuild $nvr --arch=src
+		# wait until brew finish building process
+		while [[ $(brew buildinfo $nvr | awk '/State/ {print $2}') == "BUILDING" ]]; do
+			sleep 10m
 		done
-		[ -f ${nvr}.src.rpm ] || {
-			available=0
-		}
+		downloadBrewBuild $nvr --arch=src
+		[ -f ${nvr}.src.rpm ] && available=1
 		if [[ $nvr = kernel-alt* ]]; then
 			LANG=C rpm -qp --changelog ${nvr}.src.rpm >kernel-alt-changeLog-$V
+			[ -s kernel-alt-changeLog-$V ] && cp -f kernel-alt-changeLog-$V /var/ftp/pub/kernel-changelog/.
 		else
 			LANG=C rpm -qp --changelog ${nvr}.src.rpm >changeLog-$V
+			[ -s changeLog-$V ] && cp -f changeLog-$V /var/ftp/pub/kernel-changelog/.
 		fi
 		\rm ${nvr}.src.rpm
 
@@ -120,7 +117,6 @@ for f in $kfList; do
 		sed -n '1p;q' changeLog
 		grep '^-' changeLog | sort -k2,2
 		echo
-		\cp -f changeLog-$V kernel-alt-changeLog-$V /var/ftp/pub/kernel-changelog/.
 	done >>$patch
 
 	echo -e "\n\n#===============================================================================" >>$patch
