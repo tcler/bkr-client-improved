@@ -121,7 +121,7 @@ for f in $dfList; do
 
 	vr=${tagr/kernel-/}
 	vr=${vr/alt-/}
-	sed -n '/\*.*\['"${vr}"'\]/,/^$/{p}' /var/cache/kernelnvrDB/*changeLog${V} >changeLog
+	sed -n '/\*.*\['"${vr}a\?"'\]/,/^$/{p}' /var/cache/kernelnvrDB/*changeLog-${V} >changeLog
 	sed -n '1p;q' changeLog
 	grep '^-' changeLog | sort -k2,2
 	echo) >>$p
