@@ -693,13 +693,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								lappend hrs arch=$ARCH
 							}
 
-							#don't use ppc64 bare-metal machine
-							if {[lsearch -glob $hrs hypervisor=*] == -1} {
-								if [string match arch=ppc64* $hrs] {
-									lappend hrs {hypervisor!=}
-								}
-							}
-
 							foreach taginfo [lsearch -regexp -inline -all -not $hrs ^(top|or|not)-] {
 								makeTag $taginfo
 							}
