@@ -122,7 +122,7 @@ _caseInfo() {
 	topo=multiHost.1.1
 	##if specify the machine acount in $infofile
 	nums=$(grep -i "Type:[[:space:]]*Multihost" $infofile | grep -o '[0-9]\+')
-	read ServerNeed ClientNeed <<<$nums
+	{ read ServerNeed; read ClientNeed; } <<< "$nums"
 	test -n "$ServerNeed" -o -n "$ClientNeed" &&
 	topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
 	##if specify the machine acount in runtest.sh
