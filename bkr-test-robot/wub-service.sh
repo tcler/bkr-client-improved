@@ -23,26 +23,26 @@ gethostname() {
 	echo $host
 }
 wubstat() {
-	ps -U $USER -u $USER -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub/Application.tcl &&
+	ps -U $LOGNAME -u $LOGNAME -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub/Application.tcl &&
 		echo -e "$(gethostname):$port"
 }
 
 case "$1" in
   start)
 	echo "Starting Wub server"
-	ps -U $USER -u $USER -o pid,user:20,cmd|grep -v grep|grep tclsh.*Wub/Application.tcl && exit 0
+	ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep tclsh.*Wub/Application.tcl && exit 0
 	nohup tclsh8.6 Wub/Application.tcl 2>/dev/null &
 	rm -f nohup.out
 	wubstat
 	;;
   stop)
 	echo "Stoping Wub server"
-	kill $(ps -U $USER -u $USER -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub/Application.tcl'|awk '{print $1}')
+	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub/Application.tcl'|awk '{print $1}')
 	sleep 1
 	;;
   restart)
 	echo "Retarting Wub server"
-	kill $(ps -U $USER -u $USER -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub/Application.tcl'|awk '{print $1}')
+	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub/Application.tcl'|awk '{print $1}')
 	sleep 1
 	nohup tclsh8.6 Wub/Application.tcl 2>/dev/null &
 	rm -f nohup.out
