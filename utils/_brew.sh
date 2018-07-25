@@ -88,6 +88,14 @@ _downloadBrewBuild() {
 	}
 	brew  $dbgArg download-build "$@"
 }
+_stateBrewBuild() {
+	[ $# -lt 1 ] && {
+		echo "usage: $0 <pkgName>" >&2
+		return 1
+	}
+	local nvr=$1
+	brew buildinfo $nvr | awk '/State/ {print $2}'
+}
 _installBrewPkg() {
 Usage() {
 	echo "usage: $0 [-f] [-n] <pkgNamePattern> [pkgNamePattern ...]"
@@ -142,6 +150,8 @@ searchBrewBuild)
 	_searchBrewBuild "$@" ;;
 downloadBrewBuild)
 	_downloadBrewBuild "$@" ;;
+stateBrewBuild)
+	_stateBrewBuild "$@" ;;
 installBrewPkg)
 	_installBrewPkg "$@" ;;
 *)

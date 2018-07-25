@@ -101,6 +101,7 @@ chmod u+s /usr/local/bin/wub-service.sh
 /usr/local/bin/sortV
 /usr/local/bin/srcrpmbuild.sh
 /usr/local/bin/sshbkr
+/usr/local/bin/stateBrewBuild
 /usr/local/bin/tcl8.6_install.sh
 /usr/local/bin/tcllib_install.sh
 /usr/local/bin/tdom_install.sh
