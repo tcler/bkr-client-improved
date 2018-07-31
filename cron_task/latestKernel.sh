@@ -51,6 +51,7 @@ for f in $kfList; do
 	[ ! -f ${f}.tmp ] && continue
 	[ $(stat -c %s ${f}.tmp) = 0 ] && continue
 
+	# previous log of kernel list doesn't exist
 	[ ! -f ${f} ] && {
 		mv ${f}.tmp ${f}
 		continue
@@ -68,8 +69,16 @@ for f in $kfList; do
 	available=0
 	patch=${PWD}/${f}.patch
 
+	# check if there's any difference
 	diff -pNur $f ${f}.tmp >$patch && continue
 	sed -i '/^[^+]/d;/^+++/d' $patch
+	while read -r line; do
+		nvr=${line#+}
+		if [ "$(stateBrewBuild $nvr)" != "COMPLETE" ]; then
+			# remove build whose state is not complete
+			perl -ni -e "print unless /${nvr}$/" ${patch} ${f}.tmp
+		fi
+	done < "$patch"
 	grep '^+[^+]' ${patch} || continue
 	newkernel=$(sed 's/^+//' ${patch})
 
@@ -95,10 +104,6 @@ for f in $kfList; do
 	grep -q "kernel-alt" $newkernel && echo "# $urlAlt" >>$patch
 	for nvr in $newkernel; do
 		echo -e "{Info} ${nvr} changelog read from pkg:"
-		# wait until brew finish building process
-		while [[ $(brew buildinfo $nvr | awk '/State/ {print $2}') == "BUILDING" ]]; do
-			sleep 10m
-		done
 		downloadBrewBuild $nvr --arch=src
 		[ -f ${nvr}.src.rpm ] && available=1
 		if [[ $nvr = kernel-alt* ]]; then
