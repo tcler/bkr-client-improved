@@ -86,16 +86,6 @@ for f in $kfList; do
 	urlAlt=http://patchwork.lab.bos.redhat.com/status/rhel-alt-7.6/changelog.html
 	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V
 	urlAlt=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/kernel-alt-changeLog-$V
-	for nvr in $newkernel; do
-		[[ -z "$nvr" || "$nvr" =~ ^\+\+\+ ]] && continue
-		changeUrl=$url
-		[[ $nvr =~ kernel-alt ]] && changeUrl=$urlAlt
-
-		for chan in "#fs-qe" "#network-qe"; do
-			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
-				"${ircBold}${ircRoyalblue}{Notice}${ircPlain} new kernel: $nvr    # $changeUrl"
-		done
-	done
 
 	# send email
 	echo >>$patch
@@ -133,8 +123,31 @@ for f in $kfList; do
 	[ $available = 1 ] && {
 		sendmail.sh -p '[Notice] ' -f "$from" -t "$mailTo" -c "$mailCc" "$patch" ": new RHEL${V} kernel available"  &>/dev/null
 	}
-
 	rm -f $patch
+
+	# send notice to IRC
+	for nvr in $newkernel; do
+		[[ -z "$nvr" || "$nvr" =~ ^\+\+\+ ]] && continue
+		changeUrl=$url
+		[[ $nvr =~ kernel-alt ]] && changeUrl=$urlAlt
+
+		for chan in "#fs-qe" "#network-qe"; do
+			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
+			    "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new rhel${V} kernel: $nvr    # $changeUrl"
+		done
+
+		# highlight the "fs-qe" related bugs
+		vr=${nvr/kernel-/}
+		vr=${vr/alt-/}
+		vr=${vr%+*}
+		sed -r -n "/\*.*\[${vr}\]/,/^$/{p}" kernel-alt-changeLog-$V changeLog-$V | \
+		    grep "^\- \[fs\]" | sed 's/.*\[\([[:digit:]]\+\)\].*/\1/g;t;d' | sort -u >fsBugs
+
+		for bugid in $(cat fsBugs); do
+			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "#fs-qe" \
+			    "$(su yoyang --command="bugzilla query --bug_id=$bugid --outputformat='https://bugzilla.redhat.com/%{id} - %{qa_contact} - %{summary}'")"
+		done
+	done
 done
 
 popd  >/dev/null
