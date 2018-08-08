@@ -233,7 +233,7 @@ _at=`getopt -o hrt:e:: \
 	--long help \
 	--long raw \
 	--long fmt: \
-    -n 'lstest' -- "$@"`
+    -n "$P" -- "$@"`
 eval set -- "$_at"
 
 while true; do
