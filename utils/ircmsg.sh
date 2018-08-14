@@ -6,8 +6,8 @@
 
 ##########################################################
 # Config
-SERVER="irc.devel.RH.com"
-PORT=6667
+PROXY_SERVER="host.that.are.running.ircproxy"
+PROXY_PORT=6667
 
 NICK="testbot"
 #CHANNEL="#fs-fs"
@@ -27,7 +27,7 @@ fix=$RANDOM
 P=${0##*/}
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [-hdinc] [-C channel] [-s serv -p port] msg"
+	echo "Usage: $P [-hdinc] [-C channel] [-s proxyserv -p proxyport] msg"
 	echo "  Options:"
 	echo "    -n <nick>  used \$nick as nick name to JOIN channel"
 	echo "    -c <nick>  used to send private msg to \$nick"
@@ -35,8 +35,8 @@ Usage() {
 	echo "    -I         work in interactive mode as a simple irc client"
 	echo "    -d         open debug mode"
 	echo "    -q         quit after send message"
-	echo "    -P <session:addr>	proxy session name"
-	echo "    -L <user:passwd>	proxy login user and passwd"
+	echo "    -L <user:passwd> proxy login user and passwd"
+	echo "    -P <session_name:irc_serv_addr> proxy session"
 }
 _at=`getopt -o hdC:c:Iin:s:p:qP:L: --long create-session \
 -n 'ircmsg' -- "$@"`
@@ -50,8 +50,8 @@ while true; do
 	-C) CHANNEL=$2; shift 2;;
 	-c) Chan=$2; shift 2;;
 	-n) NICK=$2; shift 2;;
-	-s) SERVER=$2; shift 2;;
-	-p) PORT=$2; shift 2;;
+	-s) PROXY_SERVER=$2; shift 2;;
+	-p) PROXY_PORT=$2; shift 2;;
 	-q) QUIT=1; shift 1;;
 	-P) ProxySession=$2; shift 2;;
 	-L) UserPasswd=$2; shift 2;;
@@ -68,15 +68,15 @@ test -c /dev/tcp || {
 msg="$*"
 Chan=${Chan:-$CHANNEL}
 Chan=${Chan:-NULL}
-echo "Connecting to ${SERVER}:${PORT} ..."
-exec 100<>/dev/tcp/${SERVER}/${PORT}
+echo "Connecting to ${PROXY_SERVER}:${PROXY_PORT} ..."
+exec 100<>/dev/tcp/${PROXY_SERVER}/${PROXY_PORT}
 [[ $? != 0 ]] && { exit 1; }
 
 echo "NICK ${NICK}" >&100
 echo "USER ${NICK} 8 * : ${NICK}" >&100
 
 test -n "$ProxySession" && {
-	read session addr <<<"${ProxySession/:/ }"
+	read session ircserv <<<"${ProxySession/:/ }"
 	while read line <&100; do
 		test -n "$DEBUG" && echo $line
 		[[ $line =~ NOTICE.AUTH.:To.connect ]] && break
@@ -85,7 +85,7 @@ test -n "$ProxySession" && {
 	echo "PRIVMSG root :${UserPasswd/:/ }" >&100
 	read line <&100 && echo "proxy: $line"
 
-	test -n $CreateSession && echo "PRIVMSG root :create ${session} ${addr}" >&100
+	test -n $CreateSession && echo "PRIVMSG root :create ${session} ${ircserv}" >&100
 	echo "PRIVMSG root :connect ${session}" >&100
 }
 
