@@ -1,0 +1,20 @@
+#!/bin/bash
+# jiyin@redhat.com
+
+export LANG=C
+P=${0##*/}
+
+[[ $# = 0 ]] && {
+	echo "Usage $P J:12345 [J:23456 ...] " >&2
+	exit 1
+}
+
+bkr job-results --prettyxml "$@" |
+	sed -rn '/<recipeSet/,/<\/recipeSet>/ {
+		/.*<recipeSet id="([0-9]+)".*/ {
+			s//\nRS:\1/;p
+		};
+
+		/.*<recipe arch="([^"]+)" .*status="([^"]+)".*/ {
+			s//    \1-\2/;p}
+	};'
