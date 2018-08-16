@@ -1,3 +1,24 @@
+#!/bin/bash
+
+export LANG=C
+P=${0##*/}
+#-------------------------------------------------------------------------------
+Usage() {
+	echo "Usage: $P [--kdc] <2012|2016>"
+}
+_at=`getopt -a -o h \
+	--long help \
+	--long kdc \
+    -n "$P" -- "$@"`
+eval set -- "$_at"
+
+while true; do
+	case "$1" in
+	-h|--help)      Usage; shift 1; exit 0;;
+	--kdc)          KDC=--enable-kdc; shift 1;;
+	--) shift; break;;
+	esac
+done
 
 winVer=${1:-2012}
 
@@ -12,7 +33,7 @@ which vncviewer &>/dev/null || dep+=\ realvnc-vnc-viewer
 
 echo -e "\nInfo: submit request to beaker ..."
 baseUrl=http://pkgs.devel.redhat.com/cgit/tests/kernel/plain
-submitlog=$(runtest  RHEL-7.5 "--cmd=wget $baseUrl/Library/base/tools/build_win_vm.sh -O /win.sh; bash /win.sh --winver=$winVer -- --vm-name win-$winVer --disk-size 60 answerfiles-cifs-nfs/*;" --hr-alias=vmhost)
+submitlog=$(runtest  RHEL-7.5 "--cmd=wget $baseUrl/Library/base/tools/build_win_vm.sh -O /win.sh; bash /win.sh --winver=$winVer -- $KDC --vm-name win-$winVer --disk-size 60 answerfiles-cifs-nfs/*;" --hr-alias=vmhost)
 echo "$submitlog"
 job=$(egrep -o J:[0-9]+ <<<"$submitlog")
 [[ -z $job ]] && {
