@@ -6,7 +6,7 @@ export LANG=C
 P=${0##*/}
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P <-u user> [-w nweek] <\$repodir...>"
+	echo "Usage: $P <-u user1[,user2,user3...]> [-w nweek] <\$repodir...>"
 }
 weekago() {
 	local w=${1:-1};
