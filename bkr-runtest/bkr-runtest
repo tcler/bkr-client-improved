@@ -91,8 +91,8 @@ set OptionList {
 				}}
 	{kv keyvalue}		{forward y arg m	help {Require system with matching legacy key-value, same as '--hr=key_value:key=K,op=Op,value=Val' example: --kv NETWORK=e1000}}
 	{sr sysrequire}		{forward y arg m	help {Additional <hostRequires><and><system/> for job, same as '--hr=system.key=value' example: --sr numanodes=4}}
-	{hr-alias}		{forward y arg y	help {alias of long and changeable options combination}}
-	{hr-alias-file}		{forward y arg y	help {hr-alias will search alias in this file}}
+	{opt-alias hr-alias}		{forward y arg y	help {alias of long and changeable options combination}}
+	{opt-alias-file hr-alias-file}		{forward y arg y	help {opt-alias will search alias in this file}}
 	machine			{forward y arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
 	systype			{forward y arg m	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
 	ormachine		{forward y arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
@@ -470,8 +470,8 @@ if [info exist jobOwner] {
 	set SubcmdOpt [linsert $SubcmdOpt 0 "-job-owner=$jobOwner"]
 }
 if [info exist hostRequireAlias] {
-	if ![string match {*-hr-alias-file=*} $SubcmdOpt] {
-		set SubcmdOpt [linsert $SubcmdOpt 0 "-hr-alias-file=$hostRequireAlias"]
+	if ![regexp -- {.*-(opt|hr)-alias-file=.*} $SubcmdOpt] {
+		set SubcmdOpt [linsert $SubcmdOpt 0 "-opt-alias-file=$hostRequireAlias"]
 	}
 }
 
@@ -502,8 +502,8 @@ foreach {tkey tvalue} [array get TestGroup] {
 	}
 	if {[string length $SubcmdOpt]>0} {
 		set _opts $SubcmdOpt
-		if [string match {*-hr-alias-file=*} $_opts] {
-			regsub -all -- {--*hr-alias-file=[^ ]+ *} $_opts {} _opts
+		if [regexp -- {.*-(opt|hr)-alias-file=.*} $_opts] {
+			regsub -all -- {--*(opt|hr)-alias-file=[^ ]+ *} $_opts {} _opts
 		}
 		if {[info exist Opt(kdump)] && $Opt(kdump) != ""} {
 			regsub -all {kdump=[^ ]+} $_opts {kdump=*} _opts

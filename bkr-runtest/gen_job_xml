@@ -112,8 +112,8 @@ set OptionList {
 				}}
 	{kv keyvalue}		{arg m	help {Require system with matching legacy key-value, same as '--hr=key_value:key=K,op=Op,value=Val' example: --kv NETWORK=e1000}}
 	{sr sysrequire}		{arg m	help {Additional <hostRequires><and><system/> for job, same as '--hr=system.key=value' example: --sr numanodes=4}}
-	{hr-alias}		{arg y	help {alias of long and changeable options combination}}
-	{hr-alias-file}		{arg y	help {hr-alias will search alias in this file}}
+	{opt-alias hr-alias}		{arg y	help {alias of long and changeable options combination}}
+	{opt-alias-file hr-alias-file}		{arg y	help {opt-alias will search alias in this file}}
 	machine			{arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
 	systype			{arg m	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
 	ormachine		{arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
@@ -213,27 +213,27 @@ proc getDefaultNVR {_distro} {
 }
 
 # _parse_ argument
-set hostrequire-alias http://pkgs.devel.redhat.com/cgit/tests/kernel/plain/filesystems/Inventory/hostrequire-alias.tcl
+set option-alias-path http://pkgs.devel.redhat.com/cgit/tests/kernel/plain/filesystems/Inventory/hostrequire-alias.tcl
 set aliasf alias.tcl
 set ARGV $::argv
 getOptions $OptionList $ARGV Opt InvalidOpt NotOptions
-if {[info exist Opt(hr-alias)] && $Opt(hr-alias) != ""} {
-	set alias $Opt(hr-alias)
-	if {[info exist Opt(hr-alias-file)] && $Opt(hr-alias-file) != ""} {
-		set hostrequire-alias $Opt(hr-alias-file)
+if {[info exist Opt(opt-alias)] && $Opt(opt-alias) != ""} {
+	set alias $Opt(opt-alias)
+	if {[info exist Opt(opt-alias-file)] && $Opt(opt-alias-file) != ""} {
+		set option-alias-path $Opt(opt-alias-file)
 	}
-	if [file isfile ${hostrequire-alias}] {
-		set aliasf ${hostrequire-alias}
+	if [file isfile ${option-alias-path}] {
+		set aliasf ${option-alias-path}
 	} else {
-		exec bash -c "wget -q ${hostrequire-alias} -O ${aliasf}"
+		exec bash -c "wget -q ${option-alias-path} -O ${aliasf}"
 	}
 	source ${aliasf}
-	set idx [lindex [lsearch -all -regexp $ARGV {-hr-alias(=.*)?$}] end]
-	if [string match *-hr-alias [lindex $ARGV $idx]] {set ARGV [lreplace $ARGV $idx+1 $idx+1]}
+	set idx [lindex [lsearch -all -regexp $ARGV {-(opt|hr)-alias(=.*)?$}] end]
+	if [regexp -- {.*-(opt|hr)-alias} [lindex $ARGV $idx]] {set ARGV [lreplace $ARGV $idx+1 $idx+1]}
 	set ARGV [lreplace $ARGV $idx $idx]
 	set NARGV [linsert $ARGV $idx {*}$Alias($alias)]
 	getOptions $OptionList $NARGV Opt InvalidOpt NotOptions
-	if ![file isfile ${hostrequire-alias}] {
+	if ![file isfile ${option-alias-path}] {
 		exec rm ${aliasf}
 	}
 }
