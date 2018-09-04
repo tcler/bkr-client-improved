@@ -31,6 +31,7 @@ baseurl=http://download.devel.redhat.com/rel-eng
 supath=compose/metadata/composeinfo.json
 mailTo=fff@redhat.com
 mailCc=kkk@redhat.com
+from="distro monitor <from@redhat.com>"
 
 kgitDir=/home/yjh/ws/code.repo
 VLIST="6 7 8"
@@ -131,7 +132,7 @@ for f in $dfList; do
 	echo -e "\n#cur:" >>$p; cat $f.tmp >>$p
 
 	[ $available = 1 ] && {
-		sendmail.sh -p '[Notice] ' -f "from@redhat.com" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${V} or $Alt available"  &>/dev/null
+		sendmail.sh -p '[Notice] ' -f "$from" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${V} or $Alt available"  &>/dev/null
 		#cat $p
 		mv ${f}.tmp ${f}
 	}
