@@ -43,9 +43,9 @@ hostinfo() {
 	loanedTo=$(echo "$sysinfo" | sed -ne '/"current_loan": {/ { :loop /recipient/! {N; b loop}; s/.*: //; s/[,"]//g; p'});
 
 	raw_notes=$(curl -s -u : -L "$baseUrl/view/$h#notes")
-	notes=$(echo "$raw_notes" | sed -rne '/<tr id="note_/ { :loop /<\/p>/! {N; b loop}; s/.*<p>/"""/; s/<\/p>.*/"""/; p}')
-	wikiNote=$(echo "$raw_notes" | sed -rne '/<tr id="note_/ { :loop /<\/p>/! {N; b loop}; s/.*<p>//; s/<\/p>.*//; /wiki_note: */{s///;p}}')
-	brokenNote=$(echo "$raw_notes" | sed -rne '/<tr id="note_/ { :loop /<\/p>/! {N; b loop}; s/.*<p>//; s/<\/p>.*//; /(Broken|Ticket): */{s///;p}}')
+	notes=$(echo "$raw_notes" | egrep -o '"deleted": null, "text": "[^"]+"' | sed 's/^"deleted": null, "text": //')
+	wikiNote=$(echo "$raw_notes" | sed -rne '/wiki_note: */{p}')
+	brokenNote=$(echo "$raw_notes" | sed -rne '/(Broken|Ticket): */{p}')
 
 	if [[ -z "$wikiIdx" ]]; then
 		echo $h;
