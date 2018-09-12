@@ -36,7 +36,7 @@ is_git() {
 case_root() {
 	for d; do
 		while d=${d%/*} && test -d $d; do
-			[[ -f $d/Makefile ]] && grep -q '\$(METADATA): *Makefile' $d/Makefile && { echo $d; break; }
+			[[ -f $d/Makefile ]] && grep -q '\$(METADATA):' $d/Makefile && { echo $d; break; }
 			[[ $d = */* ]] || break
 		done
 	done | sort -u
@@ -91,8 +91,8 @@ testcase() {
 		}
 
 		gitlog=$(git log -E --author="$User" --name-status --since=$from --until=$to --oneline 2>/dev/null)
-		update=$(case_root $(awk '/^M.*/ {print $2}' <<<"$gitlog") | sed -e "s;^;\t$prefix;")
-		new=$(case_root $(awk '/^A.*Makefile/ {print $2}' <<<"$gitlog") | sed -e "s;^;\t$prefix;")
+		update=$(case_root $(awk '/^[M].*/ {print $NF}' <<<"$gitlog") | sed -e "s;^;\t$prefix;")
+		new=$(case_root $(awk '/^[AR].*Makefile/ {print $NF}' <<<"$gitlog") | sed -e "s;^;\t$prefix;")
 		[[ -n "$update" ]] && Update+=$update$'\n'
 		[[ -n "$new" ]] && New+=$new$'\n'
 		popd &>/dev/null
