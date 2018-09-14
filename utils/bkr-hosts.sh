@@ -29,18 +29,8 @@ hostinfo() {
 	local h=$1 wikiIdx=$2
 	local sysinfo=$(curl -L -k -s $baseUrl/systems/$h);
 
-	: <<-END
-	memory=$(echo "$sysinfo" | sed -nr '/memory/{s/.*: //;s/,$//;p}');
-	cpu_cores=$(echo "$sysinfo" | sed -n '/cpu_cores/{s/.*: //;s/,$//;p}');
-	cpu_processors=$(echo "$sysinfo" | sed -n '/cpu_processors/{s/.*: //;s/,$//;p}');
-	cpu_speed=$(echo "$sysinfo" | sed -n '/cpu_speed/{s/.*: //;s/,$//;p}');
-	disk_space=$(echo "$sysinfo" | sed -n '/disk_space/{s/.*: //;s/,$//;p}');
-	status=$(echo "$sysinfo" | sed -n '/"status":/{s/.*: //;s/[,"]//g;p}');
-	END
-	veval=$(echo "$sysinfo" | sed -nr '/memory|cpu_cores|cpu_processors|cpu_speed|disk_space|"status"/{s/[," ]//g;s/:/=/; p}');
-	eval $veval
-
-	loanedTo=$(echo "$sysinfo" | sed -ne '/"current_loan": {/ { :loop /recipient/! {N; b loop}; s/.*: //; s/[,"]//g; p'});
+	read memory cpu_cores cpu_processors cpu_speed disk_space status loanedTo _ < \
+		<(jq '.|.memory,.cpu_cores,.cpu_processors,.cpu_speed,.disk_space,.status,.current_loan.recipient' <<<"$sysinfo" | xargs)
 
 	notes=$(jq '.notes[]|select(.deleted == null)|.text' <<<"$sysinfo")
 	wikiNote=$(echo "$notes" | sed -rne '/wiki_note: */{p}')
