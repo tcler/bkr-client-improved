@@ -9,6 +9,9 @@ P=${0##*/}
 	exit 1
 }
 
+jobList="$@"
+
+: <<COMM
 bkr job-results --prettyxml "$@" |
 	sed -rn '/<recipeSet/,/<\/recipeSet>/ {
 		/.*<recipeSet id="([0-9]+)".*/ {
@@ -18,3 +21,17 @@ bkr job-results --prettyxml "$@" |
 		/.*<recipe arch="([^"]+)" .*status="([^"]+)".*/ {
 			s//    \1-\2/;p}
 	};'
+
+
+: <<COMM
+for J in $jobList; do
+	xq '.job.recipeSet."@id", .job.recipeSet.recipe."@arch"' <(bkr job-results --prettyxml $J)
+	echo
+done
+COMM
+
+for J in $jobList; do
+	bkr job-results --prettyxml $J | xmllint --xpath '//recipeSet/@id | //recipe/@arch' -
+	echo
+done
+echo
