@@ -139,7 +139,11 @@ set OptionList {
 				e.g: --upstream-use-clone=--depth=1}}
 	upstream-patch		{forward y arg y	help {apply specified patch[es] before compile upstream kernel}}
 	upstream-kernel-kasan   {forward y arg n  help {Flag to enable upstream kernel kasan support}}
-	Scratch			{forward y arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times}}
+	Scratch			{forward y arg m  help {Install scratch built package using /distribution/scratchinstall, can use multiple times
+				e.g: --Scratch=123456
+				e.g: --Scratch=123456:debug                #install scratch build pkgs and boot from the debug kernel
+				e.g: --Scratch=nfs:serv:/nfsshare/rpms/    #install all rpms shared in the nfs path
+				e.g: --Scratch=<ftp|http[s]>://a.b.c/rpms/ #install all rpms shared in the url}}
 	scratch			{forward y arg m  help {same as Scratch, but every specified just apply one host, if in multihost mode}}
 	dbgk			{forward y arg n	help {Use the debug kernel}}
 	gcov			{forward y arg y	help {Enable gcov for coverage data collection, use arg to specify Package, example: --gcov="nfs-utils"}}
