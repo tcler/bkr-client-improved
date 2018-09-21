@@ -54,7 +54,8 @@ host=$(bkr job-results $job --prettyxml | sed -r -n '/.*system="([^"]*)".*/{s//\
 }
 
 echo -e "\nInfo: waiting windows vm start install ..."
-while ! nc -z $host 7788; do sleep 10; echo -n .; done
+#while ! nc -z $host 7788; do sleep 10; echo -n .; done
+while ! nc $host 7788 </dev/null &>/dev/null; do sleep 10; echo -n .; done
 
 
 echo -e "\nvncviewer $host:7788 ..."
