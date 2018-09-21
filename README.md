@@ -5,7 +5,6 @@ Unofficial tools for [beaker-project](https://beaker-project.org/) with improved
 ![bkr test robot](https://raw.githubusercontent.com/tcler/bkr-client-improved/master/img/demo.gif)
 ![bkr test diff](https://raw.githubusercontent.com/tcler/bkr-client-improved/master/img/bkr-autorun-diff.png)
 ![bkr test diff1](https://raw.githubusercontent.com/tcler/bkr-client-improved/master/img/bkr-autorun-diff1.png)
-![bkr test diff2](https://raw.githubusercontent.com/tcler/bkr-client-improved/master/img/bkr-autorun-diff2.png)
 
 ## Features
 
