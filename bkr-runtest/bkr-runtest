@@ -81,9 +81,9 @@ set OptionList {
 				--hr 'kv-DISKSPACE>=60000'      #same as --kv 'DISKSPACE>=60000'
 				--hr kv-CPUVENDOR~%AMD%         #~%AMD%  =AuthenticAMD
 				--hr 'system.numanodes>=4'      #same as --sr 'numanodes>=4'
-				--hr top-system_type=Machine    #same as --systype=Machine
-				--hr or-tag=value
-				--hr not-kv-CPUVENDOR~%Intel%   #~%Intel%  =GenuineIntel
+				--hr top:system_type=Machine    #same as --systype=Machine
+				--hr or:tag=value
+				--hr not:kv-CPUVENDOR~%Intel%   #~%Intel%  =GenuineIntel
 				}}
 	{HR}			{forward y arg m	help {hostRequires for multi-host test. e.g:
 				--HR= --HR="memory>4096 key_value:key=DISK,op=>,value=80000"

@@ -102,9 +102,9 @@ set OptionList {
 				--hr 'kv-DISKSPACE>=60000'      #same as --kv 'DISKSPACE>=60000'
 				--hr kv-CPUVENDOR~%AMD%         #~%AMD%  =AuthenticAMD
 				--hr 'system.numanodes>=4'      #same as --sr 'numanodes>=4'
-				--hr top-system_type=Machine    #same as --systype=Machine
-				--hr or-tag=value
-				--hr not-kv-CPUVENDOR~%Intel%   #~%Intel%  =GenuineIntel
+				--hr top:system_type=Machine    #same as --systype=Machine
+				--hr or:tag=value
+				--hr not:kv-CPUVENDOR~%Intel%   #~%Intel%  =GenuineIntel
 				}}
 	{HR}			{arg m	help {hostRequires for multi-host test. e.g:
 				--HR= --HR="memory>4096 key_value:key=DISK,op=>,value=80000"
@@ -656,24 +656,24 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							lappend drs distro_arch=${distro_arch}
 						}
 
-						foreach taginfo [lsearch -regexp -inline -all -not $drs ^(top|or|not)-] {
+						foreach taginfo [lsearch -regexp -inline -all -not $drs {^(top|or|not)[-:]}] {
 							makeTag $taginfo
 						}
 					}
 
-					foreach taginfo [lsearch -glob -inline -all $drs top-*] {
+					foreach taginfo [lsearch -glob -inline -all $drs {top[-:]*}] {
 						set taginfo [string range $taginfo 4 end]
 						makeTag $taginfo
 					}
 
 					or ! {
-						foreach taginfo [lsearch -glob -inline -all $drs or-*] {
+						foreach taginfo [lsearch -glob -inline -all $drs {or[-:]*}] {
 							set taginfo [string range $taginfo 3 end]
 							makeTag $taginfo
 						}
 					}
 					not ! {
-						foreach taginfo [lsearch -glob -inline -all $drs not-*] {
+						foreach taginfo [lsearch -glob -inline -all $drs {not[-:]*}] {
 							set taginfo [string range $taginfo 4 end]
 							makeTag $taginfo
 						}
@@ -700,7 +700,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								lappend hrs arch=$ARCH
 							}
 
-							foreach taginfo [lsearch -regexp -inline -all -not $hrs ^(top|or|not)-] {
+							foreach taginfo [lsearch -regexp -inline -all -not $hrs {^(top|or|not)[-:]}] {
 								makeTag $taginfo
 							}
 
@@ -716,7 +716,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 					system_type op== value=${SystemType} -
 
-					foreach taginfo [lsearch -glob -inline -all $hrs top-*] {
+					foreach taginfo [lsearch -glob -inline -all $hrs {top[-:]*}] {
 						set taginfo [string range $taginfo 4 end]
 						makeTag $taginfo
 					}
@@ -725,13 +725,13 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						foreach m "$ORMACHINE_L $NETQE_NIC_MACHINE($role)" {
 							hostname op=like value=$m -
 						}
-						foreach taginfo [lsearch -glob -inline -all $hrs or-*] {
+						foreach taginfo [lsearch -glob -inline -all $hrs {or[-:]*}] {
 							set taginfo [string range $taginfo 3 end]
 							makeTag $taginfo
 						}
 					}
 					not ! {
-						foreach taginfo [lsearch -glob -inline -all $hrs not-*] {
+						foreach taginfo [lsearch -glob -inline -all $hrs {not[-:]*}] {
 							set taginfo [string range $taginfo 4 end]
 							makeTag $taginfo
 						}
