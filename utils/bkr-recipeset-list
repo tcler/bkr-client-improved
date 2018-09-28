@@ -25,7 +25,7 @@ bkr job-results --prettyxml "$@" |
 
 : <<COMM
 for J in $jobList; do
-	xq '.job.recipeSet."@id", .job.recipeSet.recipe."@arch"' <(bkr job-results --prettyxml $J)
+	xq '.job.recipeSet | ."@id", (..|."@arch"? //empty)' <(bkr job-results --prettyxml $J) | xargs
 	echo
 done
 COMM
@@ -35,3 +35,4 @@ for J in $jobList; do
 	echo
 done
 echo
+
