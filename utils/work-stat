@@ -116,8 +116,8 @@ bug_report() {
 	# not a tracker bug
 	query_url+="f3=keywords&o3=notsubstring&v3=track&"
 	query_url+="query_format=advanced"
-	outputformat="%{keywords} Bug %{id} - %{product} - %{reporter} - %{bug_status} - %{summary}"
-	bugzilla query --from-url="$query_url" --outputformat="$outputformat"|sed -e 's/^\[] //' -e 's/Red Hat Enterprise Linux /RHEL-/'
+	outputformat="[%{keywords}] Bug %{id} - %{product} - %{reporter} - %{bug_status} - %{summary}"
+	bugzilla query --from-url="$query_url" --outputformat="$outputformat"|sed -e 's/^\[[^ ]*Regression[^ ]*]/[Regression]/' -e '/^\[Regression]/!s/^\[[^ ]*] //' -e 's/Red Hat Enterprise Linux /RHEL-/'
 }
 bug_verify() {
 	# replace space with %20
