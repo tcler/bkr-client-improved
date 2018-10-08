@@ -26,16 +26,16 @@ from=${from:-QE Assistant <jiyin@redhat.com>}
 
 brokenList=$(bkr list-systems --xml-filter='<system><owner op="==" value="'"$owner"'"/></system>' --status Broken)
 
-echo -n >$logf
 for h in $brokenList; do
 	hinfo=$(bkr-hosts.sh $h)
 	if ! grep -q LoanedTo: <<<"$hinfo"; then
-		echo "$hinfo" >>$logf
+		echo "[$(date +%F-%T)] $hinfo" >>$logf
 
 		#skip if there is Broken flag in Notes
 		egrep -qi '" *(Ticket|Broken):' <<<"$hinfo" && continue
 
 		#try reboot and change condition back to Automated
+		echo $'`-> reboot and return to Automated\n' >>$logf
 		bkr system-power --action off $h
 		bkr system-power --action on $h
 		bkr system-modify --condition Automated $h
