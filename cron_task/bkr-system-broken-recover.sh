@@ -33,11 +33,11 @@ for h in $brokenList; do
 		echo "$hinfo" >>$logf
 
 		#skip if there is Broken flag in Notes
-		egrep -qi '""" *(Ticket|Broken):' <<<"$hinfo" && continue
+		egrep -qi '" *(Ticket|Broken):' <<<"$hinfo" && continue
 
 		#try reboot and change condition back to Automated
-		bkr system-power off $h
-		bkr system-power on $h
+		bkr system-power --action off $h
+		bkr system-power --action on $h
 		bkr system-modify --condition Automated $h
 
 		#try reserve this host to see if it's real works fine
@@ -53,7 +53,7 @@ for h in $brokenList; do
 		$(bkr-hosts.sh $h)
 
 		if it isn't your expected.. please try use follow command update the status:
-		    bkr system-power off $h && bkr system-power on $h
+		    bkr system-power --action off $h && bkr system-power --action on $h
 		    bkr system-modify --condition Automated $h
 		or update from webUI: $baseUrl/view/$h
 		EOF
