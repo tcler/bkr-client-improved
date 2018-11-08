@@ -49,6 +49,10 @@ echo -e "\nInfo: waiting beaker job getting machine ..."
 while ! [[ "$jobstatus" = Install* ]]; do
 	jobstatus=$(bkr job-results $job --prettyxml | sed -r -n '/<job .* status="([^"]*)".*/{s//\1/;p}')
 	echo "Job status: $jobstatus"
+	[[ "$jobstatus" = Aborted || "$jobstatus" = Can* ]] && {
+		echo "Error: beaker job Aborted or Cancelled, please check distro and try again" >&2
+		exit 1
+	}
 	sleep 10
 done
 host=$(bkr job-results $job --prettyxml | sed -r -n '/.*system="([^"]*)".*/{s//\1/;p}')
