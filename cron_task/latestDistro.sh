@@ -29,8 +29,8 @@ mkdir -p /var/cache/distroDB
 pushd /var/cache/distroDB  >/dev/null
 baseurl=http://download.devel.redhat.com/rel-eng
 supath=compose/metadata/composeinfo.json
-mailTo=fff@redhat.com
-mailCc=kkk@redhat.com
+mailTo=fs@redhat.com
+mailCc=net@redhat.com
 from="distro monitor <from@redhat.com>"
 
 kgitDir=/home/yjh/ws/code.repo
@@ -39,9 +39,10 @@ DVLIST=$(echo $VLIST)
 latestDistroF=.latest.distro
 dfList=$(eval echo $latestDistroF{${DVLIST// /,}})
 #echo $dfList
+debug=$1
 
 #getLatestRHEL all >.distroListr
-distro-list.sh all | egrep '^(RHEL|RHEL-ALT)-?[678]' >.distroListr
+distro-list.sh all | egrep '^RHEL-'"[${VLIST// /}]" >.distroListr
 while read d; do
 	pkgList=$(awk -v d=$d 'BEGIN{ret=1} $1 == d {$1=""; print; ret=0} END{exit ret}' .distroList.orig) || {
 		r=$d
@@ -63,7 +64,7 @@ done <.distroListr >.distroList
 
 test -n "`cat .distroList`" &&
 	for V in $DVLIST; do
-	    egrep -i "^(RHEL|RHEL-ALT)-?${V}.[0-9]+" .distroList >${latestDistroF}$V.tmp
+	    egrep -i "^RHEL-${V}.[0-9]+" .distroList >${latestDistroF}$V.tmp
 	done
 
 for f in $dfList; do
@@ -73,7 +74,7 @@ for f in $dfList; do
 		mv ${f}.tmp ${f}
 		continue
 	}
-	[ -n "$1" ] && {
+	[ -n "$debug" ] && {
 		echo
 		cat ${f}.tmp
 		diff -pNur -w ${f} ${f}.tmp | sed 's/^/\t/'
@@ -88,15 +89,6 @@ for f in $dfList; do
 	diff -pNur -w $f ${f}.tmp >$p && continue
 	sed -i '/^[^+]/d;/^+++/d' $p
 	grep '^+[^+]' ${p} || continue
-
-	Alt=
-	while read line; do
-		[[ -z "$line" || "$line" =~ ^\+\+\+ ]] && continue
-		egrep -i RHEL-ALT <<<"$line" && {
-			Alt="RHEL-ALT-$V"
-			break
-		}
-	done <$p
 
 	while read line; do
 		[[ -z "$line" || "$line" =~ ^\+\+\+ ]] && continue
@@ -114,14 +106,11 @@ for f in $dfList; do
 	echo >>$p
 	echo "#-------------------------------------------------------------------------------" >>$p
 	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V
-	urlAlt=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/kernel-alt-changeLog-$V
 	echo "# $url" >>$p
-	curl $urlAlt &>/dev/null && echo "# $urlAlt" >>$p
 	tagr=$(awk '$1 ~ /^+/ && $2 ~ /kernel-/ {print $2}' $p|head -n1|sed s/$/.el${V}/)
 	(echo -e "\n{Info} ${tagr} change log:"
 
 	vr=${tagr/kernel-/}
-	vr=${vr/alt-/}
 	sed -n '/\*.*\['"${vr}a\?"'\]/,/^$/{p}' /var/cache/kernelnvrDB/*changeLog-${V} >changeLog
 	sed -n '1p;q' changeLog
 	grep '^-' changeLog | sort -k2,2
@@ -132,7 +121,7 @@ for f in $dfList; do
 	echo -e "\n#cur:" >>$p; cat $f.tmp >>$p
 
 	[ $available = 1 ] && {
-		sendmail.sh -p '[Notice] ' -f "$from" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${V} or $Alt available"  &>/dev/null
+		sendmail.sh -p '[Notice] ' -f "$from" -t "$mailTo" -c "$mailCc" "$p" ": new RHEL${V} distro available"  &>/dev/null
 		#cat $p
 		mv ${f}.tmp ${f}
 	}
