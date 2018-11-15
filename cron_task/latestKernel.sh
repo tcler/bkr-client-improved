@@ -38,13 +38,11 @@ kfList=$(eval echo $latestKernelF-{${VLIST// /,}})
 #echo $kfList
 debug=$1
 
-searchBrewBuild '^kernel(-alt)?-[-.0-9]+el'"[${VLIST// /}]"'.{0,2}$' >.kernelList
+searchBrewBuild '^kernel[-.0-9]+el'"[${VLIST// /}]"'.{0,2}$' >.kernelList
 test -n "`cat .kernelList`" &&
 	for V in ${VLIST}; do
-	    L=$(egrep 'kernel-alt-[-.0-9]+el'$V .kernelList | head -n4)
-	    echo "$L" >${latestKernelF}-$V.tmp
 	    L=$(egrep 'kernel-[-.0-9]+el'$V .kernelList | head -n4)
-	    echo "$L" >>${latestKernelF}-$V.tmp
+	    echo "$L" > ${latestKernelF}-$V.tmp
 	done
 
 for f in $kfList; do
@@ -59,7 +57,7 @@ for f in $kfList; do
 	[ -n "$debug" ] && {
 		echo
 		cat ${f}.tmp
-		diff -pNur ${f} ${f}.tmp | sed 's/^/\t/'
+		diff -pNur -w ${f} ${f}.tmp | sed 's/^/\t/'
 		rm -f ${f}.tmp
 		continue
 	}
@@ -70,7 +68,7 @@ for f in $kfList; do
 	patch=${PWD}/${f}.patch
 
 	# check if there's any difference
-	diff -pNur $f ${f}.tmp >$patch && continue
+	diff -pNur -w $f ${f}.tmp >$patch && continue
 	sed -i '/^[^+]/d;/^+++/d' $patch
 	while read -r line; do
 		nvr=${line#+}
@@ -80,35 +78,27 @@ for f in $kfList; do
 		fi
 	done < "$patch"
 	grep '^+[^+]' ${patch} || continue
-	newkernel=$(sed 's/^+//' ${patch})
+	# print in reverse to show the newer vers afterward
+	newkernel=$(tac ${patch} | sed 's/^+//')
 
-	url=http://patchwork.lab.bos.redhat.com/status/rhel${V}/changelog.html
-	urlAlt=http://patchwork.lab.bos.redhat.com/status/rhel-alt-7.6/changelog.html
+	#url=http://patchwork.lab.bos.redhat.com/status/rhel${V}/changelog.html
 	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V
-	urlAlt=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/kernel-alt-changeLog-$V
 
 	# send email
 	echo >>$patch
 	echo "#-------------------------------------------------------------------------------" >>$patch
 	echo "# $url" >>$patch
-	grep -q "kernel-alt" $newkernel && echo "# $urlAlt" >>$patch
 	for nvr in $newkernel; do
 		echo -e "{Info} ${nvr} changelog read from pkg:"
 		downloadBrewBuild $nvr --arch=src
 		[ -f ${nvr}.src.rpm ] && available=1
-		if [[ $nvr = kernel-alt* ]]; then
-			LANG=C rpm -qp --changelog ${nvr}.src.rpm >kernel-alt-changeLog-$V
-			[ -s kernel-alt-changeLog-$V ] && cp -f kernel-alt-changeLog-$V /var/ftp/pub/kernel-changelog/.
-		else
-			LANG=C rpm -qp --changelog ${nvr}.src.rpm >changeLog-$V
-			[ -s changeLog-$V ] && cp -f changeLog-$V /var/ftp/pub/kernel-changelog/.
-		fi
+		LANG=C rpm -qp --changelog ${nvr}.src.rpm >changeLog-$V
+		[ -s changeLog-$V ] && cp -f changeLog-$V /var/ftp/pub/kernel-changelog/.
 		\rm ${nvr}.src.rpm
 
 		vr=${nvr/kernel-/}
-		vr=${vr/alt-/}
 		vr=${vr%+*}
-		sed -r -n "/\*.*\[${vr}\]/,/^$/{p}" kernel-alt-changeLog-$V changeLog-$V >changeLog
+		sed -r -n "/\*.*\[${vr}\]/,/^$/{p}" changeLog-$V >changeLog
 		sed -n '1p;q' changeLog
 		grep '^-' changeLog | sort -k2,2
 		echo
@@ -129,7 +119,6 @@ for f in $kfList; do
 	for nvr in $newkernel; do
 		[[ -z "$nvr" || "$nvr" =~ ^\+\+\+ ]] && continue
 		changeUrl=$url
-		[[ $nvr =~ kernel-alt ]] && changeUrl=$urlAlt
 
 		for chan in "#fs-qe" "#network-qe"; do
 			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
@@ -138,9 +127,8 @@ for f in $kfList; do
 
 		# highlight the "fs-qe" related bugs
 		vr=${nvr/kernel-/}
-		vr=${vr/alt-/}
 		vr=${vr%+*}
-		sed -r -n "/\*.*\[${vr}\]/,/^$/{p}" kernel-alt-changeLog-$V changeLog-$V | \
+		sed -r -n "/\*.*\[${vr}\]/,/^$/{p}" changeLog-$V | \
 		    grep "^\- \[fs\]" | sed 's/.*\[\([[:digit:]]\+\)\].*/\1/g;t;d' | sort -u >fsBugs
 
 		for bugid in $(cat fsBugs); do
