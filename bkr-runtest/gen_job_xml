@@ -428,12 +428,7 @@ if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 	set recipe_ks_meta "harness='restraint-rhts beakerlib'"
 	if {[info exist Opt(restraint-git)] && $Opt(restraint-git) != ""} {
 		set fetch_test_from_git yes
-		set restraint_git "git://pkgs.devel.redhat.com/tests"
-		if [regexp {^\?} $Opt(restraint-git)] {
-			append restraint_git $Opt(restraint-git)
-		} else {
-			set restraint_git $Opt(restraint-git)
-		}
+		set restraint_git $Opt(restraint-git)
 	}
 }
 
@@ -1020,6 +1015,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						task name=$name role=$role ! {
 							if [info exist fetch_test_from_git] {
 								set trim/ 1
+								if [regexp {^/CoreOS/} $name] {
+									set trim/ 2
+								}
 								if [info exist Opt(restraint-case-trim/)] {
 									set trim/ $Opt(restraint-case-trim/)
 								}
