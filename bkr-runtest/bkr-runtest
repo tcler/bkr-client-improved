@@ -40,7 +40,7 @@ set OptionList {
   "\n  Options for job configuration:" {
 	harness			{forward y arg y	help {specify alternative harness, available value: beah|restraint; default: restraint}}
 	restraint-git		{forward y arg y	help {specify restraint git repo}}
-	restraint-case-trim/	{forward y arg y  help {specify how many level should be removed from beaker task name}}
+	{restraint-case-trim/ p}	{forward y arg y  help {specify how many level should be removed from beaker task name}}
 	restraint		{forward y arg o	help {deprecated} hide y}
 	cc			{forward y arg m	help {Notify additional e-mail address on job completion}}
 	job-owner		{forward y arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
