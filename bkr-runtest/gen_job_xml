@@ -776,20 +776,19 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {![info exist Opt(ksf)] || $Opt(ksf) == ""} {
 						set Opt(ksf) ${default-ksf}
 					}
-					if [file isfile $Opt(ksf)] {
-						if {![catch {set fp [open $Opt(ksf)]} err]} {
-							set data [read $fp]
-							close $fp
-							lappend Opt(ks-append) $data
-						}
-					}
 					if [info exist Opt(ks-append)] {
 						foreach ks $Opt(ks-append) {
 							ks_append ! {
-								puts {<![CDATA[}
-								puts $ks
-								puts -nonewline {]]>}
+								puts "<!\[CDATA\[\n$ks\]\]>"
 							}
+						}
+					}
+					if [file isfile $Opt(ksf)] {
+						if {![catch {set fp [open $Opt(ksf)]} err]} {
+							ks_append ! {
+								puts "<!\[CDATA\[\n[read $fp]\]\]>"
+							}
+							close $fp
 						}
 					}
 				}
