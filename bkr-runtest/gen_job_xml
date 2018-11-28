@@ -1020,7 +1020,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								if [info exist Opt(restraint-case-trim/)] {
 									set trim/ $Opt(restraint-case-trim/)
 								}
-								doTag fetch url=$restraint_git[regsub "^(/+\[^/]+){0,${trim/}}/?" $name {}] -
+								doTag fetch url=[regsub {#+$} $restraint_git {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $name {}] -
 							}
 							params ! {
 								foreach arg $arglist {
