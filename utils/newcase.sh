@@ -218,7 +218,7 @@ mntSrc=\${REMOTE_SHARE:-\$HOSTNAME:\$expdir}
 $(if test -z "$multihost"; then
   echo 'rlJournalStart
 rlPhaseStartSetup do-Setup-
-	rlFileBackup /etc/exports /etc/sysconfig/nfs
+	rlFileBackup /etc/exports /etc/sysconfig/nfs /etc/nfs.conf
 	rlFileBackup /etc/auto.master /etc/sysconfig/autofs
 	run "mkdir -p $expdir $nfsmp"
 	run '"'echo \"\$expdir *(rw,no_root_squash)\" >/etc/exports'"'
