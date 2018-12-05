@@ -124,6 +124,8 @@ set OptionList {
 
   "\n  Options for setting tasks:" {
 	task			{arg m	help {Include named task in job, can use multiple times}}
+	insert-task		{forward y arg m	help {Insert named task before task list, can use multiple times}}
+	append-task		{forward y arg m	help {Append named task after task list, can use multiple times}}
 	taskn			{forward y arg y	help {repeat task 'N' times}}
 	reboot			{forward y arg y	help {add reboot after each task}}
 	{param taskparam}	{forward y arg m	help {Set task params, can use multiple times.

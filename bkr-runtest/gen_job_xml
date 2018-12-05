@@ -146,6 +146,8 @@ set OptionList {
 
   "\n  Options for setting tasks:" {
 	task			{arg m	help {Include named task in job, can use multiple times}}
+	insert-task		{arg m	help {Insert named task before task list, can use multiple times}}
+	append-task		{arg m	help {Append named task after task list, can use multiple times}}
 	taskn			{arg y	help {repeat task 'N' times}}
 	reboot			{arg y	help {add reboot after each task}}
 	{param taskparam}	{arg m	help {Set task params, can use multiple times.
@@ -1010,6 +1012,21 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 				}
 
+				if [info exist Opt(insert-task)] {
+					foreach taskb $Opt(insert-task) {
+						set taskname [lindex $taskb 0]
+						set taskparams [lrange $taskb 1 end]
+						task name=$taskname role=$role ! {
+							params ! {
+								foreach taskparam $taskparams {
+									regexp {^([^=]+)=(.*)$} $taskparam _ _name _value
+									param name=$_name value=$_value -
+								}
+							}
+						}
+					}
+				}
+
 				# task list
 				set llen [llength ${TaskList}]
 				for {set i 0} {$i < $taskN} {incr i} {
@@ -1047,6 +1064,21 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							task name=/distribution/utils/reboot role=$role -
 						}
 						incr iter
+					}
+				}
+
+				if [info exist Opt(append-task)] {
+					foreach taskb $Opt(append-task) {
+						set taskname [lindex $taskb 0]
+						set taskparams [lrange $taskb 1 end]
+						task name=$taskname role=$role ! {
+							params ! {
+								foreach taskparam $taskparams {
+									regexp {^([^=]+)=(.*)$} $taskparam _ _name _value
+									param name=$_name value=$_value -
+								}
+							}
+						}
 					}
 				}
 
