@@ -101,6 +101,26 @@ for f in $dfList; do
 				"${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line"
 			sleep 1
 		done
+
+		# Highlight the packages whose version is increasing
+		if echo $line | egrep -q 'RHEL[-.0-9]+n[.0-9]+'; then
+			# nightly
+			dtype="n"
+		elif echo $line | egrep -q 'RHEL[-.0-9]+'; then
+			# rtt
+			dtype="r"
+		else
+			# should not be here
+			continue
+		fi
+		echo $line | sed 's/\s\+/\n/g' > ${f}.pkgvers_${dtype}.tmp
+		pkgDiff=$(diff -pNur -w ${f}.pkgvers_${dtype} ${f}.pkgvers_${dtype}.tmp | awk '/^+[^+]/{ORS=" "; print $0 }' | cut -d " " -f 2-)
+		if [ -n "$pkgDiff" ]; then
+			preDistro=$(head -1 ${f}.pkgvers_${dtype})
+			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "#fs-qe" \
+			    "${ircPlain}highlight newer pkg: ${ircTeal}${pkgDiff} ${ircPlain}(vary to $preDistro)"
+		fi
+		mv ${f}.pkgvers_${dtype}.tmp ${f}.pkgvers_${dtype}
 	done <$p
 
 	#get stable version
