@@ -69,7 +69,7 @@ installBrew2() {
 	which brew &>/dev/null
 }
 
-installBrew || installBrew2
+which brew &>/dev/null || installBrew || installBrew2
 
 progname=${0##*/}
 
