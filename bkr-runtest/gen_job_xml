@@ -516,9 +516,6 @@ if [info exist Opt(retention-tag)] {
 	}
 }
 
-set insertTasks [list]
-set appendTasks [list]
-
 proc makeTag {taginfo} {
 	if {[string range $taginfo 0 2] == "kv-"} {
 		set t [string range $taginfo 3 end]
@@ -808,6 +805,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					watchdog panic=ignore -
 				}
 
+				# tasks nodes
+				set insertTasks [list]
+
 				# distro install
 				lappend insertTasks "/distribution/install DISTRO_BUILD=$DISTRO"
 
@@ -1014,6 +1014,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 				}
 
+				set appendTasks [list]
 				if [info exist Opt(append-task)] {
 					lappend appendTasks $Opt(append-task)
 				}
