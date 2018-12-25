@@ -43,13 +43,15 @@ debug=$1
 
 #getLatestRHEL all >.distroListr
 distro-list.sh all | egrep '^RHEL-'"[${VLIST// /}]" >.distroListr
+
+\cp .distroList .distroList.orig
 while read d; do
 	pkgList=$(awk -v d=$d 'BEGIN{ret=1} $1 == d {$1=""; print; ret=0} END{exit ret}' .distroList.orig) || {
 		r=$d
 		[[ "$r" =~ ^RHEL-?[0-9]\.[0-9]$ ]] && r=${r%%-*}-./${r##*-}
 		pkgList=$(vershow '^(kernel|nfs-utils|autofs|rpcbind|[^b].*fs-?progs)-[0-9]+\..*' "/$r$" |
 			grep -v ^= | sed -r 's/\..?el[0-9]+.?\.(x86_64|i686|noarch|ppc64le)\.rpm//g' |
-			uniq | xargs | sed -r 's/(.*)(\<kernel-[^ ]* )(.*)/\2\1\3/')
+			sort --unique | xargs | sed -r 's/(.*)(\<kernel-[^ ]* )(.*)/\2\1\3/')
 	}
 	[ -z "$pkgList" ] && continue
 	pkgList=${pkgList%%\"label\":*}
@@ -60,7 +62,6 @@ while read d; do
 
 	curl $baseurl/$d/$supath 2>/dev/null|grep \"label\": || echo
 done <.distroListr >.distroList
-\cp .distroList .distroList.orig
 
 test -n "`cat .distroList`" &&
 	for V in $DVLIST; do
