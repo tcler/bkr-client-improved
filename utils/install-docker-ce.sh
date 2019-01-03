@@ -1,16 +1,23 @@
 #!/bin/bash
 
+# Install Docker CE for CentOS/RHEL 7.3+
 # see: https://kubernetes.io/docs/setup/cri
-# test pass on RHEL-7.5 RHEL-7.6 RHEL-8.0
-
-# Install Docker CE for CentOS/RHEL 7.5+
+# test pass on RHEL-7.3+ RHEL-8.0
 
 ## Set up the repository
 ### Install required packages.
 yum install -y container-selinux
 rpm -q container-selinux || {
 	url=http://mirror.centos.org/centos/7/extras/x86_64/Packages
-	pkg=$(curl -s -L $url | egrep '\<container-selinux-[-.1-9a-z]+' -o | head -n1)
+	pkg=$(curl -s -L $url | egrep '\<container-selinux-[-_.0-9a-z]+' -o | head -n1)
+	yum install -y $url/$pkg
+}
+rpm -q container-selinux || {
+	yum install -y redhat-lsb-core >/dev/null
+	url=http://vault.centos.org
+	ver=$(curl -s -L $url | egrep -o "\<$(lsb_release -sr)\.[0-9]+" | tail -n1)
+	url=http://vault.centos.org/$ver/extras/x86_64/Packages
+	pkg=$(curl -s -L $url | egrep '\<container-selinux-[-_.0-9a-z]+' -o | head -n1)
 	yum install -y $url/$pkg
 }
 
@@ -22,10 +29,10 @@ yum-config-manager \
     https://download.docker.com/linux/centos/docker-ce.repo
 
 ## Install docker ce.
-yum update && yum install -y docker-ce-18.06.1.ce
+yum update -y && yum install -y docker-ce-18.06.1.ce
 
 ## Create /etc/docker directory.
-mkdir /etc/docker
+mkdir -p /etc/docker
 
 # Setup daemon.
 cat > /etc/docker/daemon.json <<EOF
