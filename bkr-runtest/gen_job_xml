@@ -814,7 +814,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				# command before kernelinstall
 				if [info exist Opt(cmdb)] {
 					foreach cmd $Opt(cmdb) {
-						lappend insertTasks "/distribution/command CMDS_TO_RUN=$cmd"
+						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
 					}
 				}
 
@@ -928,7 +928,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				# command after kernelinstall
 				if [info exist Opt(cmd)] {
 					foreach cmd $Opt(cmd) {
-						lappend insertTasks "/distribution/command CMDS_TO_RUN=$cmd"
+						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
 					}
 				}
 				# pkg install
@@ -945,7 +945,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						set kdir "fs, net, drivers/net"
 					}
 
-					lappend insertTasks "/kernel/kcov/prepare MODE=KA KDIR=$kdir"
+					lappend insertTasks "/kernel/kcov/prepare MODE=KA {KDIR=$kdir}"
 					lappend insertTasks "/kernel/kcov/start"
 				}
 				if [info exist Opt(gcov)] {
@@ -1032,7 +1032,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				# command in the end of the recipe
 				if [info exist Opt(cmd-end)] {
 					foreach cmd $Opt(cmd-end) {
-						lappend appendTasks "/distribution/command CMDS_TO_RUN=$cmd"
+						lappend appendTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
 					}
 				}
 
