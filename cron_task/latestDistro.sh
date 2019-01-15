@@ -104,10 +104,10 @@ for f in $dfList; do
 		done
 
 		# Highlight the packages whose version is increasing
-		if echo $line | egrep -q 'RHEL[-.0-9]+n[.0-9]+'; then
+		if echo $line | egrep -q 'RHEL[-.[:digit:]]+n[.[:digit:]]+'; then
 			# nightly
 			dtype="n"
-		elif echo $line | egrep -q 'RHEL[-.0-9]+'; then
+		elif echo $line | egrep -q 'RHEL-[.[:digit:]]+-[.[:digit:]]+'; then
 			# rtt
 			dtype="r"
 		else
@@ -115,6 +115,12 @@ for f in $dfList; do
 			continue
 		fi
 		echo $line | sed 's/\s\+/\n/g' > ${f}.pkgvers_${dtype}.tmp
+		tmpKernel=$(awk -F'-' '/^kernel/{print $3}' ${f}.pkgvers_${dtype}.tmp)
+		preKernel=$(awk -F'-' '/^kernel/{print $3}' ${f}.pkgvers_${dtype})
+		if [[ $tmpKernel -lt $preKernel ]]; then
+			# ignore the distro whose (kernel) version gets reversed
+			continue
+		fi
 		pkgDiff=$(diff -pNur -w ${f}.pkgvers_${dtype} ${f}.pkgvers_${dtype}.tmp | awk '/^+[^+]/{ORS=" "; print $0 }' | cut -d " " -f 2-)
 		if [ -n "$pkgDiff" ]; then
 			preDistro=$(head -1 ${f}.pkgvers_${dtype})
