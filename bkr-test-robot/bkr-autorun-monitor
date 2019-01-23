@@ -245,6 +245,11 @@ foreach {jobID taskList} [array get runningTest] {
 		if {"Aborted" in [concat $rstat]} {
 			set tstat aborted
 			incr abortedCnt 
+
+			# cancel RecipeSet if task aborted
+			set recipeSetNode [$recipeNode parentNode]
+			set rsid [$recipeSetNode @id]
+			exec bash -c "bkr job-cancel RS:$rsid &"
 		}
 		if {"Cancelled" in [concat $rstat]} {
 			set tstat cancelled
