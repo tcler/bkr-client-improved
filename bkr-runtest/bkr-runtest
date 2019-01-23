@@ -92,6 +92,7 @@ set OptionList {
 				--HR= --HR="memory>4096 key_value:key=DISK,op=>,value=80000"
 				#means no requires for 1st host, and 2nd need more than 4096M ram and more than 80G disk size
 				}}
+	p9			{forward y arg n  hide y}
 	{kv keyvalue}		{forward y arg m	help {Require system with matching legacy key-value, same as '--hr=key_value:key=K,op=Op,value=Val' example: --kv NETWORK=e1000}}
 	{sr sysrequire}		{forward y arg m	help {Additional <hostRequires><and><system/> for job, same as '--hr=system.key=value' example: --sr numanodes=4}}
 	{opt-alias hr-alias}		{forward y arg y	help {alias of long and changeable options combination}}

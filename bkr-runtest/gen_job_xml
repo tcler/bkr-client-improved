@@ -112,6 +112,7 @@ set OptionList {
 				--HR= --HR="memory>4096 key_value:key=DISK,op=>,value=80000"
 				#means no requires for 1st host, and 2nd need more than 4096M ram and more than 80G disk size
 				}}
+	p9			{arg n  hide y}
 	{kv keyvalue}		{arg m	help {Require system with matching legacy key-value, same as '--hr=key_value:key=K,op=Op,value=Val' example: --kv NETWORK=e1000}}
 	{sr sysrequire}		{arg m	help {Additional <hostRequires><and><system/> for job, same as '--hr=system.key=value' example: --sr numanodes=4}}
 	{opt-alias hr-alias}		{arg y	help {alias of long and changeable options combination}}
@@ -606,6 +607,10 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 			lappend Opt(hr)
 			set drs $Opt(dr)
 			set hrs $Opt(hr)
+
+			if {[info exist Opt(p9)] != 1} {
+				lappend drs not:kv-CPUMODEL~POWER9%
+			}
 			recipe kernel_options=$KOPTS kernel_options_post=$KOPTS_POST whiteboard=$recipe_wb ks_meta=$recipe_ks_meta ! {
 				set pick "false"
 				if [info exist Opt(random)] {set pick "true"}
