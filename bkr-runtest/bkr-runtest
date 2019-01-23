@@ -85,6 +85,8 @@ set OptionList {
 				--hr top:system_type=Machine    #same as --systype=Machine
 				--hr or:tag=value
 				--hr not:kv-CPUVENDOR~%Intel%   #~%Intel%  =GenuineIntel
+				--hr not:kv-CPUMODEL~POWER9%
+				--hr not:hostname~ibm-p9%
 				}}
 	{HR}			{forward y arg m	help {hostRequires for multi-host test. e.g:
 				--HR= --HR="memory>4096 key_value:key=DISK,op=>,value=80000"
