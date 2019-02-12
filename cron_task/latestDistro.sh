@@ -27,7 +27,7 @@ ircLightGray=$'\x03'15
 
 mkdir -p /var/cache/distroDB
 pushd /var/cache/distroDB  >/dev/null
-baseurl=http://download.devel.redhat.com/rel-eng
+baseurl=http://download.devel.redhat.com
 supath=compose/metadata/composeinfo.json
 mailTo=fs@redhat.com
 mailCc=net@redhat.com
@@ -58,9 +58,10 @@ while read d; do
 	#read auto kernel nfs rpcbind nil <<<$pkgList
 	#echo -n -e "$d\t$kernel  $nfs  $auto  $rpcbind"
 	read kernel nil <<<$pkgList
-	echo -n "$d  ${pkgList}"
+	echo -n "$d  ${pkgList}  "
 
-	curl $baseurl/$d/$supath 2>/dev/null|grep \"label\": || echo
+	dpath=$(vershow -n kernel "$d$" | awk '/RHEL/{if(NR==1) print $1}')
+	curl $baseurl/$dpath/$supath 2>/dev/null|grep -o '"label": "[^"]*"' || echo
 done <.distroListr >.distroList
 
 test -n "`cat .distroList`" &&
