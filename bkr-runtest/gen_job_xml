@@ -235,10 +235,11 @@ if {[info exist Opt(opt-alias)] && $Opt(opt-alias) != ""} {
 	}
 	source ${aliasf}
 	set idx [lindex [lsearch -all -regexp $ARGV {-(opt|hr)-alias(=.*)?$}] end]
-	if [regexp -- {.*-(opt|hr)-alias} [lindex $ARGV $idx]] {set ARGV [lreplace $ARGV $idx+1 $idx+1]}
+	if [regexp -- {.*-(opt|hr)-alias$} [lindex $ARGV $idx]] {set ARGV [lreplace $ARGV $idx+1 $idx+1]}
 	set ARGV [lreplace $ARGV $idx $idx]
 	set NARGV [linsert $ARGV $idx {*}$Alias($alias)]
 	getOptions $OptionList $NARGV Opt InvalidOpt NotOptions
+
 	if ![file isfile ${option-alias-path}] {
 		exec rm ${aliasf}
 	}
