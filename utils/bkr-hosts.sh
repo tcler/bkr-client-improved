@@ -4,7 +4,7 @@ Usage() {
 	echo "Usage: [wiki=1] $0 [-o <owner> | [FQDN1 FQDN2 ...]]" >&2
 }
 
-_at=`getopt -o ho: \
+_at=`getopt -o hvo: \
 	--long help \
 	--long owner: \
     -n "$0" -- "$@"`
@@ -13,6 +13,7 @@ while true; do
 	case "$1" in
 	-h|--help)   Usage; shift 1; exit 0;;
 	-o|--owner)  owner=$2; shift 2;;
+	-v) verbose=1; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -30,6 +31,11 @@ hostinfo() {
 	local sysinfo=$(curl -L -k -s $baseUrl/systems/$h);
 	if [[ "$sysinfo" = "System not found" ]]; then
 		echo -e "[Warn] System '$h' not found\n"
+		return
+	fi
+	if [[ -n "$verbose" ]]; then
+		echo "$h:"
+		jq . <<<"$sysinfo"
 		return
 	fi
 
