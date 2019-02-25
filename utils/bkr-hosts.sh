@@ -28,6 +28,10 @@ baseUrl=https://beaker.engineering.redhat.com
 hostinfo() {
 	local h=$1 wikiIdx=$2
 	local sysinfo=$(curl -L -k -s $baseUrl/systems/$h);
+	if [[ "$sysinfo" = "System not found" ]]; then
+		echo -e "[Warn] System '$h' not found\n"
+		return
+	fi
 
 	read memory cpu_cores cpu_processors cpu_speed disk_space status loanedTo _ < \
 		<(jq '.|.memory,.cpu_cores,.cpu_processors,.cpu_speed,.disk_space,.status,.current_loan.recipient' <<<"$sysinfo" | xargs)
