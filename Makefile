@@ -46,16 +46,6 @@ _install_web: _isroot _install_tclsh8.6
 	@chmod o+w /opt/wub/CA
 	@chmod u+s /usr/local/bin/wub-service.sh
 
-_install_web1: _isroot _install_tclsh8.6
-	#install webfront
-	[ -d /opt/wub ] || { \
-	yum install -y svn &>/dev/null; \
-	svn export https://github.com/tcler/wub/trunk /opt/wub >/dev/null; }
-	cd bkr-test-robot/www; for f in *; do rm -fr /opt/wub/docroot/$$f; done
-	cp -rf -d bkr-test-robot/www/* /opt/wub/docroot/.
-	@chmod o+w /opt/wub/CA
-	@chmod u+s /usr/local/bin/wub-service.sh
-
 _install_tclsh8.6: _isroot
 	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; }
 
