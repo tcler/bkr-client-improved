@@ -68,8 +68,12 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 
 			set idx [string first "=" $optName 1]
 			if {$idx != -1} {
-				set _val [string range $optName [expr $idx+1] end]
-				set optName [string range $optName 0 [expr $idx-1]]
+				set toptName [string range $optName 0 [expr $idx-1]]
+				lassign [getOptObj $optionList $toptName] toptFind toptAttr
+				if {$toptFind != ""} {
+					set _val [string range $optName [expr $idx+1] end]
+					set optName [string range $optName 0 [expr $idx-1]]
+				}
 			}
 
 			lassign [getOptObj $optionList $optName] optFind optAttr
