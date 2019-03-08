@@ -9,7 +9,15 @@ namespace import ::getOpt::* ::runtestlib::*
 set permission yes
 set ftime 0
 
-cd [dbroot]
+set user ""
+if [dict exists $req -query] {
+        set query [dict get $req -query]
+        lassign [Query qparse $query 0] xquery
+        if [dict exists $xquery user] {
+                set user [lindex [dict get $xquery user] 0]
+        }
+}
+cd [dbroot $user]
 sqlite3 db testrun.db
 db timeout 6000
 

@@ -9,7 +9,15 @@ package require runtestlib 1.1
 package require getOpt
 namespace import ::getOpt::* ::runtestlib::*
 
-cd [dbroot]
+set user ""
+if [dict exists $req -query] {
+        set query [dict get $req -query]
+        lassign [Query qparse $query 0] xquery
+        if [dict exists $xquery user] {
+                set user [lindex [dict get $xquery user] 0]
+        }
+}
+cd [dbroot $user]
 sqlite3 db testrun.db
 db timeout 2000
 
@@ -109,7 +117,7 @@ for {set i 0} {$i < $num} {incr i} {
 }
 
 #
-set hostinfo [::runtestlib::hostUsed]
+set hostinfo [::runtestlib::hostUsed $user]
 set host {}
 if [dict exists $req -host] { set host [dict get $req -host] }
 set ipaddr {}

@@ -20,10 +20,14 @@ set runtestConfPrivate $::env(HOME)/.bkr-client-improved/bkr-runtest.conf
 set autorunConf /etc/bkr-client-improved/bkr-autorun.conf
 set autorunConfPrivate $::env(HOME)/.bkr-client-improved/bkr-autorun.conf
 
-proc ::runtestlib::dbroot {} {
-	source $::autorunConf
+proc ::runtestlib::dbroot {args} {
+	set homedir $::env(HOME)
 
-	return "$DB_ROOT"
+	set user [lindex $args 0]
+	if {$user != ""} {
+		set homedir [exec sh -c "getent passwd $user|awk -F: '{print \$6}'"]
+	}
+	return $homedir/.testrundb
 }
 
 proc ::conf2dict {confStr} {
@@ -205,11 +209,12 @@ proc ::runtestlib::expandDistro {distroStr} {
 	return $distroStr
 }
 
-proc ::runtestlib::hostUsed {} {
+proc ::runtestlib::hostUsed {args} {
 	array set hostused_ {}
 	array set hostused {}
 	set result {}
-	cd [dbroot]
+	set user [lindex $args 0]
+	cd [dbroot $user]
 	sqlite3 db_ testrun.db
 
 	#Get running test list

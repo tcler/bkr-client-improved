@@ -82,7 +82,7 @@
 		//alert(document.URL);
 		var path = document.URL;
 		var path2 = path.replace(/index.tml/, "resubmit.tml");
-		var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/resubmit.tml?");
+		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/resubmit.tml?");
 		var r = confirm("Are you sure resubmit this test?\n"+testid+' '+distroArrayx[distroIdx]);
 		if (r != true) {
 			return 0;
@@ -95,7 +95,7 @@
 		//alert(document.URL);
 		var path = document.URL;
 		var path2 = path.replace(/index.tml/, "resubmit-list.tml");
-		var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/resubmit-list.tml?");
+		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/resubmit-list.tml?");
 
 		var testlist = "";
 		var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
@@ -120,7 +120,7 @@
 		//alert(document.URL);
 		var path = document.URL;
 		var path2 = path.replace(/index.tml/, "clone.tml");
-		var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/clone.tml?");
+		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/clone.tml?");
 
 		var testlist = "";
 		var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
@@ -143,7 +143,7 @@
 		//alert(document.URL);
 		var path = document.URL;
 		var path2 = path.replace(/index.tml/, "deltest.tml");
-		var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/deltest.tml?");
+		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/deltest.tml?");
 
 		var testlist = ""
 		var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
@@ -167,7 +167,7 @@
 		//alert(document.URL);
 		var path = document.URL;
 		var path2 = path.replace(/index.tml/, "delTestCase.tml");
-		var path2 = path2.replace(/wub\/{1,}($|\?)/, "wub/delTestCase.tml?");
+		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/delTestCase.tml?");
 
 		var testlist = ""
 		var chkItem = document.getElementsByClassName('selectTestCase');
