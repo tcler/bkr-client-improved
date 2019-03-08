@@ -4,11 +4,7 @@
 
 wubdir=/opt/wub
 port=$(($(id -u) + 7080))
-confdir=~/.wub
 pushd $wubdir >/dev/null
-
-mkdir -p $confdir
-sed "/-port .*HTTP listener/s/8080/$port/" site.config >$confdir/site.config
 
 gethostname() {
 	local host name domain hash coment
@@ -31,7 +27,7 @@ case "$1" in
   start)
 	echo "Starting Wub server"
 	ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep tclsh.*Wub/Application.tcl && exit 0
-	nohup tclsh8.6 Wub/Application.tcl $confdir/site.config 2>/dev/null &
+	nohup tclsh8.6 Wub/Application.tcl site-trms.config 2>/dev/null &
 	rm -f nohup.out
 	wubstat
 	;;
@@ -44,7 +40,7 @@ case "$1" in
 	echo "Retarting Wub server"
 	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub/Application.tcl'|awk '{print $1}')
 	sleep 1
-	nohup tclsh8.6 Wub/Application.tcl $confdir/site.config 2>/dev/null &
+	nohup tclsh8.6 Wub/Application.tcl site-trms.config 2>/dev/null &
 	rm -f nohup.out
 	wubstat
 	;;
