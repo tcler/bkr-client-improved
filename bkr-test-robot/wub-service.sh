@@ -1,10 +1,11 @@
 #! /bin/bash
 #
-#	Start/Stop Wub server
+#	Start/Stop Wub/TRMS server
 
 wubdir=/opt/wub
 pushd $wubdir >/dev/null
-port=8080
+conff=site-trms.config
+port=$(sed -n -e '/^ *Listener {/,/}/{/^ *#/d;p}' $conff | awk '/-port/{print $2}')
 
 gethostname() {
 	local host name domain hash coment
@@ -18,42 +19,64 @@ gethostname() {
 	fi
 	echo $host
 }
-wubstat() {
+trmsstat() {
 	local all=$1
 	ps -U $LOGNAME -u $LOGNAME -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub.tcl &&
-		echo -e "$(gethostname):$port/trms/?user=$LOGNAME"
+		echo -e "url: $(gethostname):$port/trms/?user=$LOGNAME"
+	[[ $LOGNAME != root ]] && {
+		ps -U root -u root -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub.tcl &&
+			echo -e "url: $(gethostname):$port/trms/?user=$LOGNAME"
+	}
 
-	[[ -n "$all" ]] &&
+	[[ -n "$all" ]] && {
+		echo -e "\n[All instances]"
 		ps -a -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub.tcl
+	}
 }
-
-case "$1" in
-  start)
-	echo "Starting Wub server"
+start() {
+	echo "Starting Wub/TRMS server"
+	ss -ltunp | grep -q :$port && {
+		echo -e "[Warn] port($port) has been used\n" >&2
+		trmsstat allstat
+		return 1
+	}
 	ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep tclsh.*Wub.tcl && exit 0
 	nohup tclsh8.6 Wub.tcl site-trms.config 2>/dev/null &
 	rm -f nohup.out
-	wubstat
+	echo -n "Waiting service is available"
+	while ! nc $(gethostname) $port </dev/null &>/dev/null; do sleep 5; echo -n .; done
+	echo
+	trmsstat
+}
+stop() {
+	echo "Stoping Wub/TRMS server"
+	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub.tcl'|awk '{print $1}')
+	sleep 1
+}
+
+case "$1" in
+  start|restart)
+	[ $(id -u) != 0 ] && {
+		echo "[Warn] Wub/TRMS service need root permission to access users test data, please try:" >&2
+		echo " sudo $0 $@" >&2
+		exit 1
+	}
 	;;
+esac
+
+case "$1" in
+  start)
+	start;;
   stop)
-	echo "Stoping Wub server"
-	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub.tcl'|awk '{print $1}')
-	sleep 1
-	;;
+	stop;;
   restart)
-	echo "Retarting Wub server"
-	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub.tcl'|awk '{print $1}')
-	sleep 1
-	nohup tclsh8.6 Wub.tcl site-trms.config 2>/dev/null &
-	rm -f nohup.out
-	wubstat
+	stop
+	start
 	;;
   status|stat)
-	wubstat
-	;;
+	trmsstat;;
   allstat|alls|all|al|a)
-	wubstat all
-	;;
+	trmsstat all;;
   *)
 	echo "Usage: $0 {start|stop|restart|stat|allstat}" >&2
 	exit 1
