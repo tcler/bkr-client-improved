@@ -3,8 +3,8 @@
 #	Start/Stop Wub server
 
 wubdir=/opt/wub
-port=$(($(id -u) + 7080))
 pushd $wubdir >/dev/null
+port=8080
 
 gethostname() {
 	local host name domain hash coment
@@ -19,36 +19,43 @@ gethostname() {
 	echo $host
 }
 wubstat() {
-	ps -U $LOGNAME -u $LOGNAME -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub/Application.tcl &&
-		echo -e "$(gethostname):$port"
+	local all=$1
+	ps -U $LOGNAME -u $LOGNAME -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub.tcl &&
+		echo -e "$(gethostname):$port/trms/?user=$LOGNAME"
+
+	[[ -n "$all" ]] &&
+		ps -a -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub.tcl
 }
 
 case "$1" in
   start)
 	echo "Starting Wub server"
-	ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep tclsh.*Wub/Application.tcl && exit 0
-	nohup tclsh8.6 Wub/Application.tcl site-trms.config 2>/dev/null &
+	ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep tclsh.*Wub.tcl && exit 0
+	nohup tclsh8.6 Wub.tcl site-trms.config 2>/dev/null &
 	rm -f nohup.out
 	wubstat
 	;;
   stop)
 	echo "Stoping Wub server"
-	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub/Application.tcl'|awk '{print $1}')
+	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub.tcl'|awk '{print $1}')
 	sleep 1
 	;;
   restart)
 	echo "Retarting Wub server"
-	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub/Application.tcl'|awk '{print $1}')
+	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub.tcl'|awk '{print $1}')
 	sleep 1
-	nohup tclsh8.6 Wub/Application.tcl site-trms.config 2>/dev/null &
+	nohup tclsh8.6 Wub.tcl site-trms.config 2>/dev/null &
 	rm -f nohup.out
 	wubstat
 	;;
-  stat|status)
+  status|stat)
 	wubstat
 	;;
+  allstat|alls|all|al|a)
+	wubstat all
+	;;
   *)
-	echo "Usage: $0 {start|stop|restart|stat[us]}" >&2
+	echo "Usage: $0 {start|stop|restart|stat|allstat}" >&2
 	exit 1
 	;;
 esac
