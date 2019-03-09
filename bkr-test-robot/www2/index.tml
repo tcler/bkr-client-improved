@@ -16,7 +16,14 @@ if [dict exists $req -query] {
                 set user [lindex [dict get $xquery user] 0]
         }
 }
-cd [dbroot $user]
+
+set dbroot [dbroot $user]
+if {![file isfile "$dbroot/testrun.db"]} {
+        set nodbfile yes
+        return
+}
+
+cd $dbroot
 sqlite3 db testrun.db
 db timeout 2000
 
@@ -149,6 +156,7 @@ puts ""
     <script src="./js/index.js"></script>
     <script type="text/javascript">
 	[
+	if {[info exist nodbfile]} {return}
 	package require json::write
 	set accumulate {}
 	set accumulatex {}
@@ -219,6 +227,7 @@ puts ""
         <fieldset style="border-style:solid;border-bottom-width:2px;border-top-width:2px;border-left-width:1px;">
         <input type="hidden" name="user" value="[set user]" />
           [
+	  if {[info exist nodbfile]} {return}
           set input {}
           foreach pkg $pkgList {
 		append input "<label for=\"$pkg\">"
@@ -245,11 +254,13 @@ puts ""
       <div class="container-fluid">
         <div class="row-fluid">
           <table id="table01" class="fancyTable stripe row-border order-column" cellspacing="0" width="100%">
+            [
+	    if {[info exist nodbfile]} {return}
+            set thead {
             <thead>
               <tr>
-	        <th class="head"></th>
-	        <th class="head">[lindex $x 1]</th>
-		[
+	        <th class="head"></th>}
+	        append thead "<th class=\"head\">[lindex $x 1]</th>"
 		set i 0
 		set thlist {}
 		foreach run [lrange $x 2 end-$distroNum] {
@@ -257,13 +268,18 @@ puts ""
 			append thlist "      <th class=\"head\"> <input class=\"checkCol\" type=\"checkbox\" id=\"$i\" onclick=\"selectCol($i);\"> [string map {{ } "<br>"} $runx] </th>\n"
 			incr i
 		}
-		set thlist
-		]
+		append thead $thlist
+            append thead {
               </tr>
-            </thead>
-            <tbody>
+            </thead>}
+            ]
 [
-set tbody {}
+if {[info exist nodbfile]} {
+	set warn "There is not test run created by user($user), please create test run from command line by using 'bkr-autorun-create' <br>"
+	append warn "please see https://github.com/tcler/bkr-client-improved for more information <br>"
+	return $warn
+}
+set tbody {<tbody>}
 foreach row $matrix {
 	set testid [lindex $row 0]
 	set test [lindex $row 1]
@@ -328,16 +344,19 @@ foreach row $matrix {
 	}
 	append tbody "    </tr>\n"
 }
+append tbody {</tbody>}
 set tbody
 ]
-            </tbody>
           </table>
         </div>
       </div>
     </div>
 
     <div class="text-center">
-      | RecipeUse($hostinfo) | serv($host) clnt($ipaddr$forward) |
+      [
+      if {[info exist nodbfile]} {return}
+      set info "| RecipeUse($hostinfo) | serv($host) clnt($ipaddr$forward) |"
+      ]
       <br>
       <strong>
         Powered by <a href="https://github.com/tcler/bkr-client-improved">bkr-client-improved</a> and
@@ -394,6 +413,7 @@ set tbody
 
 
 [
+if {[info exist nodbfile]} {return}
 #div
 set detailDiv {}
 foreach row $matrix {
