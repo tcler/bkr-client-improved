@@ -218,6 +218,7 @@ puts ""
 
       <form action="[dict get $req -uri]" style="font-size:90%;" >
         <fieldset style="border-style:solid;border-bottom-width:2px;border-top-width:2px;border-left-width:1px;">
+        <input type="hidden" name="user" value="[set user]" />
           [
           set input {}
           foreach pkg $pkgList {
