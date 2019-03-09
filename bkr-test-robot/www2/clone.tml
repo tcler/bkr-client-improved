@@ -1,3 +1,5 @@
+<!DOCTYPE HTML>
+<html>
 [
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require tdom
@@ -84,4 +86,4 @@ if {$permission != yes} {
 
 <body>
 </body>
-
+</html>
