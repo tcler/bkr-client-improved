@@ -181,7 +181,7 @@ puts ""
     <nav class="navbar navbar-fixed-top navbar-inverse">
       <div class="container-fluid">
         <div class="navbar-header">
-          <a class="navbar-brand" href="#">Bkr Test Robot </a>
+          <a class="navbar-brand" href="[dict get $req -url]">Bkr Test Robot </a>
         </div>
 <!--
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
