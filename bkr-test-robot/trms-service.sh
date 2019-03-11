@@ -2,7 +2,7 @@
 #
 #	Start/Stop Wub/TRMS server
 
-wubdir=/opt/wub
+wubdir=/opt/wub2
 pushd $wubdir >/dev/null
 conff=site-trms.config
 port=$(sed -n -e '/^ *Listener {/,/}/{/^ *#/d;p}' $conff | awk '/-port/{print $2}')
@@ -21,15 +21,16 @@ gethostname() {
 }
 trmsstat() {
 	local all=$1
-	ps -U $LOGNAME -u $LOGNAME -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub.tcl &&
-		echo -e "url: $(gethostname):$port/trms/?user=$LOGNAME"
-	[[ $LOGNAME != root ]] && {
-		ps -U root -u root -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub.tcl &&
+	ps -U root -u root -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub.tcl && {
+		if [[ $LOGNAME != root ]]; then
 			echo -e "url: $(gethostname):$port/trms/?user=$LOGNAME"
+		else
+			echo -e "url: $(gethostname):$port"
+		fi
 	}
 
 	[[ -n "$all" ]] && {
-		echo -e "\n[All instances]"
+		echo -e "\n[All instances(old version)]"
 		ps -a -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub.tcl
 	}
 }
@@ -55,7 +56,7 @@ stop() {
 }
 
 case "$1" in
-  start|restart)
+  start|stop|restart)
 	[ $(id -u) != 0 ] && {
 		echo "[Warn] Wub/TRMS service need root permission to access users test data, please try:" >&2
 		echo " sudo $0 $@" >&2

@@ -38,16 +38,16 @@ install_robot: _isroot install_runtest _install_require
 
 _install_web: _isroot _install_tclsh8.6
 	#install webfront
-	[ -d /opt/wub ] || { \
+	[ -d /opt/wub2 ] || { \
 	yum install -y svn &>/dev/null; \
-	svn export https://github.com/tcler/wub/trunk /opt/wub >/dev/null; }
-	cd bkr-test-robot/www2; for f in *; do rm -fr /opt/wub/docroot/$$f; done
-	cp -rf -d bkr-test-robot/www2/* /opt/wub/docroot/.
-	cd /opt/wub; sed -e 's;redirect /wub/;redirect /trms/;' \
+	svn export https://github.com/tcler/wub/trunk /opt/wub2 >/dev/null; }
+	cd bkr-test-robot/www2; for f in *; do rm -fr /opt/wub2/docroot/$$f; done
+	cp -rf -d bkr-test-robot/www2/* /opt/wub2/docroot/.
+	cd /opt/wub2; sed -e 's;redirect /wub/;redirect /trms/;' \
 		-e 's;^/wub/ ;/trms/ ;' \
 		site.config >site-trms.config
-	@chmod o+w /opt/wub/CA
-	@chmod u+s /usr/local/bin/wub-service.sh
+	@chmod o+w /opt/wub2/CA
+	@chmod u+s /usr/local/bin/trms-service.sh
 
 _install_tclsh8.6: _isroot
 	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; }

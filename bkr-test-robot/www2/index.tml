@@ -16,7 +16,6 @@ if [dict exists $req -query] {
                 set user [lindex [dict get $xquery user] 0]
         }
 }
-if {$user == ""} {set user [exec bash -c {id -un}]}
 set dbroot [dbroot $user]
 if {![file isfile "$dbroot/testrun.db"]} {
         set nodbfile yes
@@ -281,17 +280,26 @@ if {[info exist nodbfile]} {
 		}
 	</style>}
 	append warn {<font size="+1">}
-	append warn "<p id=\"p2\">There is not test run created by user($user), please create test run from command line by using:<br></p>"
-	append warn {<p id="p2"><B>&emsp;bkr-autorun-create $distro $testlist_file {--pkg pkgname} [other bkr-runtest options]</B> <br></p>}
-	append warn "<p id=\"p2\">please see <a href=\"https://github.com/tcler/bkr-client-improved\">bkr-client-improved</a> for more information <br><br><br></p>"
+	if {$user != ""} {
+		append warn "<p id=\"p2\">There is not test run created by user($user), please create test run from command line by using:<br></p>"
+		append warn {<p id="p2"><B>&emsp;bkr-autorun-create $distro $testlist_file {--pkg pkgname} [other bkr-runtest options]</B> <br></p>}
+		append warn "<p id=\"p2\">please see <a href=\"https://github.com/tcler/bkr-client-improved\">bkr-client-improved</a> for more information <br><br><br></p>"
+	}
 
 	set users [exec bash -c {ls /home/*/.testrundb/testrun.db|awk -F/ '{print $3}'}]
 	if {[llength $users] > 0} {
-		append warn {<p id="p2">Now available test run monitor instance:<br></p>}
+		append warn {<p id="p2">Now available test run robot instance[s]:<br></p>}
 		set uri [dict get $req -uri]
 		foreach u $users {
-			append warn "<p id=\"p2\"><B>&emsp;<a href=\"$uri?user=$u\">${u}'s test run</a></B><br></p>"
+			append warn "<p id=\"p2\"><B>&emsp;<a href=\"$uri?user=$u\">${u}'s test robot instance</a></B>"
+			set robotinfo [exec bash -c "crontab -l -u $u | sed -n '/bkr-autorun-monitor/{p}'; :"]
+			if {$robotinfo == ""} {set robotinfo "{warn} robot instance has been disable"}
+			append warn "&emsp;&emsp;-> $robotinfo </p>"
 		}
+	} else {
+		append warn "<p id=\"p2\">There is not any test run created by user($user), please create test run from command line by using:<br></p>"
+		append warn {<p id="p2"><B>&emsp;bkr-autorun-create $distro $testlist_file {--pkg pkgname} [other bkr-runtest options]</B> <br></p>}
+		append warn "<p id=\"p2\">please see <a href=\"https://github.com/tcler/bkr-client-improved\">bkr-client-improved</a> for more information <br><br><br></p>"
 	}
 	append warn {<br><br><br><br>}
 	append warn {</font>}
