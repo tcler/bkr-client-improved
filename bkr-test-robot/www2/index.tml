@@ -292,8 +292,8 @@ if {[info exist nodbfile]} {
 		set uri [dict get $req -uri]
 		foreach u $users {
 			append warn "<p id=\"p2\"><B>&emsp;<a href=\"$uri?user=$u\">${u}'s test robot instance</a></B>"
-			set robotinfo [exec bash -c "crontab -l -u $u | sed -n '/bkr-autorun-monitor/{p}'; :"]
-			if {$robotinfo == ""} {set robotinfo "{warn} robot instance has been disable"}
+			set robotinfo [exec bash -c "crontab -l -u $u | sed -n '/^\[\[:space:]]*\[^#].*bkr-autorun-monitor/{p}'; :"]
+			if {$robotinfo == ""} {set robotinfo "{warn} robot instance has been disabled"}
 			append warn "&emsp;&emsp;-> $robotinfo </p>"
 		}
 	} else {
