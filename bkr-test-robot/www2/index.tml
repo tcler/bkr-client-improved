@@ -298,11 +298,17 @@ if {[info exist nodbfile]} {
 			set robotinfo [exec bash -c "crontab -l -u $u | sed -n '/^\[\[:space:]]*\[^#].*bkr-autorun-monitor/{p}'; :"]
 			if {$robotinfo == ""} {set robotinfo "{warn} robot instance has been disabled"}
 			append warn "&emsp;&emsp;-> $robotinfo </p>"
-			set krb5ticket [exec bash -c "su - $u -c 'klist -s' >/dev/null && echo valid || echo expired"]
-			if {$krb5ticket == "expired"} {
-				append warn "<p id=\"warn\">&emsp;&emsp;&emsp;&emsp; krb5 ticket: $krb5ticket </p>"
+			set krb5stat [exec bash -c "su - $u -c 'klist -s' >/dev/null && echo valid || echo expired"]
+			if {$krb5stat == "expired"} {
+				set krb5auth [exec bash -c "c=/home/$u/.beaker_client/config; test -f \$c && awk -F= '/^(USERNAME|KRB_PRINCIPAL)/{print \$2}' \$c|xargs; :"]
+				if {$krb5auth != ""} {
+					append warn "<p>&emsp;&emsp;&emsp;&emsp; krb5 ticket: $krb5stat; krb5 auth: $krb5auth</p>"
+				} else {
+					append warn "<p id=\"warn\">&emsp;&emsp;&emsp;&emsp; krb5 ticket: $krb5stat;</p>"
+				}
 			} else {
-				append warn "<p>&emsp;&emsp;&emsp;&emsp; krb5 ticket: $krb5ticket </p>"
+				set krb5u [exec bash -c "su - $u -c 'klist -l|awk \"NR==3{print \\\$1}\"' | tail -1"]
+				append warn "<p>&emsp;&emsp;&emsp;&emsp; krb5 ticket: $krb5stat ($krb5u)</p>"
 			}
 		}
 	} else {
