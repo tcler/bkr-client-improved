@@ -298,7 +298,7 @@ if {[info exist nodbfile]} {
 			set robotinfo [exec bash -c "crontab -l -u $u | sed -n '/^\[\[:space:]]*\[^#].*bkr-autorun-monitor/{p}'; :"]
 			if {$robotinfo == ""} {set robotinfo "{warn} robot instance has been disabled"}
 			append warn "&emsp;&emsp;-> $robotinfo </p>"
-			set krb5ticket [exec bash -c "su - $u -c 'klist -s' >/dev/null && echo valide || echo expired"]
+			set krb5ticket [exec bash -c "su - $u -c 'klist -s' >/dev/null && echo valid || echo expired"]
 			if {$krb5ticket == "expired"} {
 				append warn "<p id=\"warn\">&emsp;&emsp;&emsp;&emsp; krb5 ticket: $krb5ticket </p>"
 			} else {
