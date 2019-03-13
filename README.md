@@ -67,7 +67,7 @@ Notes:
     1. To create/delete test items for the monitor: `bkr-autorun-create/bkr-autorun-del`
     2. To monitor test items' status and save results: `bkr-autorun-monitor` (It will automatically be triggered by crontab)
     3. To check the stat and result of the test-run (by CLI): `bkr-autorun-stat`
-    4. To check the stat and result of the test-run (by Web page): `sudo trms-service.sh start` then check `http://$url:$port?user=$user`. (use `trms-service.sh stat|grep url:` get the $url info)
+    4. To check the stat and result of the test-run (by Web page): `sudo trms-service.sh start` then check `http://$url:$port?user=$user`. (use `trms-service.sh stat|awk '/^url:/{print $2}'` get the $url info)
     5. To compare/diff two test-runs: `bkr-autorun-diff.sh`
 
       (Use `-h` option to study each tool's usage)
