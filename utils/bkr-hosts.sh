@@ -39,8 +39,8 @@ hostinfo() {
 		return
 	fi
 
-	read memory cpu_cores cpu_processors cpu_speed disk_space status loanedTo _ < \
-		<(jq '.|.memory,.cpu_cores,.cpu_processors,.cpu_speed,.disk_space,.status,.current_loan.recipient' <<<"$sysinfo" | xargs)
+	read memory cpu_cores cpu_processors cpu_speed disk_space status loanedTo lasttime t2 _ < \
+		<(jq '.|.memory,.cpu_cores,.cpu_processors,.cpu_speed,.disk_space,.status,.current_loan.recipient,.previous_reservation.finish_time' <<<"$sysinfo" | xargs)
 
 	notes=$(jq '.notes[]|select(.deleted == null)|.text' <<<"$sysinfo")
 	wikiNote=$(echo "$notes" | sed -rne '/wiki_note: */{p}')
@@ -52,6 +52,7 @@ hostinfo() {
 			echo "CPU: ${cpu_cores}/${cpu_processors}:${cpu_speed/.*/}"
 			echo "Memory: $memory"
 			echo "Condition: $status"
+			echo "IdleSince: $lasttime $t2 (more than $((($(date +%s)-$(date +%s --date "$lasttime"))/(3600*24)/7))weeks)"
 			[[ -n "$loanedTo" ]] && echo "LoanedTo: $loanedTo"
 			[[ -n "$notes" ]] && echo -e "Notes: {\n$notes\n}"
 		} | sed 's/^ */  /'
