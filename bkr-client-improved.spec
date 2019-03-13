@@ -43,7 +43,7 @@ which tclsh8.6 >/dev/null || {
 	/usr/local/bin/tcllib_install.sh
 	/usr/local/bin/tdom_install.sh
 }
-chmod u+s /usr/local/bin/wub-service.sh
+chmod u+s /usr/local/bin/trms-service.sh
 
 %postun
 
@@ -107,7 +107,7 @@ chmod u+s /usr/local/bin/wub-service.sh
 /usr/local/bin/tdom_install.sh
 /usr/local/bin/vercmp
 /usr/local/bin/vershow
-/usr/local/bin/wub-service.sh
+/usr/local/bin/trms-service.sh
 /usr/local/bin/xmlrpc-client.sh
 /usr/local/lib/getOpt-1.0/example.tcl
 /usr/local/lib/getOpt-1.0/getOpt.tcl
