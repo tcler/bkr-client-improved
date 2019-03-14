@@ -41,8 +41,7 @@ dfList=$(eval echo $latestDistroF{${DVLIST// /,}})
 #echo $dfList
 debug=$1
 
-#getLatestRHEL all >.distroListr
-distro-list.sh all | egrep '^RHEL-'"[${VLIST// /}]" >.distroListr
+distro-list.sh --tag all | egrep '^RHEL-'"[${VLIST// /}]" >.distroListr
 
 \cp .distroList .distroList.orig
 while read d; do
