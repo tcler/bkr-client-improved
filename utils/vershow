@@ -86,14 +86,14 @@ UpdateDB() {
 				}
 				print $3
 			}' | sort -u)
-		cachefile=$rpmdb/${distro// /_}.json
+		cachefile=$rpmdb/${distro// /_}.json.gz
 		urlsfile=$rpmdb/${distro// /_}.urls
 
-		[[ -f $cachefile && ! $cachefile =~ latest ]] && continue
+		[[ -f $cachefile ]] && continue
 
 		for url in $urls; do
-			if curl -sf -k -L -u: $url/rpms.json -o $cachefile ||
-			   curl -sf -k -L -u: $url/rpm-manifest.json -o $cachefile; then
+			if curl -sf -k -L -u: $url/rpms.json > >(gzip >$cachefile) ||
+				curl -sf -k -L -u: $url/rpm-manifest.json > >(gzip >$cachefile); then
 				echo "$urls" >$urlsfile
 				break
 			else
@@ -130,14 +130,15 @@ fi
 cd $dbRoot
 mylist=$(egrep -i -- "$Distro" distro.list)
 while read distro; do
-	cachefile=$rpmdb/${distro// /_}.json
+	cachefile=$rpmdb/${distro// /_}.json.gz
 	[ -f $cachefile ] || continue
 
 	Debug "distro:($distro) pkg:($Pkg) arch:($Arch) variant:($Variant) @$cachefile"
-	#result=$(jq -r '.payload | with_entries(if .key == "manifest" then .key = "rpms" else . end)|.rpms|'".${Variant:-[]}|.$Arch|.[]|.[].path" $cachefile|
-	#	grep -v source/tree|
+	#result=$(zcat $cachefile |
+	#	jq -r '.payload | with_entries(if .key == "manifest" then .key = "rpms" else . end)|.rpms|'".${Variant:-[]}|.$Arch|.[]|.[].path" |
+	#	grep -v source/tree |
 	#	egrep "$Pkg")
-	result=$(egrep -o -i "${Variant:-[^\"]+}/($Arch)/os/Packages/(${Pkg})\.[0-9a-z_-]+\.rpm" $cachefile)
+	result=$(egrep -o -i "${Variant:-[^\"]+}/($Arch)/os/Packages/(${Pkg})\.[0-9a-z_-]+\.rpm" < <(zcat $cachefile))
 	[ $? = 0 ] && {
 		[[ -z "$nocolor" ]] && echo -e "=> \033[1;34m$distro\033[0m" || echo -n "$distro -> "
 		echo "$result"|sed 's/^/    /'
