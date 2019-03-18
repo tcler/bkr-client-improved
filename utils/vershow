@@ -1,10 +1,27 @@
 #!/bin/bash
 #author jiyin@redhat.com
 
-Usage() {
-	echo "Usage: $0 [--updatedb] <pkgName|pattern> [distroName|pattern]" >&2
+dbRoot=/var/cache/distroInfoDB
+rpmdb=rpmsdata
+
+Pkg=
+Arch=x86_64
+Variant=
+lockf=/tmp/distroDB.w.lock
+trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
+sigproc() {
+	rm -f $lockf
+	exit
 }
-_at=`getopt -o hun \
+
+Usage() {
+	echo "Usage: $0 [--updatedb] <-p pkgName|pattern> [-d distroName|pattern] [-a <arch>|-v <variant>]" >&2
+}
+Debug() {
+	[[ -n "$debug" ]] && { echo "{debug} $@" >&2; }
+}
+
+_at=`getopt -o hunp:d:a:v:D \
 	--long help \
 	--long updatedb \
     -n 'vershow' -- "$@"`
@@ -14,32 +31,37 @@ while true; do
 	-h|--help)      Usage; shift 1; exit 0;;
 	-u|--updatedb)  [ -z "$Update" ] && Update=yes || Update=YES; shift 1;;
 	-n) nocolor=yes; shift 1;;
+	-p) Pkg=$2; shift 2;;
+	-d) Distro=$2; shift 2;;
+	-a) Arch=$2; shift 2;;
+	-v) Variant=$2; shift 2;;
+	-D) debug=yes; shift 1;;
 	--) shift; break;;
 	esac
 done
 
-[ "${#}" = 0 -a "$Update" != yes -a "$Update" != YES ] && {
+Pkg=${Pkg:-$1}
+Pkg=${Pkg:-^kernel-[0-9]}
+Pkg=".*${Pkg}.*"
+[[ ${Pkg:0:3} = '.*^' ]] && Pkg="${Pkg:3}"
+[[ ${Pkg: -3} = '$.*' ]] && Pkg="${Pkg:0:-3}"
+Distro=${Distro:-$2}
+[ -z "${Pkg}" -a "$Update" != yes -a "$Update" != YES ] && {
 	Usage
 	exit 1
 }
-
-lockf=/tmp/distroDB.w.lock
-trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
-sigproc() {
-	rm -f $lockf
-	exit
-}
+Debug "pkg:($Pkg) distro:($Distro) arch:($Arch) variant:($Variant)"
 
 UpdateDB() {
-	local arch=$ARCH
 	local deepup=
 
 	[ "$1" = YES ] && deepup=1
 	cd $dbRoot
-	rm -f .curl* #remove old version db files
+	rm -f .[Cc]url* #remove old version db files
 
 	rpm -q procmail >/dev/null || yum install -y procmail &>/dev/null
 	lockfile /tmp/distroDB.w.lock || return 0
+
 	#Update distro list
 	for family in 8 7 6 5; do
 		distro-list.sh -f $family -t all
@@ -55,38 +77,38 @@ UpdateDB() {
 
 	#Update pkg list
 	while read distro; do
-		arch=$ARCH
-		urls=$(bkr distro-trees-list --limit=1 --name "$distro" --arch=${arch:-x86_64} | grep http:// | awk '{print $3 "Packages"}')
-		cachefile=.Curl.${distro// /_}.${arch}.cache
+		urls=$(bkr distro-trees-list --limit=1 --name "$distro"  |
+			awk '/https?:/ {
+				if ($3 ~ "/compose/") {
+					sub("/compose/.*$", "/compose/metadata", $3)
+				} else if ($3 ~ "/released/") {
+					sub("([^/]+/){3}$", "metadata", $3)
+				}
+				print $3
+			}' | sort -u)
+		cachefile=$rpmdb/${distro// /_}.json
+		urlsfile=$rpmdb/${distro// /_}.urls
 
 		[[ -f $cachefile && ! $cachefile =~ latest ]] && continue
 
 		for url in $urls; do
-			if curl -sf -k -L -u: $url >$cachefile.tmp; then
-				[[ $distro = RHEL-8* ]] && {
-					curl -sf -k -L -u: ${url/BaseOS/AppStream} >>$cachefile.tmp  2>/dev/null
-				}
+			if curl -sf -k -L -u: $url/rpms.json -o $cachefile ||
+			   curl -sf -k -L -u: $url/rpm-manifest.json -o $cachefile; then
+				echo "$urls" >$urlsfile
 				break
 			else
-				echo "[warn] get pkgs of '$distro' fail: $url" >&2
+				echo "[warn] get rpm json file of '$distro' fail: $url" >&2
+				rm -f $cachefile
 			fi
 		done
-
-		if grep -q 'kernel-' $cachefile.tmp; then  #fixme
-			echo "# {$url}" >$cachefile
-			sed -nr '/^.*href="([^"]+).rpm".*$/{s//\1/; p}' $cachefile.tmp >>$cachefile
-			#awk -F'[<>]' '/alt=/{printf("%s\n", $5)}' $cachefile.tmp >>$cachefile
-			# enable other user can modify these cachefile
-			chmod a+w $cachefile 2>/dev/null
-		fi
-		\rm -f $cachefile.tmp
 	done < distro.list.up
 	rm -f /tmp/distroDB.w.lock
 }
 
-ARCH=${ARCH:-x86_64}
-case "$ARCH" in  x86_64|i386|ppc64*|s390x) :;;  *) ARCH=x86_64;;  esac
-dbRoot=/var/cache/distroInfoDB
+case "$Arch" in
+	x86_64|i386|ppc64le|ppc64|s390x|aarch64) :;;
+	*) echo "{warn} unknow arch '$Arch'" >&2;;
+esac
 
 if [ "$Update" = yes -o "$Update" = YES ]; then 
 	[ `id -u` != 0 ] && {
@@ -94,7 +116,7 @@ if [ "$Update" = yes -o "$Update" = YES ]; then
 		exit 1
 	}
 	egrep -q "/usr/local/bin/vershow" /etc/crontab || echo "  10 05 *  *  * root       /usr/local/bin/vershow -uu;" >>/etc/crontab
-	mkdir -p $dbRoot
+	mkdir -p $dbRoot/$rpmdb
 	echo "{Info} $(test $Update = YES && echo Deep\ )Updating distro database..."
 	UpdateDB $Update
 else
@@ -104,29 +126,21 @@ else
 	}
 fi
 
-[ -z "$1" ] && exit
-
-cd $dbRoot
 # do search
-pkgPart=${1}
-mydistro=${2}
-mylist=$(egrep -i -- "$mydistro" distro.list)
+cd $dbRoot
+mylist=$(egrep -i -- "$Distro" distro.list)
 while read distro; do
-	cachefile=.Curl.${distro// /_}.${ARCH}.cache
+	cachefile=$rpmdb/${distro// /_}.json
 	[ -f $cachefile ] || continue
 
-	result=$(egrep -- "$pkgPart" $cachefile)
+	Debug "distro:($distro) pkg:($Pkg) arch:($Arch) variant:($Variant) @$cachefile"
+	#result=$(jq -r '.payload | with_entries(if .key == "manifest" then .key = "rpms" else . end)|.rpms|'".${Variant:-[]}|.$Arch|.[]|.[].path" $cachefile|
+	#	grep -v source/tree|
+	#	egrep "$Pkg")
+	result=$(egrep -o -e "${Variant:-[^\"]+}/($Arch)/os/Packages/(${Pkg})\.[0-9a-z]+\.rpm" $cachefile)
 	[ $? = 0 ] && {
 		[[ -z "$nocolor" ]] && echo -e "=> \033[1;34m$distro\033[0m" || echo -n "$distro -> "
-		echo "$result"
+		echo "$result"|sed 's/^/    /'
 	}
 done <<<"$mylist"
 
-if ! egrep -q "/usr/local/bin/vershow" /etc/crontab; then
-	if [ `id -u` = 0 ]; then
-		echo "  10 05 *  *  * root       /usr/local/bin/vershow -uu;" >>/etc/crontab
-	else
-		echo "{Notice} distro database auto update is disabled. try 'sudo /usr/local/bin/vershow --updatedb'" >&2
-		exit 0
-	fi
-fi
