@@ -6,7 +6,7 @@ rpmdb=rpmsdata
 
 Pkg=
 Arch=x86_64
-Variant=
+Variant=Workstation
 lockf=/tmp/distroDB.w.lock
 trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
 sigproc() {
@@ -21,7 +21,7 @@ Debug() {
 	[[ -n "$debug" ]] && { echo "{debug} $@" >&2; }
 }
 
-_at=`getopt -o hunp:d:a:v:D \
+_at=`getopt -o hunp:d:a:v:lD \
 	--long help \
 	--long updatedb \
     -n 'vershow' -- "$@"`
@@ -35,6 +35,7 @@ while true; do
 	-d) Distro=$2; shift 2;;
 	-a) Arch=$2; shift 2;;
 	-v) Variant=$2; shift 2;;
+	-l) long=yes; shift 1;;
 	-D) debug=yes; shift 1;;
 	--) shift; break;;
 	esac
@@ -46,6 +47,7 @@ Pkg=".*${Pkg}.*"
 [[ ${Pkg:0:3} = '.*^' ]] && Pkg="${Pkg:3}"
 [[ ${Pkg: -3} = '$.*' ]] && Pkg="${Pkg:0:-3}"
 Distro=${Distro:-$2}
+Distro=${Distro#/}
 [ -z "${Pkg}" -a "$Update" != yes -a "$Update" != YES ] && {
 	Usage
 	exit 1
@@ -128,20 +130,29 @@ fi
 
 # do search
 cd $dbRoot
-mylist=$(egrep -i -- "$Distro" distro.list)
+mylist=$(egrep -i -- "${Distro}" distro.list)
 while read distro; do
 	cachefile=$rpmdb/${distro// /_}.json.gz
 	[ -f $cachefile ] || continue
 
-	Debug "distro:($distro) pkg:($Pkg) arch:($Arch) variant:($Variant) @$cachefile"
+	variant=$Variant
+	[[ $distro = RHEL-8* ]] && {
+		case $variant in Workstation|Client|Server|ComputeNode) variant=;; esac
+	}
+
+	Debug "distro:($distro) pkg:($Pkg) arch:($Arch) variant:($variant) @$cachefile"
 	#result=$(zcat $cachefile |
-	#	jq -r '.payload | with_entries(if .key == "manifest" then .key = "rpms" else . end)|.rpms|'".${Variant:-[]}|.$Arch|.[]|.[].path" |
+	#	jq -r '.payload | with_entries(if .key == "manifest" then .key = "rpms" else . end)|.rpms|'".${variant:-[]}|.$Arch|.[]|.[].path" |
 	#	grep -v source/tree |
 	#	egrep "$Pkg")
-	result=$(egrep -o -i "${Variant:-[^\"]+}/($Arch)/os/Packages/(${Pkg})\.[0-9a-z_-]+\.rpm" < <(zcat $cachefile))
+	result=$(egrep -o -i "${variant:-[^\"]+}/($Arch)/os/Packages/(${Pkg})\.[0-9a-z_-]+\.rpm" < <(zcat $cachefile))
 	[ $? = 0 ] && {
 		[[ -z "$nocolor" ]] && echo -e "=> \033[1;34m$distro\033[0m" || echo -n "$distro -> "
-		echo "$result"|sed 's/^/    /'
+		if [[ $long = yes ]]; then
+			echo "$result"|sed -e 's/^/    /'
+		else
+			echo "$result"|sed -e 's;.*/;;'
+		fi
 	}
 done <<<"$mylist"
 

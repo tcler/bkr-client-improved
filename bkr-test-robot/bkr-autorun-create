@@ -206,9 +206,6 @@ foreach e $SubcmdOpt {
 
 if ![regexp -- {-nvr=} $Gset] {
 	set nvr [exec bash -c "vershow ^kernel-\[0-9\] /$Distro$|sed -rn '/^kernel-/{s/\.\[^.\]+\.\[^.\]+$//;p;q}'"]
-	if {$nvr == ""} {
-		set nvr [exec bash -c "vershow ^kernel-\[0-9\] /[string map {RHEL- {}} $Distro]$|sed -rn '/^kernel-/{s/\.\[^.\]+\.\[^.\]+$//;p;q}'"]
-	}
 	if {$nvr != ""} {
 		set Gset [concat "-info=[regsub kernel- $nvr {}]" $Gset]
 	}
