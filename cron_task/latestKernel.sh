@@ -38,7 +38,7 @@ kfList=$(eval echo $latestKernelF-{${VLIST// /,}})
 #echo $kfList
 debug=$1
 
-searchBrewBuild '^kernel[-.0-9]+el'"[${VLIST// /}]"'.{0,2}$' >.kernelList
+searchBrewBuild '^kernel-[.0-9]+-[0-9]+.el'"[${VLIST// /}]"'$' >.kernelList
 test -n "`cat .kernelList`" &&
 	for V in ${VLIST}; do
 	    L=$(egrep 'kernel-[-.0-9]+el'$V .kernelList | head -n4)
