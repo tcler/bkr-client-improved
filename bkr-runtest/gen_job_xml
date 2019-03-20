@@ -685,9 +685,11 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						}
 					}
 					not ! {
-						foreach taginfo [lsearch -glob -inline -all $drs {not[-:]*}] {
-							set taginfo [string range $taginfo 4 end]
-							makeTag $taginfo
+						or ! {
+							foreach taginfo [lsearch -glob -inline -all $drs {not[-:]*}] {
+								set taginfo [string range $taginfo 4 end]
+								makeTag $taginfo
+							}
 						}
 					}
 				}
@@ -743,9 +745,11 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						}
 					}
 					not ! {
-						foreach taginfo [lsearch -glob -inline -all $hrs {not[-:]*}] {
-							set taginfo [string range $taginfo 4 end]
-							makeTag $taginfo
+						or ! {
+							foreach taginfo [lsearch -glob -inline -all $hrs {not[-:]*}] {
+								set taginfo [string range $taginfo 4 end]
+								makeTag $taginfo
+							}
 						}
 					}
 				}
