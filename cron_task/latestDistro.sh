@@ -27,48 +27,43 @@ ircLightGray=$'\x03'15
 
 mkdir -p /var/cache/distroDB
 pushd /var/cache/distroDB  >/dev/null
-baseurl=http://download.devel.redhat.com
-supath=compose/metadata/composeinfo.json
 mailTo=fs@redhat.com
 mailCc=net@redhat.com
 from="distro monitor <from@redhat.com>"
 
 kgitDir=/home/yjh/ws/code.repo
-VLIST="6 7 8"
-DVLIST=$(echo $VLIST)
-latestDistroF=.latest.distro
-dfList=$(eval echo $latestDistroF{${DVLIST// /,}})
-#echo $dfList
+DVLIST="6 7 8"
+prefix=.latest.distro
 debug=$1
 
-distro-list.sh --tag all | sort -r | egrep '^RHEL-'"[${VLIST// /}]" >.distroListr
+distro-list.sh --tag all | sort -r | egrep '^RHEL-'"[${DVLIST// /}]" >.distroListr
 
 \cp .distroList .distroList.orig
 while read d; do
-	pkgList=$(awk -v d=$d 'BEGIN{ret=1} $1 == d {$1=""; print; ret=0} END{exit ret}' .distroList.orig) || {
+	pkgList=$(awk -v d=$d 'BEGIN{ret=1} $1 == d {$1=""; print; ret=0} END{exit ret}' .distroList.orig 2>/dev/null) || {
 		r=$d
 		[[ "$r" =~ ^RHEL-?[0-9]\.[0-9]$ ]] && r=${r%%-*}-./${r##*-}
 		pkgList=$(vershow '^(kernel|nfs-utils|autofs|rpcbind|[^b].*fs-?progs)-[0-9]+\..*' "/$r$" |
-			grep -v ^= | sed -r 's/\..?el[0-9]+.?\.(x86_64|i686|noarch|ppc64le)\.rpm//g' |
+			grep -v ^= | sed -r 's/\..?el[0-9_+.]+.?\.(x86_64|i686|noarch|ppc64le)\.rpm//g' |
 			sort --unique | xargs | sed -r 's/(.*)(\<kernel-[^ ]* )(.*)/\2\1\3/')
 	}
 	[ -z "$pkgList" ] && continue
 	pkgList=${pkgList%%\"label\":*}
-	#read auto kernel nfs rpcbind nil <<<$pkgList
-	#echo -n -e "$d\t$kernel  $nfs  $auto  $rpcbind"
+
 	read kernel nil <<<$pkgList
 	echo -n "$d  ${pkgList}  "
 
-	dpath=$(vershow -n kernel "$d$" | awk '/RHEL/{if(NR==1) print $1}')
-	curl $baseurl/$dpath/$supath 2>/dev/null|grep -o '"label": "[^"]*"' || echo
+	url=$(vershow --url -d "^$d$" | head -n1)
+	curl -s $url/composeinfo.json 2>/dev/null | grep -o '"label": "[^"]*"' || echo
 done <.distroListr >.distroList
 
 test -n "`cat .distroList`" &&
 	for V in $DVLIST; do
-	    egrep -i "^RHEL-${V}.[0-9]+" .distroList >${latestDistroF}$V.tmp
+	    egrep -i "^RHEL-${V}.[0-9]+" .distroList >${prefix}$V.tmp
 	done
 
-for f in $dfList; do
+for V in $DVLIST; do
+	f=${prefix}$V
 	[ ! -f ${f}.tmp ] && continue
 	[ -z "`cat ${f}.tmp`" ] && continue
 	[ -f ${f} ] || {
@@ -82,8 +77,6 @@ for f in $dfList; do
 		rm -f ${f}.tmp
 		continue
 	}
-
-	V=${f/$latestDistroF/}
 
 	available=1
 	p=${PWD}/${f}.patch
@@ -115,18 +108,20 @@ for f in $dfList; do
 			continue
 		fi
 		echo $line | sed 's/\s\+/\n/g' > ${f}.pkgvers_${dtype}.tmp
-		tmpKernel=$(awk -F'-' '/^kernel/{print $3}' ${f}.pkgvers_${dtype}.tmp)
-		preKernel=$(awk -F'-' '/^kernel/{print $3}' ${f}.pkgvers_${dtype})
-		if [[ $tmpKernel -lt $preKernel ]]; then
-			# ignore the distro whose (kernel) version gets reversed
-			continue
-		fi
-		pkgDiff=$(diff -pNur -w ${f}.pkgvers_${dtype} ${f}.pkgvers_${dtype}.tmp | awk '/^+[^+]/{ORS=" "; print $0 }' | cut -d " " -f 2-)
-		if [ -n "$pkgDiff" ]; then
-			preDistro=$(head -1 ${f}.pkgvers_${dtype})
-			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "#fs-qe" \
-			    "${ircPlain}highlight newer pkg: ${ircTeal}${pkgDiff} ${ircPlain}(vary to $preDistro)"
-		fi
+		test -f ${f}.pkgvers_${dtype} && {
+			tmpKernel=$(awk -F'-' '/^kernel/{print $3}' ${f}.pkgvers_${dtype}.tmp)
+			preKernel=$(awk -F'-' '/^kernel/{print $3}' ${f}.pkgvers_${dtype})
+			if [[ $tmpKernel -lt $preKernel ]]; then
+				# ignore the distro whose (kernel) version gets reversed
+				continue
+			fi
+			pkgDiff=$(diff -pNur -w ${f}.pkgvers_${dtype} ${f}.pkgvers_${dtype}.tmp | awk '/^+[^+]/{ORS=" "; print $0 }' | cut -d " " -f 2-)
+			if [ -n "$pkgDiff" ]; then
+				preDistro=$(head -1 ${f}.pkgvers_${dtype})
+				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "#fs-qe" \
+				    "${ircPlain}highlight newer pkg: ${ircTeal}${pkgDiff} ${ircPlain}(vary to $preDistro)"
+			fi
+		}
 		mv ${f}.pkgvers_${dtype}.tmp ${f}.pkgvers_${dtype}
 	done <$p
 
