@@ -78,12 +78,14 @@ proc parseJobResult {jobid} {
 			set arch [$recipe @arch]
 			set distro [$recipe @distro]
 			set family [$recipe @family]
+			set system [$recipe @system]
 			set gset "$distro $arch"
 			lappend gSet "$gset"
 			set taskList [$recipe selectNodes {descendant::task}]
 
 			foreach task $taskList {
 				set tname [$task @name]
+				set trole [$task @role]
 				if {$tname == "/distribution/install"} continue
 				if {$tname == "/kernel/kdump/setup-nfsdump"} continue
 				set tresult [$task @result]
@@ -95,6 +97,7 @@ proc parseJobResult {jobid} {
 					if {$pname == "TestID"} continue
 					append tname " $pname=[$param @value]"
 				}
+				append tname " @$trole{$system}"
 
 				#get subtest result
 				set task_results [$task selectNodes results]
