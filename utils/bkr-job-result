@@ -78,7 +78,10 @@ proc parseJobResult {jobid} {
 			set arch [$recipe @arch]
 			set distro [$recipe @distro]
 			set family [$recipe @family]
-			set system [$recipe @system]
+			set system {}
+			if [$recipe hasAttribute system] {
+				set system [$recipe @system]
+			}
 			set gset "$distro $arch"
 			lappend gSet "$gset"
 			set taskList [$recipe selectNodes {descendant::task}]
