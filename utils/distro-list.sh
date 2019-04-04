@@ -6,14 +6,16 @@ family=
 tag=rtt
 
 Usage() {
-	echo "Usage: $P [-f <3|4|5[s]|5c|6|7|alt7|8|full-family-name>] [-t <rtt|stb|rel|ins|act|full-tag-name>]"
+	echo "Usage: $P [-f <3|4|5[s]|5c|6|7|alt7|8|full-family-name>] [-t <rtt|stb|rel|ins|act|full-tag-name>] [-n distro-name-filter]"
 	echo "  e.g: $P -f alt7 -t rtt"
+	echo "  e.g: $P -f 7 -t rel -n %7.2"
 }
-_at=`getopt -o hdf:t: \
+_at=`getopt -o hdf:t:n: \
 	--long help \
 	--long debug \
 	--long family: \
 	--long tag: \
+	--long name: \
     -n "$P" -- "$@"`
 eval set -- "$_at"
 
@@ -23,6 +25,7 @@ while true; do
 	-d|--debug)	debug=1; shift 1;;
 	-f|--family)    family=$2; shift 2;;
 	-t|--tag)       tag=$2; shift 2;;
+	-n|--name)      name=$2; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -51,10 +54,11 @@ TagOption=
 FamilyOption=
 [[ -n "$tag" ]] && TagOption=--tag=$tag
 [[ -n "$family" ]] && FamilyOption=--family=$family
+[[ -n "$name" ]] && NameOption=--name=$name
 [[ -n "$debug" ]] && echo "[debug] args: $TagOption $FamilyOption" >&2
 
 if [[ ${P} != getLatestRHEL ]]; then
-	bkr distros-list --limit=0 $TagOption $FamilyOption | sed -n '/^ *Name: /{s///;p}'
+	bkr distros-list --limit=0 $TagOption $FamilyOption $NameOption | sed -n '/^ *Name: /{s///;p}'
 else
-	bkr distros-list --limit=0 $TagOption $FamilyOption | sed -n '/^ *Name: /{s///;p}' | head -n1
+	bkr distros-list --limit=0 $TagOption $FamilyOption $NameOption | sed -n '/^ *Name: /{s///;p}' | head -n1
 fi
