@@ -63,6 +63,11 @@ Distro=${Distro#/}
 }
 Debug "pkg:($Pkg) distro:($Distro) arch:($Arch) variant:($Variant)"
 
+case $(ps -o stat= -p $$) in
+  *+*) BackGround=no ;;
+  *) BackGround=yes ;;
+esac
+
 UpdateDB() {
 	local deepup=
 
@@ -108,7 +113,7 @@ UpdateDB() {
 				echo "$urls" >$urlsfile
 				break
 			else
-				echo "[warn] get rpm json file of '$distro' fail: $url" >&2
+				[[ -t 2 && "$BackGround" = yes ]] || echo "[warn] get rpm json file of '$distro' fail: $url" >&2
 				rm -f $cachefile
 			fi
 		done
