@@ -58,7 +58,7 @@ FamilyOption=
 [[ -n "$debug" ]] && echo "[debug] args: $TagOption $FamilyOption" >&2
 
 if [[ ${P} != getLatestRHEL ]]; then
-	bkr distros-list --limit=0 $TagOption $FamilyOption $NameOption | sed -n '/^ *Name: /{s///;p}'
+	bkr distros-list --limit=0 $TagOption $FamilyOption $NameOption 2>/dev/null > >(sed -n '/^ *Name: /{s///;p}')
 else
-	bkr distros-list --limit=0 $TagOption $FamilyOption $NameOption | sed -n '/^ *Name: /{s///;p}' | head -n1
+	bkr distros-list --limit=0 $TagOption $FamilyOption $NameOption 2>/dev/null > >(sed -n '/^ *Name: /{s///;p}' | head -n1)
 fi
