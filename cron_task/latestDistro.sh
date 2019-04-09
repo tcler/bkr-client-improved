@@ -115,6 +115,10 @@ for V in $DVLIST; do
 				# ignore the distro whose (kernel) version gets reversed
 				continue
 			fi
+			if ! grep -q "${tmpKernel}.el${V}" /var/cache/kernelnvrDB/*changeLog-${V}; then
+				# skip if kernel dose not exist in the changelog
+				continue
+			fi
 			pkgDiff=$(diff -pNur -w ${f}.pkgvers_${dtype} ${f}.pkgvers_${dtype}.tmp | awk '/^+[^+]/{ORS=" "; print $0 }' | cut -d " " -f 2-)
 			if [ -n "$pkgDiff" ]; then
 				preDistro=$(head -1 ${f}.pkgvers_${dtype})
