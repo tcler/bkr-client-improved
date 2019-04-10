@@ -30,7 +30,7 @@ eval set -- "$_at"
 while true; do
 	case "$1" in
 	-h|--help)      Usage; shift 1; exit 0;;
-	-u|--updatedb)  [ -z "$Update" ] && Update=yes || Update=YES; shift 1;;
+	-u|--updatedb)  Update=yes; shift 1;;
 	-n) nocolor=yes; shift 1;;
 	-p) Pkg=$2; shift 2;;
 	-d) Distro=$2; shift 2;;
@@ -57,7 +57,7 @@ Distro=${Distro#/}
 	exit 0
 }
 
-[[ -z "${Pkg}" && "$Update" != yes && "$Update" != YES ]] && {
+[[ -z "${Pkg}" && "$Update" != yes ]] && {
 	Usage
 	exit 1
 }
@@ -69,9 +69,6 @@ case $(ps -o stat= -p $$) in
 esac
 
 UpdateDB() {
-	local deepup=
-
-	[ "$1" = YES ] && deepup=1
 	cd $dbRoot
 	rm -f .[Cc]url* #remove old version db files
 
@@ -82,14 +79,10 @@ UpdateDB() {
 	for family in 8 7 6 5; do
 		distro-list.sh -f $family -t all
 	done >distro.list.tmp
-	if [ ! -f distro.list ]; then
-		touch distro.list
-	fi
+	[ ! -f distro.list ] && touch distro.list
 
 	diff -pNu distro.list distro.list.tmp >distro.list.diff
-	\cp distro.list.tmp distro.list
-	sed -n '/^+[^+]/{s/^+//; p}' distro.list.diff >distro.list.up
-	[ -n "$deepup" ] && \cp distro.list distro.list.up
+	mv distro.list.tmp distro.list
 
 	#Update pkg list
 	while read distro; do
@@ -117,7 +110,8 @@ UpdateDB() {
 				rm -f $cachefile
 			fi
 		done
-	done < distro.list.up
+	done < <(sed -n '/^+[^+]/{s/^+//; p}' distro.list.diff)
+	\cp distro.list $rpmdb/.
 	rm -f /tmp/distroDB.w.lock
 }
 
@@ -126,21 +120,22 @@ case "$Arch" in
 	*) echo "{warn} unknow arch '$Arch'" >&2;;
 esac
 
-if [ "$Update" = yes -o "$Update" = YES ]; then 
+if [ "$Update" = yes ]; then
 	[ `id -u` != 0 ] && {
 		echo "{Warn} Update database need root. try 'sudo /usr/local/bin/vershow --updatedb'" >&2
 		exit 1
 	}
 	egrep -q "/usr/local/bin/vershow" /etc/crontab || echo "  10 05 *  *  * root       /usr/local/bin/vershow -uu;" >>/etc/crontab
 	mkdir -p $dbRoot/$rpmdb
-	echo "{Info} $(test $Update = YES && echo Deep\ )Updating distro database..."
-	UpdateDB $Update
-else
-	[ ! -d $dbRoot -o ! -f $dbRoot/distro.list ] && {
-		echo "{Warn} distro database is nil. try 'sudo /usr/local/bin/vershow --updatedb' to create database first" >&2
-		exit 1
-	}
+	echo "{Info} Updating distro database..."
+	UpdateDB
+	exit 0
 fi
+
+[ ! -d $dbRoot -o ! -f $dbRoot/distro.list ] && {
+	echo "{Warn} distro database is nil. run 'sudo /usr/local/bin/vershow --updatedb' to create database first" >&2
+	exit 1
+}
 
 # do search
 cd $dbRoot
