@@ -6,7 +6,7 @@ family=
 tag=rtt
 
 Usage() {
-	echo "Usage: $P [-f <3|4|5[s]|5c|6|7|alt7|8|full-family-name>] [-t <rtt|stb|rel|ins|act|full-tag-name>] [-n distro-name-filter]"
+	echo "Usage: $P [-f <3|4|5[s]|5c|6|7|alt-7|8|full-family-name>] [-t <rtt|stb|rel|ins|act|full-tag-name>] [-n distro-name-filter]"
 	echo "  e.g: $P -f alt7 -t rtt"
 	echo "  e.g: $P -f 7 -t rel -n %7.2"
 }
@@ -34,11 +34,12 @@ done
 [[ -z "$tag" && -n "$2" ]] && tag=$2
 
 case $family in
-3|4|6|7|8) family=RedHatEnterpriseLinux$family;;
-alt7)	family=RedHatEnterpriseLinuxAlternateArchitectures7;;
-5c)	family=RedHatEnterpriseLinuxClient5;;
-5s|5)	family=RedHatEnterpriseLinuxServer5;;
-*)	:;;
+alt7|alt-7)	family=RedHatEnterpriseLinuxAlternateArchitectures7;;
+3|4|6|7|8)	family=RedHatEnterpriseLinux$family;;
+5s|5)		family=RedHatEnterpriseLinuxServer5;;
+5c)		family=RedHatEnterpriseLinuxClient5;;
+[0-9].*)	name=RHEL-$family; family=;;
+*)		:;;
 esac
 case $tag in
 all)	tag=;;
