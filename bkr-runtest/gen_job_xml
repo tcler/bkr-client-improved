@@ -314,7 +314,7 @@ if [info exist Opt(upstream)] {
 	set upstreamBranch master
 	set upstreamTag HEAD
 	if {$Opt(upstream) != ""} {
-		lassign [split $Opt(upstream)] url_branch tag
+		lassign [split $Opt(upstream) { @}] url_branch tag
 		lassign [split $url_branch "#"] url branch
 		if {[string trim $url] != ""} {set upstreamUrl $url}
 		if {[string trim $branch] != ""} {set upstreamBranch $branch}
