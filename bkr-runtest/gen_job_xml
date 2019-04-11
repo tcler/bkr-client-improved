@@ -156,10 +156,11 @@ set OptionList {
 	noavc			{arg n	help {alias of --param=AVC_ERROR=+no_avc_check}}
 	nvr			{arg m	help {Specify the kernel(Name-Version-Release) to be installed}}
 	install			{arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}
-	upstream		{arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d[#branch[ tag]]]
+	upstream		{arg o	help {Specify the kernel src git addr to be installed. --upstream=[git://a.b.c/d[#branch[@tag]]]
 				e.g: --upstream
 				e.g: --upstream=#v4.18-rc1
-				e.g: --upstream=git://git.linux-nfs.org/projects/bfields/linux.git#jbf-test-1}}
+				e.g: --upstream=git://git.linux-nfs.org/projects/bfields/linux.git#jbf-test-1
+				e.g: --upstream=git://git.linux-nfs.org/projects/bfields/linux.git@$commit_id}}
 	upstream-use-clone	{arg o	help {use git-clone instead default git-archive, in case some repo doesn't support git-archive
 				- the optional option param is additional option/param of git-clone
 				e.g: --upstream-use-clone=--depth=1}}
