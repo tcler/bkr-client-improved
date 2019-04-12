@@ -9,7 +9,8 @@ Arch=x86_64
 Variant=Workstation
 
 Usage() {
-	echo "Usage: $0 <-p pkgName|pattern> [-d distroName|pattern [--url]] [-a <arch>|-v <variant>] [--dbroot]" >&2
+	echo "Usage: $0 <-p pkgName|pattern> [-d distroName|pattern] [-a <arch>|-v <variant>] [--dbroot]" >&2
+	echo "Usage: $0 <-d distroName> <--url>" >&2
 }
 Debug() {
 	[[ -n "$debug" ]] && { echo "{debug} $@" >&2; }
@@ -52,8 +53,7 @@ Distro=${Distro:-$2}
 Distro=${Distro#/}
 
 [[ -n "$geturl" && -n "$Distro" ]] && {
-	urlf=$dbpath/$Distro.urls
-	[[ -f $urlf ]] && curl -Lsf $urlf
+	bkr distro-trees-list --limit=0 --name "$Distro" |& less
 	exit $?
 }
 
