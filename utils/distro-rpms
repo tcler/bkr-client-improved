@@ -1,0 +1,101 @@
+#!/bin/bash
+#author jiyin@redhat.com
+
+dburl=http://download.devel.redhat.com/qa/rhts/lookaside/distro-rpmsdata
+dbroot=/var/cache/distroInfoDB/rpmsdata
+
+Pkg=
+Arch=x86_64
+Variant=Workstation
+
+Usage() {
+	echo "Usage: $0 <-p pkgName|pattern> [-d distroName|pattern [--url]] [-a <arch>|-v <variant>] [--dbroot]" >&2
+}
+Debug() {
+	[[ -n "$debug" ]] && { echo "{debug} $@" >&2; }
+}
+
+_at=`getopt -o hnp:d:a:v:lD \
+	--long help \
+	--long url \
+	--long dbroot: \
+    -n "$0" -- "$@"`
+eval set -- "$_at"
+while true; do
+	case "$1" in
+	-h|--help)      Usage; shift 1; exit 0;;
+	-n) nocolor=yes; shift 1;;
+	-p) Pkg=$2; shift 2;;
+	-d) Distro=$2; shift 2;;
+	-a) Arch=$2; shift 2;;
+	-v) Variant=$2; shift 2;;
+	-l) long=yes; shift 1;;
+	-D) debug=yes; shift 1;;
+	--url) geturl=yes; shift 1;;
+	--dbroot) dbroot=$2; shift 2;;
+	--) shift; break;;
+	esac
+done
+
+dbpath=$dburl
+if [[ -d $dbroot ]]; then
+	dbpath=file://$(readlink -f $dbroot)
+else
+	echo "{Warn} dir $dbroot not exist, still use $dburl as data source" >&2
+fi
+Pkg=${Pkg:-$1}
+Pkg=${Pkg:-^kernel-[0-9]}
+Pkg=".*${Pkg}.*"
+[[ ${Pkg:0:3} = '.*^' ]] && Pkg="${Pkg:3}"
+[[ ${Pkg: -3} = '$.*' ]] && Pkg="${Pkg:0:-3}"
+Distro=${Distro:-$2}
+Distro=${Distro#/}
+
+[[ -n "$geturl" && -n "$Distro" ]] && {
+	urlf=$dbpath/$Distro.urls
+	[[ -f $urlf ]] && curl -Lsf $urlf
+	exit $?
+}
+
+[[ -z "${Pkg}" && "$Update" != yes ]] && {
+	Usage
+	exit 1
+}
+
+Debug "pkg:($Pkg) distro:($Distro) arch:($Arch) variant:($Variant)"
+case "$Arch" in
+	x86_64|i386|ppc64le|ppc64|s390x|aarch64) :;;
+	*) echo "{warn} unknow arch '$Arch'" >&2;;
+esac
+
+# do search
+mylist=$(curl -Lsf $dbpath/distro.list > >(egrep -i -- "${Distro}"))
+ret=$?
+[[ $ret != 0 ]] && {
+	echo "something is wrong, curl return code $ret" >&2
+}
+while read distro; do
+	[[ -z "$distro" ]] && continue
+	cachefile=$dbpath/${distro// /_}.json.gz
+
+	variant=$Variant
+	[[ $distro = RHEL-8* ]] && {
+		case $variant in Workstation|Client|Server|ComputeNode) variant=;; esac
+	}
+
+	Debug "distro:($distro) pkg:($Pkg) arch:($Arch) variant:($variant) @$cachefile"
+	#result=$(curl -Lsf $cachefile | zcat 2>/dev/null |
+	#	jq -r '.payload | with_entries(if .key == "manifest" then .key = "rpms" else . end)|.rpms|'".${variant:-[]}|.$Arch|.[]|.[].path" |
+	#	grep -v source/tree |
+	#	egrep "$Pkg")
+	result=$(egrep -o -i "${variant:-[^\"]+}/($Arch)/os/Packages/(${Pkg})\.[0-9a-z_-]+\.rpm" < <(curl -Lsf $cachefile|zcat 2>/dev/null))
+	[ $? = 0 ] && {
+		[[ -z "$nocolor" ]] && echo -e "=> \033[1;34m$distro\033[0m" || echo -n "$distro -> "
+		if [[ $long = yes ]]; then
+			echo "$result"|sed -e 's/^/    /'
+		else
+			echo "$result"|sed -e 's;.*/;;'
+		fi
+	}
+done <<<"$mylist"
+

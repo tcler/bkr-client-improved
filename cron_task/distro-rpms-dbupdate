@@ -1,0 +1,95 @@
+#!/bin/bash
+#author jiyin@redhat.com
+
+dbRoot=/var/cache/distroInfoDB
+
+rpmdb=rpmsdata
+lockf=/tmp/distroDB.w.lock
+trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
+sigproc() {
+	rm -f $lockf
+	exit
+}
+
+Usage() { echo "Usage: $0 [-h|--help] [--dbroot </some/path>]" >&2; }
+
+_at=`getopt -o h \
+	--long help \
+	--long dbroot: \
+	-n "$0" -- "$@"`
+eval set -- "$_at"
+while true; do
+	case "$1" in
+	-h|--help) Usage; shift 1; exit 0;;
+	--dbroot)  dbRoot=$2; shift 2;;
+	--) shift; break;;
+	esac
+done
+
+case $(ps -o stat= -p $$) in
+  *+*) BackGround=no ;;
+  *) BackGround=yes ;;
+esac
+
+UpdateDB() {
+	cd $dbRoot
+	rm -f .[Cc]url* #remove old version db files
+
+	rpm -q procmail >/dev/null || yum install -y procmail &>/dev/null
+	lockfile $lockf || return 0
+
+	#Update distro list
+	for family in 8 7 6 5; do
+		distro-list.sh -f $family -t all
+	done > >(tee distro.list.tmp) 2>err.log
+	[[ -s distro.list.tmp ]] || {
+		rm -f $lockf
+		return 1
+	}
+
+	[ ! -f distro.list ] && touch distro.list
+	diff -pNu distro.list distro.list.tmp >distro.list.diff
+	mv distro.list.tmp distro.list
+
+	#Update pkg list
+	while read distro; do
+		urlsfile=$rpmdb/${distro// /_}.urls
+		cachefile=$rpmdb/${distro// /_}.json.gz
+		[[ -f $cachefile ]] && continue
+
+		urls=$(bkr distro-trees-list --limit=1 --name "$distro"  |
+			awk '/https?:/ {
+				if ($3 ~ "/compose/") {
+					sub("/compose/.*$", "/compose/metadata", $3)
+				} else if ($3 ~ "/released/") {
+					sub("([^/]+/){3}$", "metadata", $3)
+				}
+				print $3
+			}' | sort -u)
+
+		for url in $urls; do
+			if curl -sf -k -L -u: $url/rpms.json > >(gzip >$cachefile) ||
+				curl -sf -k -L -u: $url/rpm-manifest.json > >(gzip >$cachefile); then
+				echo "$urls" >$urlsfile
+				break
+			else
+				[[ -t 2 && "$BackGround" = yes ]] || echo "[warn] get rpm json file of '$distro' fail: $url" >&2
+				rm -f $cachefile
+			fi
+		done
+	done < <(sed -n '/^+[^+]/{s/^+//; p}' distro.list.diff)
+	\cp distro.list $rpmdb/.
+	rm -f $lockf
+}
+
+#__main__
+[ `id -u` != 0 ] && {
+	echo "{Warn} Update database need root. try 'sudo $0'" >&2
+	exit 1
+}
+
+mkdir -p $dbRoot/$rpmdb
+UpdateDB
+
+# rsync to public server
+# rsync -a --ignore-existing $dbRoot/$rpmdb <user>@file.<path>.redhat.com:/export/engineering_qa/rhts/lookaside/distro-rpmsdata
