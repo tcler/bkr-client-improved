@@ -78,14 +78,22 @@ UpdateDB() {
 	#Update distro list
 	for family in 8 7 6 5; do
 		distro-list.sh -f $family -t all
-	done >distro.list.tmp
-	[ ! -f distro.list ] && touch distro.list
+	done > >(tee distro.list.tmp) 2>err.log
+	[[ -s distro.list.tmp ]] || {
+		rm -f /tmp/distroDB.w.lock
+		return 1
+	}
 
+	[ ! -f distro.list ] && touch distro.list
 	diff -pNu distro.list distro.list.tmp >distro.list.diff
 	mv distro.list.tmp distro.list
 
 	#Update pkg list
 	while read distro; do
+		urlsfile=$rpmdb/${distro// /_}.urls
+		cachefile=$rpmdb/${distro// /_}.json.gz
+		[[ -f $cachefile ]] && continue
+
 		urls=$(bkr distro-trees-list --limit=1 --name "$distro"  |
 			awk '/https?:/ {
 				if ($3 ~ "/compose/") {
@@ -95,10 +103,6 @@ UpdateDB() {
 				}
 				print $3
 			}' | sort -u)
-		cachefile=$rpmdb/${distro// /_}.json.gz
-		urlsfile=$rpmdb/${distro// /_}.urls
-
-		[[ -f $cachefile ]] && continue
 
 		for url in $urls; do
 			if curl -sf -k -L -u: $url/rpms.json > >(gzip >$cachefile) ||
