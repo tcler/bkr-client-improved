@@ -77,7 +77,7 @@ if {$permission != yes} {
      CONTENT="[set ftime];
      URL=[
 	set uri [dict get $req -uri]
-	set pkg [regsub -all {.*\?pkg=([-_a-zA-Z0-9]+)($|&.*)} $uri {\1}]
+	set pkg [regsub -all {.*\?.*&pkg=([-_a-zA-Z0-9]+)($|&.*)} $uri {\1}]
 	if [regexp -- {.*&.*} $uri] {
 		set uri "${uri}&run-${pkg}=[string map {= %3D { } +} $distro_gset_]"
 	}
