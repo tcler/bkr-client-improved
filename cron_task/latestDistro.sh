@@ -30,6 +30,8 @@ pushd /var/cache/distroDB  >/dev/null
 mailTo=fs@redhat.com
 mailCc=net@redhat.com
 from="distro monitor <from@redhat.com>"
+chanList="#fs-qe #network-qe"
+fschan="#fs-qe"
 
 kgitDir=/home/yjh/ws/code.repo
 DVLIST="6 7 8"
@@ -90,7 +92,7 @@ for V in $DVLIST; do
 	while read line; do
 		[[ -z "$line" || "$line" =~ ^\+\+\+ ]] && continue
 
-		for chan in "#fs-qe" "#network-qe"; do
+		for chan in $chanList; do
 			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
 				"${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line"
 			sleep 1
@@ -122,7 +124,7 @@ for V in $DVLIST; do
 			pkgDiff=$(diff -pNur -w ${f}.pkgvers_${dtype} ${f}.pkgvers_${dtype}.tmp | awk '/^+[^+]/{ORS=" "; print $0 }' | cut -d " " -f 2-)
 			if [ -n "$pkgDiff" ]; then
 				preDistro=$(head -1 ${f}.pkgvers_${dtype})
-				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "#fs-qe" \
+				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$fschan" \
 				    "${ircPlain}highlight newer pkg: ${ircTeal}${pkgDiff} ${ircPlain}(vary to $preDistro)"
 			fi
 		}
