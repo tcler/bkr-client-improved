@@ -41,9 +41,9 @@ done
 dbpath=$dburl
 if [[ -d $dbroot ]]; then
 	dbpath=file://$(readlink -f $dbroot)
-else
-	echo "{Warn} dir $dbroot not exist, still use $dburl as data source" >&2
 fi
+Debug "using data source: $dbpath"
+
 Pkg=${Pkg:-$1}
 Pkg=${Pkg:-^kernel-[0-9]}
 Pkg=".*${Pkg}.*"
