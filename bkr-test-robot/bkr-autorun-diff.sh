@@ -11,6 +11,7 @@ Usage() {
 	echo "  --db </path/dbfile>  #Use specified dbfile, can use more than one time"
 	echo "  --diff               #Use diff command"
 	echo "  --diffr              #Alias: --diff -r"
+	echo "  --noavc              #Ignore the avc failures (This implies option --diff)"
 	echo "  --short              #Only print new failures of diff command (This implies option --diff)"
 	echo "  --shortr             #Only print new failures of diff command in reverse order (Alias: --short -r)"
 	echo "  -o <ofile>           #Output file used to save output of --diff option"
@@ -32,6 +33,7 @@ _at=`getopt -o hrvo: \
 	--long bc \
 	--long diff \
 	--long diffr \
+	--long noavc \
 	--long short \
 	--long shortr \
 	--long override \
@@ -45,6 +47,7 @@ reverse=""
 verbose=""
 BC=""
 diffv=""
+noavc=""
 short=""
 OF=""
 override=""
@@ -67,6 +70,8 @@ while true; do
 		diffv=yes; shift 1;;
 	--diffr)
 		diffv=yes; reverse=yes; shift 1;;
+	--noavc)
+		diffv=yes; noavc=yes; shift 1;;
 	--short)
 		diffv=yes; short=yes; shift 1;;
 	--shortr)
@@ -153,6 +158,10 @@ else
 		if ! cmp -s ${resf1%.res}/$id ${resf2%.res}/$id; then
 			if egrep -q '^  (F|W|A)' ${resf2%.res}/$id; then
 				diffres=$(diff -pNur ${resf1%.res}/$id ${resf2%.res}/$id)
+				# ignore avc failures
+				if [[ "$noavc" == "yes" ]]; then
+					diffres=$(echo "$diffres" | sed '/avc.*Fail/d')
+				fi
 				if egrep -q '^\+[^+].*(Warn|Fail|Panic|Abort)$' <<<"$diffres"; then
 					if [[ "$short" != "yes" ]]; then
 						echo -e "\n#Test result different, and has New Fail"
