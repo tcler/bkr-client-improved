@@ -11,7 +11,8 @@ Usage() {
 	echo "  --db </path/dbfile>  #Use specified dbfile, can use more than one time"
 	echo "  --diff               #Use diff command"
 	echo "  --diffr              #Alias: --diff -r"
-	echo "  --short              #Only print new failures of diff command (Alias: --diff --short)"
+	echo "  --short              #Only print new failures of diff command (This implies option --diff)"
+	echo "  --shortr             #Only print new failures of diff command in reverse order (Alias: --short -r)"
 	echo "  -o <ofile>           #Output file used to save output of --diff option"
 	echo "  --override           #Override it if the output file exists (along with '-o ofile')"
 	echo "  --append             #Append to it if the output file exists (along with '-o ofile')"
@@ -32,6 +33,7 @@ _at=`getopt -o hrvo: \
 	--long diff \
 	--long diffr \
 	--long short \
+	--long shortr \
 	--long override \
 	--long append \
     -a -n 'bkr-autorun-diff.sh' -- "$@"`
@@ -67,6 +69,8 @@ while true; do
 		diffv=yes; reverse=yes; shift 1;;
 	--short)
 		diffv=yes; short=yes; shift 1;;
+	--shortr)
+		diffv=yes; short=yes; reverse=yes; shift 1;;
 	-o)
 		OF=$2; shift 2;;
 	--override)
