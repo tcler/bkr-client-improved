@@ -55,8 +55,8 @@ while read d; do
 	read kernel nil <<<$pkgList
 	echo -n "$d  ${pkgList}  "
 
-	url=$(vershow --url -d "^$d$" | head -n1)
-	curl -s $url/composeinfo.json 2>/dev/null | grep -o '"label": "[^"]*"' || echo
+	# Append the compose label if it exists
+	distro-compose -d $d --composeinfo 2>/dev/null | grep -o '"label": "[^"]*"' || echo
 done <.distroListr >.distroList
 
 test -n "`cat .distroList`" &&
