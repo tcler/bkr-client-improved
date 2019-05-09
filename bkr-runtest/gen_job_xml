@@ -948,6 +948,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				if [info exist Opt(install)] {
 					foreach pkg $Opt(install) {
 						lappend insertTasks "/distribution/pkginstall PKGARGNAME=$pkg"
+						lappend insertTasks "/distribution/pkginstall VERLOCK=yes"
 					}
 				}
 				# --kcov --gcov task
