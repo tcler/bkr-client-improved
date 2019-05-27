@@ -133,7 +133,7 @@ for f in $kfList; do
 
 		for bugid in $(cat fsBugs); do
 			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "#fs-qe" \
-			    "$(su yoyang --command="bugzilla query --bug_id=$bugid --outputformat='https://bugzilla.redhat.com/%{id} - %{qa_contact} - %{summary}'")"
+			    "https://bugzilla.redhat.com/$bugid $(su jiyin --command="bugzilla query --bug_id=$bugid --outputformat='- %{qa_contact} - %{summary}'")"
 		done
 	done
 done
