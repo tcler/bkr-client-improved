@@ -92,4 +92,4 @@ mkdir -p $dbRoot/$rpmdb
 UpdateDB
 
 # rsync to public server
-# rsync -a --ignore-existing $dbRoot/$rpmdb <user>@file.<path>.redhat.com:/export/engineering_qa/rhts/lookaside/distro-rpmsdata
+# su luser bash -c "rsync -av --ignore-existing $dbRoot/$rpmdb/ <kuser>@file.<path>.redhat.com:/export/engineering_qa/rhts/lookaside/distro-rpmsdata"
