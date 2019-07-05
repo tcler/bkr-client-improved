@@ -39,10 +39,17 @@ if {$permission != yes} {
 		set distro_gset [lindex [dict get $xentity distro] 0]
 		set distro [lindex $distro_gset 0]
 		set gset {}
+		set infohead {info:}
 		foreach v [lrange $distro_gset 1 end] {
 			if [regexp -- {^-} $v] {
 				lappend gset $v
 				continue
+			} elseif [regexp -- "^$infohead" $v] {
+				set infoheadlen [string length $infohead]
+				set pkglist [split [string range $v $infoheadlen end] ,]
+				foreach pkg $pkglist {
+					lappend gset -info=[exec bash -c "vershow -p ^$pkg-\[0-9\] -d ^$distro$|sed -n 2p"]
+				}
 			} else {
 				if {[regexp -- {^kernel-} $v]} {
 					lappend gset -nvr=$v

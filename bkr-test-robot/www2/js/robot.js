@@ -131,7 +131,7 @@
 				testlist += testid + ';';
 			}
 		}
-		var name = prompt("Input the distro and params, e.g\nRHEL-7.2  kernel-3.10.0-282.el7 -dbgk -cc=k@r.com", "");
+		var name = prompt("============> Input the distro and params, e.g <============\nRHEL-7.2  kernel-3.10.0-282.el7 -dbgk -cc=k@r.com\nRHEL-7.6 -alone -random -kdump=  info:kernel,nfs-utils", "");
 		if (!name) {
 			return 0;
 		}
