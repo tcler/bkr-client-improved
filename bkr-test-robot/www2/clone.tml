@@ -52,6 +52,9 @@ if {$permission != yes} {
 			} elseif [regexp -- "^$infohead" $v] {
 				set infoheadlen [string length $infohead]
 				set pkglist [split [string range $v $infoheadlen end] ,]
+				if {[lsearch -regexp $pkglist ^kernel$] == -1} {
+					set pkglist [linsert $pkglist 0 kernel]
+				}
 				foreach pkg $pkglist {
 					lappend gset -info=[exec bash -c "vershow -p ^$pkg-\[0-9\] -d ^$distro$|sed -n 2p"]
 				}
