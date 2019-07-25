@@ -40,6 +40,11 @@ if {$permission != yes} {
 		set distro [lindex $distro_gset 0]
 		set gset {}
 		set infohead {info:}
+
+		if {[lsearch -regexp $distro_gset ^$infohead] == -1} {
+			lappend distro_gset info:kernel
+		}
+
 		foreach v [lrange $distro_gset 1 end] {
 			if [regexp -- {^-} $v] {
 				lappend gset $v
