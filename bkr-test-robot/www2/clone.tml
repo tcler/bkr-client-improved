@@ -56,7 +56,7 @@ if {$permission != yes} {
 					set pkglist [linsert $pkglist 0 kernel]
 				}
 				foreach pkg $pkglist {
-					lappend gset -info=[exec bash -c "vershow -p ^$pkg-\[0-9\] -d ^$distro$|sed -n 2p"]
+					lappend gset -info=[exec bash -c "vershow -p ^$pkg-\[0-9] -d ^$distro$|sed -n 2p"]
 				}
 			} else {
 				if {[regexp -- {^kernel-} $v]} {
