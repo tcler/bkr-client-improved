@@ -831,7 +831,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 				# distro install
 				lappend insertTasks "/distribution/install DISTRO_BUILD=$DISTRO"
-				lappend insertTasks "/distribution/Library/epel"
+				if {[regexp -- {RHEL-8} $DISTRO] != 1} {
+					lappend insertTasks "/distribution/Library/epel"
+				}
 
 				# command before kernelinstall
 				if [info exist Opt(cmdb)] {
