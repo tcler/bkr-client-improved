@@ -3,8 +3,6 @@ export PATH:=${PATH}:/usr/local/bin:~/bin
 _bin=/usr/local/bin
 _lib=/usr/local/lib
 completion_path=/usr/share/bash-completion/completions
-UMASK=0022
-SHELL := umask $(UMASK) && exec /bin/bash
 
 install install_runtest: _isroot
 	@rpm -q redhat-lsb >/dev/null || yum install -y redhat-lsb #package that in default RHEL repo
