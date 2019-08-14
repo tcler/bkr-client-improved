@@ -7,12 +7,13 @@ exec tclsh "$0" ${1+"$@"}
 # This is a test run monitor.
 # tdom usage: http://wiki.tcl.tk/8984
 
-lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib /usr/lib64/tcl8.5
 package require yaml
 package require tdom
 package require sqlite3
 package require runtestlib 1.1
 package require getOpt 3.0
+package require Tclx
 namespace import ::getOpt::* ::runtestlib::*
 
 exec bash -c {recipe.sh $(klist | awk -F'[ :@]+' '/Default principal/{print $3}') >/dev/null}
@@ -114,14 +115,30 @@ proc updateJobTask {jobid distro_rgset} {
 	}
 }
 
+proc lockfile {file} {
+	try {
+		set fd [open $file {CREAT EXCL RDWR}]
+		close $fd
+		return 1
+	} on error err {
+		return 0
+	}
+}
+
+proc unlockfile {file} {
+	file delete $file
+}
+
 #_main_
-set USER $tcl_platform(user)
-set rc [catch {exec ps -U $USER -u $USER -o pid,user:20,cmd | grep -v grep | grep {tclsh.*bkr-autorun-monitor}} msg]
-if {$rc == 0 && [pid] != [lindex $msg 0]} {
-	puts "{Warn} bkr-autorun-monitor is running! $msg"
+set cntrlc_flag 1
+signal trap {SIGINT SIGTERM} {unlockfile [dbroot]/bkr-autorun-monitor.lock; exit}
+
+cd [dbroot]
+if {[lockfile bkr-autorun-monitor.lock] == 0} {
+	puts "{Warn} bkr-autorun-monitor is running!"
 	exit 0
 }
-cd [dbroot]
+
 sqlite3 db testrun.db
 db timeout 6000
 
@@ -337,3 +354,4 @@ foreach {distro_arch_rgset testList} [array get waitSubmitedTest] {
 	}
 }
 
+unlockfile [dbroot]/bkr-autorun-monitor.lock
