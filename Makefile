@@ -13,7 +13,7 @@ install install_runtest: _isroot
 	  fi; \
 	fi
 	@rpm -q tcl >/dev/null || yum install -y tcl #package that in default RHEL repo
-	@yum install -y beaker-client tcllib  #epel
+	@yum install -y beaker-client tcllib tclx #epel
 	@if [[ $$(lsb_release -si) != Fedora ]]; then \
 	  libpath=$$(rpm -ql tcllib|egrep 'tcl8../tcllib-[.0-9]+$$'); ln -sf $${libpath} /usr/lib/$${libpath##*/}; \
 	fi
