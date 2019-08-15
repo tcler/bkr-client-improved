@@ -331,12 +331,16 @@ foreach {distro_arch_rgset testList} [array get waitSubmitedTest] {
 	set arch [lindex $distro_arch_rgset 1]
 	set rgset [lrange $distro_arch_rgset 2 end]
 	if {$arch == "auto"} {set arch x86_64}
+	set _arch [lindex [split $arch .] 0]
+
+	if [catch {exec bkr distro-trees-verify --name $distro --arch=$_arch}] {
+		continue
+	}
 
 	puts "\n\[bkr-autorun-monitor\]: Submit {Distro arch rgset: ($distro) ($arch) ($rgset)}"
 
 	close [open jobsubmit.log w+]
 
-	set _arch [lindex [split $arch .] 0]
 	if ![info exist HostUsed($_arch)] { set HostUsed($_arch) 0 }
 	set limitNum [expr $HostMax($_arch) - $HostUsed($_arch)]
 
