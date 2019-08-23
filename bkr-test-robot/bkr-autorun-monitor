@@ -118,10 +118,26 @@ proc updateJobTask {jobid distro_rgset} {
 proc lockfile {file} {
 	try {
 		set fd [open $file {CREAT EXCL RDWR}]
+		puts -nonewline $fd "[pid]"
 		close $fd
 		return 1
 	} on error err {
-		return 0
+		try {
+			set rc 0
+			set fd [open $file {RDWR}]
+			gets $fd pid
+			if {$pid != "" && [file exists /proc/$pid]} {
+				set rc 0
+			} else {
+				seek $fd 0 start
+				puts -nonewline $fd "[pid]"
+				set rc 1
+			}
+			close $fd
+			return $rc
+		} on error err {
+			return 0
+		}
 	}
 }
 
