@@ -53,7 +53,7 @@ hostinfo() {
 			echo "Memory: $memory"
 			echo "Condition: $status"
 			echo "IdleSince: $lasttime $t2 (more than $((($(date +%s)-$(date +%s --date "$lasttime"))/(3600*24)/7))weeks)"
-			[[ -n "$loanedTo" ]] && echo "LoanedTo: $loanedTo"
+			[[ -n "$loanedTo" && "$loanedTo" != null ]] && echo "LoanedTo: $loanedTo"
 			[[ -n "$notes" ]] && echo -e "Notes: {\n$notes\n}"
 		} | sed 's/^ */  /'
 		echo
