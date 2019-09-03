@@ -619,7 +619,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 			}
 
-			if {[info exist Opt(p9)] != 1} {
+			if {[info exist Opt(p9)] != 1 && ![regexp -- {.*(POWER9|ibm-p9).*} $hrs]} {
 				lappend hrs not:kv-CPUMODEL~POWER9%
 				lappend hrs not:hostname~ibm-p9%
 			}
