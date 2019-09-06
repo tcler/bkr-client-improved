@@ -84,17 +84,16 @@ for V in $DVLIST; do
 	p=${PWD}/${f}.patch
 	# print lines of file "${f}.tmp" for which the first column
 	# (distro name) has not been seen in file "$f"
-	awk 'NR==FNR{c[$1]++;next};c[$1] == 0' $f ${f}.tmp > $p
+	awk 'NR==FNR{c[$1]++;next};c[$1] == 0' $f ${f}.tmp | tac > $p
 	[[ -s "$p" ]] || continue
-	# reverse lines to show the newer distro afterwards
-	sed -i '1!G;h;$!d;' $p
 
 	while read line; do
-		[[ -z "$line" || "$line" =~ ^\+\+\+ ]] && continue
+		[[ -z "$line" ]] && continue
 
+		read distro pkglist <<< "$line"
 		for chan in $chanList; do
 			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
-				"${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line"
+				"${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line #for detail: distro-compose -d ^$distro$ -l -p . | less -r"
 			sleep 1
 		done
 
