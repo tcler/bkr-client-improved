@@ -23,9 +23,10 @@ genTarFile() {
 	popd >/dev/null
 }
 
-mkdir -p sysroot/usr/local/{src,lib,bin} sysroot/etc/bkr-client-improved
+mkdir -p sysroot/usr/local/{src,lib,bin,sbin} sysroot/etc/bkr-client-improved
 cp -arf lib/*  sysroot/usr/local/lib/.
-cp -af bkr*/* utils/* cron_task/* sysroot/usr/local/bin/.
+cp -af bkr*/* utils/* sysroot/usr/local/bin/.
+cp -af cron_task/* sysroot/usr/local/sbin/.
 rm -rf sysroot/usr/local/bin/www{,2}
 cp -af conf/* sysroot/etc/bkr-client-improved/.
 FTAR=${pkgName}-$version.tar.gz
