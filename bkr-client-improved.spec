@@ -120,12 +120,12 @@ chmod u+s /usr/local/bin/trms-service.sh
 /usr/local/bin/lstest
 /usr/local/bin/parse_netqe_nic_info.sh
 /usr/local/bin/runtest
+/usr/local/bin/needinfome.sh
 /usr/local/sbin/bkr-system-broken-recover.sh
 /usr/local/sbin/vmcore-monitor.sh
 /usr/local/sbin/latestDistro.sh
 /usr/local/sbin/latestKernel.sh
 /usr/local/sbin/distro-compose-dbupdate
-/usr/local/sbin/needinfome.sh
 /usr/local/lib/getOpt-3.0/example.tcl
 /usr/local/lib/getOpt-3.0/getOpt.tcl
 /usr/local/lib/getOpt-3.0/pkgIndex.tcl
