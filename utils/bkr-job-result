@@ -42,7 +42,7 @@ if {[array size InvalidOpt] > 0} {
 }
 
 proc Usage {} {
-	puts "Usage0: $::prog \[options\] \[J:jobid\]"
+	puts "Usage0: $::prog \[options\] <J:jobID|RS:recipesetID|R:recipeID|T:taskID>"
 	getUsage $::OptionList
 }
 if [info exist Opt(help)] {
@@ -50,97 +50,144 @@ if [info exist Opt(help)] {
 	exit 0
 }
 
-proc getXML {jobID} {
-	set xml [exec bkr job-results --prettyxml $jobID]
+proc getXML {nodeID} {
+	set xml [exec bkr job-results --prettyxml $nodeID]
 	regsub {<\?xml .*?\?>} $xml {}
 }
-
-proc parseJobResult {jobid} {
-	set XML [getXML $jobid]
-	set doc [dom parse $XML]
+proc getDocRoot {nodeID} {
+	set doc [dom parse [getXML $nodeID]]
 	set root [$doc documentElement]
+}
 
-	set recipeSetList [$root selectNodes {descendant::recipeSet}]
-	foreach recipeSet $recipeSetList {
-		set recipeSetID [$recipeSet @id]
-		set gSet {}
-		set recipeList [$recipeSet selectNodes {descendant::recipe}]
-		set hostN [llength $recipeList]
-		set taskList [$recipeSet selectNodes {descendant::task}]
-		foreach task $taskList {
-			set tname [$task @name]
-			if {$tname == "/kernel/kdump/setup-nfsdump"} {
-				if {"kdump" ni $gSet} { lappend gSet kdump }
-			}
+proc parseTaskResult {task} {
+	set tname [$task @name]
+	set trole [$task @role]
+	if {$tname == "/distribution/install"} return
+	if {$tname == "/kernel/kdump/setup-nfsdump"} return
+	set tresult [$task @result]
+	set params {}
+	set paramList [$task selectNodes {descendant::param}]
+	foreach param $paramList {
+		set pname [$param @name]
+		if {$pname == "DISTRO_BUILD"} continue
+		if {$pname == "TestID"} continue
+		append tname " $pname=[$param @value]"
+	}
+	append tname " @$trole"
+
+	#get subtest result
+	set task_results [$task selectNodes results]
+	set subresult [list]
+	if {$task_results != ""} {
+		foreach subres [$task_results childNodes] {
+			set _res [$subres @result]
+			set _path [$subres @path]
+			lappend subresult "$_res $_path"
 		}
+		lappend tresult $subresult
+	}
 
-		foreach recipe $recipeList {
-			set arch [$recipe @arch]
-			set distro [$recipe @distro]
-			set family [$recipe @family]
-			set system {}
-			if [$recipe hasAttribute system] {
-				set system [$recipe @system]
+	lappend ::Test($tname) $tresult
+}
+
+proc showTestResult {tests} {
+	array set testarr $tests
+	foreach {Name Res} [array get testarr] {
+		set i 0
+		foreach reciperes $Res {
+			lassign $reciperes res subres
+			puts "    $res {$Name}"
+			foreach r $subres {
+				puts "        $r"
 			}
-			set gset "$distro $arch"
-			lappend gSet "$gset"
-			set taskList [$recipe selectNodes {descendant::task}]
-
-			foreach task $taskList {
-				set tname [$task @name]
-				set trole [$task @role]
-				if {$tname == "/distribution/install"} continue
-				if {$tname == "/kernel/kdump/setup-nfsdump"} continue
-				set tresult [$task @result]
-				set params {}
-				set paramList [$task selectNodes {descendant::param}]
-				foreach param $paramList {
-					set pname [$param @name]
-					if {$pname == "DISTRO_BUILD"} continue
-					if {$pname == "TestID"} continue
-					append tname " $pname=[$param @value]"
-				}
-				append tname " @$trole{$system}"
-
-				#get subtest result
-				set task_results [$task selectNodes results]
-				set subresult [list]
-				if {$task_results != ""} {
-					foreach subres [$task_results childNodes] {
-						set _res [$subres @result]
-						set _path [$subres @path]
-						lappend subresult "$_res $_path"
-					}
-					lappend tresult $subresult
-				}
-
-				lappend test($tname) $tresult
-			}
+			puts ""
+			incr i
 		}
-		puts stderr "recipeSet $jobid->RS:$recipeSetID $gSet"
-		if [info exist ::Opt(logs)] {
-			set recipelog [exec bkr job-logs RS:$recipeSetID]
-			puts "$recipelog\n"
-		} else {
-			foreach {Name Res} [array get test] {
-				set i 0
-				foreach reciperes $Res {
-					lassign $reciperes res subres
-					puts "  $res {$Name}"
-					foreach r $subres {
-						puts "        $r"
-					}
-					puts ""
-					incr i
-				}
-			}
+	}
+}
+
+proc parseRecipeResult {recipe} {
+	set ::RecipeID R:[$recipe @id]
+	set arch [$recipe @arch]
+	set distro [$recipe @distro]
+	set family [$recipe @family]
+	set ::System {}
+	set ::GSet {}
+	if [$recipe hasAttribute system] {
+		set ::System [$recipe @system]
+	}
+	set gset "$distro $arch"
+	lappend ::GSet "$gset"
+	set taskList [$recipe selectNodes {descendant::task}]
+
+	unset ::Test
+	foreach task $taskList {
+		parseTaskResult $task
+	}
+
+	puts stderr "  recipe: $::RecipeID $::GSet @$::System"
+	if [info exist ::Opt(logs)] {
+		set recipelog [exec bash -c "bkr job-logs $::RecipeID | sed 's/^/    /'"]
+		puts "$recipelog\n"
+	} else {
+		showTestResult [array get ::Test]
+	}
+}
+
+proc parseRecipesetResult {recipeset} {
+	set ::RecipeSetID RS:[$recipeset @id]
+	set recipeList [$recipeset selectNodes {descendant::recipe}]
+	set hostN [llength $recipeList]
+	set taskList [$recipeset selectNodes {descendant::task}]
+	foreach task $taskList {
+		set tname [$task @name]
+		if {$tname == "/kernel/kdump/setup-nfsdump"} {
+			if {"kdump" ni $::GSet} { lappend ::GSet kdump }
 		}
+	}
+
+	puts stderr "recipeSet: $::JobID->$::RecipeSetID"
+	foreach recipe $recipeList {
+		parseRecipeResult $recipe
+	}
+}
+
+proc parseJobResult {docRoot} {
+	set recipesetList [$docRoot selectNodes {descendant::recipeSet}]
+	foreach recipeset $recipesetList {
+		parseRecipesetResult $recipeset
 	}
 }
 
 #_main_
 #Update test status and result
-foreach jobID $Args {
-	parseJobResult $jobID
+foreach nodeID $Args {
+	set JobID {J:0}
+	set RecipeSetID {RS:0}
+	set RecipeID {R:0}
+	set TaskID {T:0}
+	set GSet {}
+	set System {}
+	array set Test {}
+
+	switch -glob -- $nodeID {
+		"J:*" {
+			set JobID $nodeID
+			parseJobResult [getDocRoot $nodeID]
+		}
+		"RS:*" {
+			set RecipeSetID $nodeID
+			parseRecipesetResult [getDocRoot $nodeID]
+		}
+		"R:*" {
+			set RecipeID $nodeID
+			parseRecipeResult [getDocRoot $nodeID]
+		}
+		"T:*" {
+			set TaskID $nodeID
+			parseTaskResult [getDocRoot $nodeID]
+			showTestResult [array get ::Test]
+		}
+	}
 }
 
