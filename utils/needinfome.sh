@@ -23,8 +23,11 @@ users=${1}
 }
 
 searchUrl="https://bugzilla.redhat.com/buglist.cgi?classification=Red%20Hat&f1=requestees.login_name&list_id=10508602&o1=substring&query_format=advanced&v1="
-for user in $users; do
-	echo user:$user
-	bugzilla query --from-url="$searchUrl"$user
-	echo
+for user in ${users//,/ }; do
+	bzlist=$(bugzilla query --from-url="$searchUrl"$user)
+	[[ -n "$bzlist" ]] && {
+		echo "user: $user"
+		echo "$bzlist" | sed 's/^/ /'
+		echo
+	}
 done
