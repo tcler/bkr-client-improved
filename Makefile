@@ -2,6 +2,8 @@
 export PATH:=${PATH}:/usr/local/bin:~/bin
 _bin=/usr/local/bin
 _lib=/usr/local/lib
+_share=/usr/share/bkr-client-improved
+_confdir=/etc/bkr-client-improved
 completion_path=/usr/share/bash-completion/completions
 
 install install_runtest: _isroot
@@ -18,14 +20,15 @@ install install_runtest: _isroot
 	  libpath=$$(rpm -ql tcllib|egrep 'tcl8../tcllib-[.0-9]+$$'); ln -sf $${libpath} /usr/lib/$${libpath##*/}; \
 	fi
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
-	mkdir -p /etc/bkr-client-improved && cp -n -r -d conf/* /etc/bkr-client-improved/.
-	cp -f conf/*.example /etc/bkr-client-improved/.
+	mkdir -p $(_confdir) && cp -n -r -d conf/* $(_confdir)/.
+	cp -f conf/*.example $(_confdir)/.
 	test -f /etc/beaker/default-ks.cfg || cp -f conf/default-ks.cfg /etc/beaker/.
 	cd lib; for d in *; do rm -fr $(_lib)/$$d; done
 	cd utils; for f in *; do rm -fr $(_bin)/$$f; done
 	cd bkr-runtest; for f in *; do rm -fr $(_bin)/$$f; done
 	cp -rf -d lib/* $(_lib)/.
 	cp -f -d bkr-runtest/* utils/* $(_bin)/.
+	mkdir -p $(_share) && cp -f share/* $(_share)/.
 	@yum install -y bash-completion
 	cp -fd bash-completion/* ${completion_path}/.||cp -fd bash-completion/* $${completion_path/\/*/}/.
 	@rm -f /usr/lib/python2.7/site-packages/bkr/client/commands/cmd_recipes_list.py $(_bin)/distro-pkg #remove old file
