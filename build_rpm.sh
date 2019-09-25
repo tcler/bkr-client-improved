@@ -23,19 +23,22 @@ genTarFile() {
 	popd >/dev/null
 }
 
-mkdir -p sysroot/usr/local/{src,lib,bin,sbin} sysroot/etc/bkr-client-improved
+pkgname=bkr-client-improved
+mkdir -p sysroot/usr/local/{src,lib,bin,sbin} sysroot/etc/$pkgname \
+	sysroot/usr/share/$pkgname
 cp -arf lib/*  sysroot/usr/local/lib/.
+cp -af share/* sysroot/usr/share/$pkgname/.
 cp -af bkr*/* utils/* sysroot/usr/local/bin/.
 cp -af cron_task/* sysroot/usr/local/sbin/.
 rm -rf sysroot/usr/local/bin/www{,2}
-cp -af conf/* sysroot/etc/bkr-client-improved/.
+cp -af conf/* sysroot/etc/$pkgname/.
 FTAR=${pkgName}-$version.tar.gz
 genTarFile ${FTAR} usr,etc,var,opt
 [ $? = 0 ] && {
 	mkdir -p ~/rpmbuild/{SPECS,SOURCES}
 	find ~/rpmbuild/RPMS/ -name "${pkgName}-*.rpm"|xargs rm -f
 	cp ${FTAR} ~/rpmbuild/SOURCES/.
-	rpmbuild -bb bkr-client-improved.spec 
+	rpmbuild -bb $pkgname.spec
 }
 
 rm -rf sysroot
