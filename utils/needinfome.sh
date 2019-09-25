@@ -22,6 +22,8 @@ users=${1}
 	echo "U must specify a user or comma separated user list" >&2
 }
 
+# how to generate from url, see:
+# https://github.com/python-bugzilla/python-bugzilla/issues/71
 searchUrl="https://bugzilla.redhat.com/buglist.cgi?classification=Red%20Hat&f1=requestees.login_name&list_id=10508602&o1=substring&query_format=advanced&v1="
 for user in ${users//,/ }; do
 	bzlist=$(bugzilla query --from-url="$searchUrl"$user)
