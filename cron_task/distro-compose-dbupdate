@@ -53,11 +53,14 @@ UpdateDB() {
 
 	#Update pkg list
 	while read distro; do
-		urlsfile=$rpmdb/${distro// /_}.urls
+		distrotrees_file=$rpmdb/${distro// /_}.distrotrees.gz
 		cachefile=$rpmdb/${distro// /_}.json.gz
 		[[ -f $cachefile ]] && continue
 
-		urls=$(bkr distro-trees-list --limit=1 --name "$distro"  |
+		distrotrees=$(bkr distro-trees-list --limit=1 --name "$distro")
+		echo "$distrotrees" > >(gzip >$distrotrees_file)
+
+		urls=$(echo "$distrotrees" |
 			awk '/https?:/ {
 				if ($3 ~ "/compose/") {
 					sub("/compose/.*$", "/compose/metadata", $3)
@@ -70,7 +73,6 @@ UpdateDB() {
 		for url in $urls; do
 			if curl -sf -k -L -u: $url/rpms.json > >(gzip >$cachefile) ||
 				curl -sf -k -L -u: $url/rpm-manifest.json > >(gzip >$cachefile); then
-				echo "$urls" >$urlsfile
 				break
 			else
 				[[ -t 2 && "$BackGround" = yes ]] || echo "[warn] get rpm json file of '$distro' fail: $url" >&2

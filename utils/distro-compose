@@ -10,7 +10,7 @@ Variant=Workstation
 
 Usage() {
 	echo "Usage: $0 <-p pkgName|pattern> [-d distroName|pattern] [-a <arch>|-v <variant>] [--dbroot]" >&2
-	echo "Usage: $0 <-d distroName> <--url>" >&2
+	echo "Usage: $0 <-d distroName> <--distrotrees>" >&2
 	echo "Usage: $0 <-d distroName> <--rpmsinfo>" >&2
 	echo "Usage: $0 <-d distroName> <--composeinfo>" >&2
 }
@@ -20,10 +20,11 @@ Debug() {
 
 _at=`getopt -o hnp:d:a:v:lD \
 	--long help \
-	--long url \
 	--long rpmsinfo \
 	--long composeinfo \
 	--long dbroot: \
+	--long url \
+	--long distrotrees \
     -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -36,7 +37,7 @@ while true; do
 	-v) Variant=$2; shift 2;;
 	-l) long=yes; shift 1;;
 	-D) debug=yes; shift 1;;
-	--url) geturl=yes; shift 1;;
+	--url|--distrotrees) getdistrotrees=yes; shift 1;;
 	--rpmsinfo) getrpmsinfo=yes; shift 1;;
 	--composeinfo) getcomposeinfo=yes; shift 1;;
 	--dbroot) dbroot=$2; shift 2;;
@@ -59,19 +60,29 @@ Distro=${Distro:-$2}
 Distro=${Distro#/}
 
 [[ -n "$Distro" ]] && {
-	[[ -n "$geturl" ]] && {
-		bkr distro-trees-list --limit=0 --name "$Distro" |& less
-		exit $?
-	}
+	cachefile=$dbpath/${Distro// /_}.json.gz
+	distrotrees_file=$dbpath/${Distro// /_}.distrotrees.gz
 
 	[[ -n "$getrpmsinfo" ]] && {
-		cachefile=$dbpath/${Distro// /_}.json.gz
 		curl -Lsf $cachefile | zcat 2>/dev/null
 		exit $?
 	}
 
+	[[ -n "$getdistrotrees" ]] && {
+		curl -Lsf $distrotrees_file | zcat 2>/dev/null
+		exit $?
+	}
+
 	[[ -n "$getcomposeinfo" ]] && {
-		urls=$(curl -Lsf $dbpath/$Distro.urls)
+		urls=$(curl -Lsf $distrotrees_file | zcat 2>/dev/null |
+			awk '/https?:/ {
+				if ($3 ~ "/compose/") {
+					sub("/compose/.*$", "/compose/metadata", $3)
+				} else if ($3 ~ "/released/") {
+					sub("([^/]+/){3}$", "metadata", $3)
+				}
+				print $3
+			}' | sort -u)
 		for url in $urls; do
 			curl -Lsf $url/composeinfo.json && break
 		done
