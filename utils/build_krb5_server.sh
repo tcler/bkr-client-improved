@@ -59,8 +59,8 @@ kdcConfTemp="[kdcdefaults]
   acl_file = /var/kerberos/krb5kdc/kadm5.acl
   dict_file = /usr/share/dict/words
   admin_keytab = /var/kerberos/krb5kdc/kadm5.keytab
-  supported_enctypes = $enctypes
-  default_principal_flags = +renewable, +forwardable
+  #supported_enctypes = $enctypes
+  default_principal_flags = +renewable, +forwardable, +preauth
  }"
 kadmAclTemp="*/admin@EXAMPLE.COM	*"
 
@@ -117,7 +117,7 @@ infoecho "create and initialize the Kerberos database on KDC"
 #( set +m; if=/dev/urandom of=/dev/random count=1024000 & )
 mv  /dev/random  /dev/random.orig
 ln -s /dev/urandom  /dev/random
-(echo "redhat"; usleep 100000; echo "redhat") | kdb5_util create -r $realm -s
+(echo "redhat"; sleep 0.1; echo "redhat") | kdb5_util create -r $realm -s
 mv /dev/random.orig /dev/random
 
 infoecho "add principal root/admin and users ..."
@@ -128,7 +128,7 @@ princList="root/admin,redhat
 	krbuser4,pkrbuser4 krbuser5,pkrbuser5 krbuser6,pkrbuser6 krbuser7,pkrbuser7"
 for kv in $princList; do
 	read  princ pass nil <<<"${kv//,/ }"
-	kadmin.local -q "addprinc -pw $pass $princ"
+	while ! kadmin.local -q "addprinc -pw $pass $princ"; do sleep 1; done
 done
 kadmin.local -q "listprincs"
 [ $? != 0 ] && errecho "kadmin.local fail. something is wrong."
