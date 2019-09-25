@@ -55,30 +55,34 @@ UpdateDB() {
 	while read distro; do
 		distrotrees_file=$rpmdb/${distro// /_}.distrotrees.gz
 		cachefile=$rpmdb/${distro// /_}.json.gz
-		[[ -f $cachefile ]] && continue
 
 		distrotrees=$(bkr distro-trees-list --limit=1 --name "$distro")
-		echo "$distrotrees" > >(gzip >$distrotrees_file)
 
-		urls=$(echo "$distrotrees" |
-			awk '/https?:/ {
-				if ($3 ~ "/compose/") {
-					sub("/compose/.*$", "/compose/metadata", $3)
-				} else if ($3 ~ "/released/") {
-					sub("([^/]+/){3}$", "metadata", $3)
-				}
-				print $3
-			}' | sort -u)
+		[[ -f $distrotrees_file ]] || {
+			echo "$distrotrees" > >(gzip >$distrotrees_file)
+		}
 
-		for url in $urls; do
-			if curl -sf -k -L -u: $url/rpms.json > >(gzip >$cachefile) ||
-				curl -sf -k -L -u: $url/rpm-manifest.json > >(gzip >$cachefile); then
-				break
-			else
-				[[ -t 2 && "$BackGround" = yes ]] || echo "[warn] get rpm json file of '$distro' fail: $url" >&2
-				rm -f $cachefile
-			fi
-		done
+		[[ -f $cachefile ]] || {
+			urls=$(echo "$distrotrees" |
+				awk '/https?:/ {
+					if ($3 ~ "/compose/") {
+						sub("/compose/.*$", "/compose/metadata", $3)
+					} else if ($3 ~ "/released/") {
+						sub("([^/]+/){3}$", "metadata", $3)
+					}
+					print $3
+				}' | sort -u)
+
+			for url in $urls; do
+				if curl -sf -k -L -u: $url/rpms.json > >(gzip >$cachefile) ||
+					curl -sf -k -L -u: $url/rpm-manifest.json > >(gzip >$cachefile); then
+					break
+				else
+					[[ -t 2 && "$BackGround" = yes ]] || echo "[warn] get rpm json file of '$distro' fail: $url" >&2
+					rm -f $cachefile
+				fi
+			done
+		}
 	done < <(sed -n '/^+[^+]/{s/^+//; p}' distro.list.diff)
 	\cp distro.list $rpmdb/.
 	rm -f $lockf
