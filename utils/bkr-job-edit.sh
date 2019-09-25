@@ -6,7 +6,7 @@ Usage() {
 
 _at=`getopt -o h \
 	--long help \
-    -n "$0" -- "$@"`
+    -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
 	case "$1" in

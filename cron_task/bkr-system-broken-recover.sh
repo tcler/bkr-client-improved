@@ -7,7 +7,7 @@ Usage() {
 _at=`getopt -o ho:f:c: \
 	--long help \
 	--long owner: \
-    -n "$0" -- "$@"`
+    -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
 	case "$1" in

@@ -25,7 +25,7 @@ _at=`getopt -o hnp:d:a:v:lD \
 	--long dbroot: \
 	--long url \
 	--long distrotrees \
-    -n "$0" -- "$@"`
+    -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
 	case "$1" in

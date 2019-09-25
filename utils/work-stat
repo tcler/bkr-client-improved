@@ -51,7 +51,7 @@ _at=`getopt -o hw:u:d \
 	--long help \
 	--long tonow \
 	--long tolast \
-    -n "$P" -- "$@"`
+    -a -n "$P" -- "$@"`
 eval set -- "$_at"
 
 while true; do

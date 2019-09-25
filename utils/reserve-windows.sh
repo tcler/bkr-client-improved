@@ -11,7 +11,7 @@ _at=`getopt -a -o hbd: \
 	--long kdc \
 	--long bridge \
 	--long distro: \
-    -n "$P" -- "$@"`
+    -a -n "$P" -- "$@"`
 eval set -- "$_at"
 
 while true; do

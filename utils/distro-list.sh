@@ -16,7 +16,7 @@ _at=`getopt -o hdf:t:n: \
 	--long family: \
 	--long tag: \
 	--long name: \
-    -n "$P" -- "$@"`
+    -a -n "$P" -- "$@"`
 eval set -- "$_at"
 
 while true; do
