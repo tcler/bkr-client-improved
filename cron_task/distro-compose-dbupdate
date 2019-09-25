@@ -56,7 +56,7 @@ UpdateDB() {
 		distrotrees_file=$rpmdb/${distro// /_}.distrotrees.gz
 		cachefile=$rpmdb/${distro// /_}.json.gz
 
-		distrotrees=$(bkr distro-trees-list --limit=1 --name "$distro")
+		distrotrees=$(bkr distro-trees-list --limit=0 --name "$distro")
 
 		[[ -f $distrotrees_file ]] || {
 			echo "$distrotrees" > >(gzip >$distrotrees_file)
