@@ -133,3 +133,6 @@ virt-install \
   --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT:-7777}
 
 [[ -n "$ksauto" ]] && \rm -f $ksauto
+
+read addr host < <(getent hosts $vmname)
+echo "{INFO} $vmname's address is $addr, try: ssh $addr"
