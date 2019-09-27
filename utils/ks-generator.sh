@@ -109,7 +109,7 @@ firewall --enabled --http --ftp --smtp --ssh
 skipx
 firstboot --disable
 
-%packages
+%packages --ignoremissing
 ${Packages}
 %end
 
