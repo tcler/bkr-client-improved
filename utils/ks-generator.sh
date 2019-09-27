@@ -46,6 +46,15 @@ RHEL-7*|RHEL7*)
 @directory-server openldap-servers krb5-server-ldap krb5-server migrationtools samba
 @ftp-server @system-admin-tools symlinks dump screen tree hardlink expect crypto-utils
 scrub system-storage-manager lsscsi"
+	{ read; read os arch osv _; } < <(tac -s ' ' <<<"${URL//\// }")
+	debug_url=${URL/\/os/\/debug\/tree}
+	Repos+=(
+${osv}:${URL}
+${osv}-optional:${URL/$osv/${osv}-optional}
+
+${osv}-debuginfo:${debug_url}
+${osv}-optional:${debug_url/$osv/${osv}-optional}
+)
 	;;
 RHEL-8*|RHEL8*)
 	Packages="@standard @file-server isns-utils @directory-server krb5-server samba
