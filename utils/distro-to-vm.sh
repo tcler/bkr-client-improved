@@ -1,4 +1,5 @@
 #!/bin/bash
+LANG=C
 
 Distro=
 Location=
@@ -8,7 +9,7 @@ VM_OS_VARIANT=
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <-d distroname> <-ks kickstart> <-osv variant> [-l location]
+	 $0 <-d distroname> <-osv variant> [-ks kickstart] [-l location] [-port vncport]
 
 	Comment: you can get <-osv variant> info by using:
 	 $ osinfo-query os  #RHEL-7 and later
@@ -21,6 +22,7 @@ _at=`getopt -o hd:l: \
 	--long ks: \
 	--long osv: \
 	--long os-variant: \
+	--long port: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -30,6 +32,7 @@ while true; do
 	-l)        Location=$2; shift 2;;
 	--ks)      KSPath=$2; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
+	--port)    VNCPORT="$2"; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -39,20 +42,21 @@ distro2location() {
 	local arch=${2:-x86_64}
 	local variant=${3:-Server}
 
-	distrotrees=$(bkr distro-trees-list --name "$distro" --arch "$arch")
+	which bkr &>/dev/null &&
+		distrotrees=$(bkr distro-trees-list --name "$distro" --arch "$arch")
 	[[ -z "$distrotrees" ]] && {
 		which distro-compose &>/dev/null ||
-			wget https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/distro-compose
+			wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/distro-compose
 		distrotrees=$(bash distro-compose -d "$distro" --distrotrees)
 	}
 	urls=$(echo "$distrotrees" | awk '/https?:.*\/'"(${variant}|BaseOS)\/${arch}"'\//{print $3}' | sort -u)
 
 	which fastesturl.sh &>/dev/null ||
-		wget https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/fastesturl.sh
+		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/fastesturl.sh
 	bash fastesturl.sh $urls
 }
 
-[[ -z "$Distro" || -z "$VM_OS_VARIANT" || -z "$KSPath" ]] && {
+[[ -z "$Distro" || -z "$VM_OS_VARIANT" ]] && {
 	Usage
 	exit 1
 }
@@ -78,17 +82,35 @@ osvariants=$(virt-install --os-variant list 2>/dev/null) ||
 	}
 }
 
+[[ -z "$KSPath" ]] && {
+	KSPath=/tmp/ks-$VM_OS_VARIANT-$$.cfg
+	which ks-generator.sh &>/dev/null ||
+		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
+	bash ks-generator.sh -d $Distro -url $Location >$KSPath
+}
+
+echo -e "{INFO} install libvirt service and related packages ..."
+sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+sudo yum install -y libvirt libvirt-client virt-install virt-viewer qemu-kvm genisoimage libguestfs-tools \
+libguestfs-tools-c openldap-clients dos2unix unix2dos glibc-common libguestfs-winsupport unix2dos
+
 echo -e "{INFO} creating VM by using location:\n  $Location"
-exit
+vmname=vm-$Distro
+[[ "${OVERWRITE:-yes}" = "yes" ]] && {
+        virsh undefine $vmname
+        virsh destroy $vmname
+}
+service libvirtd restart
+service virtlogd restart
 
 ksfile=${KSPath##*/}
-
 virt-install \
-  --name vm-$Distro \
+  --name $vmname \
   --location $Location \
   --os-variant $VM_OS_VARIANT \
   --memory 2048 \
   --vcpus 2 \
   --disk size=8 \
   --initrd-inject $KSPath \
-  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8"
+  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
+  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT:-7777}
