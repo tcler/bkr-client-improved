@@ -3,13 +3,15 @@ LANG=C
 
 Distro=
 Location=
-KSPath=
 VM_OS_VARIANT=
+OVERWRITE=no
+KSPath=
+ksauto=
 
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <-d distroname> <-osv variant> [-ks kickstart] [-l location] [-port vncport]
+	 $0 <-d distroname> <-osv variant> [-ks kickstart] [-l location] [-port vncport] [-force]
 
 	Comment: you can get <-osv variant> info by using:
 	 $ osinfo-query os  #RHEL-7 and later
@@ -23,6 +25,7 @@ _at=`getopt -o hd:l: \
 	--long osv: \
 	--long os-variant: \
 	--long port: \
+	--long force \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -33,6 +36,7 @@ while true; do
 	--ks)      KSPath=$2; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
 	--port)    VNCPORT="$2"; shift 2;;
+	--force)   OVERWRITE="yes"; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -83,23 +87,36 @@ osvariants=$(virt-install --os-variant list 2>/dev/null) ||
 }
 
 [[ -z "$KSPath" ]] && {
-	KSPath=/tmp/ks-$VM_OS_VARIANT-$$.cfg
+	ksauto=/tmp/ks-$VM_OS_VARIANT-$$.cfg
+	KSPath=$ksauto
 	which ks-generator.sh &>/dev/null ||
 		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
 	bash ks-generator.sh -d $Distro -url $Location >$KSPath
 }
 
 echo -e "{INFO} install libvirt service and related packages ..."
-sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-sudo yum install -y libvirt libvirt-client virt-install virt-viewer qemu-kvm genisoimage libguestfs-tools \
-libguestfs-tools-c openldap-clients dos2unix unix2dos glibc-common libguestfs-winsupport unix2dos
+sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>/dev/null
+sudo yum install -y libvirt libvirt-client virt-install virt-viewer qemu-kvm genisoimage libguestfs-tools &>/dev/null
+sudo yum install -y libguestfs-tools-c openldap-clients dos2unix unix2dos glibc-common libguestfs-winsupport unix2dos &>/dev/null
+
+echo -e "{INFO} install libvirt-nss module ..."
+sudo yum install -y libvirt-nss &>/dev/null
+grep -q '^hosts:.*libvirt libvirt_guest' /etc/nsswitch.conf ||
+	sed -i '/^hosts:/s/files /&libvirt libvirt_guest /' /etc/nsswitch.conf
 
 echo -e "{INFO} creating VM by using location:\n  $Location"
-vmname=vm-$Distro
-[[ "${OVERWRITE:-yes}" = "yes" ]] && {
-        virsh undefine $vmname
-        virsh destroy $vmname
+vmname=vm-${Distro//./}
+virsh desc $vmname 2>/dev/null && {
+	if [[ "${OVERWRITE}" = "yes" ]]; then
+		virsh undefine $vmname
+		virsh destroy $vmname
+	else
+		echo "{INFO} VM $vmname has been there, if you want overwrite please use --force option"
+		[[ -n "$ksauto" ]] && \rm -f $ksauto
+		exit
+	fi
 }
+
 service libvirtd restart
 service virtlogd restart
 
@@ -114,3 +131,5 @@ virt-install \
   --initrd-inject $KSPath \
   --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
   --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT:-7777}
+
+[[ -n "$ksauto" ]] && \rm -f $ksauto
