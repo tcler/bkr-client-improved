@@ -41,6 +41,18 @@ done
 
 shopt -s nocasematch
 case $Distro in
+RHEL-6*|RHEL6*)
+	Packages="@base @cifs-file-server @nfs-file-server @storage-server @ftp-server"
+	{ read; read os arch osv _; } < <(tac -s ' ' <<<"${URL//\// }")
+	debug_url=${URL/\/os/\/debug\/tree}
+	Repos+=(
+${osv}:${URL}
+${osv}-optional:${URL/$osv/${osv}-optional}
+
+${osv}-debuginfo:${debug_url}
+${osv}-optional:${debug_url/$osv/${osv}-optional}
+)
+	;;
 RHEL-7*|RHEL7*)
 	Packages="@base @identity-management-server @file-server nfstest nfsometer
 @directory-server openldap-servers krb5-server-ldap krb5-server migrationtools samba
