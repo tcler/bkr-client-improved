@@ -45,13 +45,13 @@ case $Distro in
 RHEL-6*|RHEL6*)
 	Packages="@base @cifs-file-server @nfs-file-server @storage-server @ftp-server"
 	{ read; read os arch osv _; } < <(tac -s ' ' <<<"${URL//\// }")
-	debug_url=${URL/\/os/\/debug\/tree}
+	debug_url=${URL/\/os/\/debug}
 	Repos+=(
 ${osv}:${URL}
-${osv}-optional:${URL/$osv/${osv}-optional}
+${osv}-optional:${URL/$osv/${osv}\/optional}
 
 ${osv}-debuginfo:${debug_url}
-${osv}-optional:${debug_url/$osv/${osv}-optional}
+${osv}-optional:${debug_url/$osv/${osv}\/optional}
 )
 SpecialConf="network --device=eth0 --bootproto=dhcp"
 	;;
