@@ -8,7 +8,8 @@ Distro=
 URL=
 Repos=()
 Post=
-SpecialConf=
+NetCommand=
+KeyCommand=
 
 Usage() {
 	cat <<-EOF >&2
@@ -53,7 +54,8 @@ ${osv}-optional:${URL/$osv/${osv}\/optional}
 ${osv}-debuginfo:${debug_url}
 ${osv}-optional:${debug_url/$osv/${osv}\/optional}
 )
-SpecialConf="network --device=eth0 --bootproto=dhcp"
+NetCommand="network --device=eth0 --bootproto=dhcp"
+KeyCommand="key --skip"
 	;;
 RHEL-7*|RHEL7*)
 	Packages="@base @identity-management-server @file-server nfstest nfsometer
@@ -111,10 +113,10 @@ rootpw \$1\$zAwkhhNB\$rxjwuf7RLTuS6owGoL22I1 --iscrypted
 
 #platform x86, AMD64, or Intel EM64T
 reboot
-$SpecialConf
+$NetCommand
 text
 url --url=$URL
-key --skip
+$KeyCommand
 bootloader --location=mbr --append="rhgb quiet crashkernel=auto"
 zerombr
 clearpart --all --initlabel
