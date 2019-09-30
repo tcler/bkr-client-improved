@@ -135,7 +135,7 @@ service libvirtd restart
 service virtlogd restart
 
 ksfile=${KSPath##*/}
-virt-install \
+virt-install --connect=qemu:///system --hvm --accelerate \
   --name $vmname \
   --location $Location \
   --os-variant $VM_OS_VARIANT \
