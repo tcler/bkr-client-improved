@@ -54,6 +54,11 @@ distro2location() {
 		distrotrees=$(bash distro-compose -d "$distro" --distrotrees)
 	}
 	urls=$(echo "$distrotrees" | awk '/https?:.*\/'"(${variant}|BaseOS)\/${arch}"'\//{print $3}' | sort -u)
+	[[ "$distro" = RHEL5* ]] && {
+		pattern=${distro//-/.}
+		pattern=${pattern/5/-?5}
+		urls=$(echo "$distrotrees" | awk '/https?:.*\/'"${pattern}\/${arch}"'\//{print $3}' | sort -u)
+	}
 
 	which fastesturl.sh &>/dev/null ||
 		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/fastesturl.sh
@@ -92,6 +97,15 @@ osvariants=$(virt-install --os-variant list 2>/dev/null) ||
 	which ks-generator.sh &>/dev/null ||
 		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
 	bash ks-generator.sh -d $Distro -url $Location >$KSPath
+
+	[[ "$Distro" = RHEL5* ]] && {
+		ex -s $KSPath <<-EOF
+		/%packages/,/%end/ d
+		$ put
+		$ d
+		w
+		EOF
+	}
 }
 
 echo -e "{INFO} install libvirt service and related packages ..."

@@ -42,7 +42,7 @@ done
 
 shopt -s nocasematch
 case $Distro in
-RHEL-6*|RHEL6*)
+RHEL-[56]*|RHEL[56]*)
 	Packages="@base @cifs-file-server @nfs-file-server @storage-server @ftp-server"
 	{ read; read os arch osv _; } < <(tac -s ' ' <<<"${URL//\// }")
 	debug_url=${URL/\/os/\/debug}
@@ -114,6 +114,7 @@ reboot
 $SpecialConf
 text
 url --url=$URL
+key --skip
 bootloader --location=mbr --append="rhgb quiet crashkernel=auto"
 zerombr
 clearpart --all --initlabel
