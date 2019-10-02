@@ -11,7 +11,6 @@ run() {
 	return $ret
 }
 
-# Install koji & brew
 installBrew2() {
 	#https://mojo.redhat.com/docs/DOC-1024827
 	urls="
@@ -32,7 +31,7 @@ installBrew2() {
 	case $name in
 	RedHatEnterprise*)
 		case $verx in
-		6|7) 
+		6|7)
 			for type in server client workstation; do
 				curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-${verx}-${type}.repo
 				yum install -y koji brewkoji && break || rm rcm-tools-*.repo
@@ -88,13 +87,12 @@ storepath=$2
 }
 
 # fix ssl certificate verify failed
-curl https://password.corp.redhat.com/RH-IT-Root-CA.crt -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt
-curl https://password.corp.redhat.com/legacy.crt -o /etc/pki/ca-trust/source/anchors/legacy.crt
-update-ca-trust
-
-yum --setopt=strict=0 install -y koji python-koji python-pycurl brewkoji
+#curl https://password.corp.redhat.com/RH-IT-Root-CA.crt -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt
+#curl https://password.corp.redhat.com/legacy.crt -o /etc/pki/ca-trust/source/anchors/legacy.crt
+#update-ca-trust
 
 # install koji & brew
+yum --setopt=strict=0 install -y koji python-koji python-pycurl brewkoji
 which brew &>/dev/null || installBrew2 || installBrewFromSourceCode
 
 # Download packges

@@ -5,71 +5,63 @@ verx=$(lsb_release -sr|awk -F. '{print $1}')
 dfix=f
 echo "$(lsb_release -si)" | egrep -q "^(RedHat|Sci|Cent)" && dfix=el
 
-# install koji & brew
-installBrew() {
-	yum install -y koji &>/dev/null
-	which koji &>/dev/null || {
-		#git clone https://git.fedorahosted.org/git/koji
-		wget --no-check-certificate https://fedorahosted.org/released/koji/koji-1.9.0.tar.bz2
-		tar jxf koji-1.9.0.tar.bz2
-		(cd koji-1.9.0; make install &>koji_install.log)
-		[ $? != 0 ] && {
-			echo "[Error] Install koji/brew from source fail!" >&2
-			exit 1
-		}
-	}
-	which brew &>/dev/null || {
-		#cat <<END > ~/.koji/config
-		mkdir -p ~/.koji /etc/koji.conf.d
-		cat <<-END > /etc/koji.conf.d/brew.conf
-		[brew]
-		server = http://brewhub.devel.redhat.com/brewhub
-		authtype = kerberos
-		topdir = /mnt/redhat/brewroot
-		weburl = http://brewweb.devel.redhat.com/brew
-		topurl = http://download.devel.redhat.com/brewroot
-		END
-		ln -s /usr/bin/koji /usr/bin/brew
-	}
-
-	which brew &>/dev/null
-}
-
 installBrew2() {
-	which brew &>/dev/null && return
-	: <<-COMM
 	#https://mojo.redhat.com/docs/DOC-1024827
+	urls="
 	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-server.repo
 	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-client.repo
 	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-workstation.repo
 	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-server.repo
 	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-client.repo
 	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-workstation.repo
+	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-8-baseos.repo
 	curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
-	COMM
+	"
 
-	name=$(lsb_release -sir|awk '{print $1}')
-	verx=$(lsb_release -sr|awk -F. '{print $1}')
+	local name=$(lsb_release -sir|awk '{print $1}')
+	local verx=$(lsb_release -sr|awk -F. '{print $1}')
 
 	pushd /etc/yum.repos.d
 	case $name in
 	RedHatEnterprise*)
 		case $verx in
-		6) curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-workstation.repo;;
-		7) curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-workstation.repo;;
+		6|7)
+			for type in server client workstation; do
+				curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-${verx}-${type}.repo
+				yum install -y koji brewkoji && break || rm rcm-tools-*.repo
+			done
+			;;
+		8)
+			curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-8-baseos.repo
+			yum install -y koji brewkoji python3-koji python3-pycurl || rm rcm-tools-*.repo
+			;;
 		esac
 		;;
 	Fedora*)
 		curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
+		yum install -y koji brewkoji
 		;;
 	esac
 	popd
 
-	yum install -y koji brewkoji
+	which brew &>/dev/null
+}
+installBrewFromSourceCode() {
+	git -c http.sslVerify=false clone  https://code.engineering.redhat.com/gerrit/rcm-brewkoji.git
+	cd rcm-brewkoji
+	make install >/dev/null
+
 	which brew &>/dev/null
 }
 
-which brew &>/dev/null || installBrew || installBrew2
+# fix ssl certificate verify failed
+#curl https://password.corp.redhat.com/RH-IT-Root-CA.crt -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt
+#curl https://password.corp.redhat.com/legacy.crt -o /etc/pki/ca-trust/source/anchors/legacy.crt
+#update-ca-trust
+
+# install koji & brew
+yum --setopt=strict=0 install -y koji python-koji python-pycurl brewkoji
+which brew &>/dev/null || installBrew2 || installBrewFromSourceCode
 
 progname=${0##*/}
 
