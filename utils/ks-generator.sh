@@ -58,7 +58,7 @@ NetCommand="network --device=eth0 --bootproto=dhcp"
 KeyCommand="key --skip"
 	;;
 RHEL-7*|RHEL7*)
-	Packages="@base @file-server nfstest nfsometer krb5-server samba
+	Packages="-iwl* @base @file-server nfstest nfsometer krb5-server samba
 @ftp-server @system-admin-tools symlinks dump screen tree hardlink expect"
 	{ read; read os arch osv _; } < <(tac -s ' ' <<<"${URL//\// }")
 	debug_url=${URL/\/os/\/debug\/tree}
@@ -71,7 +71,7 @@ ${osv}-optional:${debug_url/$osv/${osv}-optional}
 )
 	;;
 RHEL-8*|RHEL8*)
-	Packages="@standard @file-server isns-utils krb5-server samba
+	Packages="-iwl* @standard @file-server isns-utils krb5-server samba
 @ftp-server @web-server @network-server"
 	debug_url=${URL/\/os/\/debug\/tree}
 	Repos+=(
