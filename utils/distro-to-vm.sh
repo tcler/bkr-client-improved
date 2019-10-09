@@ -46,8 +46,8 @@ done
 
 distro2location() {
 	local distro=$1
-	local arch=${2:-x86_64}
-	local variant=${3:-Server}
+	local variant=${2:-Server}
+	local arch=$(arch)
 
 	which bkr &>/dev/null &&
 		distrotrees=$(bkr distro-trees-list --name "$distro" --arch "$arch")
