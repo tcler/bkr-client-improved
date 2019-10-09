@@ -39,7 +39,7 @@ while true; do
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
 	--port)    VNCPORT="$2"; shift 2;;
 	--force)   OVERWRITE="yes"; shift 1;;
-	--macvtap)   MacvtapMode="$2"; shift 1;;
+	--macvtap)   MacvtapMode="$2"; shift 2;;
 	--) shift; break;;
 	esac
 done
