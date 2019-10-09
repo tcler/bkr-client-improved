@@ -110,8 +110,7 @@ osvariants=$(virt-install --os-variant list 2>/dev/null) ||
 
 echo -e "{INFO} install libvirt service and related packages ..."
 sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>/dev/null
-sudo yum install -y libvirt libvirt-client virt-install virt-viewer qemu-kvm genisoimage libguestfs-tools &>/dev/null
-sudo yum install -y libguestfs-tools-c openldap-clients dos2unix unix2dos glibc-common libguestfs-winsupport unix2dos &>/dev/null
+sudo yum install -y libvirt libvirt-client virt-install virt-viewer qemu-kvm libguestfs-tools expect &>/dev/null
 
 echo -e "{INFO} install libvirt-nss module ..."
 sudo yum install -y libvirt-nss &>/dev/null
@@ -131,8 +130,48 @@ virsh desc $vmname 2>/dev/null && {
 	fi
 }
 
-service libvirtd restart
-service virtlogd restart
+service libvirtd start
+service virtlogd start
+
+is_bridge() {
+	local ifname=$1
+	[[ -z "$ifname" ]] && return 1
+	ip -d a s $ifname | grep -qw bridge
+}
+get_default_if() {
+	local notbr=$1
+	local iface=
+
+	iface=$(ip route get 1 | awk '/^[0-9]/{print $5}')
+	if [[ -n "$notbr" ]] && is_bridge $iface; then
+		# ls /sys/class/net/$iface/brif
+		if command -v brctl; then
+			brctl show $iface | awk 'NR==2 {print $4}'
+		else
+			ip link show type bridge_slave | awk -F'[ :]+' '/master '$iface' state UP/{print $2}' | head -n1
+		fi
+		return 0
+	fi
+	echo $iface
+}
+
+virsh net-create --file <(
+	cat <<-NET
+	<network>
+	  <name>nnetwork</name>
+	  <bridge name="virbr1" />
+	  <forward mode="nat" >
+	    <nat>
+	      <port start='1024' end='65535'/>
+	    </nat>
+	  </forward>
+	  <ip address="192.168.100.1" netmask="255.255.255.0" >
+	    <dhcp>
+	      <range start='192.168.100.2' end='192.168.100.254'/>
+	    </dhcp>
+	  </ip>
+	</network>
+	NET)
 
 ksfile=${KSPath##*/}
 virt-install --connect=qemu:///system --hvm --accelerate \
@@ -142,9 +181,43 @@ virt-install --connect=qemu:///system --hvm --accelerate \
   --memory 2048 \
   --vcpus 2 \
   --disk size=8 \
+  --network network=default \
+  --network network=nnetwork \
+  --network type=direct,source=$(get_default_if notbr),source_mode=bridge \
   --initrd-inject $KSPath \
   --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
-  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT:-7777}
+  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT:-7777} &
+installpid=$!
+sleep 5s
+
+while true; do
+	clear
+	expect -c '
+		set timeout -1
+		spawn virsh console '"$vmname"'
+		expect {
+			"error: Disconnected from qemu:///system due to end of file*" {
+				send "\r"
+				puts $expect_out(buffer)
+				exit 5
+			}
+			"error: The domain is not running" {
+				send "\r"
+				puts $expect_out(buffer)
+				exit 6
+			}
+			"* login:" {
+				send "\r"
+				exit 0
+			}
+		}
+	' && break
+	sleep 2
+done
+
+# waiting install finish ...
+echo -e "{INFO} waiting install finish ..."
+while test -d /proc/$installpid; do sleep 5; done
 
 [[ -n "$ksauto" ]] && \rm -f $ksauto
 
