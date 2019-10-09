@@ -7,11 +7,12 @@ VM_OS_VARIANT=
 OVERWRITE=no
 KSPath=
 ksauto=
+MacvtapMode=vepa
 
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <-d distroname> <-osv variant> [-ks kickstart] [-l location] [-port vncport] [-force]
+	 $0 <-d distroname> <-osv variant> [-ks kickstart] [-l location] [-port vncport] [-force] [-macvtap {vepa|bridge}]
 
 	Comment: you can get <-osv variant> info by using:
 	 $ osinfo-query os  #RHEL-7 and later
@@ -26,6 +27,7 @@ _at=`getopt -o hd:l: \
 	--long os-variant: \
 	--long port: \
 	--long force \
+	--long macvtap: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -37,6 +39,7 @@ while true; do
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
 	--port)    VNCPORT="$2"; shift 2;;
 	--force)   OVERWRITE="yes"; shift 1;;
+	--macvtap)   MacvtapMode="$2"; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -121,8 +124,10 @@ echo -e "{INFO} creating VM by using location:\n  $Location"
 vmname=vm-${Distro//./}
 virsh desc $vmname 2>/dev/null && {
 	if [[ "${OVERWRITE}" = "yes" ]]; then
-		virsh undefine $vmname
+		file=$(virsh dumpxml --domain $vmname | sed -n "/source file=/{s|^.*='||; s|'/>$||; p}")
 		virsh destroy $vmname
+		virsh undefine $vmname --remove-all-storage
+		[[ -f "$file" ]] && \rm "$file"
 	else
 		echo "{INFO} VM $vmname has been there, if you want overwrite please use --force option"
 		[[ -n "$ksauto" ]] && \rm -f $ksauto
@@ -181,9 +186,9 @@ virt-install --connect=qemu:///system --hvm --accelerate \
   --memory 2048 \
   --vcpus 2 \
   --disk size=8 \
-  --network network=default \
   --network network=nnetwork \
-  --network type=direct,source=$(get_default_if notbr),source_mode=bridge \
+  --network network=default \
+  --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode \
   --initrd-inject $KSPath \
   --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
   --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT:-7777} &
