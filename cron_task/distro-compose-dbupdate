@@ -85,6 +85,19 @@ UpdateDB() {
 		}
 	done < <(sed -n '/^+[^+]/{s/^+//; p}' distro.list.diff)
 	\cp distro.list $rpmdb/.
+
+	# update distrotrees of latest distro
+	# sometimes beaker requires a few days to sync distro to difference lab
+	while read fpath; do
+		file=${fpath##*/}
+		distro=${file%.distrotrees.gz}
+		distro_name=${distro//_/ }
+		distrotrees=$(bkr distro-trees-list --limit=0 --name "$distro_name")
+		echo "$distrotrees" > >(gzip >/tmp/$file.$$)
+		tmpfile=/tmp/$file.$$
+		cmp -s ${fpath} $tmpfile || \cp -f $tmpfile ${fpath}
+		\rm -f $tmpfile
+	done < <(find $rpmdb -mtime -5 -type f -name '*.distrotrees.gz')
 	rm -f $lockf
 }
 
