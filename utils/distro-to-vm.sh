@@ -12,15 +12,20 @@ MacvtapMode=vepa
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <-d distroname> [-osv variant] [-ks kickstart] [-l location] [-port vncport] [-force] [-macvtap {vepa|bridge}]
+	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-port vncport] [-osv variant] [-f|-force] [-macvtap {vepa|bridge}]
 
-	Comment: you can get <-osv variant> info by using:
+	Example:
+	 $0 -d RHEL-6.10
+	 $0 RHEL-7.7
+	 $0 RHEL-8.1.0 -f
+
+	Comment: you can get [-osv variant] info by using(now -osv option is unnecessary):
 	 $ osinfo-query os  #RHEL-7 and later
 	 $ virt-install --os-variant list  #RHEL-6
 	EOF
 }
 
-_at=`getopt -o hd:l: \
+_at=`getopt -o hd:l:f \
 	--long help \
 	--long ks: \
 	--long osv: \
@@ -38,7 +43,7 @@ while true; do
 	--ks)      KSPath=$2; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
 	--port)    VNCPORT="$2"; shift 2;;
-	--force)   OVERWRITE="yes"; shift 1;;
+	-f|--force)  OVERWRITE="yes"; shift 1;;
 	--macvtap)   MacvtapMode="$2"; shift 2;;
 	--) shift; break;;
 	esac
@@ -68,6 +73,7 @@ distro2location() {
 	bash fastesturl.sh $urls
 }
 
+[[ -z "$Distro" ]] && Distro=$1
 [[ -z "$Distro" ]] && {
 	Usage
 	exit 1
@@ -119,7 +125,7 @@ osvariants=$(virt-install --os-variant list 2>/dev/null) ||
 
 echo -e "{INFO} install libvirt service and related packages ..."
 sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>/dev/null
-sudo yum install -y libvirt libvirt-client virt-install virt-viewer qemu-kvm libguestfs-tools expect &>/dev/null
+sudo yum install -y libvirt libvirt-client virt-install virt-viewer qemu-kvm expect nmap-ncat nc &>/dev/null
 
 echo -e "{INFO} install libvirt-nss module ..."
 sudo yum install -y libvirt-nss &>/dev/null
