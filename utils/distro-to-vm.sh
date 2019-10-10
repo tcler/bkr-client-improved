@@ -184,6 +184,11 @@ virsh net-create --file <(
 	</network>
 	NET)
 
+VNCPORT=${VNCPORT:-7777}
+while nc 127.0.0.1 ${VNCPORT} </dev/null &>/dev/null; do
+	let VNCPORT++
+done
+
 ksfile=${KSPath##*/}
 virt-install --connect=qemu:///system --hvm --accelerate \
   --name $vmname \
@@ -197,7 +202,7 @@ virt-install --connect=qemu:///system --hvm --accelerate \
   --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode \
   --initrd-inject $KSPath \
   --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
-  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT:-7777} &
+  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} &
 installpid=$!
 sleep 5s
 
@@ -232,6 +237,8 @@ echo -e "{INFO} waiting install finish ..."
 while test -d /proc/$installpid; do sleep 5; done
 
 [[ -n "$ksauto" ]] && \rm -f $ksauto
+
+echo "{INFO} VNC port ${VNCPORT}"
 
 read addr host < <(getent hosts $vmname)
 echo "{INFO} $vmname's address is $addr, try: ssh $addr"
