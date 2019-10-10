@@ -213,7 +213,7 @@ installpid=$!
 sleep 5s
 
 while true; do
-	clear
+	clear -x
 	expect -c '
 		set timeout -1
 		spawn virsh console '"$vmname"'
@@ -241,10 +241,14 @@ done
 # waiting install finish ...
 echo -e "{INFO} waiting install finish ..."
 while test -d /proc/$installpid; do sleep 5; done
-
 [[ -n "$ksauto" ]] && \rm -f $ksauto
 
 echo "{INFO} VNC port ${VNCPORT}"
 
+echo "{INFO} you can try login $vmname by:"
+echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
+echo -e "  $ virsh console $vmname"
 read addr host < <(getent hosts $vmname)
-echo "{INFO} $vmname's address is $addr, try: ssh $addr"
+[[ -n "$addr" ]] && {
+	echo -e "  $ ssh root@$addr"
+}
