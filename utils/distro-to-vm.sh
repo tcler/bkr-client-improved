@@ -12,7 +12,7 @@ MacvtapMode=vepa
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <-d distroname> <-osv variant> [-ks kickstart] [-l location] [-port vncport] [-force] [-macvtap {vepa|bridge}]
+	 $0 <-d distroname> [-osv variant] [-ks kickstart] [-l location] [-port vncport] [-force] [-macvtap {vepa|bridge}]
 
 	Comment: you can get <-osv variant> info by using:
 	 $ osinfo-query os  #RHEL-7 and later
@@ -68,20 +68,26 @@ distro2location() {
 	bash fastesturl.sh $urls
 }
 
-[[ -z "$Distro" || -z "$VM_OS_VARIANT" ]] && {
+[[ -z "$Distro" ]] && {
 	Usage
 	exit 1
 }
 
-echo "{INFO} verify os-variant ..."
+echo "{INFO} guess/verify os-variant ..."
+#Speculate the appropriate VM_OS_VARIANT according distro name
+[[ -z "$VM_OS_VARIANT" ]] && {
+	VM_OS_VARIANT=${Distro/-/}
+	VM_OS_VARIANT=${VM_OS_VARIANT%%-*}
+	VM_OS_VARIANT=${VM_OS_VARIANT,,}
+}
 osvariants=$(virt-install --os-variant list 2>/dev/null) ||
 	osvariants=$(osinfo-query os 2>/dev/null)
 [[ -n "$osvariants" ]] && {
-	grep -q -w "$VM_OS_VARIANT" <<<"$osvariants" || {
-		echo -e "{WARN} Unknown OS variant '$VM_OS_VARIANT'."
-		echo -e "unkown OS variant, you could find accepted os variants from here(Short ID):\n\n$osvariants"|less
-		exit 1
-	}
+	grep -q "^ $VM_OS_VARIANT" <<<"$osvariants" || VM_OS_VARIANT=${VM_OS_VARIANT/.*/-unknown}
+	grep -q "^ $VM_OS_VARIANT" <<<"$osvariants" || VM_OS_VARIANT=${VM_OS_VARIANT/[0-9]*/-unknown}
+	if grep -q "^ $VM_OS_VARIANT" <<<"$osvariants"; then
+		OS_VARIANT_OPT=--os-variant=$VM_OS_VARIANT
+	fi
 }
 
 [[ -z "$Location" ]] && {
@@ -182,7 +188,7 @@ ksfile=${KSPath##*/}
 virt-install --connect=qemu:///system --hvm --accelerate \
   --name $vmname \
   --location $Location \
-  --os-variant $VM_OS_VARIANT \
+  $OS_VARIANT_OPT \
   --memory 2048 \
   --vcpus 2 \
   --disk size=8 \
@@ -217,6 +223,7 @@ while true; do
 			}
 		}
 	' && break
+	test -d /proc/$installpid || break
 	sleep 2
 done
 
