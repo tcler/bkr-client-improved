@@ -46,6 +46,7 @@ installBrewFromSourceCode() {
 	git -c http.sslVerify=false clone  https://code.engineering.redhat.com/gerrit/rcm-brewkoji.git
 	cd rcm-brewkoji
 	make install >/dev/null
+	cd .. && rm -rf rcm-brewkoji
 
 	which brew &>/dev/null
 }
