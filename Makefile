@@ -12,10 +12,12 @@ install install_runtest: _isroot
 	  if ! rpm -q epel-release; then \
 	    [[ $$(uname -r) =~ ^2\.6\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm; \
 	    [[ $$(uname -r) =~ ^3\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm; :; \
+	    [[ $$(uname -r) =~ ^4\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm; :; \
 	  fi; \
 	fi
+	@rpm -q beaker-client || utils/beaker-client_install.sh
 	@rpm -q tcl >/dev/null || yum install -y tcl #package that in default RHEL repo
-	@yum install -y beaker-client tcllib tclx #epel
+	@yum install -y tcllib tclx #epel
 	@if [[ $$(lsb_release -si) != Fedora ]]; then \
 	  libpath=$$(rpm -ql tcllib|egrep 'tcl8../tcllib-[.0-9]+$$'); ln -sf $${libpath} /usr/lib/$${libpath##*/}; \
 	fi
