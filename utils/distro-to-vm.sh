@@ -172,7 +172,7 @@ get_default_if() {
 	echo $iface
 }
 
-virsh net-create --file <(
+virsh net-define --file <(
 	cat <<-NET
 	<network>
 	  <name>nnetwork</name>
@@ -188,7 +188,10 @@ virsh net-create --file <(
 	    </dhcp>
 	  </ip>
 	</network>
-	NET)
+	NET
+)
+virsh net-start nnetwork
+virsh net-autostart nnetwork
 
 VNCPORT=${VNCPORT:-7777}
 while nc 127.0.0.1 ${VNCPORT} </dev/null &>/dev/null; do
