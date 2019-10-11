@@ -71,7 +71,7 @@ _searchBrewBuild() {
 		return 1
 	}
 	local pattern=$1
-	brew search build $dbgArg -r "$pattern" | sortV -r
+	brew search build $dbgArg -r "$pattern" | sort -V -r
 }
 _downloadBrewBuild() {
 	[ $# -lt 1 ] && {
