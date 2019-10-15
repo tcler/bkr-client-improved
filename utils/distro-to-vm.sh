@@ -19,6 +19,11 @@ Usage() {
 	 $0 RHEL-7.7
 	 $0 RHEL-8.1.0 -f
 
+	 $0 centos-5 -l http://vault.centos.org/5.11/os/x86_64/
+	 $0 centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
+	 $0 centos-7 -l http://mirror.centos.org/centos/7/os/x86_64/
+	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
+
 	Comment: you can get [-osv variant] info by using(now -osv option is unnecessary):
 	 $ osinfo-query os  #RHEL-7 and later
 	 $ virt-install --os-variant list  #RHEL-6
@@ -89,9 +94,9 @@ echo "{INFO} guess/verify os-variant ..."
 osvariants=$(virt-install --os-variant list 2>/dev/null) ||
 	osvariants=$(osinfo-query os 2>/dev/null)
 [[ -n "$osvariants" ]] && {
-	grep -q "^ $VM_OS_VARIANT" <<<"$osvariants" || VM_OS_VARIANT=${VM_OS_VARIANT/.*/-unknown}
-	grep -q "^ $VM_OS_VARIANT" <<<"$osvariants" || VM_OS_VARIANT=${VM_OS_VARIANT/[0-9]*/-unknown}
-	if grep -q "^ $VM_OS_VARIANT" <<<"$osvariants"; then
+	grep -q "^ $VM_OS_VARIANT " <<<"$osvariants" || VM_OS_VARIANT=${VM_OS_VARIANT/.*/-unknown}
+	grep -q "^ $VM_OS_VARIANT " <<<"$osvariants" || VM_OS_VARIANT=${VM_OS_VARIANT/[0-9]*/-unknown}
+	if grep -q "^ $VM_OS_VARIANT " <<<"$osvariants"; then
 		OS_VARIANT_OPT=--os-variant=$VM_OS_VARIANT
 	fi
 }
@@ -106,6 +111,7 @@ osvariants=$(virt-install --os-variant list 2>/dev/null) ||
 	}
 }
 
+vmname=${Distro//./}
 [[ -z "$KSPath" ]] && {
 	ksauto=/tmp/ks-$VM_OS_VARIANT-$$.cfg
 	KSPath=$ksauto
@@ -113,7 +119,8 @@ osvariants=$(virt-install --os-variant list 2>/dev/null) ||
 		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
 	bash ks-generator.sh -d $Distro -url $Location >$KSPath
 
-	[[ "$Distro" = RHEL5* ]] && {
+	sed -i "/^%post/s;$;\ntest -f /etc/hostname \&\& echo ${vmname,,} >/etc/hostname || echo HOSTNAME=${vmname,,} >>/etc/sysconfig/network;" $KSPath
+	[[ "$Distro" =~ (RHEL|centos)-?5 ]] && {
 		ex -s $KSPath <<-EOF
 		/%packages/,/%end/ d
 		$ put
@@ -133,8 +140,7 @@ grep -q '^hosts:.*libvirt libvirt_guest' /etc/nsswitch.conf ||
 	sed -i '/^hosts:/s/files /&libvirt libvirt_guest /' /etc/nsswitch.conf
 
 echo -e "{INFO} creating VM by using location:\n  $Location"
-vmname=vm-${Distro//./}
-virsh desc $vmname 2>/dev/null && {
+virsh desc $vmname &>/dev/null && {
 	if [[ "${OVERWRITE}" = "yes" ]]; then
 		file=$(virsh dumpxml --domain $vmname | sed -n "/source file=/{s|^.*='||; s|'/>$||; p}")
 		virsh destroy $vmname
@@ -214,9 +220,12 @@ virt-install --connect=qemu:///system --hvm --accelerate \
   --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} &
 installpid=$!
 sleep 5s
+test -d /proc/$installpid || exit 1
 
+while ! virsh desc $vmname &>/dev/null; do sleep 1s; done
 while true; do
-	clear -x
+	#clear -x
+	printf '\33[H\33[2J'
 	expect -c '
 		set timeout -1
 		spawn virsh console '"$vmname"'
@@ -230,6 +239,11 @@ while true; do
 				send "\r"
 				puts $expect_out(buffer)
 				exit 6
+			}
+			"error: internal error: character device console0 is not using a PTY" {
+				send "\r"
+				puts $expect_out(buffer)
+				exit 7
 			}
 			"* login:" {
 				send "\r"

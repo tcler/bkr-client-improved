@@ -15,6 +15,12 @@ Usage() {
 	cat <<-EOF >&2
 	Usage:
 	 $0 <-d distroname> <-url url> [-repo name1:url1 [-repo name2:url2 ...]] [-post <script file>]
+
+	Example:
+	 $0 -d centos-5 -url http://vault.centos.org/5.11/os/x86_64/
+	 $0 -d centos-6 -url http://mirror.centos.org/centos/6.10/os/x86_64/
+	 $0 -d centos-7 -url http://mirror.centos.org/centos/7/os/x86_64/
+	 $0 -d centos-8 -url http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
 	EOF
 }
 
@@ -43,58 +49,61 @@ done
 
 shopt -s nocasematch
 case $Distro in
-RHEL-[56]*|RHEL[56]*)
+RHEL-[56]*|RHEL[56]*|centos[56]*|centos-[56]*)
 	Packages="@base @cifs-file-server @nfs-file-server @storage-server @ftp-server"
-	{ read; read os arch osv _; } < <(tac -s ' ' <<<"${URL//\// }")
+	{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${URL//\// }")
 	debug_url=${URL/\/os/\/debug}
+	[[ $osv = [0-7]* ]] && osv=centos-${osv%%[.-]*}
 	Repos+=(
-${osv}:${URL}
-${osv}-optional:${URL/$osv/${osv}\/optional}
+		${osv}:${URL}
+		${osv}-optional:${URL/$osv/${osv}\/optional}
 
-${osv}-debuginfo:${debug_url}
-${osv}-optional:${debug_url/$osv/${osv}\/optional}
-)
+		${osv}-debuginfo:${debug_url}
+		${osv}-optional:${debug_url/$osv/${osv}\/optional}
+	)
 NetCommand="network --device=eth0 --bootproto=dhcp"
 KeyCommand="key --skip"
 	;;
-RHEL-7*|RHEL7*)
+RHEL-7*|RHEL7*|centos7*|centos-7*)
 	Packages="-iwl* @base @file-server nfstest nfsometer krb5-server samba
 @ftp-server @system-admin-tools symlinks dump screen tree hardlink expect"
-	{ read; read os arch osv _; } < <(tac -s ' ' <<<"${URL//\// }")
+	{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${URL//\// }")
 	debug_url=${URL/\/os/\/debug\/tree}
+	[[ $osv = [0-7]* ]] && osv=centos-${osv%%[.-]*}
 	Repos+=(
-${osv}:${URL}
-${osv}-optional:${URL/$osv/${osv}-optional}
+		${osv}:${URL}
+		${osv}-optional:${URL/$osv/${osv}-optional}
 
-${osv}-debuginfo:${debug_url}
-${osv}-optional:${debug_url/$osv/${osv}-optional}
-)
+		${osv}-debuginfo:${debug_url}
+		${osv}-optional:${debug_url/$osv/${osv}-optional}
+	)
 	;;
-RHEL-8*|RHEL8*)
+RHEL-8*|RHEL8*|centos8*|centos-8*)
 	Packages="-iwl* @standard @file-server isns-utils krb5-server samba
 @ftp-server @web-server @network-server"
+	{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${URL//\// }")
 	debug_url=${URL/\/os/\/debug\/tree}
 	Repos+=(
-BaseOS:${URL/BaseOS/BaseOS}
-AppStream:${URL/BaseOS/AppStream}
-CRB:${URL/BaseOS/CRB}
-HighAvailability:${URL/BaseOS/HighAvailability}
-NFV:${URL/BaseOS/NFV}
-ResilientStorage:${URL/BaseOS/ResilientStorage}
-RT:${URL/BaseOS/RT}
-SAP:${URL/BaseOS/SAP}
-SAPHANA:${URL/BaseOS/SAPHANA}
+		BaseOS:${URL}
+		AppStream:${URL/BaseOS/AppStream}
+		CRB:${URL/BaseOS/CRB}
+		HighAvailability:${URL/BaseOS/HighAvailability}
+		NFV:${URL/BaseOS/NFV}
+		ResilientStorage:${URL/BaseOS/ResilientStorage}
+		RT:${URL/BaseOS/RT}
+		SAP:${URL/BaseOS/SAP}
+		SAPHANA:${URL/BaseOS/SAPHANA}
 
-BaseOS-debuginfo:${debug_url/BaseOS/BaseOS}
-AppStream-debuginfo:${debug_url/BaseOS/AppStream}
-CRB-debuginfo:${debug_url/BaseOS/CRB}
-HighAvailability-debuginfo:${debug_url/BaseOS/HighAvailability}
-NFV-debuginfo:${debug_url/BaseOS/NFV}
-ResilientStorage-debuginfo:${debug_url/BaseOS/ResilientStorage}
-RT-debuginfo:${debug_url/BaseOS/RT}
-SAP-debuginfo:${debug_url/BaseOS/SAP}
-SAPHANA-debuginfo:${debug_url/BaseOS/SAPHANA}
-)
+		BaseOS-debuginfo:${debug_url}
+		AppStream-debuginfo:${debug_url/BaseOS/AppStream}
+		CRB-debuginfo:${debug_url/BaseOS/CRB}
+		HighAvailability-debuginfo:${debug_url/BaseOS/HighAvailability}
+		NFV-debuginfo:${debug_url/BaseOS/NFV}
+		ResilientStorage-debuginfo:${debug_url/BaseOS/ResilientStorage}
+		RT-debuginfo:${debug_url/BaseOS/RT}
+		SAP-debuginfo:${debug_url/BaseOS/SAP}
+		SAPHANA-debuginfo:${debug_url/BaseOS/SAPHANA}
+	)
 	;;
 esac
 shopt -u nocasematch
@@ -133,12 +142,15 @@ KSF
 
 for repo in "${Repos[@]}"; do
 	read name url <<<"${repo/:/ }"
+	curl --output /dev/null --silent --head --fail $url || continue
 	echo "repo --name=$name --baseurl=$url"
 done
 
 echo -e "\n%post"
+[[ $URL = *centos* ]] && Repos=()
 for repo in "${Repos[@]}"; do
 	read name url <<<"${repo/:/ }"
+	curl --output /dev/null --silent --head --fail $url || continue
 	cat <<-EOF
 	cat <<REPO >/etc/yum.repos.d/$name.repo
 	[$name]
@@ -155,12 +167,17 @@ echo -e "%end\n"
 
 cat <<'KSF'
 
-%post
+%post --log=/root/my-ks-post.log
 # post-installation script:
 test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf
 
+ver=$(LANG=C rpm -q --qf %{version} centos-release)
+[[ "$ver" = 5* ]] && sed -i -e 's;mirror.centos.org/centos;vault.centos.org;' -e 's/^mirror/#&/' -e 's/^#base/base/' /etc/yum.repos.d/*
+[[ "$ver" = 5 ]] && sed -i -e 's;\$releasever;5.11;' /etc/yum.repos.d/*
+
 yum install -y gcc wget screen bc redhat-lsb-core sg3_utils sg3_utils-libs sg3_utils-devel rsyslog python2
 yum install -y libnsl2 libtirpc-devel python2-lxml python3-lxml
+yum install -y vim-enhanced
 %end
 
 KSF
