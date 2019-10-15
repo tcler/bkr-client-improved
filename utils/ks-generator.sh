@@ -147,7 +147,10 @@ for repo in "${Repos[@]}"; do
 done
 
 echo -e "\n%post"
+
+# There's been repo files in CentOS by default, so clear Repos array
 [[ $URL = *centos* ]] && Repos=()
+
 for repo in "${Repos[@]}"; do
 	read name url <<<"${repo/:/ }"
 	curl --output /dev/null --silent --head --fail $url || continue
