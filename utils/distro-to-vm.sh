@@ -8,11 +8,12 @@ OVERWRITE=no
 KSPath=
 ksauto=
 MacvtapMode=vepa
+VMName=
 
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-port vncport] [-osv variant] [-f|-force] [-macvtap {vepa|bridge}]
+	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-port vncport] [-osv variant] [-f|-force] [-macvtap {vepa|bridge}] [-vmname name]
 
 	Example:
 	 $0 -d RHEL-6.10
@@ -38,6 +39,7 @@ _at=`getopt -o hd:l:f \
 	--long port: \
 	--long force \
 	--long macvtap: \
+	--long vmname: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -50,6 +52,7 @@ while true; do
 	--port)    VNCPORT="$2"; shift 2;;
 	-f|--force)  OVERWRITE="yes"; shift 1;;
 	--macvtap)   MacvtapMode="$2"; shift 2;;
+	--vmname)    VMName="$2"; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -112,6 +115,8 @@ osvariants=$(virt-install --os-variant list 2>/dev/null) ||
 }
 
 vmname=${Distro//./}
+vmname=${vmname,,}
+[[ -n "$VMName" ]] && vmname=${VMName}
 [[ -z "$KSPath" ]] && {
 	ksauto=/tmp/ks-$VM_OS_VARIANT-$$.cfg
 	KSPath=$ksauto
@@ -119,7 +124,7 @@ vmname=${Distro//./}
 		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
 	bash ks-generator.sh -d $Distro -url $Location >$KSPath
 
-	sed -i "/^%post/s;$;\ntest -f /etc/hostname \&\& echo ${vmname,,} >/etc/hostname || echo HOSTNAME=${vmname,,} >>/etc/sysconfig/network;" $KSPath
+	sed -i "/^%post/s;$;\ntest -f /etc/hostname \&\& echo ${vmname} >/etc/hostname || echo HOSTNAME=${$vmname} >>/etc/sysconfig/network;" $KSPath
 	[[ "$Distro" =~ (RHEL|centos)-?5 ]] && {
 		ex -s $KSPath <<-EOF
 		/%packages/,/%end/ d
