@@ -181,23 +181,23 @@ get_default_if() {
 virsh net-define --file <(
 	cat <<-NET
 	<network>
-	  <name>nnetwork</name>
-	  <bridge name="virbr1" />
+	  <name>subnet10</name>
+	  <bridge name="virbr10" />
 	  <forward mode="nat" >
 	    <nat>
 	      <port start='1024' end='65535'/>
 	    </nat>
 	  </forward>
-	  <ip address="192.168.100.1" netmask="255.255.255.0" >
+	  <ip address="192.168.10.1" netmask="255.255.255.0" >
 	    <dhcp>
-	      <range start='192.168.100.2' end='192.168.100.254'/>
+	      <range start='192.168.10.2' end='192.168.10.254'/>
 	    </dhcp>
 	  </ip>
 	</network>
 	NET
 )
-virsh net-start nnetwork
-virsh net-autostart nnetwork
+virsh net-start subnet10
+virsh net-autostart subnet10
 
 VNCPORT=${VNCPORT:-7777}
 while nc 127.0.0.1 ${VNCPORT} </dev/null &>/dev/null; do
@@ -212,7 +212,7 @@ virt-install --connect=qemu:///system --hvm --accelerate \
   --memory 2048 \
   --vcpus 2 \
   --disk size=8 \
-  --network network=nnetwork \
+  --network network=subnet10 \
   --network network=default \
   --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode \
   --initrd-inject $KSPath \
@@ -220,9 +220,8 @@ virt-install --connect=qemu:///system --hvm --accelerate \
   --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} &
 installpid=$!
 sleep 5s
-test -d /proc/$installpid || exit 1
 
-while ! virsh desc $vmname &>/dev/null; do sleep 1s; done
+while ! virsh desc $vmname &>/dev/null; do test -d /proc/$installpid || exit 1; sleep 1s; done
 while true; do
 	#clear -x
 	printf '\33[H\33[2J'
@@ -265,7 +264,8 @@ echo "{INFO} VNC port ${VNCPORT}"
 echo "{INFO} you can try login $vmname by:"
 echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
 echo -e "  $ virsh console $vmname"
+echo -e "  $ ssh foo@$vmname  #password: redhat"
 read addr host < <(getent hosts $vmname)
 [[ -n "$addr" ]] && {
-	echo -e "  $ ssh root@$addr"
+	echo -e "  $ ssh foo@$addr  #password: redhat"
 }

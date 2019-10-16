@@ -118,6 +118,9 @@ keyboard us
 timezone Asia/Shanghai --isUtc
 rootpw \$1\$zAwkhhNB\$rxjwuf7RLTuS6owGoL22I1 --iscrypted
 
+user --name=foo --groups=wheel --iscrypted --password=\$1\$zAwkhhNB\$rxjwuf7RLTuS6owGoL22I1
+user --name=bar --iscrypted --password=\$1\$zAwkhhNB\$rxjwuf7RLTuS6owGoL22I1
+
 #platform x86, AMD64, or Intel EM64T
 reboot
 $NetCommand
@@ -173,6 +176,8 @@ cat <<'KSF'
 %post --log=/root/my-ks-post.log
 # post-installation script:
 test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf
+
+echo "%wheel        ALL=(ALL)       ALL" >> /etc/sudoers
 
 ver=$(LANG=C rpm -q --qf %{version} centos-release)
 [[ "$ver" = 5* ]] && sed -i -e 's;mirror.centos.org/centos;vault.centos.org;' -e 's/^mirror/#&/' -e 's/^#base/base/' /etc/yum.repos.d/*
