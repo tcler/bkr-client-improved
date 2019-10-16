@@ -124,7 +124,7 @@ vmname=${vmname,,}
 		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
 	bash ks-generator.sh -d $Distro -url $Location >$KSPath
 
-	sed -i "/^%post/s;$;\ntest -f /etc/hostname \&\& echo ${vmname} >/etc/hostname || echo HOSTNAME=${$vmname} >>/etc/sysconfig/network;" $KSPath
+	sed -i "/^%post/s;$;\ntest -f /etc/hostname \&\& echo ${vmname} >/etc/hostname || echo HOSTNAME=${vmname} >>/etc/sysconfig/network;" $KSPath
 	[[ "$Distro" =~ (RHEL|centos)-?5 ]] && {
 		ex -s $KSPath <<-EOF
 		/%packages/,/%end/ d
