@@ -12,8 +12,37 @@ realm=RHQE.COM
 hostname `hostname -A 2>/dev/null | awk '{print $1}'`
 host=$(hostname)
 ccache_name=
-keyringcache=$1
-[ -n "$keyringcache" ] && ccache_name="default_ccache_name = KEYRING:persistent:%{uid}"
+enctypes_all="aes256-cts:normal aes128-cts:normal des3-hmac-sha1:normal arcfour-hmac:normal des-hmac-sha1:normal des-cbc-md5:normal des-cbc-crc:normal"
+enctypes_supported=
+
+Usage() {
+	echo "Usage: $0 [-h] [-k|--keyringcache] [-e|--enctypes <all|key:salt>]"
+	cat << END
+
+Options:
+  -h				print this usage
+  -k|--keyringcache		use keyringcache
+  -e|--enctypes <all|key:salt>	set supported_enctypes as all key:salt strings or some specified
+END
+}
+
+# param parse
+_at=`getopt -o hke: \
+    --long keyringcache \
+    --long enctypes: \
+    -n "$0" -- "$@"`
+eval set -- "$_at"
+
+while true; do
+	case "$1" in
+	-h) Usage; shift 1; exit 0;;
+	-k|--keyringcache) keyringcache=yes; shift;;
+	-e|--enctypes) [ "$2" = all ] && enctypes_supported="$enctypes_all" || enctypes_supported="$2"; shift 2;;
+	--) shift 1; break;;
+	esac
+done
+
+[ "$keyringcache" = "yes" ] && ccache_name="default_ccache_name = KEYRING:persistent:%{uid}"
 
 [ -z "$host" ] && {
 	errecho "{WARN} There is no available host:name find. use local name instead."
@@ -24,7 +53,6 @@ keyringcache=$1
 	}
 }
 
-enctypes="aes256-cts:normal aes128-cts:normal des3-hmac-sha1:normal arcfour-hmac:normal des-hmac-sha1:normal des-cbc-md5:normal des-cbc-crc:normal"
 krbConfTemp="[logging]
  default = FILE:/var/log/krb5libs.log
  kdc = FILE:/var/log/krb5kdc.log
@@ -59,12 +87,12 @@ kdcConfTemp="[kdcdefaults]
   acl_file = /var/kerberos/krb5kdc/kadm5.acl
   dict_file = /usr/share/dict/words
   admin_keytab = /var/kerberos/krb5kdc/kadm5.keytab
-  #supported_enctypes = $enctypes
+  #supported_enctypes = $enctypes_supported
   default_principal_flags = +renewable, +forwardable, +preauth
  }"
 kadmAclTemp="*/admin@EXAMPLE.COM	*"
 
-grep -q "$realm" "$KRB_CONF" && grep -q "$host" "$KRB_CONF" && grep -q "$realm" "$ACL_CONF" && {
+grep -q "$realm" "$KRB_CONF" && grep -q "$host" "$KDC_CONF" && grep -q "$realm" "$ACL_CONF" && {
 	echo "{INFO} Has already been configured as Kerberos Server."
 	echo "{INFO} If want to re-configure it anyway, please clear $KRB_CONF, $KDC_CONF, $ACL_CONF, etc."
 	infoecho "start KDC daemons ..."
@@ -107,6 +135,7 @@ cat $KRB_CONF
 
 infoecho "configure '$KDC_CONF' ..."
 sed -i -e "/EXAMPLE.COM/{s//$realm/g; s/^ *#+//}"   $KDC_CONF
+[ -n "$enctypes_supported" ] && sed -i -e "/supported_enctypes/{s/^ *#/  /}" $KDC_CONF
 cat $KDC_CONF
 
 infoecho "configure '$ACL_CONF' ..."
