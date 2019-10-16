@@ -30,7 +30,7 @@ END
 _at=`getopt -o hke: \
     --long keyringcache \
     --long enctypes: \
-    -n "$0" -- "$@"`
+    -a -n "$0" -- "$@"`
 eval set -- "$_at"
 
 while true; do
