@@ -52,7 +52,8 @@ UpdateDB() {
 	mv distro.list.tmp distro.list
 
 	#Update pkg list
-	while read distro; do
+	newdistros=$(sed -n '/^+[^+]/{s/^+//; p}' distro.list.diff)
+	for distro in $newdistros "$@"; do
 		distrotrees_file=$rpmdb/${distro// /_}.distrotrees.gz
 		cachefile=$rpmdb/${distro// /_}.json.gz
 
@@ -67,6 +68,8 @@ UpdateDB() {
 				awk '/https?:/ {
 					if ($3 ~ "/compose/") {
 						sub("/compose/.*$", "/compose/metadata", $3)
+					} else if ($3 ~ "/released\/rhel-4-5/") {
+						sub("([^/]+/){2}$", "metadata", $3)
 					} else if ($3 ~ "/released/") {
 						sub("([^/]+/){3}$", "metadata", $3)
 					}
@@ -74,6 +77,7 @@ UpdateDB() {
 				}' | sort -u)
 
 			for url in $urls; do
+				[[ "$url" =~ RHEL-?5 ]] && continue
 				if curl -sf -k -L -u: $url/rpms.json > >(gzip >$cachefile) ||
 					curl -sf -k -L -u: $url/rpm-manifest.json > >(gzip >$cachefile); then
 					break
@@ -83,7 +87,7 @@ UpdateDB() {
 				fi
 			done
 		}
-	done < <(sed -n '/^+[^+]/{s/^+//; p}' distro.list.diff)
+	done
 	\cp distro.list $rpmdb/.
 
 	# update distrotrees of latest distro
@@ -108,7 +112,7 @@ UpdateDB() {
 }
 
 mkdir -p $dbRoot/$rpmdb
-UpdateDB
+UpdateDB "$@"
 
 # rsync to public server
 # su luser bash -c "rsync -av --update $dbRoot/$rpmdb/ <kuser>@file.<path>.redhat.com:/export/engineering_qa/rhts/lookaside/distro-rpmsdata"
