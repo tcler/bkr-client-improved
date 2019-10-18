@@ -50,7 +50,7 @@ done
 shopt -s nocasematch
 case $Distro in
 RHEL-[56]*|RHEL[56]*|centos[56]*|centos-[56]*)
-	Packages="@base @cifs-file-server @nfs-file-server @storage-server @ftp-server"
+	Packages="@base @cifs-file-server @nfs-file-server redhat-lsb-core vim-enhanced git iproute screen"
 	{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${URL//\// }")
 	debug_url=${URL/\/os/\/debug}
 	[[ $osv = [0-7]* ]] && osv=centos-${osv%%[.-]*}
@@ -65,8 +65,7 @@ NetCommand="network --device=eth0 --bootproto=dhcp"
 KeyCommand="key --skip"
 	;;
 RHEL-7*|RHEL7*|centos7*|centos-7*)
-	Packages="-iwl* @base @file-server nfstest nfsometer krb5-server samba
-@ftp-server @system-admin-tools symlinks dump screen tree hardlink expect"
+	Packages="-iwl* @base @file-server redhat-lsb-core vim-enhanced git iproute screen"
 	{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${URL//\// }")
 	debug_url=${URL/\/os/\/debug\/tree}
 	[[ $osv = [0-7]* ]] && osv=centos-${osv%%[.-]*}
@@ -79,8 +78,7 @@ RHEL-7*|RHEL7*|centos7*|centos-7*)
 	)
 	;;
 RHEL-8*|RHEL8*|centos8*|centos-8*)
-	Packages="-iwl* @standard @file-server isns-utils krb5-server samba
-@ftp-server @web-server @network-server"
+	Packages="-iwl* @standard @file-server redhat-lsb-core vim-enhanced git iproute screen"
 	{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${URL//\// }")
 	debug_url=${URL/\/os/\/debug\/tree}
 	Repos+=(
@@ -183,9 +181,6 @@ ver=$(LANG=C rpm -q --qf %{version} centos-release)
 [[ "$ver" = 5* ]] && sed -i -e 's;mirror.centos.org/centos;vault.centos.org;' -e 's/^mirror/#&/' -e 's/^#base/base/' /etc/yum.repos.d/*
 [[ "$ver" = 5 ]] && sed -i -e 's;\$releasever;5.11;' /etc/yum.repos.d/*
 
-yum install -y gcc wget screen bc redhat-lsb-core sg3_utils sg3_utils-libs sg3_utils-devel rsyslog python2
-yum install -y libnsl2 libtirpc-devel python2-lxml python3-lxml
-yum install -y vim-enhanced
 %end
 
 KSF

@@ -13,10 +13,10 @@ VMName=
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-port vncport] [-osv variant] [-f|-force] [-macvtap {vepa|bridge}] [-vmname name]
+	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-port vncport] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-vmname name] [-g|-genimage]
 
 	Example:
-	 $0 -d RHEL-6.10
+	 $0 RHEL-6.10
 	 $0 RHEL-7.7
 	 $0 RHEL-8.1.0 -f
 
@@ -31,7 +31,7 @@ Usage() {
 	EOF
 }
 
-_at=`getopt -o hd:l:f \
+_at=`getopt -o hd:l:fn:g \
 	--long help \
 	--long ks: \
 	--long osv: \
@@ -40,6 +40,8 @@ _at=`getopt -o hd:l:f \
 	--long force \
 	--long macvtap: \
 	--long vmname: \
+	--long genimage \
+	--long xzopt: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -50,9 +52,11 @@ while true; do
 	--ks)      KSPath=$2; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
 	--port)    VNCPORT="$2"; shift 2;;
-	-f|--force)  OVERWRITE="yes"; shift 1;;
-	--macvtap)   MacvtapMode="$2"; shift 2;;
-	--vmname)    VMName="$2"; shift 2;;
+	-f|--force)    OVERWRITE="yes"; shift 1;;
+	--macvtap)     MacvtapMode="$2"; shift 2;;
+	-n|--vmname)   VMName="$2"; shift 2;;
+	-g|--genimage) GenerateImage=yes; shift 1;;
+	--xzopt)       XZ="$2"; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -137,7 +141,7 @@ vmname=${vmname,,}
 
 echo -e "{INFO} install libvirt service and related packages ..."
 sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>/dev/null
-sudo yum install -y libvirt libvirt-client virt-install virt-viewer qemu-kvm expect nmap-ncat nc &>/dev/null
+sudo yum install -y libvirt libvirt-client virt-install virt-viewer qemu-kvm expect nmap-ncat nc libguestfs-tools-c &>/dev/null
 
 echo -e "{INFO} install libvirt-nss module ..."
 sudo yum install -y libvirt-nss &>/dev/null
@@ -211,6 +215,10 @@ while nc 127.0.0.1 ${VNCPORT} </dev/null &>/dev/null; do
 	let VNCPORT++
 done
 
+[[ "$GenerateImage" = yes ]] && {
+	sed -i '/^reboot$/s//poweroff/' ${KSPath}
+	NOREBOOT=--noreboot
+}
 ksfile=${KSPath##*/}
 virt-install --connect=qemu:///system --hvm --accelerate \
   --name $vmname \
@@ -223,7 +231,7 @@ virt-install --connect=qemu:///system --hvm --accelerate \
   --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode \
   --initrd-inject $KSPath \
   --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
-  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} &
+  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $NOREBOOT &
 installpid=$!
 sleep 5s
 
@@ -265,13 +273,26 @@ echo -e "{INFO} waiting install finish ..."
 while test -d /proc/$installpid; do sleep 5; done
 [[ -n "$ksauto" ]] && \rm -f $ksauto
 
-echo "{INFO} VNC port ${VNCPORT}"
+if [[ "$GenerateImage" = yes ]]; then
+	image=$(virsh dumpxml --domain $vmname | sed -n "/source file=/{s|^.*='||; s|'/>$||; p}")
+	newimage=${image##*/}
 
-echo "{INFO} you can try login $vmname by:"
-echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
-echo -e "  $ virsh console $vmname"
-echo -e "  $ ssh foo@$vmname  #password: redhat"
-read addr host < <(getent hosts $vmname)
-[[ -n "$addr" ]] && {
-	echo -e "  $ ssh foo@$addr  #password: redhat"
-}
+	echo -e "\n{INFO} virt-sparsify image $image..."
+	LIBGUESTFS_BACKEND=direct virt-sparsify ${image} ${newimage}
+
+	echo -e "\n{INFO} compress image ..."
+	time xz -z -f -T 0 ${XZ:--9} ${newimage}
+
+	virsh undefine $vmname --remove-all-storage
+else
+	echo "{INFO} VNC port ${VNCPORT}"
+
+	echo "{INFO} you can try login $vmname by:"
+	echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
+	echo -e "  $ virsh console $vmname"
+	echo -e "  $ ssh foo@$vmname  #password: redhat"
+	read addr host < <(getent hosts $vmname)
+	[[ -n "$addr" ]] && {
+		echo -e "  $ ssh foo@$addr  #password: redhat"
+	}
+fi
