@@ -183,6 +183,7 @@ get_default_if() {
 	echo $iface
 }
 
+: <<COMM
 virsh net-define --file <(
 	cat <<-NET
 	<network>
@@ -203,6 +204,7 @@ virsh net-define --file <(
 )
 virsh net-start subnet10
 virsh net-autostart subnet10
+COMM
 
 VNCPORT=${VNCPORT:-7777}
 while nc 127.0.0.1 ${VNCPORT} </dev/null &>/dev/null; do
@@ -217,7 +219,6 @@ virt-install --connect=qemu:///system --hvm --accelerate \
   --memory 2048 \
   --vcpus 2 \
   --disk size=8 \
-  --network network=subnet10 \
   --network network=default \
   --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode \
   --initrd-inject $KSPath \
