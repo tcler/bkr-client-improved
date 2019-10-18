@@ -52,6 +52,7 @@ fi
 Debug "using data source: $dbpath"
 
 Pkg=${Pkg:-$1}
+RawPkg=$Pkg
 Pkg=${Pkg:-^kernel-[0-9]}
 Pkg=".*${Pkg}.*"
 [[ ${Pkg:0:3} = '.*^' ]] && Pkg="${Pkg:3}"
@@ -121,8 +122,16 @@ while read distro; do
 	#	jq -r '.payload | with_entries(if .key == "manifest" then .key = "rpms" else . end)|.rpms|'".${variant:-[]}|.$Arch|.[]|.[].path" |
 	#	grep -v source/tree |
 	#	egrep "$Pkg")
-	result=$(egrep -o -i "${variant:-[^\"]+}/($Arch)/os/Packages/(${Pkg})\.[0-9a-z_-]+\.rpm" < <(curl -Lsf $cachefile|zcat 2>/dev/null))
-	[ $? = 0 ] && {
+	if [[ $distro =~ RHEL-?5 ]]; then
+		distrotrees_file=$dbpath/${distro// /_}.distrotrees.gz
+		read _ _ url _ < <(curl -Lsf $distrotrees_file | zcat 2>/dev/null | egrep https?://.*bos)
+		Debug "egrep -o \">${RawPkg}-[0-9a-z\\._-]+\\.rpm<\" < <(curl -Lsf $url/Server)"
+		result=$(egrep -o ">${RawPkg}-[0-9a-z\._-]+\.rpm<" < <(curl -Lsf $url/Server) | sed -e 's/^>//' -e 's/<$//')
+	else
+		Debug "egrep -o -i \"${variant:-[^\\\"]+}/($Arch)/os/(Packages|$variant)/(${Pkg})\.[0-9a-z_-]+\.rpm\" < <(curl -Lsf $cachefile|zcat 2>/dev/null)"
+		result=$(egrep -o -i "${variant:-[^\"]+}/($Arch)/os/(Packages|$variant)/(${Pkg})\.[0-9a-z_-]+\.rpm" < <(curl -Lsf $cachefile|zcat 2>/dev/null))
+	fi
+	[[ -n "$result" ]] && {
 		[[ -z "$nocolor" ]] && echo -e "=> \033[1;34m$distro\033[0m" || echo -n "$distro -> "
 		if [[ $long = yes ]]; then
 			echo "$result"|sed -e 's/^/    /'
