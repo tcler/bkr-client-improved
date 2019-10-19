@@ -14,16 +14,24 @@ Usage() {
 	cat <<-EOF >&2
 	Usage:
 	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-port vncport] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-vmname name] [-g|-genimage]
+	 $0 <[-d] distroname> [-pkginstall <arg>]
 
-	Example:
-	 $0 RHEL-6.10
-	 $0 RHEL-7.7
-	 $0 RHEL-8.1.0 -f
-
+	Example Internet:
 	 $0 centos-5 -l http://vault.centos.org/5.11/os/x86_64/
 	 $0 centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
 	 $0 centos-7 -l http://mirror.centos.org/centos/7/os/x86_64/
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
+	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -pkginstall ftp://url/path/x.rpm
+	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -pkginstall ftp://url/path/
+
+	Example Intranet:
+	 $0 RHEL-6.10
+	 $0 RHEL-7.7
+	 $0 RHEL-8.1.0 -f
+	 $0 RHEL-8.1.0-20191015.0 -pkginstall 23822847  # brew scratch build id
+	 $0 RHEL-8.1.0-20191015.0 -pkginstall kernel-4.18.0-147.8.el8  # brew build name
+	 $0 RHEL-8.1.0-20191015.0 -pkginstall \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+
 
 	Comment: you can get [-osv variant] info by using(now -osv option is unnecessary):
 	 $ osinfo-query os  #RHEL-7 and later
@@ -42,6 +50,7 @@ _at=`getopt -o hd:l:fn:g \
 	--long vmname: \
 	--long genimage \
 	--long xzopt: \
+	--long pkginstall: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -57,6 +66,7 @@ while true; do
 	-n|--vmname)   VMName="$2"; shift 2;;
 	-g|--genimage) GenerateImage=yes; shift 1;;
 	--xzopt)       XZ="$2"; shift 2;;
+	--pkginstall)  PKGS="$2"; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -127,6 +137,13 @@ vmname=${vmname,,}
 	which ks-generator.sh &>/dev/null ||
 		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
 	bash ks-generator.sh -d $Distro -url $Location >$KSPath
+
+	[[ -n "$PKGS" ]] && {
+		cat <<-END >>$KSPath
+		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/pkginstall.sh
+		bash pkginstall.sh $PKGS
+		END
+	}
 
 	sed -i "/^%post/s;$;\ntest -f /etc/hostname \&\& echo ${vmname} >/etc/hostname || echo HOSTNAME=${vmname} >>/etc/sysconfig/network;" $KSPath
 	[[ "$Distro" =~ (RHEL|centos)-?5 ]] && {
