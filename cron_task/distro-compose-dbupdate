@@ -68,7 +68,7 @@ UpdateDB() {
 				awk '/https?:/ {
 					if ($3 ~ "/compose/") {
 						sub("/compose/.*$", "/compose/metadata", $3)
-					} else if ($3 ~ "/released\/rhel-4-5/") {
+					} else if ($3 ~ "/released/rhel-4-5/") {
 						sub("([^/]+/){2}$", "metadata", $3)
 					} else if ($3 ~ "/released/") {
 						sub("([^/]+/){3}$", "metadata", $3)
