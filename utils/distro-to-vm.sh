@@ -140,8 +140,10 @@ vmname=${vmname,,}
 
 	[[ -n "$PKGS" ]] && {
 		cat <<-END >>$KSPath
+		%post --log=/root/my-ks-post.log
 		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/pkginstall.sh
 		bash pkginstall.sh $PKGS
+		%end
 		END
 	}
 
