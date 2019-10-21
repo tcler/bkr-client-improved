@@ -23,8 +23,8 @@ echo "{INFO} create /etc/beaker/client.conf"
 	cat <<-EOF >/etc/beaker/client.conf
 	HUB_URL = "https://beaker.engineering.redhat.com"
 	AUTH_METHOD = "krbv"
-	USERNAME = "${kuser:-krb5_useranme}"
 	KRB_REALM = "REDHAT.COM"
+	#USERNAME = "${kuser:-krb5_useranme}"
 	EOF
 }
 
