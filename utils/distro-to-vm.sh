@@ -13,8 +13,9 @@ VMName=
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-port vncport] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-vmname name] [-g|-genimage]
-	 $0 <[-d] distroname> [-pkginstall <arg>]
+	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-vmname name]
+	 $0 <[-d] distroname> [options..] [-g|-genimage]
+	 $0 <[-d] distroname> [options..] [-pkginstall <arg>]
 
 	Example Internet:
 	 $0 centos-5 -l http://vault.centos.org/5.11/os/x86_64/
@@ -44,7 +45,6 @@ _at=`getopt -o hd:l:fn:g \
 	--long ks: \
 	--long osv: \
 	--long os-variant: \
-	--long port: \
 	--long force \
 	--long macvtap: \
 	--long vmname: \
@@ -60,7 +60,6 @@ while true; do
 	-l)        Location=$2; shift 2;;
 	--ks)      KSPath=$2; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
-	--port)    VNCPORT="$2"; shift 2;;
 	-f|--force)    OVERWRITE="yes"; shift 1;;
 	--macvtap)     MacvtapMode="$2"; shift 2;;
 	-n|--vmname)   VMName="$2"; shift 2;;
