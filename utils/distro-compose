@@ -13,6 +13,7 @@ Usage() {
 	echo "Usage: $0 <-d distroName> <--distrotrees>" >&2
 	echo "Usage: $0 <-d distroName> <--rpmsinfo>" >&2
 	echo "Usage: $0 <-d distroName> <--composeinfo>" >&2
+	echo "Usage: $0 <--distrolist>" >&2
 }
 Debug() {
 	[[ -n "$debug" ]] && { echo "{debug} $@" >&2; }
@@ -25,6 +26,7 @@ _at=`getopt -o hnp:d:a:v:lD \
 	--long dbroot: \
 	--long url \
 	--long distrotrees \
+	--long distrolist \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -41,6 +43,7 @@ while true; do
 	--rpmsinfo) getrpmsinfo=yes; shift 1;;
 	--composeinfo) getcomposeinfo=yes; shift 1;;
 	--dbroot) dbroot=$2; shift 2;;
+	--distrolist) getdistrolist=yes; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -50,6 +53,11 @@ if [[ -d $dbroot ]]; then
 	dbpath=file://$(readlink -f $dbroot)
 fi
 Debug "using data source: $dbpath"
+
+[[ -n "$getdistrolist" ]] && {
+	curl -Lsf $dbpath/distro.list
+	exit $?
+}
 
 Pkg=${Pkg:-$1}
 RawPkg=$Pkg
