@@ -14,8 +14,7 @@ Usage() {
 	cat <<-EOF >&2
 	Usage:
 	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-vmname name]
-	 $0 <[-d] distroname> [options..] [-g|-genimage]
-	 $0 <[-d] distroname> [options..] [-pkginstall <arg>]
+	 $0 <[-d] distroname> [options..] [-p|-pkginstall <arg>] [-g|-genimage]
 
 	Example Internet:
 	 $0 centos-5 -l http://vault.centos.org/5.11/os/x86_64/
@@ -40,7 +39,7 @@ Usage() {
 	EOF
 }
 
-_at=`getopt -o hd:l:fn:g \
+_at=`getopt -o hd:l:fn:gp: \
 	--long help \
 	--long ks: \
 	--long osv: \
@@ -59,13 +58,13 @@ while true; do
 	-d)        Distro=$2; shift 2;;
 	-l)        Location=$2; shift 2;;
 	--ks)      KSPath=$2; shift 2;;
+	--xzopt)         XZ="$2"; shift 2;;
+	--macvtap)       MacvtapMode="$2"; shift 2;;
+	-f|--force)      OVERWRITE="yes"; shift 1;;
+	-n|--vmname)     VMName="$2"; shift 2;;
+	-g|--genimage)   GenerateImage=yes; shift 1;;
+	-p|--pkginstall) PKGS="$2"; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
-	-f|--force)    OVERWRITE="yes"; shift 1;;
-	--macvtap)     MacvtapMode="$2"; shift 2;;
-	-n|--vmname)   VMName="$2"; shift 2;;
-	-g|--genimage) GenerateImage=yes; shift 1;;
-	--xzopt)       XZ="$2"; shift 2;;
-	--pkginstall)  PKGS="$2"; shift 2;;
 	--) shift; break;;
 	esac
 done
