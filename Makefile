@@ -17,7 +17,8 @@ install install_runtest: _isroot
 	fi
 	@rpm -q beaker-client || utils/beaker-client_install.sh
 	@rpm -q tcl >/dev/null || yum install -y tcl #package that in default RHEL repo
-	@yum install -y tcllib tclx #epel
+	@yum install -y tcllib #epel
+	@ rpm -q tcllib || yum install -y rpms/tcllib-1.19-2.el8.noarch.rpm #workaround for missing tcllib on RHEL-8
 	@if [[ $$(lsb_release -si) != Fedora ]]; then \
 	  libpath=$$(rpm -ql tcllib|egrep 'tcl8../tcllib-[.0-9]+$$'); ln -sf $${libpath} /usr/lib/$${libpath##*/}; \
 	fi
@@ -39,6 +40,7 @@ install_all: install_robot _install_web
 
 install_robot: _isroot install_runtest _install_require
 	#install test robot
+	@yum install -y tclx #epel
 	cd bkr-test-robot; for f in *; do [ -d $$f ] && continue; cp -fd $$f $(_bin)/$$f; done
 
 _install_web: _isroot _install_tclsh8.6
