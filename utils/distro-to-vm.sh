@@ -78,9 +78,12 @@ distro2location() {
 	which bkr &>/dev/null &&
 		distrotrees=$(bkr distro-trees-list --name "$distro" --arch "$arch")
 	[[ -z "$distrotrees" ]] && {
-		which distro-compose &>/dev/null ||
-			wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/distro-compose
-		distrotrees=$(bash distro-compose -d "$distro" --distrotrees)
+		which distro-compose &>/dev/null || {
+			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/distro-compose
+			mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url
+			chmod +x ~/bin/distro-compose
+		}
+		distrotrees=$(distro-compose -d "$distro" --distrotrees)
 	}
 	urls=$(echo "$distrotrees" | awk '/https?:.*\/'"(${variant}|BaseOS)\/${arch}"'\//{print $3}' | sort -u)
 	[[ "$distro" = RHEL5* ]] && {
@@ -89,9 +92,12 @@ distro2location() {
 		urls=$(echo "$distrotrees" | awk '/https?:.*\/'"${pattern}\/${arch}"'\//{print $3}' | sort -u)
 	}
 
-	which fastesturl.sh &>/dev/null ||
-		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/fastesturl.sh
-	bash fastesturl.sh $urls
+	which fastesturl.sh &>/dev/null || {
+		_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/fastesturl.sh
+		mkdir -p ~/bin && wget -O ~/bin/fastesturl.sh -N -q $_url
+		chmod +x ~/bin/fastesturl.sh
+	}
+	fastesturl.sh $urls
 }
 
 [[ -z "$Distro" ]] && Distro=$1
@@ -133,15 +139,19 @@ vmname=${vmname,,}
 [[ -z "$KSPath" ]] && {
 	ksauto=/tmp/ks-$VM_OS_VARIANT-$$.cfg
 	KSPath=$ksauto
-	which ks-generator.sh &>/dev/null ||
-		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
-	bash ks-generator.sh -d $Distro -url $Location >$KSPath
+	which ks-generator.sh &>/dev/null || {
+		_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
+		mkdir -p ~/bin && wget -O ~/bin/ks-generator.sh -N -q $_url
+		chmod +x ~/bin/ks-generator.sh
+	}
+	ks-generator.sh -d $Distro -url $Location >$KSPath
 
 	[[ -n "$PKGS" ]] && {
 		cat <<-END >>$KSPath
 		%post --log=/root/my-ks-post.log
 		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/pkginstall.sh
-		bash pkginstall.sh $PKGS
+		chmod +x pkginstall.sh
+		./pkginstall.sh $PKGS
 		%end
 		END
 	}

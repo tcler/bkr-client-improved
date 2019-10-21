@@ -4,9 +4,12 @@
 
 # install brew
 which brew &>/dev/null || {
-	test -f brewkoji_install.sh || which brewkoji_install.sh ||
-		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewkoji_install.sh
-	bash brewkoji_install.sh >/dev/null || {
+	which brewkoji_install.sh || {
+		_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewkoji_install.sh
+		mkdir -p ~/bin && wget -O ~/bin/brewkoji_install.sh -N -q $_url
+		chmod +x ~/bin/brewkoji_install.sh
+	}
+	brewkoji_install.sh >/dev/null || {
 		echo "{WARN} install brewkoji failed" >&2
 		exit 1
 	}
