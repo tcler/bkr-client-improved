@@ -55,7 +55,12 @@ RHEL-5*|RHEL5*|centos5*|centos-5*)
 	debug_url=${URL/\/os/\/debug}
 	[[ $osv = [0-7]* ]] && osv=centos-${osv%%[.-]*}
 	Repos+=(
-		${osv}:${URL}
+		Server:${URL}/Server
+		Cluster:${URL}/Cluster
+		ClusterStorage:${URL}/ClusterStorage
+		Client:${URL}/Client
+		Workstation:${URL}/Workstation
+
 		${osv}-debuginfo:${debug_url}
 	)
 NetCommand="network --device=eth0 --bootproto=dhcp"
