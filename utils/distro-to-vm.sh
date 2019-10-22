@@ -107,8 +107,9 @@ distro2location() {
 
 [[ -n "$GetImage" ]] && {
 	rc=1
-	imageurl=$(distro2location $Distro)
-	imagename=$(curl -s ${imageurl/\/os\//\/images\/} | sed -nr '/.*>(rhel-[^<>]+qcow2)<.*/{s//\1/;p}')
+	osurl=$(distro2location $Distro)
+	imageurl=${osurl/\/os\//\/images\/}
+	imagename=$(curl -s ${imageurl} | sed -nr '/.*>(rhel-[^<>]+qcow2)<.*/{s//\1/;p}')
 	if [[ -n "${imagename}" ]]; then
 		echo ${imageurl}${imagename}
 		rc=0
