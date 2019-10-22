@@ -138,7 +138,7 @@ set FAMILY_L {}
 set TAG_L {}
 set _ldistro {}
 set _lfamily {}
-set _ltag {STABLE}
+set _ltag {RTT_ACCEPTED}
 if [info exist Opt(distro)] {
 	if [info exist Opt(distrot)] {
 		set Opt(distro) [string map "%D $Opt(distro)" [expandDistro $Opt(distrot)]]

@@ -26,11 +26,11 @@ set CommonOptionList {
 				}}
 	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6",
                                 same as --dr=distro_family=\$FAMILY}}
-	tag			{arg m	help {Use latest distro tagged with TAG(default: STABLE),
+	tag			{arg m	help {Use latest distro tagged with TAG(default: RTT_ACCEPTED),
 				same as --dr=distro_tag=\$TAG
 				Commonly used labels for test looks like:
 				 RTT_ACCEPTED,RTT_ACCEPTED_PRIMARY,RTT_PASSED,RTT_PASSED_PRIMARY
-				 DevelPhaseExit-1.0,Alpha-1.0,Beta-1.0,Snapshot-1.0,RC-1.0 ...
+				 DevelPhaseExit-1.0,Alpha-1.0,Beta-1.0,Snapshot-1.0,RC-1.0,RELEASED ...
 }}
 	distro			{arg y	help {Use named distro for job, same as --dr=distro_name=\$DISTRO}}
 	distrot			{arg y	help {define distro template for multihost test, eg: --distrot=6,6,%D)}}
