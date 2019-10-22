@@ -24,8 +24,14 @@ set CommonOptionList {
 	{DR}			{arg m	help {distroRequires for multi-host test. e.g:
 				--DR="distro_arch=x86_64"
 				}}
-	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6", same as --dr=distro_family=\$FAMILY}}
-	tag			{arg m	help {Use latest distro tagged with TAG, eg. "RTT_ACCEPTED" (default: STABLE), same as --dr=distro_tag=\$TAG}}
+	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6",
+                                same as --dr=distro_family=\$FAMILY}}
+	tag			{arg m	help {Use latest distro tagged with TAG(default: STABLE),
+				same as --dr=distro_tag=\$TAG
+				Commonly used labels for test looks like:
+				 RTT_ACCEPTED,RTT_ACCEPTED_PRIMARY,RTT_PASSED,RTT_PASSED_PRIMARY
+				 DevelPhaseExit-1.0,Alpha-1.0,Beta-1.0,Snapshot-1.0,RC-1.0 ...
+}}
 	distro			{arg y	help {Use named distro for job, same as --dr=distro_name=\$DISTRO}}
 	distrot			{arg y	help {define distro template for multihost test, eg: --distrot=6,6,%D)}}
 	variant			{arg m	help {Specify the distro variant, same as --dr=distro_variant=\$VARIANT}}

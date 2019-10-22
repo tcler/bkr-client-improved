@@ -523,7 +523,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							if ![regexp -- {^RedHatEnterpriseLinux} $DISTRO] {
 								if {[lsearch -glob $drs distro_name=*] == -1} {lappend drs distro_name=${DISTRO}}
 							} else {
-								if {[lsearch -glob $drs distro_family=*] == -1} {lappend drs distro_family=${FAMILY}}
+								if {[lsearch -glob $drs distro_family=*] == -1} {lappend drs distro_family=${DISTRO}}
 								if {[lsearch -glob $drs distro_tag=*] == -1} {lappend drs distro_tag=${TAG}}
 							}
 						} else {
