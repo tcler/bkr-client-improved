@@ -99,6 +99,21 @@ distro2location() {
 	fastesturl.sh $urls
 }
 
+distro2imageurl() {
+	local distro=$1
+	local variant=${2:-Server}
+
+	local rc=1
+	local osurl=$(distro2location $distro)
+	local imageurl=${osurl/\/os\//\/images\/}
+	local imagename=$(curl -s ${imageurl} | sed -nr '/.*>(rhel-[^<>]+qcow2)<.*/{s//\1/;p}')
+	if [[ -n "${imagename}" ]]; then
+		echo ${imageurl}${imagename}
+		rc=0
+	fi
+	return $rc
+}
+
 [[ -z "$Distro" ]] && Distro=$1
 [[ -z "$Distro" ]] && {
 	Usage
@@ -106,14 +121,7 @@ distro2location() {
 }
 
 [[ -n "$GetImage" ]] && {
-	rc=1
-	osurl=$(distro2location $Distro)
-	imageurl=${osurl/\/os\//\/images\/}
-	imagename=$(curl -s ${imageurl} | sed -nr '/.*>(rhel-[^<>]+qcow2)<.*/{s//\1/;p}')
-	if [[ -n "${imagename}" ]]; then
-		echo ${imageurl}${imagename}
-		rc=0
-	fi
+	distro2imageurl $Distro
 	exit $rc
 }
 
