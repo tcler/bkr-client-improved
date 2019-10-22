@@ -290,6 +290,10 @@ for ((i=0; i<8; i++)); do
 			"Unsupported Hardware Detected" {
 				send "\r"
 			}
+			"Which would you like to install through" {
+				# see: [RHEL 6.1] Anaconda requires user interaction in case of kickstart network activation failing
+				send "\r"
+			}
 		}
 		interact
 	' && break
