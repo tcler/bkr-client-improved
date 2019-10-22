@@ -13,24 +13,24 @@ VMName=
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-vmname name]
-	 $0 <[-d] distroname> [options..] [-p|-pkginstall <arg>] [-g|-genimage]
+	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-n|-vmname name]
+	 $0 <[-d] distroname> [options..] [-b|-brewinstall <arg>] [-g|-genimage]
 
 	Example Internet:
 	 $0 centos-5 -l http://vault.centos.org/5.11/os/x86_64/
 	 $0 centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
 	 $0 centos-7 -l http://mirror.centos.org/centos/7/os/x86_64/
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
-	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -pkginstall ftp://url/path/x.rpm
-	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -pkginstall ftp://url/path/
+	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/x.rpm
+	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/
 
 	Example Intranet:
 	 $0 RHEL-6.10
 	 $0 RHEL-7.7
 	 $0 RHEL-8.1.0 -f
-	 $0 RHEL-8.1.0-20191015.0 -pkginstall 23822847  # brew scratch build id
-	 $0 RHEL-8.1.0-20191015.0 -pkginstall kernel-4.18.0-147.8.el8  # brew build name
-	 $0 RHEL-8.1.0-20191015.0 -pkginstall \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+	 $0 RHEL-8.1.0-20191015.0 -brewinstall 23822847  # brew scratch build id
+	 $0 RHEL-8.1.0-20191015.0 -brewinstall kernel-4.18.0-147.8.el8  # brew build name
+	 $0 RHEL-8.1.0-20191015.0 -brewinstall \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
 
 
 	Comment: you can get [-osv variant] info by using(now -osv option is unnecessary):
@@ -39,7 +39,7 @@ Usage() {
 	EOF
 }
 
-_at=`getopt -o hd:l:fn:gp: \
+_at=`getopt -o hd:l:fn:gb: \
 	--long help \
 	--long ks: \
 	--long osv: \
@@ -49,7 +49,7 @@ _at=`getopt -o hd:l:fn:gp: \
 	--long vmname: \
 	--long genimage \
 	--long xzopt: \
-	--long pkginstall: \
+	--long brewinstall: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -63,7 +63,7 @@ while true; do
 	-f|--force)      OVERWRITE="yes"; shift 1;;
 	-n|--vmname)     VMName="$2"; shift 2;;
 	-g|--genimage)   GenerateImage=yes; shift 1;;
-	-p|--pkginstall) PKGS="$2"; shift 2;;
+	-b|--brewinstall) PKGS="$2"; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
 	--) shift; break;;
 	esac
@@ -148,9 +148,9 @@ vmname=${vmname,,}
 	[[ -n "$PKGS" ]] && {
 		cat <<-END >>$KSPath
 		%post --log=/root/my-ks-post.log
-		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/pkginstall.sh
-		chmod +x pkginstall.sh
-		./pkginstall.sh $PKGS
+		wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh
+		chmod +x brewinstall.sh
+		./brewinstall.sh $PKGS
 		%end
 		END
 	}
@@ -263,7 +263,7 @@ installpid=$!
 sleep 5s
 
 while ! virsh desc $vmname &>/dev/null; do test -d /proc/$installpid || exit 1; sleep 1s; done
-while true; do
+for ((i=0; i<8; i++)); do
 	#clear -x
 	printf '\33[H\33[2J'
 	expect -c '
