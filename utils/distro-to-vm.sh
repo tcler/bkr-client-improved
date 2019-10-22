@@ -289,7 +289,11 @@ for ((i=0; i<8; i++)); do
 				send "\r"
 				exit 0
 			}
+			"Unsupported Hardware Detected" {
+				send "\r"
+			}
 		}
+		interact
 	' && break
 	test -d /proc/$installpid || break
 	sleep 2
