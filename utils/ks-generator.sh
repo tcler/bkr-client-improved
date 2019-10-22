@@ -170,7 +170,7 @@ KSF
 
 for repo in "${Repos[@]}"; do
 	read name url <<<"${repo/:/ }"
-	curl --output /dev/null --silent --head --fail $url || continue
+	curl -connect-timeout 10 -m 20 --output /dev/null --silent --head --fail $url &>/dev/null || continue
 	echo "repo --name=$name --baseurl=$url"
 done
 
@@ -181,7 +181,7 @@ echo -e "\n%post"
 
 for repo in "${Repos[@]}"; do
 	read name url <<<"${repo/:/ }"
-	curl --output /dev/null --silent --head --fail $url || continue
+	curl -connect-timeout 10 -m 20 --output /dev/null --silent --head --fail $url &>/dev/null || continue
 	cat <<-EOF
 	cat <<REPO >/etc/yum.repos.d/$name.repo
 	[$name]

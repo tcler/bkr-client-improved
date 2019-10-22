@@ -86,9 +86,7 @@ distro2location() {
 	}
 	urls=$(echo "$distrotrees" | awk '/https?:.*\/'"(${variant}|BaseOS)\/${arch}"'\//{print $3}' | sort -u)
 	[[ "$distro" = RHEL5* ]] && {
-		pattern=${distro//-/.}
-		pattern=${pattern/5/-?5}
-		urls=$(echo "$distrotrees" | awk '/https?:.*\/'"${pattern}\/${arch}"'\//{print $3}' | sort -u)
+		urls=$(echo "$distrotrees" | awk "/https?:.*\/${arch}\//"'{print $3}' | sort -u)
 	}
 
 	which fastesturl.sh &>/dev/null || {
