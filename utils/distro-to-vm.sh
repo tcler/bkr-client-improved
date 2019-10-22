@@ -50,6 +50,7 @@ _at=`getopt -o hd:l:fn:gb: \
 	--long genimage \
 	--long xzopt: \
 	--long brewinstall: \
+	--long getimage \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -63,6 +64,7 @@ while true; do
 	-f|--force)      OVERWRITE="yes"; shift 1;;
 	-n|--vmname)     VMName="$2"; shift 2;;
 	-g|--genimage)   GenerateImage=yes; shift 1;;
+	--getimage)      GetImage=yes; shift 1;;
 	-b|--brewinstall) PKGS="$2"; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
 	--) shift; break;;
@@ -82,7 +84,7 @@ distro2location() {
 			mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url
 			chmod +x ~/bin/distro-compose
 		}
-		distrotrees=$(distro-compose -d "$distro" --distrotrees)
+		distrotrees=$(distro-compose -d "$distro" --distrotrees|egrep 'released|compose')
 	}
 	urls=$(echo "$distrotrees" | awk '/https?:.*\/'"(${variant}|BaseOS)\/${arch}"'\//{print $3}' | sort -u)
 	[[ "$distro" = RHEL5* ]] && {
@@ -101,6 +103,17 @@ distro2location() {
 [[ -z "$Distro" ]] && {
 	Usage
 	exit 1
+}
+
+[[ -n "$GetImage" ]] && {
+	rc=1
+	imageurl=$(distro2location $Distro)
+	imagename=$(curl -s ${imageurl/\/os\//\/images\/} | sed -nr '/.*>(rhel-[^<>]+qcow2)<.*/{s//\1/;p}')
+	if [[ -n "${imagename}" ]]; then
+		echo ${imageurl}${imagename}
+		rc=0
+	fi
+	exit $rc
 }
 
 echo "{INFO} guess/verify os-variant ..."
