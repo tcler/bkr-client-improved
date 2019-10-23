@@ -369,7 +369,7 @@ elif [[ "$InstallType" = import ]]; then
 
 	echo "{INFO} downloading cloud image file of $Distro ..."
 	[[ -f $Imageurl ]] && Imageurl=file://$(readlink -f ${Imageurl})
-	curl -O -s $Imageurl
+	curl -L -O -s $Imageurl
 	imagefile=${Imageurl##*/}
 	[[ -f ${imagefile} ]] || exit 1
 
