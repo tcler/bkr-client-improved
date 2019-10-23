@@ -158,6 +158,7 @@ if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 	fi
 elif [[ "$InstallType" = location ]]; then
 	if [[ -z "$Location" ]]; then
+		echo "{INFO} getting fastest location of $Distro ..." >&2
 		Location=$(distro2location $Distro)
 		[[ -z "$Location" ]] && {
 			echo "{WARN} can not find distro location. please check if '$Distro' is valid distro" >&2
@@ -179,7 +180,7 @@ if [[ "$InstallType" = location ]]; then
 		ks-generator.sh -d $Distro -url $Location >$KSPath
 
 		cat <<-END >>$KSPath
-		%post --log=/root/my-ks-post.log
+		%post --log=/root/extra-ks-post.log
 		wget -O /usr/bin/brewinstall.sh -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh --no-check-certificate
 		chmod +x /usr/bin/brewinstall.sh
 		brewinstall.sh $PKGS
@@ -376,6 +377,7 @@ elif [[ "$InstallType" = import ]]; then
 		echo "{INFO} decompress $imagefile ..."
 		xz -d $imagefile
 		imagefile=${imagefile%.xz}
+		[[ -f ${imagefile} ]] || exit 1
 	}
 
 	[[ $Imageurl =~ released|compose ]] && {

@@ -65,6 +65,7 @@ RHEL-5*|RHEL5*|centos5*|centos-5*)
 	)
 NetCommand="network --device=eth0 --bootproto=dhcp"
 KeyCommand="key --skip"
+Bootloader='bootloader --location=mbr --append="console=ttyS0,9600 rhgb quiet"'
 	;;
 RHEL-6*|RHEL6*|centos6*|centos-6*)
 	Packages="@base @cifs-file-server @nfs-file-server redhat-lsb-core vim-enhanced git iproute screen"
@@ -153,6 +154,7 @@ text
 url --url=$URL
 $KeyCommand
 bootloader --location=mbr --append="rhgb quiet crashkernel=auto"
+$Bootloader
 zerombr
 clearpart --all --initlabel
 autopart
@@ -198,7 +200,7 @@ echo -e "%end\n"
 
 cat <<'KSF'
 
-%post --log=/root/my-ks-post.log
+%post --log=/root/extra-ks-post.log
 # post-installation script:
 test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf
 
