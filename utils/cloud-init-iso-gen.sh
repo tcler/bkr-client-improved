@@ -85,7 +85,6 @@ runcmd:
  - wget -O /usr/bin/brewinstall.sh -N -q "https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh"
  - chmod +x /usr/bin/brewinstall.sh
  - brewinstall.sh $BPKGS
- - grep -w kernel <<<"$BPKGS" && reboot
 EOF
 
 genisoimage -output $isof -volid cidata -joliet -rock user-data meta-data
