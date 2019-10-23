@@ -10,14 +10,14 @@ KSPath=
 ksauto=
 MacvtapMode=vepa
 VMName=
-InstallType=location
+InstallType=import
 
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <[-d] distroname> [-ks ks-file] [-l location] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-n|-vmname name]
-	 $0 <[-d] distroname> [options..] [-b|-brewinstall <arg>] [-g|-genimage]
-	 $0 <[-d] distroname> <-I> [-rm] # install by using import method
+	 $0 <[-d] distroname> [-ks ks-file] [-L] [-l location] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-n|-vmname name]
+	 $0 <[-d] distroname> [options..] -L [-b|-brewinstall <arg>] [-g|-genimage]
+	 $0 <[-d] distroname> -rm # remove VM after exit from console
 
 	Example Internet:
 	 $0 centos-5 -l http://vault.centos.org/5.11/os/x86_64/
@@ -28,12 +28,12 @@ Usage() {
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/
 
 	Example Intranet:
-	 $0 RHEL-6.10
+	 $0 RHEL-6.10 -L
 	 $0 RHEL-7.7
 	 $0 RHEL-8.1.0 -f
-	 $0 RHEL-8.1.0-20191015.0 -brewinstall 23822847  # brew scratch build id
-	 $0 RHEL-8.1.0-20191015.0 -brewinstall kernel-4.18.0-147.8.el8  # brew build name
-	 $0 RHEL-8.1.0-20191015.0 -brewinstall \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall 23822847  # brew scratch build id
+	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
+	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
 
 
 	Comment: you can get [-osv variant] info by using(now -osv option is unnecessary):
@@ -42,7 +42,7 @@ Usage() {
 	EOF
 }
 
-_at=`getopt -o hd:l:fn:gb:I:: \
+_at=`getopt -o hd:L::l:fn:gb:I:: \
 	--long help \
 	--long ks: \
 	--long rm \
@@ -61,7 +61,8 @@ while true; do
 	case "$1" in
 	-h|--help) Usage; shift 1; exit 0;;
 	-d)        Distro=$2; shift 2;;
-	-l)        Location=$2; shift 2;;
+	-l)        InstallType=location; Location=$2; shift 2;;
+	-L)        InstallType=location; Location=${2#=}; shift 2;;
 	-I)        InstallType=import; Imageurl=${2#=}; shift 2;;
 	--ks)      KSPath=$2; shift 2;;
 	--rm)      RM=yes; shift 1;;
@@ -380,7 +381,7 @@ elif [[ "$InstallType" = import ]]; then
 		tmpdir=.tmp$$
 		mkdir -p $tmpdir
 		pushd $tmpdir
-		echo "local-hostname: mylinux.local" >meta-data
+		echo "local-hostname: ${vmname}.local" >meta-data
 		cat >user-data <<-EOF
 		#cloud-config
 		users:
@@ -396,6 +397,23 @@ elif [[ "$InstallType" = import ]]; then
 		    lock_passwd: false
 
 		chpasswd: { expire: False }
+
+		yum_repos:
+		  base:
+		    baseurl: "$Location"
+		    enabled: true
+		    gpgcheck: false
+		  appstream:
+		    baseurl: "${Location/BaseOS/AppStream}"
+		    enabled: true
+		    gpgcheck: false
+
+		runcmd:
+		 - yum install -y vim wget
+		 - wget -O /usr/bin/brewinstall.sh -N -q "https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh"
+		 - chmod +x /usr/bin/brewinstall.sh
+		 - brewinstall.sh $PKGS
+		 - grep -w kernel <<<"$PKGS" && reboot
 		EOF
 		genisoimage -output ../$vmname-cloud-init.iso -volid cidata -joliet -rock user-data meta-data
 		popd
