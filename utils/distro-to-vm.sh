@@ -11,12 +11,13 @@ ksauto=
 MacvtapMode=vepa
 VMName=
 InstallType=import
+ImagePath=~/myimages
 
 Usage() {
 	cat <<-EOF >&2
 	Usage:
 	 $0 <[-d] distroname> [-ks ks-file] [-L] [-l location] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-n|-vmname name]
-	 $0 <[-d] distroname> [options..] -L [-b|-brewinstall <arg>] [-g|-genimage]
+	 $0 <[-d] distroname> [options..] [-b|-brewinstall <arg>] [-g|-genimage]
 	 $0 <[-d] distroname> -rm # remove VM after exit from console
 
 	Example Internet:
@@ -33,7 +34,7 @@ Usage() {
 	 $0 RHEL-8.1.0 -f
 	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall 23822847  # brew scratch build id
 	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
-	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+	 $0 RHEL-8.1.0-20191015.0 -g -b \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
 
 
 	Comment: you can get [-osv variant] info by using(now -osv option is unnecessary):
@@ -70,7 +71,7 @@ while true; do
 	--macvtap)       MacvtapMode="$2"; shift 2;;
 	-f|--force)      OVERWRITE="yes"; shift 1;;
 	-n|--vmname)     VMName="$2"; shift 2;;
-	-g|--genimage)   GenerateImage=yes; shift 1;;
+	-g|--genimage)   InstallType=location; GenerateImage=yes; shift 1;;
 	--getimage)      GetImage=yes; shift 1;;
 	-b|--brewinstall) PKGS="$2"; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
@@ -88,7 +89,7 @@ distro2location() {
 	[[ -z "$distrotrees" ]] && {
 		which distro-compose &>/dev/null || {
 			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/distro-compose
-			mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url
+			mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url --no-check-certificate
 			chmod +x ~/bin/distro-compose
 		}
 		distrotrees=$(distro-compose -d "$distro" --distrotrees|egrep 'released|compose')
@@ -100,7 +101,7 @@ distro2location() {
 
 	which fastesturl.sh &>/dev/null || {
 		_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/fastesturl.sh
-		mkdir -p ~/bin && wget -O ~/bin/fastesturl.sh -N -q $_url
+		mkdir -p ~/bin && wget -O ~/bin/fastesturl.sh -N -q $_url --no-check-certificate
 		chmod +x ~/bin/fastesturl.sh
 	}
 	fastesturl.sh $urls
@@ -179,7 +180,7 @@ if [[ "$InstallType" = location ]]; then
 
 		cat <<-END >>$KSPath
 		%post --log=/root/my-ks-post.log
-		wget -O /usr/bin/brewinstall.sh -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh
+		wget -O /usr/bin/brewinstall.sh -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh --no-check-certificate
 		chmod +x /usr/bin/brewinstall.sh
 		brewinstall.sh $PKGS
 		%end
@@ -363,13 +364,16 @@ if [[ "$InstallType" = location ]]; then
 	[[ -n "$ksauto" ]] && \rm -f $ksauto
 
 elif [[ "$InstallType" = import ]]; then
-	echo "{INFO} downloading cloud image file of $Distro ..."
-	wget -N $Imageurl
-	[[ -f ${Imageurl##*/} ]] || exit 1
 	sed -i '/^#(user|group) =/s/^#//' /etc/libvirt/qemu.conf;
 
+	echo "{INFO} downloading cloud image file of $Distro ..."
+	[[ -f $Imageurl ]] && Imageurl=file://$(readlink -f ${Imageurl})
+	curl -O -s $Imageurl
 	imagefile=${Imageurl##*/}
+	[[ -f ${imagefile} ]] || exit 1
+
 	[[ $imagefile = *.xz ]] && {
+		echo "{INFO} decompress $imagefile ..."
 		xz -d $imagefile
 		imagefile=${imagefile%.xz}
 	}
@@ -408,7 +412,7 @@ elif [[ "$InstallType" = import ]]; then
 
 		runcmd:
 		 - yum install -y vim wget
-		 - wget -O /usr/bin/brewinstall.sh -N -q "https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh"
+		 - wget -O /usr/bin/brewinstall.sh -N -q "https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh" --no-check-certificate
 		 - chmod +x /usr/bin/brewinstall.sh
 		 - brewinstall.sh $PKGS
 		 - grep -w kernel <<<"$PKGS" && reboot
@@ -427,7 +431,7 @@ elif [[ "$InstallType" = import ]]; then
 	  --disk $imagefile \
 	  $CLOUD_INIT_OPT \
 	  --import \
-	  $OS_VARIANT_OPT &
+	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $OS_VARIANT_OPT &
 
 	installpid=$!
 	sleep 5s
@@ -456,13 +460,14 @@ elif [[ "$InstallType" = import ]]; then
 		virsh destroy $vmname
 		sleep 2
 		virsh undefine $vmname --remove-all-storage
+		exit
 	}
-	exit
 fi
 
 if [[ "$GenerateImage" = yes ]]; then
+	mkdir -p $ImagePath/$Distro
 	image=$(virsh dumpxml --domain $vmname | sed -n "/source file=/{s|^.*='||; s|'/>$||; p}")
-	newimage=${image##*/}
+	newimage=$ImagePath/$Distro/${image##*/}
 
 	echo -e "\n{INFO} virt-sparsify image $image..."
 	LIBGUESTFS_BACKEND=direct virt-sparsify ${image} ${newimage}
