@@ -423,9 +423,9 @@ elif [[ "$InstallType" = import ]]; then
 			}
 			expect "Password:" {
 				send "redhat\r"
-				send "redhat\r"
-				send "redhat\r"
+				send "\r\r\r\r\r\r"
 				send "# your are in console, Ctr + ] to exit \r"
+				send "\r\r\r\r\r\r"
 			}
 			interact
 		' && break

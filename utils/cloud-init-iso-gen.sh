@@ -67,8 +67,10 @@ $(
 for repo in "${Repos[@]}"; do
 read name url <<<"${repo/:/ }"
 [[ ${url:0:1} = / ]] && { name=; url=$repo; }
+name=${name:-repo$((i++))}:
 cat <<REPO
-  ${name:-repo$((i++))}:
+  ${name}:
+    name: $name
     baseurl: "$url"
     enabled: true
     gpgcheck: false
