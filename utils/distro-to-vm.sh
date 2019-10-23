@@ -404,6 +404,8 @@ elif [[ "$InstallType" = import ]]; then
 	  --vcpus 2 \
 	  --disk $imagefile \
 	  $CLOUD_INIT_OPT \
+	  --network network=default \
+	  --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode \
 	  --import \
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $OS_VARIANT_OPT &
 
