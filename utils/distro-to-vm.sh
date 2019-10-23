@@ -177,15 +177,13 @@ if [[ "$InstallType" = location ]]; then
 		}
 		ks-generator.sh -d $Distro -url $Location >$KSPath
 
-		[[ -n "$PKGS" ]] && {
-			cat <<-END >>$KSPath
-			%post --log=/root/my-ks-post.log
-			wget -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh
-			chmod +x brewinstall.sh
-			./brewinstall.sh $PKGS
-			%end
-			END
-		}
+		cat <<-END >>$KSPath
+		%post --log=/root/my-ks-post.log
+		wget -O /usr/bin/brewinstall.sh -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh
+		chmod +x /usr/bin/brewinstall.sh
+		brewinstall.sh $PKGS
+		%end
+		END
 
 		sed -i "/^%post/s;$;\ntest -f /etc/hostname \&\& echo ${vmname} >/etc/hostname || echo HOSTNAME=${vmname} >>/etc/sysconfig/network;" $KSPath
 		[[ "$Distro" =~ (RHEL|centos)-?5 ]] && {
