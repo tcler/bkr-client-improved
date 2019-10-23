@@ -110,7 +110,7 @@ distro2imageurl() {
 	local rc=1
 
 	local imageurl=${osurl/\/os\//\/images\/}
-	local imagename=$(curl -s ${imageurl} | sed -nr '/.*>(rhel-[^<>]+qcow2)<.*/{s//\1/;p}')
+	local imagename=$(curl -L -s ${imageurl} | sed -nr '/.*>(rhel-[^<>]+qcow2(.xz)?)<.*/{s//\1/;p}')
 	if [[ -n "${imagename}" ]]; then
 		echo ${imageurl}${imagename}
 		rc=0
@@ -130,19 +130,28 @@ vmname=${vmname,,}
 
 if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 	if [[ -z "$Imageurl" ]]; then
-		echo "{INFO} getting fastest location of $Distro ..." >&2
-		Location=$(distro2location $Distro)
-		[[ -z "$Location" ]] && {
-			echo "{WARN} can not find location info of '$Distro'" >&2
-			exit 1
-		}
-		Imageurl=$(distro2imageurl $Location)
-		if [[ $? = 0 ]]; then
-			[[ -n "$GetImage" ]] && { echo "$Imageurl"; exit; }
+		echo "{INFO} searching image url of $Distro ..." >&2
+		baseurl=http://download.eng.bos.redhat.com/qa/rhts/lookaside/distro-vm-images/$Distro/
+		baseurl=http://download.devel.redhat.com/qa/rhts/lookaside/distro-vm-images/$Distro/
+		Imageurl=$(distro2imageurl $baseurl)
+
+		if [[ -z "$Imageurl" ]]; then
+			echo "{INFO} getting fastest location of $Distro ..." >&2
+			Location=$(distro2location $Distro)
+			[[ -z "$Location" ]] && {
+				echo "{WARN} can not find location info of '$Distro'" >&2
+				exit 1
+			}
+			Imageurl=$(distro2imageurl $Location)
+			if [[ $? = 0 ]]; then
+				[[ -n "$GetImage" ]] && { echo "$Imageurl"; exit; }
+			else
+				[[ -n "$GetImage" ]] && { exit 1; }
+				echo "{INFO} can not find image info of '$Distro', switching to Location mode" >&2
+				InstallType=location
+			fi
 		else
-			[[ -n "$GetImage" ]] && { exit 1; }
-			echo "{INFO} can not find image info of '$Distro', switching to Location mode" >&2
-			InstallType=location
+			[[ -n "$GetImage" ]] && { echo "$Imageurl"; exit; }
 		fi
 	fi
 elif [[ "$InstallType" = location ]]; then
@@ -366,30 +375,33 @@ elif [[ "$InstallType" = import ]]; then
 		imagefile=${imagefile%.xz}
 	}
 
-	echo -e "{INFO} creating cloud-init iso"
-	tmpdir=.tmp$$
-	mkdir -p $tmpdir
-	pushd $tmpdir
-	echo "local-hostname: mylinux.local" >meta-data
-	cat >user-data <<-EOF
-	#cloud-config
-	users:
-	  - default
+	[[ $Imageurl =~ released|compose ]] && {
+		echo -e "{INFO} creating cloud-init iso"
+		tmpdir=.tmp$$
+		mkdir -p $tmpdir
+		pushd $tmpdir
+		echo "local-hostname: mylinux.local" >meta-data
+		cat >user-data <<-EOF
+		#cloud-config
+		users:
+		  - default
 
-	  - name: root
-	    plain_text_passwd: redhat
-	    lock_passwd: false
+		  - name: root
+		    plain_text_passwd: redhat
+		    lock_passwd: false
 
-	  - name: foo
-	    group: sudo
-	    plain_text_passwd: redhat
-	    lock_passwd: false
+		  - name: foo
+		    group: sudo
+		    plain_text_passwd: redhat
+		    lock_passwd: false
 
-	chpasswd: { expire: False }
-	EOF
-	genisoimage -output ../cloud-init-$$.iso -volid cidata -joliet -rock user-data meta-data
-	popd
-	rm -rf $tmpdir
+		chpasswd: { expire: False }
+		EOF
+		genisoimage -output ../$vmname-cloud-init.iso -volid cidata -joliet -rock user-data meta-data
+		popd
+		rm -rf $tmpdir
+		CLOUD_INIT_OPT="--disk $vmname-cloud-init.iso,device=cdrom"
+	}
 
 	echo -e "{INFO} creating VM by import $imagefile"
 	virt-install \
@@ -397,7 +409,7 @@ elif [[ "$InstallType" = import ]]; then
 	  --memory 2048 \
 	  --vcpus 2 \
 	  --disk $imagefile \
-	  --disk cloud-init-$$.iso,device=cdrom \
+	  $CLOUD_INIT_OPT \
 	  --import \
 	  $OS_VARIANT_OPT &
 
