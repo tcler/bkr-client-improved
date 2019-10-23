@@ -4,7 +4,7 @@
 
 # install brew
 which brew &>/dev/null || {
-	which brewkoji_install.sh || {
+	which brewkoji_install.sh &>/dev/null || {
 		_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewkoji_install.sh
 		mkdir -p ~/bin && wget -O ~/bin/brewkoji_install.sh -N -q $_url
 		chmod +x ~/bin/brewkoji_install.sh
