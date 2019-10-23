@@ -1,6 +1,7 @@
 #!/bin/bash
 #author jiyin@redhat.com
 
+
 installBrew2() {
 	#https://mojo.redhat.com/docs/DOC-1024827
 	#https://docs.engineering.redhat.com/display/RCMDOC/RCM+Tools+Release+Guide
@@ -15,6 +16,7 @@ installBrew2() {
 	curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
 	"
 
+	yum install -y redhat-lsb-core &>/dev/null
 	local name=$(lsb_release -sir|awk '{print $1}')
 	local verx=$(lsb_release -sr|awk -F. '{print $1}')
 
@@ -50,6 +52,7 @@ installBrew2() {
 	which brew &>/dev/null
 }
 installBrewFromSourceCode() {
+	yum install -y git make &>/dev/null
 	git -c http.sslVerify=false clone  https://code.engineering.redhat.com/gerrit/rcm-brewkoji.git
 	cd rcm-brewkoji
 	make install >/dev/null
