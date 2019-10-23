@@ -428,6 +428,8 @@ elif [[ "$InstallType" = import ]]; then
 				send "\r\r\r\r\r\r"
 				send "# your are in console, Ctr + ] to exit \r"
 				send "\r\r\r\r\r\r"
+				send {while ps axf|grep -A2 "/var/lib/cloud/instance/scripts/runcm[d]"; do echo "[INFO]: cloud-init scirpt is still running .."; sleep 5; done &}
+				send "\r\r\r\r\r\r"
 			}
 			interact
 		' && break
