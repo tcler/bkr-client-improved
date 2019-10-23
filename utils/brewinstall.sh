@@ -17,6 +17,7 @@ which brew &>/dev/null || {
 
 [[ function = "$(type -t report_result)" ]] || report_result() { :; }
 
+KREBOOT=yes
 retcode=0
 res=PASS
 prompt="[pkg-install]"
@@ -40,7 +41,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $0 [brew scratch build id] [brew build name] [url]
+	 $0 [-debugkernel] [brew scratch build id] [brew build name] [url]
 
 	Example:
 	 $0 23822847  # brew scratch build id
@@ -51,6 +52,8 @@ Usage() {
 	 $0 \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
 EOF
 }
+
+[[ "$1" = -debug* ]] && { FLAG=debug; shift 1; }
 
 # Install scratch build package
 [ -z "$*" ] && {
@@ -129,3 +132,6 @@ report_result install $res
 	fi
 }
 
+if ls *.rpm|grep ^kernel-; then
+	[[ "$KREBOOT" = yes ]] && reboot
+fi
