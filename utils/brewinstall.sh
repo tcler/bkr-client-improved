@@ -37,11 +37,25 @@ run() {
 	return $ret
 }
 
+Usage() {
+	cat <<-EOF
+	Usage:
+	 $0 [brew scratch build id] [brew build name] [url]
+
+	Example:
+	 $0 23822847  # brew scratch build id
+	 $0 kernel-4.18.0-147.8.el8  # brew build name
+	 $0 [ftp|http]://url/xyz.rpm # install xyz.rpm
+	 $0 [ftp|http]://url/path/   # install all rpms in url/path
+	 $0 nfs:server/nfsshare      # install all rpms in nfsshare
+	 $0 \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+EOF
+}
+
 # Install scratch build package
 [ -z "$*" ] && {
-	echo "$prompt [Error] you must specify a brew build task id"
-	report_result check-taskid FAIL
-	exit 1
+	Usage >&2
+	exit
 }
 
 # Download packges
