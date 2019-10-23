@@ -9,7 +9,7 @@ which brew &>/dev/null || {
 		mkdir -p ~/bin && wget -O ~/bin/brewkoji_install.sh -N -q $_url
 		chmod +x ~/bin/brewkoji_install.sh
 	}
-	brewkoji_install.sh >/dev/null || {
+	PATH=~/bin:$PATH brewkoji_install.sh >/dev/null || {
 		echo "{WARN} install brewkoji failed" >&2
 		exit 1
 	}
