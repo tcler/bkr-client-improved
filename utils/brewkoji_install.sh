@@ -24,7 +24,7 @@ installBrew2() {
 	case $name in
 	RedHatEnterprise*|CentOS*)
 		case $verx in
-		6)
+		[56])
 			for type in server client workstation; do
 				curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rhel-${verx}/rcm-tools-rhel-${verx}-${type}.repo
 				yum install -y koji brewkoji && break || rm rcm-tools-*.repo
