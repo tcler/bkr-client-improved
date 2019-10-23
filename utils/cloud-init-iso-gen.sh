@@ -9,8 +9,8 @@ _at=`getopt -o hy:b: \
 	--long help \
 	--long hostname: \
 	--long repo: \
-	--long yumpkgs: \
-	--long brewpkgs: \
+	--long yuminstall: \
+	--long brewinstall: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -18,15 +18,15 @@ while true; do
 	-h|--help) Usage; shift 1; exit 0;;
 	--hostname) HostName="$2"; shift 2;;
 	--repo) Repos+=($2); shift 2;;
-	-y|--yumpkgs) PKGS="$2"; shift 2;;
-	-b|--brewpkgs) BPKGS="$2"; shift 2;;
+	-y|--yuminstall) PKGS="$2"; shift 2;;
+	-b|--brewinstall) BPKGS="$2"; shift 2;;
 	--) shift; break;;
 	esac
 done
 
 Usage() {
 	cat <<-EOF >&2
-	Usage: $0 <iso file path> [--hostname name] [--repo name:url [--repo name:url]] [-b|--brewpkgs "pkg list"] [-y|--yumpkgs "pkg list"]
+	Usage: $0 <iso file path> [--hostname name] [--repo name:url [--repo name:url]] [-b|--brewinstall "pkg list"] [-y|--yuminstall "pkg list"]
 	EOF
 }
 
@@ -80,6 +80,7 @@ done
 )
 
 runcmd:
+ - test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf
  - yum install -y vim wget $PKGS
  - wget -O /usr/bin/brewinstall.sh -N -q "https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh"
  - chmod +x /usr/bin/brewinstall.sh
