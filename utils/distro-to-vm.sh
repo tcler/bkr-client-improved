@@ -13,11 +13,23 @@ MacvtapMode=vepa
 VMName=
 InstallType=import
 ImagePath=~/myimages
+VMPath=~/VMs
+RuntimeTmp=/tmp/distro-to-vm-$$
+
+mkdir -p $RuntimeTmp
+Cleanup() {
+	cd ~
+	echo "Removing $RuntimeTmp"
+	rm -rf $RuntimeTmp
+	exit
+}
+
+trap Cleanup EXIT SIGINT SIGQUIT SIGTERM
 
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <[-d] distroname> [-ks ks-file] [-L] [-l location] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-n|-vmname name]
+	 $0 <[-d] distroname> [-ks ks-file] [-L] [-l location] [-i image] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-n|-vmname name]
 	 $0 <[-d] distroname> [options..] [-y|-yuminstall <pkgs>] [-b|-brewinstall <args>] [-g|-genimage]
 	 $0 <[-d] distroname> -rm # remove VM after exit from console
 
@@ -28,6 +40,7 @@ Usage() {
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/x.rpm
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/
+	 $0 centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -yuminstall "vim git wget"
 
 	Example Intranet:
 	 $0 RHEL-6.10 -L
@@ -44,7 +57,7 @@ Usage() {
 	EOF
 }
 
-_at=`getopt -o hd:L::l:fn:gb:y:I:: \
+_at=`getopt -o hd:L::l:fn:gb:y:I::i: \
 	--long help \
 	--long ks: \
 	--long rm \
@@ -65,8 +78,9 @@ while true; do
 	-h|--help) Usage; shift 1; exit 0;;
 	-d)        Distro=$2; shift 2;;
 	-l)        InstallType=location; Location=$2; shift 2;;
-	-L)        InstallType=location; Location=${2#=}; shift 2;;
-	-I)        InstallType=import; Imageurl=${2#=}; shift 2;;
+	-L)        InstallType=location; [[ -n "$2" ]] && Location=${2#=}; shift 2;;
+	-i)        InstallType=import; Imageurl=${2}; shift 2;;
+	-I)        InstallType=import; [[ -n "$2" ]] && Imageurl=${2#=}; shift 2;;
 	--ks)      KSPath=$2; shift 2;;
 	--rm)      RM=yes; shift 1;;
 	--xzopt)         XZ="$2"; shift 2;;
@@ -173,7 +187,7 @@ fi
 if [[ "$InstallType" = location ]]; then
 	[[ -z "$KSPath" ]] && {
 		echo "{INFO} generating kickstart file for $Distro ..."
-		ksauto=/tmp/ks-$VM_OS_VARIANT-$$.cfg
+		ksauto=$RuntimeTmp/ks-$VM_OS_VARIANT-$$.cfg
 		KSPath=$ksauto
 		which ks-generator.sh &>/dev/null || {
 			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
@@ -371,10 +385,15 @@ if [[ "$InstallType" = location ]]; then
 elif [[ "$InstallType" = import ]]; then
 	sed -i '/^#(user|group) =/s/^#//' /etc/libvirt/qemu.conf;
 
-	echo "{INFO} downloading cloud image file of $Distro ..."
 	[[ -f $Imageurl ]] && Imageurl=file://$(readlink -f ${Imageurl})
-	curl -L -O -s $Imageurl
-	imagefile=${Imageurl##*/}
+	imagefilename=${Imageurl##*/}
+	vmpath=$VMPath/$Distro
+	imagefile=$vmpath/$imagefilename
+	mkdir -p $vmpath
+
+	echo "{INFO} downloading cloud image file of $Distro to $imagefile ..."
+	[[ $Imageurl = file://$imagefile ]] ||
+		curl -L -s $Imageurl -o $imagefile
 	[[ -f ${imagefile} ]] || exit 1
 
 	[[ $imagefile = *.xz ]] && {
@@ -391,10 +410,11 @@ elif [[ "$InstallType" = import ]]; then
 			mkdir -p ~/bin && wget -O ~/bin/cloud-init-iso-gen.sh -N -q $_url --no-check-certificate
 			chmod +x ~/bin/cloud-init-iso-gen.sh
 		}
-		cloud-init-iso-gen.sh $vmname-cloud-init.iso -hostname ${vmname} -b "$BPKGS" -y "$PKGS" \
+		cloudinitiso=$vmpath/$vmname-cloud-init.iso
+		cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmname} -b "$BPKGS" -y "$PKGS" \
 			-repo baseos:$Location \
 			-repo appstream:${Location/BaseOS/AppStream}
-		CLOUD_INIT_OPT="--disk $vmname-cloud-init.iso,device=cdrom"
+		CLOUD_INIT_OPT="--disk $cloudinitiso,device=cdrom"
 	}
 
 	echo -e "{INFO} creating VM by import $imagefile"
@@ -416,6 +436,11 @@ elif [[ "$InstallType" = import ]]; then
 			set timeout -1
 			spawn virsh console '"$vmname"'
 			expect {
+				"error: failed to get domain" {
+					send "\r"
+					puts $expect_out(buffer)
+					exit 6
+				}
 				"error: internal error: character device console0 is not using a PTY" {
 					send "\r"
 					puts $expect_out(buffer)
@@ -440,6 +465,7 @@ elif [[ "$InstallType" = import ]]; then
 		virsh destroy $vmname
 		sleep 2
 		virsh undefine $vmname --remove-all-storage
+		rmdir $vmpath 2>/dev/null
 		exit
 	}
 fi
