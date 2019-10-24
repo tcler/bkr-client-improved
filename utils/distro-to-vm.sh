@@ -19,7 +19,7 @@ RuntimeTmp=/tmp/distro-to-vm-$$
 mkdir -p $RuntimeTmp
 Cleanup() {
 	cd ~
-	echo "Removing $RuntimeTmp"
+	#echo "{DEBUG} Removing $RuntimeTmp"
 	rm -rf $RuntimeTmp
 	exit
 }
