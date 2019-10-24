@@ -144,21 +144,27 @@ distro2imageurl() {
 
 [[ -z "$Distro" ]] && Distro=$1
 [[ -z "$Distro" ]] && {
-	distrofile=$RuntimeTmp/distro
-	which distro-compose &>/dev/null || {
-		_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/distro-compose
-		mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url --no-check-certificate
-		chmod +x ~/bin/distro-compose
-	}
-	which dialog &>/dev/null || yum install -y dialog &>/dev/null
+	iurl=http://download.devel.redhat.com
+	if curl -connect-timeout 10 -m 20 --output /dev/null --silent --head --fail $iurl &>/dev/null; then
+		distrofile=$RuntimeTmp/distro
+		which distro-compose &>/dev/null || {
+			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/distro-compose
+			mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url --no-check-certificate
+			chmod +x ~/bin/distro-compose
+		}
+		which dialog &>/dev/null || yum install -y dialog &>/dev/null
 
-	mainvers=$(echo -e "RHEL-8\nRHEL-7\nRHEL-6\nRHEL-?5"|sed -e 's/.*/"&" "" 1/')
-	dialog --backtitle "$0" --radiolist "please selet family:" 12 40 8 $mainvers 2>$distrofile
-	pattern=$(head -n1 $distrofile|sed 's/"//g')
+		mainvers=$(echo -e "RHEL-8\nRHEL-7\nRHEL-6\nRHEL-?5"|sed -e 's/.*/"&" "" 1/')
+		dialog --backtitle "$0" --radiolist "please selet family:" 12 40 8 $mainvers 2>$distrofile
+		pattern=$(head -n1 $distrofile|sed 's/"//g')
 
-	distroList=$(distro-compose --distrolist|sed -e '/ /d' -e 's/.*/"&" "" 1/'|egrep "$pattern")
-	dialog --backtitle "$0" --radiolist "please select distro:" 30 60 28 $distroList 2>$distrofile
-	Distro=$(head -n1 $distrofile|sed 's/"//g')
+		distroList=$(distro-compose --distrolist|sed -e '/ /d' -e 's/.*/"&" "" 1/'|egrep "$pattern")
+		dialog --backtitle "$0" --radiolist "please select distro:" 30 60 28 $distroList 2>$distrofile
+		Distro=$(head -n1 $distrofile|sed 's/"//g')
+	else
+		Usage
+		exit 1
+	fi
 }
 [[ -z "$Distro" ]] && {
 	echo -e "{WARN} you have to select a distro name or specified it by adding command line parameter:\n"
