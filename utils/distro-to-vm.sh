@@ -33,6 +33,14 @@ Usage() {
 	 $0 <[-d] distroname> [options..] [-p|-pkginstall <pkgs>] [-b|-brewinstall <args>] [-g|-genimage]
 	 $0 <[-d] distroname> -rm # remove VM after exit from console
 
+	Example Intranet:
+	 $0 RHEL-6.10 -L
+	 $0 RHEL-7.7
+	 $0 RHEL-8.1.0 -f -p "vim wget git"
+	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall 23822847  # brew scratch build id
+	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
+	 $0 RHEL-8.2.0-20191024.n.0 -g -b \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+
 	Example Internet:
 	 $0 centos-5 -l http://vault.centos.org/5.11/os/x86_64/
 	 $0 centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
@@ -42,16 +50,9 @@ Usage() {
 	 $0 centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -pkginstall "vim git wget"
 	 $0 debian-10 -i https://cdimage.debian.org/cdimage/openstack/10.1.5-20191015/debian-10.1.5-20191015-openstack-amd64.qcow2
 
-	Example Intranet:
-	 $0 RHEL-6.10 -L
-	 $0 RHEL-7.7
-	 $0 RHEL-8.1.0 -f -p "vim wget git"
-	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall 23822847  # brew scratch build id
-	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
-	 $0 RHEL-8.1.0-20191015.0 -g -b \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
-
 	Example from local image:
 	 $0 rhel-8-up -i ~/myimages/RHEL-8.1.0-20191015.0/rhel-8-upstream.qcow2.xz --nocloud-init
+	 $0 debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
 
 
 	Comment: you can get [-osv variant] info by using(now -osv option is unnecessary):
