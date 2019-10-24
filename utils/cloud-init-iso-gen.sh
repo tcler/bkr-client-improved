@@ -76,6 +76,7 @@ cat <<REPO
     baseurl: "$url"
     enabled: true
     gpgcheck: false
+    skip_if_unavailable: true
 
 REPO
 done

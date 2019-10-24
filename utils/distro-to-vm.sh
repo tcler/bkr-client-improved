@@ -403,7 +403,7 @@ elif [[ "$InstallType" = import ]]; then
 		[[ -f ${imagefile} ]] || exit 1
 	}
 
-	[[ $Imageurl =~ released|compose ]] && {
+	[[ $Imageurl =~ released|compose|[Cc]loud ]] && {
 		echo -e "{INFO} creating cloud-init iso"
 		which cloud-init-iso-gen.sh &>/dev/null || {
 			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/cloud-init-iso-gen.sh
