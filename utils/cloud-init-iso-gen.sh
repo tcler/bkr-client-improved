@@ -84,10 +84,10 @@ done
 
 runcmd:
  - test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf
- - yum install -y vim wget $PKGS
- - wget -O /usr/bin/brewinstall.sh -N -q "https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh"
- - chmod +x /usr/bin/brewinstall.sh
- - brewinstall.sh $BPKGS
+ - which yum && yum install -y vim wget $PKGS
+ - which apt-get && apt-get install -y vim wget curl $PKGS
+ - which yum && wget -O /usr/bin/brewinstall.sh -N -q "https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh" &&
+   chmod +x /usr/bin/brewinstall.sh && brewinstall.sh $BPKGS
 EOF
 
 genisoimage -output $isof -volid cidata -joliet -rock user-data meta-data

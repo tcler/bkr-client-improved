@@ -43,6 +43,7 @@ Usage() {
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/x.rpm
 	 $0 centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -yuminstall "vim git wget"
+	 $0 debian-10 -i https://cdimage.debian.org/cdimage/openstack/10.1.5-20191015/debian-10.1.5-20191015-openstack-amd64.qcow2
 
 	Example Intranet:
 	 $0 RHEL-6.10 -L
@@ -332,8 +333,8 @@ if [[ "$InstallType" = location ]]; then
 	  --memory 2048 \
 	  --vcpus 2 \
 	  --disk size=8 \
-	  --network network=default \
-	  --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode \
+	  --network network=default,model=virtio \
+	  --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode,model=virtio \
 	  --initrd-inject $KSPath \
 	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $NOREBOOT &
@@ -430,8 +431,8 @@ elif [[ "$InstallType" = import ]]; then
 	  --vcpus 2 \
 	  --disk $imagefile \
 	  $CLOUD_INIT_OPT \
-	  --network network=default \
-	  --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode \
+	  --network network=default,model=virtio \
+	  --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode,,model=virtio \
 	  --import \
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $OS_VARIANT_OPT &
 
