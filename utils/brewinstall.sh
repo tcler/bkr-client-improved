@@ -41,7 +41,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $0 [-debugkernel] [brew scratch build id] [brew build name] [url]
+	 $0 [-debugkernel] {brew scratch build id] [brew build name] [url}
 
 	Example:
 	 $0 23822847  # brew scratch build id
@@ -53,8 +53,6 @@ Usage() {
 EOF
 }
 
-[[ "$1" = -debug* ]] && { FLAG=debug; shift 1; }
-
 # Install scratch build package
 [ -z "$*" ] && {
 	Usage >&2
@@ -62,52 +60,63 @@ EOF
 }
 
 # Download packges
-taskid="$*"
-if [[ "$taskid" =~ ^[0-9]+(:.*)?$ ]]; then
-	read taskid FLAG <<<${taskid/:/ }
-	#wait the scratch build finish
-	while brew taskinfo $taskid|grep -q '^State: open'; do echo "[$(date +%T) Info] build hasn't finished, wait"; sleep 5m; done
+cnt=0
+for build; do
+	[[ "$build" = -debug* ]] && { FLAG=debug; continue; }
+	[[ "$build" = -noreboot* ]] && { KREBOOT=no; continue; }
 
-	run "brew taskinfo -r $taskid > >(tee brew_buildinfo.txt)"
-	run "awk '/\\<($(arch)|noarch)\\.rpm/{print}' brew_buildinfo.txt >buildArch.txt"
-	run "cat buildArch.txt"
-	[ -z "$(< buildArch.txt)" ] && {
-		echo "$prompt [Warn] rpm not found, treat the [$taskid] as build ID."
-		run "brew buildinfo $taskid > >(tee brew_buildinfo.txt)"
+	let cnt++
+	if [[ "$build" =~ ^[0-9]+(:.*)?$ ]]; then
+		read taskid FLAG <<<${build/:/ }
+		#wait the scratch build finish
+		while brew taskinfo $taskid|grep -q '^State: open'; do echo "[$(date +%T) Info] build hasn't finished, wait"; sleep 5m; done
+
+		run "brew taskinfo -r $taskid > >(tee brew_buildinfo.txt)"
 		run "awk '/\\<($(arch)|noarch)\\.rpm/{print}' brew_buildinfo.txt >buildArch.txt"
 		run "cat buildArch.txt"
-	}
-	urllist=$(sed '/mnt.redhat..*rpm$/s; */mnt/redhat/;;' buildArch.txt)
-	for url in $urllist; do
-		run "wget --progress=dot:mega http://download.devel.redhat.com/$url" 0  "download-${url##*/}"
-	done
-elif [[ "$taskid" =~ ^nfs: ]]; then
-	nfsmp=/mnt/nfsmountpoint-$$
-	mkdir -p $nfsmp
-	nfsaddr=${taskid/nfs:/}
-	nfsserver=${nfsaddr%:/*}
-	exportdir=${nfsaddr#*:/}
-	run "mount $nfsserver:/ $nfsmp"
-	ls $nfsmp/$exportdir/*.noarch.rpm &&
-		run "cp -f $nfsmp/$exportdir/*.noarch.rpm ."
-	ls $nfsmp/$exportdir/*.$(arch).rpm &&
-		run "cp -f $nfsmp/$exportdir/*.$(arch).rpm ."
-	run "umount $nfsmp" -
-elif [[ "$taskid" =~ ^(ftp|http|https):// ]]; then
-	for url in $taskid; do
-		if [[ $url = *.rpm ]]; then
-			run "wget --progress=dot:mega $url" 0  "download-${url##*/}"
-		else
-			run "wget -r -l1 --no-parent -A.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
-			find */ -name '*.rpm' | xargs -i mv {} ./
-		fi
-	done
-else
-	for pkg in $taskid; do
-		brew download-build $pkg --arch=noarch
-		brew download-build $pkg --arch=$(arch)
-	done
-fi
+		[ -z "$(< buildArch.txt)" ] && {
+			echo "$prompt [Warn] rpm not found, treat the [$taskid] as build ID."
+			buildid=$taskid
+			run "brew buildinfo $buildid > >(tee brew_buildinfo.txt)"
+			run "awk '/\\<($(arch)|noarch)\\.rpm/{print}' brew_buildinfo.txt >buildArch.txt"
+			run "cat buildArch.txt"
+		}
+		urllist=$(sed '/mnt.redhat..*rpm$/s; */mnt/redhat/;;' buildArch.txt)
+		for url in $urllist; do
+			run "wget --progress=dot:mega http://download.devel.redhat.com/$url" 0  "download-${url##*/}"
+		done
+	elif [[ "$build" =~ ^nfs: ]]; then
+		nfsmp=/mnt/nfsmountpoint-$$
+		mkdir -p $nfsmp
+		nfsaddr=${build/nfs:/}
+		nfsserver=${nfsaddr%:/*}
+		exportdir=${nfsaddr#*:/}
+		run "mount $nfsserver:/ $nfsmp"
+		ls $nfsmp/$exportdir/*.noarch.rpm &&
+			run "cp -f $nfsmp/$exportdir/*.noarch.rpm ."
+		ls $nfsmp/$exportdir/*.$(arch).rpm &&
+			run "cp -f $nfsmp/$exportdir/*.$(arch).rpm ."
+		run "umount $nfsmp" -
+	elif [[ "$build" =~ ^(ftp|http|https):// ]]; then
+		for url in $build; do
+			if [[ $url = *.rpm ]]; then
+				run "wget --progress=dot:mega $url" 0  "download-${url##*/}"
+			else
+				run "wget -r -l1 --no-parent -A.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
+				find */ -name '*.rpm' | xargs -i mv {} ./
+			fi
+		done
+	else
+		buildname=$build
+		brew download-build $buildname --arch=noarch
+		brew download-build $buildname --arch=$(arch)
+	fi
+done
+
+[ "$cnt" = 0 ] && {
+	Usage >&2
+	exit
+}
 
 # Install packages
 run "ls -lh"
