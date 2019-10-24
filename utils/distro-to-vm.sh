@@ -30,7 +30,7 @@ Usage() {
 	cat <<-EOF >&2
 	Usage:
 	 $0 <[-d] distroname> [-ks ks-file] [-L] [-l location] [-i image] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-n|-vmname name]
-	 $0 <[-d] distroname> [options..] [-y|-yuminstall <pkgs>] [-b|-brewinstall <args>] [-g|-genimage]
+	 $0 <[-d] distroname> [options..] [-p|-pkginstall <pkgs>] [-b|-brewinstall <args>] [-g|-genimage]
 	 $0 <[-d] distroname> -rm # remove VM after exit from console
 
 	Example:
@@ -42,13 +42,13 @@ Usage() {
 	 $0 centos-7 -l http://mirror.centos.org/centos/7/os/x86_64/
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/x.rpm
-	 $0 centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -yuminstall "vim git wget"
+	 $0 centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -pkginstall "vim git wget"
 	 $0 debian-10 -i https://cdimage.debian.org/cdimage/openstack/10.1.5-20191015/debian-10.1.5-20191015-openstack-amd64.qcow2
 
 	Example Intranet:
 	 $0 RHEL-6.10 -L
 	 $0 RHEL-7.7
-	 $0 RHEL-8.1.0 -f -y "vim wget git"
+	 $0 RHEL-8.1.0 -f -p "vim wget git"
 	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall 23822847  # brew scratch build id
 	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
 	 $0 RHEL-8.1.0-20191015.0 -g -b \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
@@ -60,7 +60,7 @@ Usage() {
 	EOF
 }
 
-_at=`getopt -o hd:L::l:fn:gb:y:I::i: \
+_at=`getopt -o hd:L::l:fn:gb:p:I::i: \
 	--long help \
 	--long ks: \
 	--long rm \
@@ -72,7 +72,7 @@ _at=`getopt -o hd:L::l:fn:gb:y:I::i: \
 	--long genimage \
 	--long xzopt: \
 	--long brewinstall: \
-	--long yuminstall: \
+	--long pkginstall: \
 	--long getimage \
 	--long nocloud-init --long nocloud \
     -a -n "$0" -- "$@"`
@@ -94,7 +94,7 @@ while true; do
 	-g|--genimage)   InstallType=location; GenerateImage=yes; shift 1;;
 	--getimage)      GetImage=yes; shift 1;;
 	-b|--brewinstall) BPKGS="$2"; shift 2;;
-	-y|--yuminstall) PKGS="$2"; shift 2;;
+	-p|--pkginstall) PKGS="$2"; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
 	--nocloud*) NO_CLOUD_INIT="yes"; shift 1;;
 	--) shift; break;;
@@ -419,7 +419,7 @@ elif [[ "$InstallType" = import ]]; then
 		[[ -n "$Location" ]] && {
 			REPO_OPTS="-repo baseos:$Location -repo appstream:${Location/BaseOS/AppStream}"
 		}
-		cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmname} -b "$BPKGS" -y "$PKGS" \
+		cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmname} -b "$BPKGS" -p "$PKGS" \
 			$REPO_OPTS
 		CLOUD_INIT_OPT="--disk $cloudinitiso,device=cdrom"
 	}

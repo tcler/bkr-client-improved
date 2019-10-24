@@ -7,11 +7,11 @@ Repos=()
 BPKGS=
 PKGS=
 
-_at=`getopt -o hy:b: \
+_at=`getopt -o hp:b: \
 	--long help \
 	--long hostname: \
 	--long repo: \
-	--long yuminstall: \
+	--long pkginstall: \
 	--long brewinstall: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
@@ -20,7 +20,7 @@ while true; do
 	-h|--help) Usage; shift 1; exit 0;;
 	--hostname) HostName="$2"; shift 2;;
 	--repo) Repos+=($2); shift 2;;
-	-y|--yuminstall) PKGS="$2"; shift 2;;
+	-p|--pkginstall) PKGS="$2"; shift 2;;
 	-b|--brewinstall) BPKGS="$2"; shift 2;;
 	--) shift; break;;
 	esac
@@ -28,7 +28,7 @@ done
 
 Usage() {
 	cat <<-EOF >&2
-	Usage: $0 <iso file path> [--hostname name] [--repo name:url [--repo name:url]] [-b|--brewinstall "pkg list"] [-y|--yuminstall "pkg list"]
+	Usage: $0 <iso file path> [--hostname name] [--repo name:url [--repo name:url]] [-b|--brewinstall "pkg list"] [-p|--pkginstall "pkg list"]
 	EOF
 }
 
