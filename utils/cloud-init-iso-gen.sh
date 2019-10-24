@@ -1,4 +1,6 @@
 #!/bin/bash
+# author: yin-jianhong@163.com
+# ref: https://cloudinit.readthedocs.io/en/latest/topics/examples.html
 
 HostName=mylinux
 Repos=()
