@@ -33,13 +33,15 @@ Usage() {
 	 $0 <[-d] distroname> [options..] [-y|-yuminstall <pkgs>] [-b|-brewinstall <args>] [-g|-genimage]
 	 $0 <[-d] distroname> -rm # remove VM after exit from console
 
+	Example:
+	 $0 rhel-8-up -i ~/myimages/RHEL-8.1.0-20191015.0/rhel-8-upstream.qcow2.xz --nocloud-init
+
 	Example Internet:
 	 $0 centos-5 -l http://vault.centos.org/5.11/os/x86_64/
 	 $0 centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
 	 $0 centos-7 -l http://mirror.centos.org/centos/7/os/x86_64/
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
 	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/x.rpm
-	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/
 	 $0 centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -yuminstall "vim git wget"
 
 	Example Intranet:
@@ -71,6 +73,7 @@ _at=`getopt -o hd:L::l:fn:gb:y:I::i: \
 	--long brewinstall: \
 	--long yuminstall: \
 	--long getimage \
+	--long nocloud-init --long nocloud \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -92,6 +95,7 @@ while true; do
 	-b|--brewinstall) BPKGS="$2"; shift 2;;
 	-y|--yuminstall) PKGS="$2"; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
+	--nocloud*) NO_CLOUD_INIT="yes"; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -403,7 +407,7 @@ elif [[ "$InstallType" = import ]]; then
 		[[ -f ${imagefile} ]] || exit 1
 	}
 
-	[[ $Imageurl =~ released|compose|[Cc]loud ]] && {
+	[[ "$NO_CLOUD_INIT" != yes ]] && {
 		echo -e "{INFO} creating cloud-init iso"
 		which cloud-init-iso-gen.sh &>/dev/null || {
 			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/cloud-init-iso-gen.sh
