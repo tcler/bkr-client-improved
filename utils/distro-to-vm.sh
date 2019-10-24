@@ -411,9 +411,11 @@ elif [[ "$InstallType" = import ]]; then
 			chmod +x ~/bin/cloud-init-iso-gen.sh
 		}
 		cloudinitiso=$vmpath/$vmname-cloud-init.iso
+		[[ -n "$Location" ]] && {
+			REPO_OPTS="-repo baseos:$Location -repo appstream:${Location/BaseOS/AppStream}"
+		}
 		cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmname} -b "$BPKGS" -y "$PKGS" \
-			-repo baseos:$Location \
-			-repo appstream:${Location/BaseOS/AppStream}
+			$REPO_OPTS
 		CLOUD_INIT_OPT="--disk $cloudinitiso,device=cdrom"
 	}
 
