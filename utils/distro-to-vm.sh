@@ -33,9 +33,6 @@ Usage() {
 	 $0 <[-d] distroname> [options..] [-p|-pkginstall <pkgs>] [-b|-brewinstall <args>] [-g|-genimage]
 	 $0 <[-d] distroname> -rm # remove VM after exit from console
 
-	Example:
-	 $0 rhel-8-up -i ~/myimages/RHEL-8.1.0-20191015.0/rhel-8-upstream.qcow2.xz --nocloud-init
-
 	Example Internet:
 	 $0 centos-5 -l http://vault.centos.org/5.11/os/x86_64/
 	 $0 centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
@@ -52,6 +49,9 @@ Usage() {
 	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall 23822847  # brew scratch build id
 	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
 	 $0 RHEL-8.1.0-20191015.0 -g -b \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+
+	Example from local image:
+	 $0 rhel-8-up -i ~/myimages/RHEL-8.1.0-20191015.0/rhel-8-upstream.qcow2.xz --nocloud-init
 
 
 	Comment: you can get [-osv variant] info by using(now -osv option is unnecessary):
@@ -144,6 +144,24 @@ distro2imageurl() {
 
 [[ -z "$Distro" ]] && Distro=$1
 [[ -z "$Distro" ]] && {
+	distrofile=$RuntimeTmp/distro
+	which distro-compose &>/dev/null || {
+		_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/distro-compose
+		mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url --no-check-certificate
+		chmod +x ~/bin/distro-compose
+	}
+	which dialog &>/dev/null || yum install -y dialog &>/dev/null
+
+	mainvers=$(echo -e "RHEL-8\nRHEL-7\nRHEL-6\nRHEL-?5"|sed -e 's/.*/"&" "" 1/')
+	dialog --backtitle "$0" --radiolist "please selet family:" 12 40 8 $mainvers 2>$distrofile
+	pattern=$(head -n1 $distrofile|sed 's/"//g')
+
+	distroList=$(distro-compose --distrolist|sed -e '/ /d' -e 's/.*/"&" "" 1/'|egrep "$pattern")
+	dialog --backtitle "$0" --radiolist "please select distro:" 30 60 28 $distroList 2>$distrofile
+	Distro=$(head -n1 $distrofile|sed 's/"//g')
+}
+[[ -z "$Distro" ]] && {
+	echo -e "{WARN} you have to select a distro name or specified it by adding command line parameter:\n"
 	Usage
 	exit 1
 }
