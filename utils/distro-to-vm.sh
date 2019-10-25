@@ -2,6 +2,7 @@
 LANG=C
 PATH=~/bin:$PATH 
 
+PROG=${0##*/}
 Intranet=no
 Distro=
 Location=
@@ -34,42 +35,67 @@ mkdir -p $RuntimeTmp
 is_intranet && Intranet=yes
 
 Usage() {
-	cat <<-EOF
+	cat <<-'EOF'
 	Usage:
-	 $0 <[-d] distroname> [-ks ks-file] [-L] [-l location] [-i image] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-n|-vmname name]
-	 $0 <[-d] distroname> [options..] [-p|-pkginstall <pkgs>] [-b|-brewinstall <args>] [-g|-genimage]
-	 $0 <[-d] distroname> -rm # remove VM after exit from console
+	    $PROG <-d distroname> [OPTIONs] ...
+
+	Options:
+	    -h, --help     #Display this help.
+	    -I             #create VM by import existing disk image, auto search url according distro name
+	                    `-> just could used in Intranet
+	    -i <url/path>  #create VM by import existing disk image, value can be url or local path
+	    -L             #create VM by using location, auto search url according distro name
+	                    `-> just could used in Intranet
+	    -l <url>       #create VM by using location
+	    --ks <file>    #kickstart file
+	    --msize <size> #memory size, default 2048
+	    --dsize <size> #disk size, default 16
+	    -n|--vmname <name>
+	                   #VM name, will auto generate according distro name if omitting
+	    -f|--force     #over write existing VM with same name
+	    --macvtap <vepa|bridge>
+	                   #macvtap mode
+	    -p|-pkginstall <pkgs>
+	                   #pkgs in default system repo, install by yum or apt-get
+	    -b|-brewinstall <args>
+	                   #pkgs in brew system or specified by url, install by internal brewinstall.sh
+	                    `-> just could used in Intranet
+	    -g|-genimage   #generate VM image, after install shutdown VM and generate new qcow2.xz file
+	    --rm           #like --rm option of docker/podman, remove VM after quit from console
+	    --nocloud|--nocloud-init
+	                   #don't create cloud-init iso for the image that is not cloud image
+	    --osv <variant>
+	                   #OS_VARIANT, optional. virt-install will attempt to auto detect this value
+	                   # you can get [-osv variant] info by using:
+	                   $ osinfo-query os  #RHEL-7 and later
+	                   $ virt-install --os-variant list  #RHEL-6
 
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
 	Example Intranet:
-	 $0 # will enter a TUI show you all available distros that could auto generate source url
-	 $0 RHEL-6.10 -L
-	 $0 RHEL-7.7
-	 $0 RHEL-8.1.0 -f -p "vim wget git"
-	 $0 RHEL-8.1.0 -L -brewinstall 23822847  # brew scratch build id
-	 $0 RHEL-8.1.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
-	 $0 RHEL-8.2.0-20191024.n.0 -g -b \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+	    $PROG # will enter a TUI show you all available distros that could auto generate source url
+	    $PROG RHEL-6.10 -L
+	    $PROG RHEL-7.7
+	    $PROG RHEL-8.1.0 -f -p "vim wget git"
+	    $PROG RHEL-8.1.0 -L -brewinstall 23822847  # brew scratch build id
+	    $PROG RHEL-8.1.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
+	    $PROG RHEL-8.2.0-20191024.n.0 -g -b \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
 
 	EOF
 	cat <<-EOF
 	Example Internet:
-	 $0 centos-5 -l http://vault.centos.org/5.11/os/x86_64/
-	 $0 centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
-	 $0 centos-7 -l http://mirror.centos.org/centos/7/os/x86_64/
-	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
-	 $0 centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/x.rpm
-	 $0 centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -pkginstall "vim git wget"
-	 $0 debian-10 -i https://cdimage.debian.org/cdimage/openstack/10.1.5-20191015/debian-10.1.5-20191015-openstack-amd64.qcow2
+	    $PROG centos-5 -l http://vault.centos.org/5.11/os/x86_64/
+	    $PROG centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
+	    $PROG centos-7 -l http://mirror.centos.org/centos/7/os/x86_64/
+	    $PROG centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
+	    $PROG centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/x.rpm
+	    $PROG centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -pkginstall "vim git wget"
+	    $PROG debian-10 -i https://cdimage.debian.org/cdimage/openstack/10.1.5-20191015/debian-10.1.5-20191015-openstack-amd64.qcow2
 
 	Example from local image:
-	 $0 rhel-8-up -i ~/myimages/RHEL-8.1.0-20191015.0/rhel-8-upstream.qcow2.xz --nocloud-init
-	 $0 debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
+	    $PROG rhel-8-up -i ~/myimages/RHEL-8.1.0-20191015.0/rhel-8-upstream.qcow2.xz --nocloud-init
+	    $PROG debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
 
-
-	Comment: you can get [-osv variant] info by using(now -osv option is unnecessary):
-	 $ osinfo-query os  #RHEL-7 and later
-	 $ virt-install --os-variant list  #RHEL-6
 	EOF
 }
 
@@ -88,6 +114,8 @@ _at=`getopt -o hd:L::l:fn:gb:p:I::i: \
 	--long pkginstall: \
 	--long getimage \
 	--long nocloud-init --long nocloud \
+	--long msize: \
+	--long dsize: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -110,6 +138,8 @@ while true; do
 	-p|--pkginstall) PKGS="$2"; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
 	--nocloud*) NO_CLOUD_INIT="yes"; shift 1;;
+	--dsize)         DSIZE="$2"; shift 2;;
+	--msize)         MSIZE="$2"; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -373,9 +403,9 @@ if [[ "$InstallType" = location ]]; then
 	  --name $vmname \
 	  --location $Location \
 	  $OS_VARIANT_OPT \
-	  --memory 2048 \
 	  --vcpus 2 \
-	  --disk size=16 \
+	  --memory ${MSIZE:-2048} \
+	  --disk size=${DSIZE:-16} \
 	  --network network=default,model=virtio \
 	  --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode,model=virtio \
 	  --initrd-inject $KSPath \
@@ -497,8 +527,8 @@ elif [[ "$InstallType" = import ]]; then
 	echo -e "{INFO} creating VM by import $imagefile"
 	virt-install \
 	  --name $vmname \
-	  --memory 1024 \
 	  --vcpus 2 \
+	  --memory ${MSIZE:-1024} \
 	  --disk $imagefile \
 	  $CLOUD_INIT_OPT \
 	  --network network=default,model=virtio \
