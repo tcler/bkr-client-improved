@@ -29,7 +29,7 @@ is_intranet() {
 	curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $iurl &>/dev/null
 }
 
-trap Cleanup EXIT SIGINT SIGQUIT SIGTERM
+trap Cleanup EXIT #SIGINT SIGQUIT SIGTERM
 mkdir -p $RuntimeTmp
 is_intranet && Intranet=yes
 
@@ -383,14 +383,18 @@ if [[ "$InstallType" = location ]]; then
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $NOREBOOT &
 	installpid=$!
 	sleep 5s
-
 	while ! virsh desc $vmname &>/dev/null; do test -d /proc/$installpid || exit 1; sleep 1s; done
+
+	trap - SIGINT
 	for ((i=0; i<8; i++)); do
 		#clear -x
 		printf '\33[H\33[2J'
 		expect -c '
 			set timeout -1
 			spawn virsh console '"$vmname"'
+			trap {
+				send_user "You pressed Ctrl+C\n"
+			} SIGINT
 			expect {
 				"error: Disconnected from qemu:///system due to end of file*" {
 					send "\r"
@@ -435,10 +439,13 @@ if [[ "$InstallType" = location ]]; then
 		test -d /proc/$installpid || break
 		sleep 2
 	done
+	echo -e "{INFO} Quit from console of $vmname"
 
 	# waiting install finish ...
-	echo -e "{INFO} check/waiting install process finish ..."
-	while test -d /proc/$installpid; do sleep 5; done
+	test -d /proc/$installpid && {
+		echo -e "{INFO} check/waiting install process finish ..."
+		while test -d /proc/$installpid; do sleep 5; done
+	}
 
 elif [[ "$InstallType" = import ]]; then
 	sed -i '/^#(user|group) =/s/^#//' /etc/libvirt/qemu.conf;
@@ -488,13 +495,17 @@ elif [[ "$InstallType" = import ]]; then
 	  --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode,,model=virtio \
 	  --import \
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $OS_VARIANT_OPT &
-
 	installpid=$!
 	sleep 5s
+
+	trap - SIGINT
 	for ((i=0; i<8; i++)); do
 		SHUTDOWN=$GenerateImage expect -c '
 			set timeout -1
 			spawn virsh console '"$vmname"'
+			trap {
+				send_user "You pressed Ctrl+C\n"
+			} SIGINT
 			expect {
 				"error: failed to get domain" {
 					send "\r"
@@ -511,8 +522,6 @@ elif [[ "$InstallType" = import ]]; then
 			expect "Password:" {
 				send "redhat\r"
 				send "\r\r\r\r\r\r"
-				send "# your are in console, Ctr + ] to exit \r"
-				send "\r\r\r\r\r\r"
 				if {$env(SHUTDOWN) == "yes"} {
 					send {while ps axf|grep -A2 "/var/lib/cloud/instance/scripts/runcm[d]"; do echo "{INFO}: cloud-init scirpt is still running .."; sleep 5; done; poweroff}
 					send "\r\n"
@@ -521,6 +530,8 @@ elif [[ "$InstallType" = import ]]; then
 					send {while ps axf|grep -A2 "/var/lib/cloud/instance/scripts/runcm[d]"; do echo "{INFO}: cloud-init scirpt is still running .."; sleep 5; done; echo "~~~~~~~~ no cloud-init or cloud-init done ~~~~~~~~"\d}
 					send "\r\n"
 					expect "or cloud-init done ~~~~~~~~d" {send "\r\r# Now you can take over the keyboard\r\r"}
+					send "# and your are in console, Ctr + ] to exit \r"
+					send "\r\r"
 					interact
 				}
 			}
@@ -528,6 +539,7 @@ elif [[ "$InstallType" = import ]]; then
 		test -d /proc/$installpid || break
 		sleep 2
 	done
+	echo -e "{INFO} Quit from console of $vmname"
 fi
 
 [[ "$RM" = yes && "$GenerateImage" != yes ]] && {
@@ -556,9 +568,8 @@ if [[ "$GenerateImage" = yes ]]; then
 	echo -e "\n{INFO} undefine temprory temporary VM $vmname ..."
 	virsh undefine $vmname --remove-all-storage
 else
-	echo "{INFO} VNC port ${VNCPORT}"
-
-	echo "{INFO} you can try login $vmname by:"
+	#echo "{DEBUG} VNC port ${VNCPORT}"
+	echo "{INFO} you can try login $vmname again by using:"
 	echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
 	echo -e "  $ virsh console $vmname"
 	echo -e "  $ ssh foo@$vmname  #password: redhat"
