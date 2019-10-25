@@ -2,6 +2,7 @@
 LANG=C
 PATH=~/bin:$PATH 
 
+Intranet=no
 Distro=
 Location=
 Imageurl=
@@ -16,7 +17,6 @@ ImagePath=~/myimages
 VMPath=~/VMs
 RuntimeTmp=/tmp/distro-to-vm-$$
 
-mkdir -p $RuntimeTmp
 Cleanup() {
 	cd ~
 	#echo "{DEBUG} Removing $RuntimeTmp"
@@ -24,23 +24,35 @@ Cleanup() {
 	exit
 }
 
+is_intranet() {
+	local iurl=http://download.devel.redhat.com
+	curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $iurl &>/dev/null
+}
+
 trap Cleanup EXIT SIGINT SIGQUIT SIGTERM
+mkdir -p $RuntimeTmp
+is_intranet && Intranet=yes
 
 Usage() {
-	cat <<-EOF >&2
+	cat <<-EOF
 	Usage:
 	 $0 <[-d] distroname> [-ks ks-file] [-L] [-l location] [-i image] [-osv variant] [-macvtap {vepa|bridge}] [-f|-force] [-n|-vmname name]
 	 $0 <[-d] distroname> [options..] [-p|-pkginstall <pkgs>] [-b|-brewinstall <args>] [-g|-genimage]
 	 $0 <[-d] distroname> -rm # remove VM after exit from console
 
+	EOF
+	[[ "$Intranet" = yes ]] && cat <<-EOF
 	Example Intranet:
+	 $0 # will enter a TUI show you all available distros that could auto generate source url
 	 $0 RHEL-6.10 -L
 	 $0 RHEL-7.7
 	 $0 RHEL-8.1.0 -f -p "vim wget git"
-	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall 23822847  # brew scratch build id
-	 $0 RHEL-8.1.0-20191015.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
+	 $0 RHEL-8.1.0 -L -brewinstall 23822847  # brew scratch build id
+	 $0 RHEL-8.1.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
 	 $0 RHEL-8.2.0-20191024.n.0 -g -b \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
 
+	EOF
+	cat <<-EOF
 	Example Internet:
 	 $0 centos-5 -l http://vault.centos.org/5.11/os/x86_64/
 	 $0 centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
@@ -92,7 +104,7 @@ while true; do
 	--macvtap)       MacvtapMode="$2"; shift 2;;
 	-f|--force)      OVERWRITE="yes"; shift 1;;
 	-n|--vmname)     VMName="$2"; shift 2;;
-	-g|--genimage)   InstallType=location; GenerateImage=yes; shift 1;;
+	-g|--genimage)   GenerateImage=yes; shift 1;;
 	--getimage)      GetImage=yes; shift 1;;
 	-b|--brewinstall) BPKGS="$2"; shift 2;;
 	-p|--pkginstall) PKGS="$2"; shift 2;;
@@ -143,10 +155,10 @@ distro2imageurl() {
 	return $rc
 }
 
+
 [[ -z "$Distro" ]] && Distro=$1
 [[ -z "$Distro" ]] && {
-	iurl=http://download.devel.redhat.com
-	if curl -connect-timeout 10 -m 20 --output /dev/null --silent --head --fail $iurl &>/dev/null; then
+	if [[ "$Intranet" = yes ]]; then
 		distrofile=$RuntimeTmp/distro
 		which distro-compose &>/dev/null || {
 			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/distro-compose
@@ -156,11 +168,14 @@ distro2imageurl() {
 		which dialog &>/dev/null || yum install -y dialog &>/dev/null
 
 		mainvers=$(echo -e "RHEL-8\nRHEL-7\nRHEL-6\nRHEL-?5"|sed -e 's/.*/"&" "" 1/')
-		dialog --backtitle "$0" --radiolist "please selet family:" 12 40 8 $mainvers 2>$distrofile
+		dialog --backtitle "$0" --radiolist "please selet family:" 12 40 8 $mainvers 2>$distrofile || { Usage; exit 0; }
 		pattern=$(head -n1 $distrofile|sed 's/"//g')
-
 		distroList=$(distro-compose --distrolist|sed -e '/ /d' -e 's/.*/"&" "" 1/'|egrep "$pattern")
-		dialog --backtitle "$0" --radiolist "please select distro:" 30 60 28 $distroList 2>$distrofile
+		dialog --title "If include nightly build" \
+			--backtitle "Do you want nightly build distros?" \
+			--yesno "Do you want nightly build distros?" 7 60
+		[[ $? = 1 ]] && distroList=$(echo "$distroList"|grep -v '\.n\.[0-9]"')
+		dialog --backtitle "$0" --radiolist "please select distro:" 30 60 28 $distroList 2>$distrofile || { Usage; exit 0; }
 		Distro=$(head -n1 $distrofile|sed 's/"//g')
 	else
 		Usage
@@ -179,7 +194,7 @@ vmname=${vmname,,}
 
 if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 	if [[ -z "$Imageurl" ]]; then
-		echo "{INFO} searching image url of $Distro ..." >&2
+		echo "{INFO} searching private image url of $Distro ..." >&2
 		baseurl=http://download.eng.bos.redhat.com/qa/rhts/lookaside/distro-vm-images/$Distro/
 		baseurl=http://download.devel.redhat.com/qa/rhts/lookaside/distro-vm-images/$Distro/
 		Imageurl=$(distro2imageurl $baseurl)
@@ -191,16 +206,21 @@ if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 				echo "{WARN} can not find location info of '$Distro'" >&2
 				exit 1
 			}
+			echo -e " -> $Location"
+			echo "{INFO} getting image url according location url ^^^ ..." >&2
 			Imageurl=$(distro2imageurl $Location)
 			if [[ $? = 0 ]]; then
-				[[ -n "$GetImage" ]] && { echo "$Imageurl"; exit; }
+				echo -e " -> $Imageurl"
+				[[ -n "$GetImage" ]] && { exit; }
 			else
 				[[ -n "$GetImage" ]] && { exit 1; }
 				echo "{INFO} can not find image info of '$Distro', switching to Location mode" >&2
 				InstallType=location
 			fi
 		else
-			[[ -n "$GetImage" ]] && { echo "$Imageurl"; exit; }
+			echo -e " -> $Imageurl"
+			[[ -n "$GetImage" ]] && { exit; }
+			NO_CLOUD_INIT=yes
 		fi
 	fi
 elif [[ "$InstallType" = location ]]; then
@@ -211,6 +231,7 @@ elif [[ "$InstallType" = location ]]; then
 			echo "{WARN} can not find distro location. please check if '$Distro' is valid distro" >&2
 			exit 1
 		}
+		echo -e " -> $Location"
 	fi
 fi
 
@@ -265,13 +286,10 @@ service virtlogd start
 virsh desc $vmname &>/dev/null && {
 	if [[ "${OVERWRITE}" = "yes" ]]; then
 		echo "{INFO} VM $vmname has been there, remove it ..."
-		file=$(virsh dumpxml --domain $vmname | sed -n "/source file=/{s|^.*='||; s|'/>$||; p}")
-		virsh destroy $vmname
+		virsh destroy $vmname 2>/dev/null
 		virsh undefine $vmname --remove-all-storage
-		[[ -f "$file" ]] && \rm "$file"
 	else
 		echo "{INFO} VM $vmname has been there, if you want overwrite please use --force option"
-		[[ -n "$ksauto" ]] && \rm -f $ksauto
 		exit
 	fi
 }
@@ -345,7 +363,7 @@ while nc 127.0.0.1 ${VNCPORT} </dev/null &>/dev/null; do
 done
 
 if [[ "$InstallType" = location ]]; then
-	echo -e "{INFO} creating VM by using location:\n  $Location"
+	echo -e "{INFO} creating VM by using location:\n ->  $Location"
 	[[ "$GenerateImage" = yes ]] && {
 		sed -i '/^reboot$/s//poweroff/' ${KSPath}
 		NOREBOOT=--noreboot
@@ -355,7 +373,7 @@ if [[ "$InstallType" = location ]]; then
 	  --name $vmname \
 	  --location $Location \
 	  $OS_VARIANT_OPT \
-	  --memory 2048 \
+	  --memory 1024 \
 	  --vcpus 2 \
 	  --disk size=8 \
 	  --network network=default,model=virtio \
@@ -389,17 +407,28 @@ if [[ "$InstallType" = location ]]; then
 					puts $expect_out(buffer)
 					exit 7
 				}
-				"* login:" {
-					send "\r"
-					exit 0
-				}
 				"Unsupported Hardware Detected" {
 					send "\r"
+					continue
 				}
 				"Which would you like to install through" {
 					# see: [RHEL 6.1] Anaconda requires user interaction in case of kickstart network activation failing
 					send "\r"
+					interact
 				}
+
+				"reboot: Restarting system" { exit 1 }
+				"reboot: Power down" { exit 0 }
+				"Restarting system" { exit 1 }
+				"Power down" { exit 0 }
+
+				"* login:" { send "root\r" }
+			}
+			expect "Password:" {
+				send "redhat\r"
+				send "\r\r\r\r\r\r"
+				send "# your are in console, Ctr + ] to exit \r"
+				send "\r\r\r\r\r\r"
 			}
 			interact
 		' && break
@@ -408,9 +437,8 @@ if [[ "$InstallType" = location ]]; then
 	done
 
 	# waiting install finish ...
-	echo -e "{INFO} waiting install finish ..."
+	echo -e "{INFO} check/waiting install process finish ..."
 	while test -d /proc/$installpid; do sleep 5; done
-	[[ -n "$ksauto" ]] && \rm -f $ksauto
 
 elif [[ "$InstallType" = import ]]; then
 	sed -i '/^#(user|group) =/s/^#//' /etc/libvirt/qemu.conf;
@@ -452,7 +480,7 @@ elif [[ "$InstallType" = import ]]; then
 	echo -e "{INFO} creating VM by import $imagefile"
 	virt-install \
 	  --name $vmname \
-	  --memory 2048 \
+	  --memory 1024 \
 	  --vcpus 2 \
 	  --disk $imagefile \
 	  $CLOUD_INIT_OPT \
@@ -464,7 +492,7 @@ elif [[ "$InstallType" = import ]]; then
 	installpid=$!
 	sleep 5s
 	for ((i=0; i<8; i++)); do
-		expect -c '
+		SHUTDOWN=$GenerateImage expect -c '
 			set timeout -1
 			spawn virsh console '"$vmname"'
 			expect {
@@ -485,34 +513,47 @@ elif [[ "$InstallType" = import ]]; then
 				send "\r\r\r\r\r\r"
 				send "# your are in console, Ctr + ] to exit \r"
 				send "\r\r\r\r\r\r"
-				send {while ps axf|grep -A2 "/var/lib/cloud/instance/scripts/runcm[d]"; do echo "[INFO]: cloud-init scirpt is still running .."; sleep 5; done &}
-				send "\r\r\r\r\r\r"
+				if {$env(SHUTDOWN) == "yes"} {
+					send {while ps axf|grep -A2 "/var/lib/cloud/instance/scripts/runcm[d]"; do echo "{INFO}: cloud-init scirpt is still running .."; sleep 5; done; poweroff}
+					send "\r\n"
+					"Restarting system" { exit 0 }
+				} else {
+					send {while ps axf|grep -A2 "/var/lib/cloud/instance/scripts/runcm[d]"; do echo "{INFO}: cloud-init scirpt is still running .."; sleep 5; done; echo "~~~~~~~~ no cloud-init or cloud-init done ~~~~~~~~"\d}
+					send "\r\n"
+					expect "or cloud-init done ~~~~~~~~d" {send "\r\r# Now you can take over the keyboard\r\r"}
+					interact
+				}
 			}
-			interact
 		' && break
 		test -d /proc/$installpid || break
 		sleep 2
 	done
-	[[ "$RM" = yes ]] && {
-		virsh destroy $vmname
-		sleep 2
-		virsh undefine $vmname --remove-all-storage
-		rmdir $vmpath 2>/dev/null
-		exit
-	}
 fi
+
+[[ "$RM" = yes && "$GenerateImage" != yes ]] && {
+	echo -e "{INFO} dist removing VM $vmname .."
+	virsh destroy $vmname 2>/dev/null
+	sleep 2
+	virsh undefine $vmname --remove-all-storage
+	rmdir $vmpath 2>/dev/null
+	exit
+}
 
 if [[ "$GenerateImage" = yes ]]; then
 	mkdir -p $ImagePath/$Distro
 	image=$(virsh dumpxml --domain $vmname | sed -n "/source file=/{s|^.*='||; s|'/>$||; p}")
 	newimage=$ImagePath/$Distro/${image##*/}
 
-	echo -e "\n{INFO} virt-sparsify image $image..."
+	echo -e "\n{INFO} force shutdown $vmname ..."
+	virsh destroy $vmname 2>/dev/null
+
+	echo -e "\n{INFO} virt-sparsify image $image to ${newimage} ..."
 	LIBGUESTFS_BACKEND=direct virt-sparsify ${image} ${newimage}
 
-	echo -e "\n{INFO} compress image ..."
+	echo -e "\n{INFO} xz compress image ..."
 	time xz -z -f -T 0 ${XZ:--9} ${newimage}
 
+	echo -e "\n{INFO} undefine temprory temporary VM $vmname ..."
 	virsh undefine $vmname --remove-all-storage
 else
 	echo "{INFO} VNC port ${VNCPORT}"

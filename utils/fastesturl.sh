@@ -11,10 +11,10 @@ fastesturl() {
 		fast=${fast:-$url}
 
 		if [[ -z "$cavg" ]]; then
-			echo -e "  -> $host\t 100% packet loss." >&2
+			echo -e " -> $host\t 100% packet loss." >&2
 			continue
 		else
-			echo -e "  -> $host\t $cavg  \t$minavg" >&2
+			echo -e " -> $host\t $cavg  \t$minavg" >&2
 		fi
 
 		if (( $(bc -l <<<"${cavg}<${minavg}") )); then
