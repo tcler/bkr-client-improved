@@ -375,7 +375,7 @@ if [[ "$InstallType" = location ]]; then
 	  $OS_VARIANT_OPT \
 	  --memory 1024 \
 	  --vcpus 2 \
-	  --disk size=8 \
+	  --disk size=16 \
 	  --network network=default,model=virtio \
 	  --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode,model=virtio \
 	  --initrd-inject $KSPath \
@@ -422,9 +422,13 @@ if [[ "$InstallType" = location ]]; then
 				}
 
 				"reboot: Restarting system" { exit 1 }
-				"reboot: Power down" { exit 0 }
 				"Restarting system" { exit 1 }
+
+				"reboot: Power down" { exit 0 }
 				"Power down" { exit 0 }
+
+				"reboot: System halted" { send_user "\r\rsomething is wrong! maybe no disk space\r\r"; exit 0 }
+				"System halted" { send_user "\r\rsomething is wrong! maybe no disk space\r\r"; exit 0 }
 
 				"* login:" { send "root\r" }
 			}
@@ -439,12 +443,18 @@ if [[ "$InstallType" = location ]]; then
 		test -d /proc/$installpid || break
 		sleep 2
 	done
-	echo -e "{INFO} Quit from console of $vmname"
+	echo -e "\n{INFO} Quit from console of $vmname"
 
 	# waiting install finish ...
 	test -d /proc/$installpid && {
-		echo -e "{INFO} check/waiting install process finish ..."
-		while test -d /proc/$installpid; do sleep 5; done
+		echo -e "\n{INFO} check/waiting install process finish ..."
+		while test -d /proc/$installpid; do sleep 1; [[ $((loop++)) -gt 30 ]] && break; done
+	}
+	test -d /proc/$installpid && {
+		echo -e "\n{INFO} something is wrong(please check disk space), will clean all tmp files ..."
+		kill -9 $installpid
+		RM=yes
+		GenerateImage=
 	}
 
 elif [[ "$InstallType" = import ]]; then
@@ -539,17 +549,8 @@ elif [[ "$InstallType" = import ]]; then
 		test -d /proc/$installpid || break
 		sleep 2
 	done
-	echo -e "{INFO} Quit from console of $vmname"
+	echo -e "\n{INFO} Quit from console of $vmname"
 fi
-
-[[ "$RM" = yes && "$GenerateImage" != yes ]] && {
-	echo -e "{INFO} dist removing VM $vmname .."
-	virsh destroy $vmname 2>/dev/null
-	sleep 2
-	virsh undefine $vmname --remove-all-storage
-	rmdir $vmpath 2>/dev/null
-	exit
-}
 
 if [[ "$GenerateImage" = yes ]]; then
 	mkdir -p $ImagePath/$Distro
@@ -569,7 +570,7 @@ if [[ "$GenerateImage" = yes ]]; then
 	virsh undefine $vmname --remove-all-storage
 else
 	#echo "{DEBUG} VNC port ${VNCPORT}"
-	echo "{INFO} you can try login $vmname again by using:"
+	echo -e "\n{INFO} you can try login $vmname again by using:"
 	echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
 	echo -e "  $ virsh console $vmname"
 	echo -e "  $ ssh foo@$vmname  #password: redhat"
@@ -578,3 +579,12 @@ else
 		echo -e "  $ ssh foo@$addr  #password: redhat"
 	}
 fi
+
+[[ "$RM" = yes && "$GenerateImage" != yes ]] && {
+	echo -e "\n{INFO} dist removing VM $vmname .."
+	test -d /proc/$installpid && kill -9 $installpid
+	virsh destroy $vmname 2>/dev/null
+	virsh undefine $vmname --remove-all-storage
+	[[ -n "$vmpath" ]] && rmdir $vmpath 2>/dev/null
+	exit
+}
