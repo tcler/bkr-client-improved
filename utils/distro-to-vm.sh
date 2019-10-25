@@ -307,7 +307,7 @@ sudo yum install -y libvirt libvirt-client virt-install virt-viewer qemu-kvm exp
 echo -e "{INFO} check/install libvirt-nss module ..."
 sudo yum install -y libvirt-nss &>/dev/null
 grep -q '^hosts:.*libvirt libvirt_guest' /etc/nsswitch.conf ||
-	sed -i '/^hosts:/s/files /&libvirt libvirt_guest /' /etc/nsswitch.conf
+	sed -ri '/^hosts:/s/files /&libvirt libvirt_guest /' /etc/nsswitch.conf
 
 echo -e "{INFO} start libvirtd/virtlogd service ..."
 service libvirtd start
@@ -488,7 +488,13 @@ if [[ "$InstallType" = location ]]; then
 	}
 
 elif [[ "$InstallType" = import ]]; then
-	sed -i '/^#(user|group) =/s/^#//' /etc/libvirt/qemu.conf;
+	qemuconf=/etc/libvirt/qemu.conf
+	egrep '^#(user|group) =' "$qemuconf" && {
+		sed -i '/^#(user|group) =/s/^#//' "$qemuconf"
+		#setfacl -mu:libvirt-qemu:rx ~
+		setfacl -mu:qemu:rx ~
+		service libvirtd restart
+	}
 
 	[[ -f $Imageurl ]] && Imageurl=file://$(readlink -f ${Imageurl})
 	imagefilename=${Imageurl##*/}
