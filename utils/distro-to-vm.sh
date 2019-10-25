@@ -562,9 +562,12 @@ if [[ "$GenerateImage" = yes ]]; then
 
 	echo -e "\n{INFO} virt-sparsify image $image to ${newimage} ..."
 	LIBGUESTFS_BACKEND=direct virt-sparsify ${image} ${newimage}
+	ls -lh ${image}
+	ls -lh ${newimage}
 
 	echo -e "\n{INFO} xz compress image ..."
 	time xz -z -f -T 0 ${XZ:--9} ${newimage}
+	ls -lh ${newimage}.xz
 
 	echo -e "\n{INFO} undefine temprory temporary VM $vmname ..."
 	virsh undefine $vmname --remove-all-storage
