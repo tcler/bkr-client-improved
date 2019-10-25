@@ -373,7 +373,7 @@ if [[ "$InstallType" = location ]]; then
 	  --name $vmname \
 	  --location $Location \
 	  $OS_VARIANT_OPT \
-	  --memory 1024 \
+	  --memory 2048 \
 	  --vcpus 2 \
 	  --disk size=16 \
 	  --network network=default,model=virtio \
