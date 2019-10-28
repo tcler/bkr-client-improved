@@ -51,89 +51,25 @@ shopt -s nocasematch
 case $Distro in
 RHEL-5*|RHEL5*|centos5*|centos-5*)
 	Packages="@base @cifs-file-server @nfs-file-server redhat-lsb-core vim-enhanced git iproute screen"
-	{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${URL//\// }")
-	debug_url=${URL/\/os/\/debug}
-	[[ $osv = [0-7]* ]] && osv=centos-${osv%%[.-]*}
-	Repos+=(
-		Server:${URL}/Server
-		Cluster:${URL}/Cluster
-		ClusterStorage:${URL}/ClusterStorage
-		Client:${URL}/Client
-		Workstation:${URL}/Workstation
 
-		${osv}-debuginfo:${debug_url}
-	)
-NetCommand="network --device=eth0 --bootproto=dhcp"
-KeyCommand="key --skip"
-Bootloader='bootloader --location=mbr --append="console=ttyS0,9600 rhgb quiet"'
+	NetCommand="network --device=eth0 --bootproto=dhcp"
+	KeyCommand="key --skip"
+	Bootloader='bootloader --location=mbr --append="console=ttyS0,9600 rhgb quiet"'
 	;;
 RHEL-6*|RHEL6*|centos6*|centos-6*)
 	Packages="@base @cifs-file-server @nfs-file-server redhat-lsb-core vim-enhanced git iproute screen"
-	{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${URL//\// }")
-	debug_url=${URL/\/os/\/debug}
-	[[ $osv = [0-7]* ]] && osv=centos-${osv%%[.-]*}
-	Repos+=(
-		${osv}:${URL}
-		${osv}-SAP:${URL/$osv/${osv}-SAP}
-		${osv}-SAPHAHA:${URL/$osv/${osv}-SAPHAHA}
 
-		${osv}-debuginfo:${debug_url}
-		${osv}-SAP-debuginfo:${debug_url/$osv/${osv}-SAP}
-		${osv}-SAPHAHA-debuginfo:${debug_url/$osv/${osv}-SAPHAHA}
-	)
-NetCommand="network --device=eth0 --bootproto=dhcp"
-KeyCommand="key --skip"
+	NetCommand="network --device=eth0 --bootproto=dhcp"
+	KeyCommand="key --skip"
 	;;
 RHEL-7*|RHEL7*|centos7*|centos-7*)
 	Packages="-iwl* @base @file-server redhat-lsb-core vim-enhanced git iproute screen"
-	{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${URL//\// }")
-	debug_url=${URL/\/os/\/debug\/tree}
-	[[ $osv = [0-7]* ]] && osv=centos-${osv%%[.-]*}
-	Repos+=(
-		${osv}:${URL}
-		${osv}-optional:${URL/$osv/${osv}-optional}
-		${osv}-NFV:${URL/$osv/${osv}-NFV}
-		${osv}-RT:${URL/$osv/${osv}-RT}
-		${osv}-SAP:${URL/$osv/${osv}-SAP}
-		${osv}-SAPHAHA:${URL/$osv/${osv}-SAPHAHA}
-
-		${osv}-debuginfo:${debug_url}
-		${osv}-optional-debuginfo:${debug_url/$osv/${osv}-optional}
-		${osv}-NFV-debuginfo:${debug_url/$osv/${osv}-NFV}
-		${osv}-RT-debuginfo:${debug_url/$osv/${osv}-RT}
-		${osv}-SAP-debuginfo:${debug_url/$osv/${osv}-SAP}
-		${osv}-SAPHAHA-debuginfo:${debug_url/$osv/${osv}-SAPHAHA}
-	)
 	;;
 RHEL-8*|RHEL8*|centos8*|centos-8*)
 	Packages="-iwl* @standard @file-server redhat-lsb-core vim-enhanced git iproute screen"
-	{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${URL//\// }")
-	debug_url=${URL/\/os/\/debug\/tree}
-	Repos+=(
-		BaseOS:${URL}
-		AppStream:${URL/BaseOS/AppStream}
-		CRB:${URL/BaseOS/CRB}
-		HighAvailability:${URL/BaseOS/HighAvailability}
-		NFV:${URL/BaseOS/NFV}
-		ResilientStorage:${URL/BaseOS/ResilientStorage}
-		RT:${URL/BaseOS/RT}
-		SAP:${URL/BaseOS/SAP}
-		SAPHANA:${URL/BaseOS/SAPHANA}
-
-		BaseOS-debuginfo:${debug_url}
-		AppStream-debuginfo:${debug_url/BaseOS/AppStream}
-		CRB-debuginfo:${debug_url/BaseOS/CRB}
-		HighAvailability-debuginfo:${debug_url/BaseOS/HighAvailability}
-		NFV-debuginfo:${debug_url/BaseOS/NFV}
-		ResilientStorage-debuginfo:${debug_url/BaseOS/ResilientStorage}
-		RT-debuginfo:${debug_url/BaseOS/RT}
-		SAP-debuginfo:${debug_url/BaseOS/SAP}
-		SAPHANA-debuginfo:${debug_url/BaseOS/SAPHANA}
-	)
 	;;
 esac
 shopt -u nocasematch
-
 
 # output final ks cfg
 Packages=${Packages// /$'\n'}
@@ -172,7 +108,6 @@ KSF
 
 for repo in "${Repos[@]}"; do
 	read name url <<<"${repo/:/ }"
-	curl -connect-timeout 10 -m 20 --output /dev/null --silent --head --fail $url &>/dev/null || continue
 	echo "repo --name=$name --baseurl=$url"
 done
 
@@ -183,7 +118,6 @@ echo -e "\n%post"
 
 for repo in "${Repos[@]}"; do
 	read name url <<<"${repo/:/ }"
-	curl -connect-timeout 10 -m 20 --output /dev/null --silent --head --fail $url &>/dev/null || continue
 	cat <<-EOF
 	cat <<REPO >/etc/yum.repos.d/$name.repo
 	[$name]

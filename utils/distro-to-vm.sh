@@ -172,19 +172,108 @@ distro2location() {
 	fastesturl.sh $urls
 }
 
-distro2imageurl() {
-	local osurl=$1
+getimageurls() {
+	local parenturl=$1
+	local suffix_pattern=$2
 	local rc=1
 
-	local imageurl=${osurl/\/os\//\/images\/}
-	local imagename=$(curl -L -s ${imageurl} | sed -nr '/.*>(rhel-[^<>]+qcow2(.xz)?)<.*/{s//\1/;p}')
-	if [[ -n "${imagename}" ]]; then
-		echo ${imageurl}${imagename}
-		rc=0
-	fi
+	local imagenames=$(curl -L -s ${parenturl} | sed -nr "/.*>(rhel-[^<>]+\\.${suffix_pattern})<.*/{s//\\1/;p}")
+	for imagename in $imagenames; do
+		if [[ -n "${imagename}" ]]; then
+			echo ${parenturl%/}/${imagename}
+			rc=0
+		fi
+	done
 	return $rc
 }
 
+distro2repos() {
+	local distro=$1
+	local url=$2
+	local Repos=()
+
+	shopt -s nocasematch
+	case $distro in
+	RHEL-5*|RHEL5*)
+		{ read; read os arch verytag verxosv _; } < <(tac -s ' ' <<<"${url//\// }")
+		debug_url=${url/\/os/\/debug}
+		osv=${verxosv#RHEL-5-}
+		Repos+=(
+			Server:${url}/Server
+			Cluster:${url}/Cluster
+			ClusterStorage:${url}/ClusterStorage
+			Client:${url}/Client
+			Workstation:${url}/Workstation
+
+			${osv}-debuginfo:${debug_url}
+		)
+		;;
+	RHEL-6*|RHEL6*|centos6*|centos-6*)
+		{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${url//\// }")
+		debug_url=${url/\/os/\/debug}
+		Repos+=(
+			${osv}:${url}
+			${osv}-SAP:${url/$osv/${osv}-SAP}
+			${osv}-SAPHAHA:${url/$osv/${osv}-SAPHAHA}
+
+			${osv}-debuginfo:${debug_url}
+			${osv}-SAP-debuginfo:${debug_url/$osv/${osv}-SAP}
+			${osv}-SAPHAHA-debuginfo:${debug_url/$osv/${osv}-SAPHAHA}
+		)
+		;;
+	RHEL-7*|RHEL7*|centos7*|centos-7*)
+		{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${url//\// }")
+		debug_url=${url/\/os/\/debug\/tree}
+		Repos+=(
+			${osv}:${url}
+			${osv}-optional:${url/$osv/${osv}-optional}
+			${osv}-NFV:${url/$osv/${osv}-NFV}
+			${osv}-RT:${url/$osv/${osv}-RT}
+			${osv}-SAP:${url/$osv/${osv}-SAP}
+			${osv}-SAPHAHA:${url/$osv/${osv}-SAPHAHA}
+
+			${osv}-debuginfo:${debug_url}
+			${osv}-optional-debuginfo:${debug_url/$osv/${osv}-optional}
+			${osv}-NFV-debuginfo:${debug_url/$osv/${osv}-NFV}
+			${osv}-RT-debuginfo:${debug_url/$osv/${osv}-RT}
+			${osv}-SAP-debuginfo:${debug_url/$osv/${osv}-SAP}
+			${osv}-SAPHAHA-debuginfo:${debug_url/$osv/${osv}-SAPHAHA}
+		)
+		;;
+	RHEL-8*|RHEL8*)
+		{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${url//\// }")
+		debug_url=${url/\/os/\/debug\/tree}
+		Repos+=(
+			BaseOS:${url}
+			AppStream:${url/BaseOS/AppStream}
+			CRB:${url/BaseOS/CRB}
+			HighAvailability:${url/BaseOS/HighAvailability}
+			NFV:${url/BaseOS/NFV}
+			ResilientStorage:${url/BaseOS/ResilientStorage}
+			RT:${url/BaseOS/RT}
+			SAP:${url/BaseOS/SAP}
+			SAPHANA:${url/BaseOS/SAPHANA}
+
+			BaseOS-debuginfo:${debug_url}
+			AppStream-debuginfo:${debug_url/BaseOS/AppStream}
+			CRB-debuginfo:${debug_url/BaseOS/CRB}
+			HighAvailability-debuginfo:${debug_url/BaseOS/HighAvailability}
+			NFV-debuginfo:${debug_url/BaseOS/NFV}
+			ResilientStorage-debuginfo:${debug_url/BaseOS/ResilientStorage}
+			RT-debuginfo:${debug_url/BaseOS/RT}
+			SAP-debuginfo:${debug_url/BaseOS/SAP}
+			SAPHANA-debuginfo:${debug_url/BaseOS/SAPHANA}
+		)
+		;;
+	esac
+	shopt -u nocasematch
+
+	for repo in "${Repos[@]}"; do
+		read _name _url <<<"${repo/:/ }"
+		curl -connect-timeout 10 -m 20 --output /dev/null --silent --head --fail $_url &>/dev/null &&
+			echo "$repo"
+	done
+}
 
 [[ -z "$Distro" ]] && Distro=$1
 [[ -z "$Distro" ]] && {
@@ -227,7 +316,8 @@ if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 		echo "{INFO} searching private image url of $Distro ..." >&2
 		baseurl=http://download.eng.bos.redhat.com/qa/rhts/lookaside/distro-vm-images/$Distro/
 		baseurl=http://download.devel.redhat.com/qa/rhts/lookaside/distro-vm-images/$Distro/
-		Imageurl=$(distro2imageurl $baseurl)
+		imageLocation=${baseurl/\/os\//\/images\/}
+		read Imageurl _ < <(getimageurls ${imageLocation} "(qcow2|qcow2.xz)")
 
 		if [[ -z "$Imageurl" ]]; then
 			echo "{INFO} getting fastest location of $Distro ..." >&2
@@ -238,7 +328,8 @@ if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 			}
 			echo -e " -> $Location"
 			echo "{INFO} getting image url according location url ^^^ ..." >&2
-			Imageurl=$(distro2imageurl $Location)
+			imageLocation=${Location/\/os\//\/images\/}
+			read Imageurl _ < <(getimageurls $imageLocation "(qcow2|qcow2.xz)")
 			if [[ $? = 0 ]]; then
 				echo -e " -> $Imageurl"
 				[[ -n "$GetImage" ]] && { exit; }
@@ -270,12 +361,13 @@ if [[ "$InstallType" = location ]]; then
 		echo "{INFO} generating kickstart file for $Distro ..."
 		ksauto=$RuntimeTmp/ks-$VM_OS_VARIANT-$$.cfg
 		KSPath=$ksauto
+		REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^--repo //')
 		which ks-generator.sh &>/dev/null || {
 			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
 			mkdir -p ~/bin && wget -O ~/bin/ks-generator.sh -N -q $_url
 			chmod +x ~/bin/ks-generator.sh
 		}
-		ks-generator.sh -d $Distro -url $Location >$KSPath
+		ks-generator.sh -d $Distro -url $Location $REPO_OPTS >$KSPath
 
 		cat <<-END >>$KSPath
 		%post --log=/root/extra-ks-post.log
@@ -523,7 +615,7 @@ elif [[ "$InstallType" = import ]]; then
 		}
 		cloudinitiso=$vmpath/$vmname-cloud-init.iso
 		[[ -n "$Location" ]] && {
-			REPO_OPTS="-repo baseos:$Location -repo appstream:${Location/BaseOS/AppStream}"
+			REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^--repo //')
 		}
 		cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmname} -b "$BPKGS" -p "$PKGS" \
 			$REPO_OPTS
