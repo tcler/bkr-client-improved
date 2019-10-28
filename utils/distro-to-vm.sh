@@ -50,15 +50,16 @@ prepare_env() {
 	}
 
 	virtdconf=/etc/libvirt/libvirtd.conf
-	pvirtdconf=$sudouserhome/.config/libvirt/libvirtd.conf
+	pvirtconf=$sudouserhome/.config/libvirt/libvirt.conf
 	echo -e "{INFO} checking if UNIX domain socket group ownership permission ..."
-	virsh net-info default >/dev/null && grep -w default <(virsh net-list --name) || {
+	virsh net-info default &>/dev/null && grep -w default <(virsh net-list --name) || {
 		echo -e "{*INFO*} confiure $virtdconf ..."
 		sudo sed -ri -e '/#unix_sock_group = "libvirt"/s/^#//' -e '/#unix_sock_rw_perms = "0770"/s/^#//' $virtdconf 
 		sudo egrep -e ^unix_sock_group -e ^unix_sock_rw_perms $virtdconf
 		sudo systemctl restart libvirtd && sudo systemctl restart virtlogd
 
-		export LIBVIRT_DEFAULT_URI=qemu:///system
+		#export LIBVIRT_DEFAULT_URI=qemu:///system
+		echo 'uri_default = "qemu:///system"' >>$pvirtconf
 	}
 
 : <<'COMM'
