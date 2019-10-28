@@ -48,17 +48,16 @@ prepare_env() {
 		sudo usermod -a -G libvirt $sudouser
 	}
 
-: <<'COMM'
 	virtdconf=/etc/libvirt/libvirtd.conf
 	echo -e "{INFO} checking if UNIX domain socket group ownership permission ..."
-	confs=$(sudo cat $virtdconf)
-	egrep -q '^unix_sock_group = "libvirt"' <<<"$confs" && egrep -q '^unix_sock_rw_perms = "0770"/s/^#//' <<<"$confs" || {
+	virsh net-info default >/dev/null && grep -w default <(virsh net-list --name) || {
 		echo -e "{*INFO*} confiure $virtdconf ..."
 		sudo sed -ri -e '/#unix_sock_group = "libvirt"/s/^#//' -e '/#unix_sock_rw_perms = "0770"/s/^#//' $virtdconf 
 		sudo egrep -e ^unix_sock_group -e ^unix_sock_rw_perms $virtdconf
 		sudo systemctl restart libvirtd && sudo systemctl restart virtlogd
 	}
 
+: <<'COMM'
 	qemuconf=/etc/libvirt/qemu.conf
 	eval echo -e "{INFO} checking if qemu can read image in ~$sudouser ..."
 	sudo egrep -q '^#(user|group) =' "$qemuconf" && {
