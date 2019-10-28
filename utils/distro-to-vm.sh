@@ -42,6 +42,7 @@ prepare_env() {
 	}
 
 	sudouser=${SUDO_USER:-$(whoami)}
+	eval sudouserhome=~$sudouser
 	echo -e "{INFO} checking if ${sudouser} has joined group libvirt ..."
 	id -Gn | egrep -q -w libvirt || {
 		echo -e "{*INFO*} run: sudo usermod -a -G libvirt $sudouser ..."
@@ -49,12 +50,17 @@ prepare_env() {
 	}
 
 	virtdconf=/etc/libvirt/libvirtd.conf
+	pvirtdconf=$sudouserhome/.config/libvirt/libvirtd.conf
 	echo -e "{INFO} checking if UNIX domain socket group ownership permission ..."
 	virsh net-info default >/dev/null && grep -w default <(virsh net-list --name) || {
 		echo -e "{*INFO*} confiure $virtdconf ..."
 		sudo sed -ri -e '/#unix_sock_group = "libvirt"/s/^#//' -e '/#unix_sock_rw_perms = "0770"/s/^#//' $virtdconf 
 		sudo egrep -e ^unix_sock_group -e ^unix_sock_rw_perms $virtdconf
 		sudo systemctl restart libvirtd && sudo systemctl restart virtlogd
+
+		sudo cp $virtdconf $pvirtdconf
+		sudo chown $sudouser:$sudouser $pvirtdconf
+		echo 'uri_default = "qemu:///system"' >>pvirtdconf
 	}
 
 : <<'COMM'
@@ -65,7 +71,7 @@ prepare_env() {
 	}
 COMM
 
-	eval setfacl -mu:qemu:rx ~$sudouser
+	eval setfacl -mu:qemu:rx $sudouserhome
 
 	#first time
 	id -Gn | egrep -q -w libvirt || {
