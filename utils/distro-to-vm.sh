@@ -361,7 +361,7 @@ if [[ "$InstallType" = location ]]; then
 		echo "{INFO} generating kickstart file for $Distro ..."
 		ksauto=$RuntimeTmp/ks-$VM_OS_VARIANT-$$.cfg
 		KSPath=$ksauto
-		REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^--repo //')
+		REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
 		which ks-generator.sh &>/dev/null || {
 			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
 			mkdir -p ~/bin && wget -O ~/bin/ks-generator.sh -N -q $_url
@@ -615,7 +615,7 @@ elif [[ "$InstallType" = import ]]; then
 		}
 		cloudinitiso=$vmpath/$vmname-cloud-init.iso
 		[[ -n "$Location" ]] && {
-			REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^--repo //')
+			REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
 		}
 		cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmname} -b "$BPKGS" -p "$PKGS" \
 			$REPO_OPTS
