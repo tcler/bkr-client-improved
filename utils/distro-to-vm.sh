@@ -477,7 +477,7 @@ virsh net-start subnet10
 virsh net-autostart subnet10
 COMM
 
-virsh net-list | grep -w default || {
+virsh net-info default >/dev/null || {
 	virsh net-define /usr/share/libvirt/networks/default.xml
 	virsh net-autostart default
 	virsh net-start default
