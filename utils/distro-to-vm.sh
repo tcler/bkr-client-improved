@@ -48,7 +48,7 @@ prepare_env() {
 		sudo usermod -a -G libvirt $sudouser
 	}
 
-: <<COMM
+: <<'COMM'
 	virtdconf=/etc/libvirt/libvirtd.conf
 	echo -e "{INFO} checking if UNIX domain socket group ownership permission ..."
 	confs=$(sudo cat $virtdconf)
@@ -477,6 +477,12 @@ virsh net-define --file <(
 virsh net-start subnet10
 virsh net-autostart subnet10
 COMM
+
+virsh net-list | grep -w default || {
+	virsh net-define /usr/share/libvirt/networks/default.xml
+	virsh net-autostart default
+	virsh net-start default
+}
 
 is_bridge() {
 	local ifname=$1
