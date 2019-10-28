@@ -25,6 +25,56 @@ Cleanup() {
 	exit
 }
 
+prepare_env() {
+	local pkglist="libvirt libvirt-client virt-install virt-viewer qemu-kvm expect nmap-ncat libguestfs-tools-c libvirt-nss dialog"
+
+	echo -e "{INFO} checking libvirtd service and related packages ..."
+	rpm -q $pkglist || {
+		echo -e "{*INFO*} you have not install all dependencies package, trying sudo yum install ..."
+		sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>/dev/null
+		sudo yum install -y $pkglist &>/dev/null
+	}
+
+	#echo -e "{INFO} configure libvirt-nss ..."
+	grep -q '^hosts:.*libvirt libvirt_guest' /etc/nsswitch.conf || {
+		echo -e "{*INFO*} you have not configure /etc/nsswitch.conf, trying sudo sed ..."
+		sudo sed -ri '/^hosts:/s/files /&libvirt libvirt_guest /' /etc/nsswitch.conf
+	}
+
+	sudouser=${SUDO_USER:-$(whoami)}
+	echo -e "{INFO} checking if ${sudouser} has joined group libvirt ..."
+	id -Gn | egrep -q -w libvirt || {
+		echo -e "{*INFO*} run: sudo usermod -a -G libvirt $sudouser ..."
+		sudo usermod -a -G libvirt $sudouser
+	}
+
+: <<COMM
+	virtdconf=/etc/libvirt/libvirtd.conf
+	echo -e "{INFO} checking if UNIX domain socket group ownership permission ..."
+	confs=$(sudo cat $virtdconf)
+	egrep -q '^unix_sock_group = "libvirt"' <<<"$confs" && egrep -q '^unix_sock_rw_perms = "0770"/s/^#//' <<<"$confs" || {
+		echo -e "{*INFO*} confiure $virtdconf ..."
+		sudo sed -ri -e '/#unix_sock_group = "libvirt"/s/^#//' -e '/#unix_sock_rw_perms = "0770"/s/^#//' $virtdconf 
+		sudo egrep -e ^unix_sock_group -e ^unix_sock_rw_perms $virtdconf
+		sudo systemctl restart libvirtd && sudo systemctl restart virtlogd
+	}
+
+	qemuconf=/etc/libvirt/qemu.conf
+	eval echo -e "{INFO} checking if qemu can read image in ~$sudouser ..."
+	sudo egrep -q '^#(user|group) =' "$qemuconf" && {
+		sudo sed -i '/^#(user|group) =/s/^#//' "$qemuconf"
+	}
+COMM
+
+	eval setfacl -mu:qemu:rx ~$sudouser
+
+	#first time
+	id -Gn | egrep -q -w libvirt || {
+		echo -e "{WARN} you just joined group libvirt, but still need re-login to enable the change set ..."
+		exit 1
+	}
+}
+
 is_intranet() {
 	local iurl=http://download.devel.redhat.com
 	curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $iurl &>/dev/null
@@ -32,6 +82,8 @@ is_intranet() {
 
 trap Cleanup EXIT #SIGINT SIGQUIT SIGTERM
 mkdir -p $RuntimeTmp
+
+prepare_env
 is_intranet && Intranet=yes
 
 Usage() {
@@ -392,19 +444,6 @@ elif [[ "$InstallType" = import ]]; then
 	:
 fi
 
-echo -e "{INFO} check/install libvirt service and related packages ..."
-sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>/dev/null
-sudo yum install -y libvirt libvirt-client virt-install virt-viewer qemu-kvm expect nmap-ncat nc libguestfs-tools-c &>/dev/null
-
-echo -e "{INFO} check/install libvirt-nss module ..."
-sudo yum install -y libvirt-nss &>/dev/null
-grep -q '^hosts:.*libvirt libvirt_guest' /etc/nsswitch.conf ||
-	sed -ri '/^hosts:/s/files /&libvirt libvirt_guest /' /etc/nsswitch.conf
-
-echo -e "{INFO} start libvirtd/virtlogd service ..."
-service libvirtd start
-service virtlogd start
-
 virsh desc $vmname &>/dev/null && {
 	if [[ "${OVERWRITE}" = "yes" ]]; then
 		echo "{INFO} VM $vmname has been there, remove it ..."
@@ -552,6 +591,10 @@ if [[ "$InstallType" = location ]]; then
 				"reboot: System halted" { send_user "\r\rsomething is wrong! maybe no disk space\r\r"; exit 0 }
 				"System halted" { send_user "\r\rsomething is wrong! maybe no disk space\r\r"; exit 0 }
 
+				"An unknown error has occurred" {
+					interact
+				}
+
 				"* login:" { send "root\r" }
 			}
 			expect "Password:" {
@@ -580,14 +623,6 @@ if [[ "$InstallType" = location ]]; then
 	}
 
 elif [[ "$InstallType" = import ]]; then
-	qemuconf=/etc/libvirt/qemu.conf
-	egrep '^#(user|group) =' "$qemuconf" && {
-		sed -i '/^#(user|group) =/s/^#//' "$qemuconf"
-		#setfacl -mu:libvirt-qemu:rx ~
-		setfacl -mu:qemu:rx ~
-		service libvirtd restart
-	}
-
 	[[ -f $Imageurl ]] && Imageurl=file://$(readlink -f ${Imageurl})
 	imagefilename=${Imageurl##*/}
 	vmpath=$VMPath/$Distro
