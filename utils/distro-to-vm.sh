@@ -31,8 +31,8 @@ prepare_env() {
 	echo -e "{INFO} checking libvirtd service and related packages ..."
 	rpm -q $pkglist || {
 		echo -e "{*INFO*} you have not install all dependencies package, trying sudo yum install ..."
-		sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>/dev/null
-		sudo yum install -y $pkglist &>/dev/null
+		sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+		sudo yum install -y $pkglist
 	}
 
 	#echo -e "{INFO} configure libvirt-nss ..."
