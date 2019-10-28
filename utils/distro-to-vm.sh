@@ -28,6 +28,7 @@ Cleanup() {
 prepare_env() {
 	local pkglist="libvirt libvirt-client virt-install virt-viewer qemu-kvm expect nmap-ncat libguestfs-tools-c libvirt-nss dialog"
 
+	echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~ libvirt env prepare start ~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	echo -e "{INFO} checking libvirtd service and related packages ..."
 	rpm -q $pkglist || {
 		echo -e "{*INFO*} you have not install all dependencies package, trying sudo yum install ..."
@@ -77,6 +78,9 @@ COMM
 		echo -e "{WARN} you just joined group libvirt, but still need re-login to enable the change set ..."
 		exit 1
 	}
+
+	echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~~ libvirt env prepare done ~~~~~~~~~~~~~~~~~~~~~~~~~~"
+	printf '\33[H\33[2J'
 }
 
 is_intranet() {
@@ -646,7 +650,7 @@ elif [[ "$InstallType" = import ]]; then
 
 	echo "{INFO} downloading cloud image file of $Distro to $imagefile ..."
 	[[ $Imageurl = file://$imagefile ]] ||
-		curl -L -s $Imageurl -o $imagefile
+		curl -L $Imageurl -o $imagefile
 	[[ -f ${imagefile} ]] || exit 1
 
 	[[ $imagefile = *.xz ]] && {
