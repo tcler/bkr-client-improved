@@ -44,7 +44,7 @@ prepare_env() {
 	sudouser=${SUDO_USER:-$(whoami)}
 	eval sudouserhome=~$sudouser
 	echo -e "{INFO} checking if ${sudouser} has joined group libvirt ..."
-	id -Gn | egrep -q -w libvirt || {
+	[[ $(id -u) != 0 ]] && id -Gn | egrep -q -w libvirt || {
 		echo -e "{*INFO*} run: sudo usermod -a -G libvirt $sudouser ..."
 		sudo usermod -a -G libvirt $sudouser
 	}
@@ -60,7 +60,7 @@ prepare_env() {
 
 		sudo cp $virtdconf $pvirtdconf
 		sudo chown $sudouser:$sudouser $pvirtdconf
-		echo 'uri_default = "qemu:///system"' >>pvirtdconf
+		echo 'uri_default = "qemu:///system"' >>$pvirtdconf
 	}
 
 : <<'COMM'
@@ -74,7 +74,7 @@ COMM
 	eval setfacl -mu:qemu:rx $sudouserhome
 
 	#first time
-	id -Gn | egrep -q -w libvirt || {
+	[[ $(id -u) != 0 ]] && id -Gn | egrep -q -w libvirt || {
 		echo -e "{WARN} you just joined group libvirt, but still need re-login to enable the change set ..."
 		exit 1
 	}
