@@ -58,9 +58,7 @@ prepare_env() {
 		sudo egrep -e ^unix_sock_group -e ^unix_sock_rw_perms $virtdconf
 		sudo systemctl restart libvirtd && sudo systemctl restart virtlogd
 
-		sudo cp $virtdconf $pvirtdconf
-		sudo chown $sudouser:$sudouser $pvirtdconf
-		echo 'uri_default = "qemu:///system"' >>$pvirtdconf
+		export LIBVIRT_DEFAULT_URI=qemu:///system
 	}
 
 : <<'COMM'
