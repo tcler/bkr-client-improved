@@ -359,6 +359,7 @@ distro2repos() {
 		[[ $? = 1 ]] && distroList=$(echo "$distroList"|grep -v '\.n\.[0-9]"')
 		dialog --backtitle "$0" --radiolist "please select distro:" 30 60 28 $distroList 2>$distrofile || { Usage; exit 0; }
 		Distro=$(head -n1 $distrofile|sed 's/"//g')
+		printf '\33[H\33[2J'
 	else
 		Usage
 		exit 1
@@ -427,7 +428,7 @@ if [[ "$InstallType" = location ]]; then
 		REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
 		which ks-generator.sh &>/dev/null || {
 			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
-			mkdir -p ~/bin && wget -O ~/bin/ks-generator.sh -N -q $_url
+			mkdir -p ~/bin && wget -O ~/bin/ks-generator.sh -N -q $_url --no-check-certificate
 			chmod +x ~/bin/ks-generator.sh
 		}
 		ks-generator.sh -d $Distro -url $Location $REPO_OPTS >$KSPath
