@@ -125,6 +125,7 @@ Usage() {
 	                   # you can get [-osv variant] info by using:
 	                   $ osinfo-query os  #RHEL-7 and later
 	                   $ virt-install --os-variant list  #RHEL-6
+	    --nointeract   #exit from virsh console after install finish
 
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
@@ -172,6 +173,7 @@ _at=`getopt -o hd:L::l:fn:gb:p:I::i: \
 	--long nocloud-init --long nocloud \
 	--long msize: \
 	--long dsize: \
+	--long nointeract \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -196,6 +198,7 @@ while true; do
 	--nocloud*) NO_CLOUD_INIT="yes"; shift 1;;
 	--dsize)         DSIZE="$2"; shift 2;;
 	--msize)         MSIZE="$2"; shift 2;;
+	--nointeract)    NOINTERACT="yes"; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -560,7 +563,7 @@ if [[ "$InstallType" = location ]]; then
 	for ((i=0; i<8; i++)); do
 		#clear -x
 		printf '\33[H\33[2J'
-		expect -c '
+		NOINTERACT=$NOINTERACT expect -c '
 			set timeout -1
 			spawn virsh console '"$vmname"'
 			trap {
@@ -613,6 +616,8 @@ if [[ "$InstallType" = location ]]; then
 				send "# your are in console, Ctr + ] to exit \r"
 				send "\r\r\r\r\r\r"
 			}
+
+			if {$env(NOINTERACT) == "yes"} { exit 0 }
 			interact
 		' && break
 		test -d /proc/$installpid || break
@@ -683,7 +688,7 @@ elif [[ "$InstallType" = import ]]; then
 
 	trap - SIGINT
 	for ((i=0; i<8; i++)); do
-		SHUTDOWN=$GenerateImage expect -c '
+		NOINTERACT=$NOINTERACT SHUTDOWN=$GenerateImage expect -c '
 			set timeout -1
 			spawn virsh console '"$vmname"'
 			trap {
@@ -709,15 +714,17 @@ elif [[ "$InstallType" = import ]]; then
 					send {while ps axf|grep -A2 "/var/lib/cloud/instance/scripts/runcm[d]"; do echo "{INFO}: cloud-init scirpt is still running .."; sleep 5; done; poweroff}
 					send "\r\n"
 					"Restarting system" { exit 0 }
-				} else {
-					send {while ps axf|grep -A2 "/var/lib/cloud/instance/scripts/runcm[d]"; do echo "{INFO}: cloud-init scirpt is still running .."; sleep 5; done; echo "~~~~~~~~ no cloud-init or cloud-init done ~~~~~~~~"\d}
-					send "\r\n"
-					expect "or cloud-init done ~~~~~~~~d" {send "\r\r# Now you can take over the keyboard\r\r"}
-					send "# and your are in console, Ctr + ] to exit \r"
-					send "\r\r"
-					interact
 				}
+
+				send {while ps axf|grep -A2 "/var/lib/cloud/instance/scripts/runcm[d]"; do echo "{INFO}: cloud-init scirpt is still running .."; sleep 5; done; echo "~~~~~~~~ no cloud-init or cloud-init done ~~~~~~~~"\d}
+				send "\r\n"
+				expect "or cloud-init done ~~~~~~~~d" {send "\r\r# Now you can take over the keyboard\r\r"}
+				send "# and your are in console, Ctr + ] to exit \r"
+				send "\r\r"
 			}
+
+			if {$env(NOINTERACT) == "yes"} { exit 0 }
+			interact
 		' && break
 		test -d /proc/$installpid || break
 		sleep 2
