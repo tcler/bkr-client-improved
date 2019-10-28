@@ -339,6 +339,7 @@ distro2repos() {
 }
 
 [[ -z "$Distro" ]] && Distro=$1
+[[ -n "$Location" || -n "$Imageurl" ]] && Intranet=no
 [[ -z "$Distro" ]] && {
 	if [[ "$Intranet" = yes ]]; then
 		distrofile=$RuntimeTmp/distro
