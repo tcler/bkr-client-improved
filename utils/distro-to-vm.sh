@@ -765,7 +765,6 @@ fi
 
 [[ "$RM" = yes && "$GenerateImage" != yes ]] && {
 	echo -e "\n{INFO} dist removing VM $vmname .."
-	test -d /proc/$installpid && kill -9 $installpid
 	virsh destroy $vmname 2>/dev/null
 	virsh undefine $vmname --remove-all-storage
 	[[ -n "$vmpath" ]] && rmdir $vmpath 2>/dev/null
