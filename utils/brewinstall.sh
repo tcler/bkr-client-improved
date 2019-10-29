@@ -2,10 +2,22 @@
 # Description: to install brew scratch build or 3rd party pkgs
 # Author: Jianhong Yin <jiyin@redhat.com>
 
+baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
+
+is_intranet() {
+	local iurl=http://download.devel.redhat.com
+	curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $iurl &>/dev/null
+}
+
+is_intranet && {
+	Intranet=yes
+	baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
+}
+
 # install brew
 which brew &>/dev/null || {
 	which brewkoji_install.sh &>/dev/null || {
-		_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewkoji_install.sh
+		_url=$baseDownloadUrl/utils/brewkoji_install.sh
 		mkdir -p ~/bin && wget -O ~/bin/brewkoji_install.sh -N -q $_url
 		chmod +x ~/bin/brewkoji_install.sh
 	}
