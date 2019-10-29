@@ -25,10 +25,10 @@ Cleanup() {
 	exit
 }
 
-prepare_env() {
+enable_libvirt() {
 	local pkglist="libvirt libvirt-client virt-install virt-viewer qemu-kvm expect nmap-ncat libguestfs-tools-c libvirt-nss dialog"
 
-	echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~ libvirt env prepare start ~~~~~~~~~~~~~~~~~~~~~~~~~~"
+	echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ enable libvirt start ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	echo -e "{INFO} checking libvirtd service and related packages ..."
 	rpm -q $pkglist || {
 		echo -e "{*INFO*} you have not install all dependencies package, trying sudo yum install ..."
@@ -53,7 +53,7 @@ prepare_env() {
 	virtdconf=/etc/libvirt/libvirtd.conf
 	pvirtconf=$sudouserhome/.config/libvirt/libvirt.conf
 	echo -e "{INFO} checking if UNIX domain socket group ownership permission ..."
-	virsh net-info default &>/dev/null && grep -w default <(virsh net-list --name) || {
+	virsh net-info default &>/dev/null && grep -q -w default <(virsh net-list --name) || {
 		echo -e "{*INFO*} confiure $virtdconf ..."
 		sudo sed -ri -e '/#unix_sock_group = "libvirt"/s/^#//' -e '/#unix_sock_rw_perms = "0770"/s/^#//' $virtdconf 
 		sudo egrep -e ^unix_sock_group -e ^unix_sock_rw_perms $virtdconf
@@ -79,7 +79,7 @@ COMM
 		exit 1
 	}
 
-	echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~~ libvirt env prepare done ~~~~~~~~~~~~~~~~~~~~~~~~~~"
+	echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ enable libvirt done! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	printf '\33[H\33[2J'
 }
 
@@ -91,7 +91,7 @@ is_intranet() {
 trap Cleanup EXIT #SIGINT SIGQUIT SIGTERM
 mkdir -p $RuntimeTmp
 
-prepare_env
+enable_libvirt
 is_intranet && Intranet=yes
 
 Usage() {
@@ -607,8 +607,8 @@ if [[ "$InstallType" = location ]]; then
 				"reboot: Power down" { exit 0 }
 				"Power down" { exit 0 }
 
-				"reboot: System halted" { send_user "\r\rsomething is wrong! maybe no disk space\r\r"; exit 0 }
-				"System halted" { send_user "\r\rsomething is wrong! maybe no disk space\r\r"; exit 0 }
+				"reboot: System halted" { send_user "\r\rsomething is wrong! cancel installation ..\r\r"; exit 0 }
+				"System halted" { send_user "\r\rsomething is wrong! cancel installation ..\r\r"; exit 0 }
 
 				"An unknown error has occurred" {
 					interact
