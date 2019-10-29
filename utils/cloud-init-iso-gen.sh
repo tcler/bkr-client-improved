@@ -84,6 +84,7 @@ done
 
 runcmd:
  - test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf
+ - echo "PasswordAuthentication yes" >>/etc/ssh/sshd_config && service sshd restart
  - which yum && yum install -y vim curl wget $PKGS
  - which apt-get && apt-get install -y vim curl wget $PKGS
  - which yum && curl -L -m 30 -o /usr/bin/brewinstall.sh "http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/utils/brewinstall.sh" &&
