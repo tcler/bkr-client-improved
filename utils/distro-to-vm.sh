@@ -54,7 +54,8 @@ enable_libvirt() {
 
 	virtdconf=/etc/libvirt/libvirtd.conf
 	echo -e "{INFO} checking if UNIX domain socket group ownership permission ..."
-	sudo awk '/^unix_sock_group = "libvirt"/{c++} /^unix_sock_rw_perms = "0770"/{c++} END {rc=1; if(c==2) rc=0; exit rc}' $virtdconf || {
+	ls $virtdconf &>/dev/null || sudo chmod +x /etc/libvirt
+	awk '/^unix_sock_group = "libvirt"/{c++} /^unix_sock_rw_perms = "0770"/{c++} END {rc=1; if(c==2) rc=0; exit rc}' $virtdconf || {
 		echo -e "{*INFO*} confiure $virtdconf ..."
 		sudo -- sh -c "
 			sed -ri -e '/#unix_sock_group = \"libvirt\"/s/^#//' -e '/#unix_sock_rw_perms = \"0770\"/s/^#//' $virtdconf
