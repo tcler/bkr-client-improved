@@ -4,7 +4,6 @@ which gcc || yum install -y gcc
 pkg=tDOM-0.8.3.tgz
 pkg2=tdom_0_8_3_postrelease.tar.gz
 
-#wget http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/$pkg
 wget https://github.com/tDOM/tdom/archive/$pkg2
 mv $pkg2 $pkg
 [ -f "$pkg" ] || {

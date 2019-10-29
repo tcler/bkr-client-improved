@@ -12,11 +12,13 @@ OVERWRITE=no
 KSPath=
 ksauto=
 MacvtapMode=vepa
+MacvtapMode=bridge
 VMName=
 InstallType=import
 ImagePath=~/myimages
 VMPath=~/VMs
 RuntimeTmp=/tmp/distro-to-vm-$$
+baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
 
 Cleanup() {
 	cd ~
@@ -94,7 +96,10 @@ trap Cleanup EXIT #SIGINT SIGQUIT SIGTERM
 mkdir -p $RuntimeTmp
 
 enable_libvirt
-is_intranet && Intranet=yes
+is_intranet && {
+	Intranet=yes
+	baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
+}
 
 Usage() {
 	cat <<-'EOF'
@@ -218,7 +223,7 @@ distro2location() {
 		distrotrees=$(bkr distro-trees-list --name "$distro" --arch "$arch")
 	[[ -z "$distrotrees" ]] && {
 		which distro-compose &>/dev/null || {
-			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/distro-compose
+			_url=$baseDownloadUrl/utils/distro-compose
 			mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url --no-check-certificate
 			chmod +x ~/bin/distro-compose
 		}
@@ -230,7 +235,7 @@ distro2location() {
 	}
 
 	which fastesturl.sh &>/dev/null || {
-		_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/fastesturl.sh
+		_url=$baseDownloadUrl/utils/fastesturl.sh
 		mkdir -p ~/bin && wget -O ~/bin/fastesturl.sh -N -q $_url --no-check-certificate
 		chmod +x ~/bin/fastesturl.sh
 	}
@@ -346,7 +351,7 @@ distro2repos() {
 	if [[ "$Intranet" = yes ]]; then
 		distrofile=$RuntimeTmp/distro
 		which distro-compose &>/dev/null || {
-			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/distro-compose
+			_url=$baseDownloadUrl/utils/distro-compose
 			mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url --no-check-certificate
 			chmod +x ~/bin/distro-compose
 		}
@@ -430,7 +435,7 @@ if [[ "$InstallType" = location ]]; then
 		KSPath=$ksauto
 		REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
 		which ks-generator.sh &>/dev/null || {
-			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/ks-generator.sh
+			_url=$baseDownloadUrl/utils/ks-generator.sh
 			mkdir -p ~/bin && wget -O ~/bin/ks-generator.sh -N -q $_url --no-check-certificate
 			chmod +x ~/bin/ks-generator.sh
 		}
@@ -439,7 +444,7 @@ if [[ "$InstallType" = location ]]; then
 		cat <<-END >>$KSPath
 		%post --log=/root/extra-ks-post.log
 		yum install -y $PKGS
-		wget -O /usr/bin/brewinstall.sh -N -q https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh --no-check-certificate
+		wget -O /usr/bin/brewinstall.sh -N -q $baseDownloadUrl/utils/brewinstall.sh --no-check-certificate
 		chmod +x /usr/bin/brewinstall.sh
 		brewinstall.sh $BPKGS
 		%end
@@ -667,7 +672,7 @@ elif [[ "$InstallType" = import ]]; then
 	[[ "$NO_CLOUD_INIT" != yes ]] && {
 		echo -e "{INFO} creating cloud-init iso"
 		which cloud-init-iso-gen.sh &>/dev/null || {
-			_url=https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/cloud-init-iso-gen.sh
+			_url=$baseDownloadUrl/utils/cloud-init-iso-gen.sh
 			mkdir -p ~/bin && wget -O ~/bin/cloud-init-iso-gen.sh -N -q $_url --no-check-certificate
 			chmod +x ~/bin/cloud-init-iso-gen.sh
 		}

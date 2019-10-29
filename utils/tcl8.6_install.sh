@@ -6,7 +6,6 @@ test `id -u` = 0 || {
 
 which gcc || yum install -y gcc
 pkg=tcl8.6.9-src.tar.gz
-#wget http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/$pkg
 wget https://prdownloads.sourceforge.net/tcl/tcl8.6.9-src.tar.gz
 [ -f "$pkg" ] || {
 	echo "$pkg not exist!" >&2
