@@ -53,14 +53,18 @@ enable_libvirt() {
 	}
 
 	virtdconf=/etc/libvirt/libvirtd.conf
-	pvirtconf=$sudouserhome/.config/libvirt/libvirt.conf
 	echo -e "{INFO} checking if UNIX domain socket group ownership permission ..."
-	virsh net-info default &>/dev/null && grep -q -w default <(virsh net-list --name) || {
+	sudo awk '/^unix_sock_group = "libvirt"/{c++} /^unix_sock_rw_perms = "0770"/{c++} END {rc=1; if(c==2) rc=0; exit rc}' $virtdconf || {
 		echo -e "{*INFO*} confiure $virtdconf ..."
-		sudo sed -ri -e '/#unix_sock_group = "libvirt"/s/^#//' -e '/#unix_sock_rw_perms = "0770"/s/^#//' $virtdconf 
-		sudo egrep -e ^unix_sock_group -e ^unix_sock_rw_perms $virtdconf
-		sudo systemctl restart libvirtd && sudo systemctl restart virtlogd
+		sudo -- sh -c "
+			sed -ri -e '/#unix_sock_group = \"libvirt\"/s/^#//' -e '/#unix_sock_rw_perms = \"0770\"/s/^#//' $virtdconf
+			egrep -e ^unix_sock_group -e ^unix_sock_rw_perms $virtdconf
+			systemctl restart libvirtd && systemctl restart virtlogd
+		"
+	}
 
+	pvirtconf=$sudouserhome/.config/libvirt/libvirt.conf
+	virsh net-info default &>/dev/null && grep -q -w default <(virsh net-list --name) || {
 		#export LIBVIRT_DEFAULT_URI=qemu:///system
 		echo 'uri_default = "qemu:///system"' >>$pvirtconf
 	}
