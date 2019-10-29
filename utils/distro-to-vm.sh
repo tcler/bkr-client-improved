@@ -74,9 +74,11 @@ COMM
 	eval setfacl -mu:qemu:rx $sudouserhome
 
 	#first time
-	[[ $(id -u) != 0 ]] && id -Gn | egrep -q -w libvirt || {
-		echo -e "{WARN} you just joined group libvirt, but still need re-login to enable the change set ..."
-		exit 1
+	[[ $(id -u) != 0 ]] && {
+		id -Gn | egrep -q -w libvirt || {
+			echo -e "{WARN} you just joined group libvirt, but still need re-login to enable the change set ..."
+			exit 1
+		}
 	}
 
 	echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ enable libvirt done! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
