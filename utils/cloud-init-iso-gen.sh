@@ -86,7 +86,7 @@ runcmd:
  - test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf
  - which yum && yum install -y vim curl wget $PKGS
  - which apt-get && apt-get install -y vim curl wget $PKGS
- - which yum && curl -L -m 30 -o /usr/bin/brewinstall.sh "https://raw.githubusercontent.com/tcler/bkr-client-improved/master/utils/brewinstall.sh" &&
+ - which yum && curl -L -m 30 -o /usr/bin/brewinstall.sh "http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/utils/brewinstall.sh" &&
    chmod +x /usr/bin/brewinstall.sh && brewinstall.sh $BPKGS
 EOF
 
