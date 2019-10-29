@@ -559,7 +559,7 @@ if [[ "$InstallType" = location ]]; then
 	  --memory ${MSIZE:-2048} \
 	  --disk size=${DSIZE:-16} \
 	  --network network=default,model=virtio \
-	  --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode,model=virtio \
+	  --network type=direct,source=$(get_default_if),source_mode=$MacvtapMode,model=virtio \
 	  --initrd-inject $KSPath \
 	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $NOREBOOT &
@@ -688,7 +688,7 @@ elif [[ "$InstallType" = import ]]; then
 	  --disk $imagefile \
 	  $CLOUD_INIT_OPT \
 	  --network network=default,model=virtio \
-	  --network type=direct,source=$(get_default_if notbr),source_mode=$MacvtapMode,,model=virtio \
+	  --network type=direct,source=$(get_default_if),source_mode=$MacvtapMode,model=virtio \
 	  --import \
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $OS_VARIANT_OPT &
 	installpid=$!
