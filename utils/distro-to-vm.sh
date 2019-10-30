@@ -252,7 +252,7 @@ getimageurls() {
 	local suffix_pattern=$2
 	local rc=1
 
-	local imagenames=$(curl -L -s ${parenturl} | sed -nr "/.*>(rhel-[^<>]+\\.${suffix_pattern})<.*/{s//\\1/;p}")
+	local imagenames=$(curl -L -s ${parenturl} | sed -nr '/.*"([^"]+\.'"${suffix_pattern}"')".*/{s//\1/;p}')
 	for imagename in $imagenames; do
 		if [[ -n "${imagename}" ]]; then
 			echo ${parenturl%/}/${imagename}
@@ -361,7 +361,7 @@ distro2repos() {
 		}
 		which dialog &>/dev/null || yum install -y dialog &>/dev/null
 
-		mainvers=$(echo -e "RHEL-8\nRHEL-7\nRHEL-6\nRHEL-?5"|sed -e 's/.*/"&" "" 1/')
+		mainvers=$(echo -e "Fedora\nRHEL-8\nRHEL-7\nRHEL-6\nRHEL-?5"|sed -e 's/.*/"&" "" 1/')
 		dialog --backtitle "$0" --radiolist "please selet family:" 12 40 8 $mainvers 2>$distrofile || { Usage; exit 0; }
 		pattern=$(head -n1 $distrofile|sed 's/"//g')
 		distroList=$(distro-compose --distrolist|sed -e '/ /d' -e 's/.*/"&" "" 1/'|egrep "$pattern")
@@ -391,9 +391,9 @@ vmname=${vmname,,}
 if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 	if [[ -z "$Imageurl" ]]; then
 		echo "{INFO} searching private image url of $Distro ..." >&2
-		baseurl=http://download.eng.bos.redhat.com/qa/rhts/lookaside/distro-vm-images/$Distro/
-		baseurl=http://download.devel.redhat.com/qa/rhts/lookaside/distro-vm-images/$Distro/
-		imageLocation=${baseurl/\/os\//\/images\/}
+		baseurl=http://download.eng.bos.redhat.com/qa/rhts/lookaside/distro-vm-images
+		baseurl=http://download.devel.redhat.com/qa/rhts/lookaside/distro-vm-images
+		imageLocation=${baseurl}/$Distro
 		read Imageurl _ < <(getimageurls ${imageLocation} "(qcow2|qcow2.xz)")
 
 		if [[ -z "$Imageurl" ]]; then
@@ -406,6 +406,9 @@ if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 			echo -e " -> $Location"
 			echo "{INFO} getting image url according location url ^^^ ..." >&2
 			imageLocation=${Location/\/os\//\/images\/}
+			[[ $Distro = Fedora-* ]] && imageLocation=${imageLocation/\/[Ss]erver\//\/Cloud\/}
+			curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $imageLocation &>/dev/null ||
+				imageLocation=${imageLocation/Cloud/CloudImages}
 			read Imageurl _ < <(getimageurls $imageLocation "(qcow2|qcow2.xz)")
 			if [[ $? = 0 ]]; then
 				echo -e " -> $Imageurl"

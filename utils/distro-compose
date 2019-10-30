@@ -77,9 +77,9 @@ Debug "using data source: $dbpath"
 Pkg=${Pkg:-$1}
 RawPkg=$Pkg
 Pkg=${Pkg:-^kernel-[0-9]}
-Pkg=".*${Pkg}.*"
-[[ ${Pkg:0:3} = '.*^' ]] && Pkg="${Pkg:3}"
-[[ ${Pkg: -3} = '$.*' ]] && Pkg="${Pkg:0:-3}"
+Pkg="[^/]*${Pkg}[^/]*"
+[[ ${Pkg:0:6} = '[^/]*^' ]] && Pkg="${Pkg:6}"
+[[ ${Pkg: -6} = '$[^/]*' ]] && Pkg="${Pkg:0:-6}"
 Distro=${Distro:-$2}
 Distro=${Distro#/}
 
@@ -151,8 +151,8 @@ while read distro; do
 		Debug "egrep -o \">${RawPkg}-[0-9a-z\\._-]+\\.rpm<\" < <(curl -Lsf $url/Server)"
 		result=$(egrep -o ">${RawPkg}-[0-9a-z\._-]+\.rpm<" < <(curl -Lsf $url/Server) | sed -e 's/^>//' -e 's/<$//')
 	else
-		Debug "egrep -o -i \"${variant:-[^\\\"]+}/($Arch)/os/(Packages|$variant)/(${Pkg})\.[0-9a-z_-]+\.rpm\" < <(curl -Lsf $cachefile|zcat 2>/dev/null)"
-		result=$(egrep -o -i "${variant:-[^\"]+}/($Arch)/os/(Packages|$variant)/(${Pkg})\.[0-9a-z_-]+\.rpm" < <(curl -Lsf $cachefile|zcat 2>/dev/null))
+		Debug "egrep -o -i \"${variant:-[^\\\"]+}/($Arch)/os/(Packages|$variant)/([a-z]/)?(${Pkg})\.[0-9a-z_-]+\.rpm\" < <(curl -Lsf $cachefile|zcat 2>/dev/null)"
+		result=$(egrep -o -i "${variant:-[^\"]+}/($Arch)/os/(Packages|$variant)/([a-z]/)?(${Pkg})\.[0-9a-z_-]+\.rpm" < <(curl -Lsf $cachefile|zcat 2>/dev/null))
 	fi
 	[[ -n "$result" ]] && {
 		[[ -z "$nocolor" ]] && echo -e "=> \033[1;34m$distro\033[0m" || echo -n "$distro -> "
