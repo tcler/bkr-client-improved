@@ -6,9 +6,13 @@ family=
 tag=rtt
 
 Usage() {
-	echo "Usage: $P [-f <3|4|5[s]|5c|6|7|alt-7|8|full-family-name>] [-t <rtt|stb|rel|ins|act|full-tag-name>] [-n distro-name-filter]"
-	echo "  e.g: $P -f alt7 -t rtt"
-	echo "  e.g: $P -f 7 -t rel -n %7.2"
+	cat <<-EOF
+	Usage: $P [-f <3|4|5[s]|5c|6|7|alt-7|8|full-family-name>] [-t <rtt|stb|rel|ins|act|full-tag-name>] [-n distro-name-filter]
+	  e.g: $P -f alt7 -t rtt
+	  e.g: $P -f 7 -t rel -n %7.2
+	  e.g: $P -n fedora-% -t rel
+	  e.g: $P -n fedora-% -t ''
+	EOF
 }
 _at=`getopt -o hdf:t:n: \
 	--long help \
