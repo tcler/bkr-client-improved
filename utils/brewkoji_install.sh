@@ -44,7 +44,7 @@ installBrew2() {
 		;;
 	Fedora*)
 		curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
-		yum install -y koji brewkoji
+		yum install -y koji brewkoji || rm rcm-tools-*.repo
 		;;
 	esac
 	popd
@@ -52,7 +52,7 @@ installBrew2() {
 	which brew &>/dev/null
 }
 installBrewFromSourceCode() {
-	yum install -y git make &>/dev/null
+	yum install -y git make python2 &>/dev/null
 	git -c http.sslVerify=false clone  https://code.engineering.redhat.com/gerrit/rcm-brewkoji.git
 	cd rcm-brewkoji
 	make install >/dev/null
