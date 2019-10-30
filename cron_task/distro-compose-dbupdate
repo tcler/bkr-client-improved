@@ -42,6 +42,7 @@ UpdateDB() {
 	for family in 8 7 6 5; do
 		distro-list.sh -f $family -t all
 	done > >(tee distro.list.tmp) 2>err.log
+	distro-list.sh -n fedora-% -t '' > >(tee -a distro.list.tmp) 2>>err.log
 	[[ -s distro.list.tmp ]] || {
 		rm -f $lockf
 		return 1
@@ -72,8 +73,10 @@ UpdateDB() {
 						sub("([^/]+/){2}$", "metadata", $3)
 					} else if ($3 ~ "/released/") {
 						sub("([^/]+/){3}$", "metadata", $3)
+					} else {
+						rc=1
 					}
-					print $3
+					if (rc != 1) {print $3}
 				}' | sort -u)
 
 			for url in $urls; do
