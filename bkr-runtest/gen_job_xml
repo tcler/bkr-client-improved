@@ -146,6 +146,9 @@ if [info exist Opt(distro)] {
 	foreach e $Opt(distro) {lappend _ldistro {*}[split $e ", "]}
 	set prev {}
 	foreach d $_ldistro {
+		if [regexp -- {^RedHatEnterpriseLinux} $d] {
+			set d [string map {RedHatEnterpriseLinux "family"} $d]
+		}
 		if {[string length $d] > 0} {
 			lappend DISTRO_L $d
 			set prev $d
@@ -431,7 +434,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 		set VARIANT {}
 		set DISTRO {}
 		set FAMILY {}
-		set TAG {STABLE}
+		set TAG {}
 		set R {0};	# Role index
 		foreach role ${ROLE_LIST} {
 			if [llength $DISTRO_L] {
@@ -511,7 +514,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							set VARIANT [lindex $VARIANT_L 0]
 							set VARIANT_L [lrange $VARIANT_L 1 end]
 						}
-						lappend drs distro_variant=$VARIANT
 						lappend drs distro_method=${METHOD}
 
 						if [info exist Opt(DR)] {
@@ -519,17 +521,20 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							if {$DRs != ""} {lappend drs {*}[split $DRs " "]}
 						}
 
-						if {$DISTRO ni {"" "family"}} {
-							if ![regexp -- {^RedHatEnterpriseLinux} $DISTRO] {
-								if {[lsearch -glob $drs distro_name=*] == -1} {lappend drs distro_name=${DISTRO}}
-							} else {
-								if {[lsearch -glob $drs distro_family=*] == -1} {lappend drs distro_family=${DISTRO}}
-								if {[lsearch -glob $drs distro_tag=*] == -1} {lappend drs distro_tag=${TAG}}
-							}
+						if {$DISTRO ni {""} && ![string match family* $DISTRO]} {
+							if {[lsearch -glob $drs distro_name=*] == -1} {lappend drs distro_name=${DISTRO}}
 						} else {
+							if {$FAMILY == ""} {
+								set FAMILY [string map {family RedHatEnterpriseLinux} $DISTRO]
+							} elseif [regexp -- {^[0-9]} ${FAMILY}] {
+								set FAMILY "RedHatEnterpriseLinux${FAMILY}"
+							}
 							if {[lsearch -glob $drs distro_family=*] == -1} {lappend drs distro_family=${FAMILY}}
 							if {[lsearch -glob $drs distro_tag=*] == -1} {lappend drs distro_tag=${TAG}}
+							set verx [string map {RedHatEnterpriseLinux ""} $FAMILY]
+							if {$verx >= 8} {set VARIANT BaseOS}
 						}
+						lappend drs distro_variant=$VARIANT
 
 						if {[lsearch -glob $drs distro_arch=*] == -1} {
 							set distro_arch $ARCH
