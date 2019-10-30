@@ -351,9 +351,8 @@ distro2repos() {
 }
 
 [[ -z "$Distro" ]] && Distro=$1
-[[ -n "$Location" || -n "$Imageurl" ]] && Intranet=no
 [[ -z "$Distro" ]] && {
-	if [[ "$Intranet" = yes ]]; then
+	if [[ "$Intranet" = yes && -z "$Location" && -z "$Imageurl" ]]; then
 		distrofile=$RuntimeTmp/distro
 		which distro-compose &>/dev/null || {
 			_url=$baseDownloadUrl/utils/distro-compose
@@ -375,6 +374,7 @@ distro2repos() {
 		printf '\33[H\33[2J'
 	else
 		Usage
+		echo -e "\n{WARN} ^^^ a distro name is necessary!\n"
 		exit 1
 	fi
 }
