@@ -58,7 +58,8 @@ users:
     lock_passwd: false
 
   - name: foo
-    group: sudo
+    group: users, admin
+    sudo: ALL=(ALL) NOPASSWD:ALL
     plain_text_passwd: redhat
     lock_passwd: false
 
@@ -83,8 +84,8 @@ done
 )
 
 runcmd:
-  - test -f /etc/dnf/dnf.conf && { echo strict=0 >>/etc/dnf/dnf.conf; dnf install -y yum; }
-  - echo "PasswordAuthentication yes" >>/etc/ssh/sshd_config && service sshd restart
+  - test -f /etc/dnf/dnf.conf && { echo strict=0 >>/etc/dnf/dnf.conf; ln -s /usr/bin/{dnf,yum}; }
+  - sed -ri -e '/^#?PasswordAuthentication /{s/no/yes/;s/^#//}' /etc/ssh/sshd_config && service sshd restart
   - which yum && yum install -y vim curl wget $PKGS
   - which apt-get && apt-get install -y vim curl wget $PKGS
   - which yum && curl -L -m 30 -o /usr/bin/brewinstall.sh "http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/utils/brewinstall.sh" &&
