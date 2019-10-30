@@ -777,15 +777,15 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					lappend insertTasks "/kernel/distribution/upstream-kernel/install $params"
 
 				}
-				if [info exist Opt(Scratch)] {
-					foreach bid $Opt(Scratch) {
+				if [info exist Opt(Brew)] {
+					foreach bid $Opt(Brew) {
 						lappend insertTasks "/distribution/scratch-build-install BUILDID=$bid"
 					}
 				}
-				if [info exist Opt(scratch)] {
-					set scratch [lindex $Opt(scratch) 0]
-					set Opt(scratch) [lrange $Opt(scratch) 1 end]
-					foreach bid $scratch {
+				if [info exist Opt(brew)] {
+					set build [lindex $Opt(brew) 0]
+					set Opt(brew) [lrange $Opt(brew) 1 end]
+					foreach bid $build {
 						lappend insertTasks "/distribution/scratch-build-install BUILDID=$bid"
 					}
 				}
