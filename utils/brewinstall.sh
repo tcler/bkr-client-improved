@@ -53,7 +53,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $0 [-debugkernel] {brew scratch build id] [brew build name] [url}
+	 $0 [-debugkernel] {brew scratch build id] [lstk|upk|brew build name] [url] [-debug] [-noreboot]}
 
 	Example:
 	 $0 23822847  # brew scratch build id
@@ -61,7 +61,8 @@ Usage() {
 	 $0 [ftp|http]://url/xyz.rpm # install xyz.rpm
 	 $0 [ftp|http]://url/path/   # install all rpms in url/path
 	 $0 nfs:server/nfsshare      # install all rpms in nfsshare
-	 $0 \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+	 $0 lstk                     # install latest release kernel
+	 $0 upk                      # install latest upstream kernel
 EOF
 }
 
@@ -76,6 +77,14 @@ cnt=0
 for build; do
 	[[ "$build" = -debug* ]] && { FLAG=debug; continue; }
 	[[ "$build" = -noreboot* ]] && { KREBOOT=no; continue; }
+
+	[[ "$build" = upk ]] && {
+		build=$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+	}
+	[[ "$build" = lst ]] && {
+		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
+		build=$(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head -1)
+	}
 
 	let cnt++
 	if [[ "$build" =~ ^[0-9]+(:.*)?$ ]]; then
