@@ -104,7 +104,7 @@ UpdateDB() {
 		tmpfile=/tmp/$file.$$
 		cmp -s ${fpath} $tmpfile || \cp -f $tmpfile ${fpath}
 		\rm -f $tmpfile
-	done < <(find $rpmdb -mtime -5 -type f -name '*.distrotrees.gz')
+	done < <(find $rpmdb -mtime -5 -mtime +1 -type f -name '*.distrotrees.gz')
 	rm -f $lockf
 }
 
