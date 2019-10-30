@@ -7,16 +7,32 @@ dbroot=/var/cache/distroInfoDB/rpmsdata
 Pkg=
 Arch=x86_64
 Variant=Workstation
+P=${0##*/}
 
 Usage() {
-	echo "Usage: $0 <-p pkgName|pattern> [-d distroName|pattern] [-a <arch>|-v <variant>] [--dbroot]" >&2
-	echo "Usage: $0 <-d distroName> <--distrotrees>" >&2
-	echo "Usage: $0 <-d distroName> <--rpmsinfo>" >&2
-	echo "Usage: $0 <-d distroName> <--composeinfo>" >&2
-	echo "Usage: $0 <--distrolist>" >&2
+	cat >&2 <<-EOF
+	Usage:
+	    $P <-p pkgName|pattern> [-d distroName|pattern] [-a <arch>|-v <variant>] [--dbroot]
+
+	Example:
+	    $P -d \$distro -p \$pkg      #1 get package \$pkg's version on \$distro
+	    $P -d \$distro              #2 get package kernel's version on \$distro
+	    $P -p \$pkg                 #3 get package \$pkg's version on all available distros
+
+	    $P -d \$distro -trees       #4 or --distrotrees, get detail info of distro
+	    $P -d \$distro -rpmsinfo    #5 show distro's package list in json format
+	    $P -d \$distro -composeinfo #6 show distro's compose info
+
+	    $P --dlist                 #7 or --distrolist, get available distro list
+	EOF
 }
 Debug() {
 	[[ -n "$debug" ]] && { echo "{debug} $@" >&2; }
+}
+
+[[ $# = 0 ]] && {
+	Usage
+	exit 1
 }
 
 _at=`getopt -o hnp:d:a:v:lD \
@@ -24,9 +40,8 @@ _at=`getopt -o hnp:d:a:v:lD \
 	--long rpmsinfo \
 	--long composeinfo \
 	--long dbroot: \
-	--long url \
-	--long distrotrees \
-	--long distrolist \
+	--long distrotrees --long trees --long url \
+	--long distrolist --long dlist \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -39,11 +54,11 @@ while true; do
 	-v) Variant=$2; shift 2;;
 	-l) long=yes; shift 1;;
 	-D) debug=yes; shift 1;;
-	--url|--distrotrees) getdistrotrees=yes; shift 1;;
+	--url|--trees|--distrotrees) getdistrotrees=yes; shift 1;;
 	--rpmsinfo) getrpmsinfo=yes; shift 1;;
 	--composeinfo) getcomposeinfo=yes; shift 1;;
 	--dbroot) dbroot=$2; shift 2;;
-	--distrolist) getdistrolist=yes; shift 1;;
+	--dlist|--distrolist) getdistrolist=yes; shift 1;;
 	--) shift; break;;
 	esac
 done
