@@ -582,10 +582,14 @@ if [[ "$InstallType" = location ]]; then
 		#clear -x
 		printf '\33[H\33[2J'
 		NOINTERACT=$NOINTERACT expect -c '
+			set intc 0
 			set timeout -1
 			spawn virsh console '"$vmname"'
 			trap {
-				send_user "You pressed Ctrl+C\n"
+				send_user "You pressed Ctrl+C [incr intc]/8\n"
+				if {$intc >= 8} {
+					interact
+				}
 			} SIGINT
 			expect {
 				"error: Disconnected from qemu:///system due to end of file*" {
@@ -707,10 +711,14 @@ elif [[ "$InstallType" = import ]]; then
 	trap - SIGINT
 	for ((i=0; i<8; i++)); do
 		NOINTERACT=$NOINTERACT SHUTDOWN=$GenerateImage expect -c '
+			set intc 0
 			set timeout -1
 			spawn virsh console '"$vmname"'
 			trap {
-				send_user "You pressed Ctrl+C\n"
+				send_user "You pressed Ctrl+C [incr intc]/8\n"
+				if {$intc >= 8} {
+					interact
+				}
 			} SIGINT
 			expect {
 				"error: failed to get domain" {
