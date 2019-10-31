@@ -24,10 +24,14 @@ vmprefix=$(whoami)
 
 vmdelete() {
 	local _vmname=$1
-	[[ -z "$_vmname" ]] && return
+	[[ -z "$_vmname" ]] && {
+		#dialog select
+		return 1
+	}
+
 	egrep -q "^$_vmname$" <(virsh list --name --all) || {
-		echo -e "{WARN} VM $_vmname does not exist"
-		return
+		echo -e "{WARN} VM '$_vmname' does not exist"
+		return 1
 	}
 
 	local _image=$(virsh dumpxml --domain $_vmname | sed -n "/source file=/{s|^.*='||; s|'/>$||; p}")
@@ -39,10 +43,48 @@ vmdelete() {
 	[[ -n "$_vmdir" ]] && rmdir $_vmdir 2>/dev/null
 }
 
-[[ "$PROG" = vmdelete ]] && {
+vmifaddr() {
+	local _vmname=$1
+	local addr=
+	[[ -z "$_vmname" ]] && return
+
+	addrs=$(getent hosts $_vmname|awk '{print $1}')
+	[[ -z "$addrs" ]] && {
+		addrs=$(virsh domifaddr $_vmname | awk '$3=="ipv4" {print gensub("/.*","",1,$4)}')
+	}
+	[[ -n "$addrs" ]] && echo "$addrs"
+}
+
+vmlogin() {
+	local _vmname=$1
+	[[ -z "$_vmname" ]] && {
+		#dialog select
+		return 1
+	}
+
+	egrep -q "^$_vmname$" <(virsh list --name) || {
+		echo -e "{WARN} VM '$_vmname' does not exist"
+		return 1
+	}
+
+	read addr < <(vmifaddr $_vmname)
+	ssh root@$addr
+}
+
+case "$PROG" in
+vmdelete)
 	for vm; do vmdelete $vm; done
 	exit
-}
+	;;
+vmifaddr)
+	vmifaddr "$@"
+	exit
+	;;
+vmlogin)
+	vmlogin "$@"
+	exit
+	;;
+esac
 
 Cleanup() {
 	cd ~
@@ -836,7 +878,7 @@ else
 	echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
 	echo -e "  $ virsh console $vmname"
 	echo -e "  $ ssh foo@$vmname  #password: redhat"
-	read addr host < <(getent hosts $vmname)
+	read addr < <(vmifaddr $vmname)
 	[[ -n "$addr" ]] && {
 		echo -e "  $ ssh foo@$addr  #password: redhat"
 	}
