@@ -94,9 +94,13 @@ COMM
 	printf '\33[H\33[2J'
 }
 
+is_available_url() {
+	local _url=$1
+	curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $_url &>/dev/null
+}
 is_intranet() {
 	local iurl=http://download.devel.redhat.com
-	curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $iurl &>/dev/null
+	is_available_url $iurl 
 }
 
 trap Cleanup EXIT #SIGINT SIGQUIT SIGTERM
@@ -144,6 +148,8 @@ Usage() {
 	                   $ osinfo-query os  #RHEL-7 and later
 	                   $ virt-install --os-variant list  #RHEL-6
 	    --nointeract   #exit from virsh console after install finish
+	    --saveimage [path]
+	                   #save image in path if install with import mode
 
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
@@ -192,6 +198,7 @@ _at=`getopt -o hd:L::l:fn:gb:p:I::i: \
 	--long msize: \
 	--long dsize: \
 	--long nointeract \
+	--long saveimage:: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -204,19 +211,25 @@ while true; do
 	-I)        InstallType=import; [[ -n "$2" ]] && Imageurl=${2#=}; shift 2;;
 	--ks)      KSPath=$2; shift 2;;
 	--rm)      RM=yes; shift 1;;
-	--xzopt)         XZ="$2"; shift 2;;
-	--macvtap)       MacvtapMode="$2"; shift 2;;
-	-f|--force)      OVERWRITE="yes"; shift 1;;
-	-n|--vmname)     VMName="$2"; shift 2;;
-	-g|--genimage)   GenerateImage=yes; shift 1;;
-	--getimage)      GetImage=yes; shift 1;;
+	--xzopt)          XZ="$2"; shift 2;;
+	--macvtap)        MacvtapMode="$2"; shift 2;;
+	-f|--force)       OVERWRITE="yes"; shift 1;;
+	-n|--vmname)      VMName="$2"; shift 2;;
+	-g|--genimage)    GenerateImage=yes; shift 1;;
+	--getimage)       GetImage=yes; shift 1;;
 	-b|--brewinstall) BPKGS="$2"; shift 2;;
-	-p|--pkginstall) PKGS="$2"; shift 2;;
+	-p|--pkginstall)  PKGS="$2"; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
-	--nocloud*) NO_CLOUD_INIT="yes"; shift 1;;
+	--nocloud*)      NO_CLOUD_INIT="yes"; shift 1;;
 	--dsize)         DSIZE="$2"; shift 2;;
 	--msize)         MSIZE="$2"; shift 2;;
 	--nointeract)    NOINTERACT="yes"; shift 1;;
+	--saveimage)
+		SAVE_IMAGE="yes"
+		SaveImagePath=${2:-$ImagePath/download}
+		mkdir -p ${SaveImagePath}
+		shift 2
+		;;
 	--) shift; break;;
 	esac
 done
@@ -410,7 +423,7 @@ if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 			echo "{INFO} getting image url according location url ^^^ ..." >&2
 			imageLocation=${Location/\/os\//\/images\/}
 			[[ $Distro = Fedora-* ]] && imageLocation=${imageLocation/\/[Ss]erver\//\/Cloud\/}
-			curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $imageLocation &>/dev/null ||
+			is_available_url $imageLocation ||
 				imageLocation=${imageLocation/Cloud/CloudImages}
 			read Imageurl _ < <(getimageurls $imageLocation "(qcow2|qcow2.xz)")
 			if [[ $? = 0 ]]; then
@@ -673,8 +686,14 @@ elif [[ "$InstallType" = import ]]; then
 	mkdir -p $vmpath
 
 	echo "{INFO} downloading cloud image file of $Distro to $imagefile ..."
-	[[ $Imageurl = file://$imagefile ]] ||
-		curl -L $Imageurl -o $imagefile
+	[[ $Imageurl = file://$imagefile ]] || {
+		if [[ -n "$SAVE_IMAGE" ]]; then
+			curl -C - -L $Imageurl -o ${SaveImagePath}/${imagefilename}
+			cp ${SaveImagePath}/${imagefilename} $imagefile
+		else
+			curl -C - -L $Imageurl -o $imagefile
+		fi
+	}
 	[[ -f ${imagefile} ]] || exit 1
 
 	[[ $imagefile = *.xz ]] && {
