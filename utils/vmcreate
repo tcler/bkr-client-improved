@@ -19,6 +19,8 @@ ImagePath=~/myimages
 VMPath=~/VMs
 RuntimeTmp=/tmp/distro-to-vm-$$
 baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
+vmprefix=$(whoami)
+[[ -n "$SUDO_USER" ]] && vmprefix=${SUDO_USER}-sudo
 
 Cleanup() {
 	cd ~
@@ -387,6 +389,7 @@ distro2repos() {
 vmname=${Distro//./}
 vmname=${vmname,,}
 [[ -n "$VMName" ]] && vmname=${VMName}
+vmname=${vmprefix}-${vmname}
 
 if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 	if [[ -z "$Imageurl" ]]; then
