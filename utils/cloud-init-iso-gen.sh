@@ -7,7 +7,7 @@ Repos=()
 BPKGS=
 PKGS=
 
-_at=`getopt -o hp:b: \
+_at=`getopt -o hp:b:D \
 	--long help \
 	--long hostname: \
 	--long repo: \
@@ -19,6 +19,7 @@ eval set -- "$_at"
 while true; do
 	case "$1" in
 	-h|--help) Usage; shift 1; exit 0;;
+	-D) Debug=yes; shift 1;;
 	--hostname) HostName="$2"; shift 2;;
 	--repo) Repos+=($2); shift 2;;
 	-p|--pkginstall) PKGS="$2"; shift 2;;
@@ -102,4 +103,5 @@ genisoimage -output $isof -volid cidata -joliet -rock user-data meta-data
 
 popd &>/dev/null
 
+[[ -n "$Debug" ]] && cat $tmpdir/*
 rm -rf $tmpdir

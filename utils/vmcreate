@@ -699,7 +699,7 @@ elif [[ "$InstallType" = import ]]; then
 			echo -e 'y\n' | ssh-keygen -q -t rsa -f ~/.ssh/id_rsa -N ''
 		}
 		cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmname} -b "$BPKGS" -p "$PKGS" \
-			--sshkeyf=~/.ssh/id_rsa.pub $REPO_OPTS
+			--sshkeyf ~/.ssh/id_rsa.pub -D $REPO_OPTS
 		CLOUD_INIT_OPT="--disk $cloudinitiso,device=cdrom"
 	}
 
