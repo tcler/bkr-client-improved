@@ -29,6 +29,7 @@ which brew &>/dev/null || {
 
 [[ function = "$(type -t report_result)" ]] || report_result() { :; }
 
+P=${0##*/}
 KREBOOT=yes
 retcode=0
 res=PASS
@@ -53,16 +54,16 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $0 [-debugkernel] {brew scratch build id] [lstk|upk|brew build name] [url] [-debug] [-noreboot]}
+	 $P [-debugkernel] {brew scratch build id] [lstk|upk|brew build name] [url] [-debug] [-noreboot]}
 
 	Example:
-	 $0 23822847  # brew scratch build id
-	 $0 kernel-4.18.0-147.8.el8  # brew build name
-	 $0 [ftp|http]://url/xyz.rpm # install xyz.rpm
-	 $0 [ftp|http]://url/path/   # install all rpms in url/path
-	 $0 nfs:server/nfsshare      # install all rpms in nfsshare
-	 $0 lstk                     # install latest release kernel
-	 $0 upk                      # install latest upstream kernel
+	 $P 23822847  # brew scratch build id
+	 $P kernel-4.18.0-147.8.el8  # brew build name
+	 $P [ftp|http]://url/xyz.rpm # install xyz.rpm
+	 $P [ftp|http]://url/path/   # install all rpms in url/path
+	 $P nfs:server/nfsshare      # install all rpms in nfsshare
+	 $P lstk                     # install latest release kernel
+	 $P upk                      # install latest upstream kernel
 EOF
 }
 
@@ -77,6 +78,8 @@ cnt=0
 for build; do
 	[[ "$build" = -debug* ]] && { FLAG=debug; continue; }
 	[[ "$build" = -noreboot* ]] && { KREBOOT=no; continue; }
+	[[ "$build" = -h ]] && { Usage; exit; }
+	[[ "$build" = -* ]] && { continue; }
 
 	[[ "$build" = upk ]] && {
 		build=$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
