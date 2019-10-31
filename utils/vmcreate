@@ -22,6 +22,28 @@ baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/mast
 vmprefix=$(whoami)
 [[ -n "$SUDO_USER" ]] && vmprefix=${SUDO_USER}-sudo
 
+vmdelete() {
+	local _vmname=$1
+	[[ -z "$_vmname" ]] && return
+	egrep -q "^$_vmname$" <(virsh list --name --all) || {
+		echo -e "{WARN} VM $_vmname does not exist"
+		return
+	}
+
+	local _image=$(virsh dumpxml --domain $_vmname | sed -n "/source file=/{s|^.*='||; s|'/>$||; p}")
+	local _vmdir=$(dirname $_image)
+
+	echo -e "\n{INFO} dist removing VM $_vmname .."
+	virsh destroy $_vmname 2>/dev/null
+	virsh undefine $_vmname --remove-all-storage
+	[[ -n "$_vmdir" ]] && rmdir $_vmdir 2>/dev/null
+}
+
+[[ "$PROG" = vmdelete ]] && {
+	for vm; do vmdelete $vm; done
+	exit
+}
+
 Cleanup() {
 	cd ~
 	#echo "{DEBUG} Removing $RuntimeTmp"
@@ -817,10 +839,16 @@ else
 	}
 fi
 
+[[ -f ~/.ssh/config ]] || {
+	cat <<-EOF > ~/.ssh/config
+	Host 192.168.*.*
+	   StrictHostKeyChecking no
+	   UserKnownHostsFile=/dev/null
+	   LogLevel ERROR
+	EOF
+}
+
 [[ "$RM" = yes && "$GenerateImage" != yes ]] && {
-	echo -e "\n{INFO} dist removing VM $vmname .."
-	virsh destroy $vmname 2>/dev/null
-	virsh undefine $vmname --remove-all-storage
-	[[ -n "$vmpath" ]] && rmdir $vmpath 2>/dev/null
+	vmdelete $vmname
 	exit
 }
