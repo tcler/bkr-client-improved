@@ -150,6 +150,7 @@ Usage() {
 	    --ks <file>    #kickstart file
 	    --msize <size> #memory size, default 2048
 	    --dsize <size> #disk size, default 16
+	    --cpus <N>     #number of virtual cpus, default 4
 	    -n|--vmname <name>
 	                   #VM name, will auto generate according distro name if omitting
 	    -f|--force     #over write existing VM with same name
@@ -219,6 +220,7 @@ _at=`getopt -o hd:L::l:fn:gb:p:I::i: \
 	--long nocloud-init --long nocloud \
 	--long msize: \
 	--long dsize: \
+	--long cpus: \
 	--long nointeract \
 	--long saveimage:: \
     -a -n "$0" -- "$@"`
@@ -245,6 +247,7 @@ while true; do
 	--nocloud*)      NO_CLOUD_INIT="yes"; shift 1;;
 	--dsize)         DSIZE="$2"; shift 2;;
 	--msize)         MSIZE="$2"; shift 2;;
+	--cpus)          VCPUN="$2"; shift 2;;
 	--nointeract)    NOINTERACT="yes"; shift 1;;
 	--saveimage)
 		SAVE_IMAGE="yes"
@@ -606,7 +609,7 @@ if [[ "$InstallType" = location ]]; then
 	  --name $vmname \
 	  --location $Location \
 	  $OS_VARIANT_OPT \
-	  --vcpus 2 \
+	  --vcpus ${VCPUN:-4} \
 	  --memory ${MSIZE:-2048} \
 	  --disk size=${DSIZE:-16} \
 	  --network network=default,model=virtio \
@@ -747,7 +750,7 @@ elif [[ "$InstallType" = import ]]; then
 	echo -e "{INFO} creating VM by import $imagefile"
 	virt-install \
 	  --name $vmname \
-	  --vcpus 2 \
+	  --vcpus ${VCPUN:-4} \
 	  --memory ${MSIZE:-1024} \
 	  --disk $imagefile \
 	  $CLOUD_INIT_OPT \

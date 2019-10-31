@@ -92,7 +92,7 @@ done
 
 runcmd:
   - test -f /etc/dnf/dnf.conf && { echo strict=0 >>/etc/dnf/dnf.conf; ln -s /usr/bin/{dnf,yum}; }
-  - sed -ri -e '/^#?PasswordAuthentication /{s/no/yes/;s/^#//}' /etc/ssh/sshd_config && service sshd restart
+  - sed -ri -e '/^#?PasswordAuthentication /{s/no/yes/;s/^#//}' -e 's/^#?(PermitRootLogin) .*$/\1 yes/' /etc/ssh/sshd_config && service sshd restart
   - which yum && yum install -y vim curl wget $PKGS
   - which apt-get && apt-get install -y vim curl wget $PKGS
   - which yum && curl -L -m 30 -o /usr/bin/brewinstall.sh "http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/utils/brewinstall.sh" &&
