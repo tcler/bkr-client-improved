@@ -695,8 +695,11 @@ elif [[ "$InstallType" = import ]]; then
 		[[ -n "$Location" ]] && {
 			REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
 		}
+		[[ -f ~/.ssh/id_rsa -a -f ~/.ssh/id_rsa.pub ]] || {
+			echo -e 'y\n' | ssh-keygen -q -t rsa -f ~/.ssh/id_rsa -N ''
+		}
 		cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmname} -b "$BPKGS" -p "$PKGS" \
-			$REPO_OPTS
+			--sshkeyf=~/.ssh/id_rsa.pub $REPO_OPTS
 		CLOUD_INIT_OPT="--disk $cloudinitiso,device=cdrom"
 	}
 

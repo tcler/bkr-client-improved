@@ -13,6 +13,7 @@ _at=`getopt -o hp:b: \
 	--long repo: \
 	--long pkginstall: \
 	--long brewinstall: \
+	--long sshkeyf: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -22,6 +23,7 @@ while true; do
 	--repo) Repos+=($2); shift 2;;
 	-p|--pkginstall) PKGS="$2"; shift 2;;
 	-b|--brewinstall) BPKGS="$2"; shift 2;;
+	--sshkeyf) sshkeyf="$2"; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -56,12 +58,16 @@ users:
   - name: root
     plain_text_passwd: redhat
     lock_passwd: false
+    ssh_authorized_keys:
+      - $(tail -n1 $sshkeyf)
 
   - name: foo
     group: users, admin
     sudo: ALL=(ALL) NOPASSWD:ALL
     plain_text_passwd: redhat
     lock_passwd: false
+    ssh_authorized_keys:
+      - $(tail -n1 $sshkeyf)
 
 chpasswd: { expire: False }
 
