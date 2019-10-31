@@ -22,7 +22,7 @@ baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/mast
 vmprefix=$(whoami)
 [[ -n "$SUDO_USER" ]] && vmprefix=${SUDO_USER}-sudo
 
-vmdelete() {
+_vmdelete() {
 	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		#dialog select
@@ -41,6 +41,14 @@ vmdelete() {
 	virsh destroy $_vmname 2>/dev/null
 	virsh undefine $_vmname --remove-all-storage
 	[[ -n "$_vmdir" ]] && rmdir $_vmdir 2>/dev/null
+}
+
+vmdelete() {
+	[[ $# = 0 ]] && {
+		#dialog select
+		return 1
+	}
+	for vm; do _vmdelete $vm; done
 }
 
 vmifaddr() {
@@ -71,20 +79,7 @@ vmlogin() {
 	ssh root@$addr
 }
 
-case "$PROG" in
-vmdelete)
-	for vm; do vmdelete $vm; done
-	exit
-	;;
-vmifaddr)
-	vmifaddr "$@"
-	exit
-	;;
-vmlogin)
-	vmlogin "$@"
-	exit
-	;;
-esac
+case "$PROG" in vmdelete|vmifaddr|vmlogin) $PROG "$@"; exit $?;; esac
 
 Cleanup() {
 	cd ~
