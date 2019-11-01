@@ -111,7 +111,7 @@ vmlist() { virsh list --all; }
 	case "$subcmd" in
 	r|rm|d|de|del*) shift; [[ "$1" = -d ]] && shift; vmdelete "$@"; exit $?;;
 	l|lo|log*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
-	li|lis|list) shift; [[ "$1" = -d ]] && shift; vmlist "$@"; exit $?;;
+	ls|li|lis|list) shift; [[ "$1" = -d ]] && shift; vmlist "$@"; exit $?;;
 	i|if|ifaddr) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
 	esac
 }
@@ -266,7 +266,7 @@ Usage() {
 	Example [subcmd]:
 	    vmc login [VM]        #ssh login VM //you can use l,lo,log* instead login
 	    vmc rm    [VM list]   #rm VMs       //you can use r,d,de,del* instead rm
-	    vmc list              #list all VM  //you can use li,lis* instead list
+	    vmc list              #list all VM  //you can use ls,li,lis* instead list
 	EOF
 }
 
