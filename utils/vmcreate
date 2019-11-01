@@ -252,6 +252,10 @@ Usage() {
 	    $PROG rhel-8-up -i ~/myimages/RHEL-8.1.0-20191015.0/rhel-8-upstream.qcow2.xz --nocloud-init
 	    $PROG debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
 
+	Example [subcmd]:
+	    vmc login [vmname]
+	    vmc delete [vmname list]
+	    vmc list
 	EOF
 }
 
