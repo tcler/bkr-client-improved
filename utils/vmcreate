@@ -101,16 +101,17 @@ vmlogin() {
 		return 1
 	}
 
-	#sometimes there's bug in libnss. get more than one addr but the 1st one
-	#does not exist. use tail get last one
-	read addr < <(vmifaddr "$_vmname"|tail -n1)
-	ssh root@$addr
-	[[ $? = 255 ]] && {
-		echo -e "{DEBUG} get address of VM $_vmname ..."
-		vmifaddr $_vmname
-		echo -e "{WARN} ssh login fail, trying login by using console ..."
-		virsh console $_vmname
-	}
+	#sometimes there's bug in libnss. get more than one addr but some one
+	#of them does not exist. use nc detect and ignore it/them
+	addrs=$(vmifaddr "$_vmname")
+	for addr in $addrs; do
+		nc $addr 22 </dev/null &>/dev/null || {
+			echo -e "{WARN} port $addr:22 is not available"
+			continue
+		}
+		ssh root@$addr
+		return
+	done
 }
 vmlist() { virsh list --all; }
 
