@@ -17,11 +17,21 @@ VMName=
 InstallType=import
 ImagePath=~/myimages
 VMPath=~/VMs
-RuntimeTmp=/tmp/distro-to-vm-$$
+RuntimeTmp=/tmp/vmc-$$
 baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
 vmprefix=$(whoami)
 [[ -n "$SUDO_USER" ]] && vmprefix=${SUDO_USER}-sudo
 
+Cleanup() {
+	cd ~
+	#echo "{DEBUG} Removing $RuntimeTmp"
+	rm -rf $RuntimeTmp
+	exit
+}
+trap Cleanup EXIT #SIGINT SIGQUIT SIGTERM
+mkdir -p $RuntimeTmp
+
+#-------------------------------------------------------------------------------
 _vmdelete() {
 	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
@@ -66,11 +76,14 @@ vmifaddr() {
 vmlogin() {
 	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
-		#dialog select
-		return 1
+		vmList=$(virsh list --name | sed -e \$d -e 's/.*/"&" "" 1/')
+		dialog --backtitle "$0" --radiolist "please select vm you want to login:" 30 60 28 $vmList 2>$RuntimeTmp/vmlist
+		printf '\33[H\33[2J'
+		eval _vmname=$(head -n1 $RuntimeTmp/vmlist)
+		[[ -z "$_vmname" ]] && { return; }
 	}
 
-	egrep -q "^$_vmname$" <(virsh list --name) || {
+	egrep -q "^$_vmname$" <(virsh list --name|sed \$d) || {
 		echo -e "{WARN} VM '$_vmname' does not exist"
 		return 1
 	}
@@ -78,15 +91,13 @@ vmlogin() {
 	read addr < <(vmifaddr $_vmname)
 	ssh root@$addr
 }
+vmlist() { virsh list --all; }
 
-case "$PROG" in vmdelete|vmifaddr|vmlogin) $PROG "$@"; exit $?;; esac
-
-Cleanup() {
-	cd ~
-	#echo "{DEBUG} Removing $RuntimeTmp"
-	rm -rf $RuntimeTmp
-	exit
+[[ $PROG = vmc ]] && {
+	subcmd=$1
+	case "$subcmd" in delete|ifaddr|login|list) shift; [[ "$1" = -d ]] && shift; vm$subcmd "$@"; exit $?;; esac
 }
+#-------------------------------------------------------------------------------
 
 enable_libvirt() {
 	local pkglist="libvirt libvirt-client virt-install virt-viewer qemu-kvm expect nmap-ncat libguestfs-tools-c libvirt-nss dialog"
@@ -162,9 +173,6 @@ is_intranet() {
 	is_available_url $iurl 
 }
 
-trap Cleanup EXIT #SIGINT SIGQUIT SIGTERM
-mkdir -p $RuntimeTmp
-
 enable_libvirt
 is_intranet && {
 	Intranet=yes
@@ -174,7 +182,7 @@ is_intranet && {
 Usage() {
 	cat <<-'EOF'
 	Usage:
-	    $PROG <-d distroname> [OPTIONs] ...
+	    $PROG [subcmd] <-d distroname> [OPTIONs] ...
 
 	Options:
 	    -h, --help     #Display this help.
