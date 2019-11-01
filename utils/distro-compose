@@ -139,6 +139,7 @@ while read distro; do
 	[[ $distro = RHEL-8* ]] && {
 		case $variant in Workstation|Client|Server|ComputeNode) variant=;; esac
 	}
+	[[ $distro = [Ff]edora* ]] && variant=Everything
 
 	Debug "distro:($distro) pkg:($Pkg) arch:($Arch) variant:($variant) @$cachefile"
 	#result=$(curl -Lsf $cachefile | zcat 2>/dev/null |
