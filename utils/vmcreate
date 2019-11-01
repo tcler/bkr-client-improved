@@ -2,6 +2,11 @@
 LANG=C
 PATH=~/bin:$PATH 
 
+egrep -wo '(vmx|svm)' /proc/cpuinfo -q || {
+	echo -e "{WARN} current machine doesn't support Virtualization"
+	exit 1
+}
+
 PROG=${0##*/}
 Intranet=no
 Distro=
