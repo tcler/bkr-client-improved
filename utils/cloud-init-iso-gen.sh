@@ -49,7 +49,7 @@ tmpdir=.cloud-init-iso-gen-$$
 mkdir -p $tmpdir
 pushd $tmpdir &>/dev/null
 
-echo "local-hostname: ${HostName}.local" >meta-data
+echo "local-hostname: ${HostName}" >meta-data
 
 cat >user-data <<-EOF
 #cloud-config
