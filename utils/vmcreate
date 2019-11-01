@@ -101,8 +101,16 @@ vmlogin() {
 		return 1
 	}
 
-	read addr < <(vmifaddr "$_vmname")
+	#sometimes there's bug in libnss. get more than one addr but the 1st one
+	#does not exist. use tail get last one
+	read addr < <(vmifaddr "$_vmname"|tail -n1)
 	ssh root@$addr
+	[[ $? = 255 ]] && {
+		echo -e "{DEBUG} get address of VM $_vmname ..."
+		vmifaddr $_vmname
+		echo -e "{WARN} ssh login fail, trying login by using console ..."
+		virsh console $_vmname
+	}
 }
 vmlist() { virsh list --all; }
 
@@ -112,7 +120,7 @@ vmlist() { virsh list --all; }
 	r|rm|d|de|del*) shift; [[ "$1" = -d ]] && shift; vmdelete "$@"; exit $?;;
 	l|lo|log*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
 	ls|li|lis|list) shift; [[ "$1" = -d ]] && shift; vmlist "$@"; exit $?;;
-	i|if|ifaddr) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
+	i|if|if*) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
 	esac
 }
 #-------------------------------------------------------------------------------
