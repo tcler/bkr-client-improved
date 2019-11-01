@@ -62,7 +62,7 @@ vmdelete() {
 		}
 		dialog --backtitle "$0" --separate-output --checklist "select vms you want delete" 30 120 28 $vmList  2>$RuntimeTmp/vmlist
 		printf '\33[H\33[2J'
-		eval set $(head -n1 $RuntimeTmp/vmlist)
+		eval set $(< $RuntimeTmp/vmlist)
 		[[ $# = 0 ]] && { return; }
 	}
 	for vm; do _vmdelete "$vm"; done
