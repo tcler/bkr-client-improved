@@ -67,8 +67,9 @@ vmdelete() {
 		}
 		dialog --backtitle "$0" --separate-output --checklist "select vms you want delete" 30 120 28 $vmList  2>$RuntimeTmp/vmlist
 		printf '\33[H\33[2J'
-		eval set $(< $RuntimeTmp/vmlist)
-		[[ $# = 0 ]] && { return; }
+		rmList=$(< $RuntimeTmp/vmlist)
+		[[ -z "$rmList" ]] && { return; }
+		eval set $rmList
 	}
 	for vm; do _vmdelete "$vm"; done
 }
@@ -107,7 +108,12 @@ vmlist() { virsh list --all; }
 
 [[ $PROG = vmc ]] && {
 	subcmd=$1
-	case "$subcmd" in delete|ifaddr|login|list) shift; [[ "$1" = -d ]] && shift; vm$subcmd "$@"; exit $?;; esac
+	case "$subcmd" in
+	r|rm|d|de|del*) shift; [[ "$1" = -d ]] && shift; vmdelete "$@"; exit $?;;
+	l|lo|log*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
+	li|lis|list) shift; [[ "$1" = -d ]] && shift; vmlist "$@"; exit $?;;
+	i|if|ifaddr) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
+	esac
 }
 #-------------------------------------------------------------------------------
 
@@ -258,9 +264,9 @@ Usage() {
 	    $PROG debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
 
 	Example [subcmd]:
-	    vmc login [vmname]
-	    vmc delete [vmname list]
-	    vmc list
+	    vmc login [VM]        #ssh login VM //you can use l,lo,log* instead login
+	    vmc rm    [VM list]   #rm VMs       //you can use r,d,de,del* instead rm
+	    vmc list              #list all VM  //you can use li,lis* instead list
 	EOF
 }
 
@@ -672,7 +678,7 @@ if [[ "$InstallType" = location ]]; then
 	  $OS_VARIANT_OPT \
 	  --vcpus ${VCPUN:-4} \
 	  --memory ${MSIZE:-2048} \
-	  --disk size=${DSIZE:-16} \
+	  --disk size=${DSIZE:-16},bus=virtio \
 	  --network network=default,model=virtio \
 	  --network type=direct,source=$(get_default_if),source_mode=$MacvtapMode,model=virtio \
 	  --initrd-inject $KSPath \
@@ -809,11 +815,11 @@ elif [[ "$InstallType" = import ]]; then
 	}
 
 	echo -e "{INFO} creating VM by import $imagefile"
-	virt-install \
+	virt-install --connect=qemu:///system --hvm --accelerate \
 	  --name $vmname \
 	  --vcpus ${VCPUN:-4} \
 	  --memory ${MSIZE:-1024} \
-	  --disk $imagefile \
+	  --disk ${imagefile},bus=virtio \
 	  $CLOUD_INIT_OPT \
 	  --network network=default,model=virtio \
 	  --network type=direct,source=$(get_default_if),source_mode=$MacvtapMode,model=virtio \
