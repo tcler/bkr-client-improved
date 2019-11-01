@@ -84,7 +84,7 @@ for build; do
 	[[ "$build" = upk ]] && {
 		build=$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
 	}
-	[[ "$build" = lst ]] && {
+	[[ "$build" = lstk ]] && {
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		build=$(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head -1)
 	}
