@@ -461,7 +461,7 @@ distro2repos() {
 
 	for repo in "${Repos[@]}"; do
 		read _name _url <<<"${repo/:/ }"
-		curl -connect-timeout 10 -m 20 --output /dev/null --silent --head --fail $_url &>/dev/null &&
+		is_available_url $_url &&
 			echo "$repo"
 	done
 }
