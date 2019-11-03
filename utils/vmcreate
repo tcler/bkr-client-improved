@@ -335,25 +335,38 @@ while true; do
 	esac
 done
 
+# functions that work in Intranet
+install_distro_compose() {
+	which distro-compose &>/dev/null || {
+		_url=$baseDownloadUrl/utils/distro-compose
+		mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url --no-check-certificate
+		chmod +x ~/bin/distro-compose
+	}
+}
+fetch_distro_list() {
+	install_distro_compose
+	distro-compose --distrolist
+}
+fetch_distro_trees() {
+	local distro=$1
+	local arch=$2
+	local dtrees=
+
+	which bkr &>/dev/null &&
+		dtrees=$(bkr distro-trees-list --name "$distro" --arch "$arch"|egrep '(released|compose)')
+	[[ -z "$dtree" ]] && {
+		install_distro_compose
+		dtree=$(distro-compose -d "$distro" --distrotrees|egrep "(released|compose).*${arch}")
+	}
+	echo "$dtrees"
+}
 distro2location() {
 	local distro=$1
 	local variant=${2:-Server}
 	local arch=$(arch)
 
-	which bkr &>/dev/null &&
-		distrotrees=$(bkr distro-trees-list --name "$distro" --arch "$arch")
-	[[ -z "$distrotrees" ]] && {
-		which distro-compose &>/dev/null || {
-			_url=$baseDownloadUrl/utils/distro-compose
-			mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url --no-check-certificate
-			chmod +x ~/bin/distro-compose
-		}
-		distrotrees=$(distro-compose -d "$distro" --distrotrees|egrep 'released|compose')
-	}
-	urls=$(echo "$distrotrees" | awk '/https?:.*\/'"(${variant}|BaseOS)\/${arch}"'\//{print $3}' | sort -u)
-	[[ "$distro" = RHEL5* ]] && {
-		urls=$(echo "$distrotrees" | awk "/https?:.*\/${arch}\//"'{print $3}' | sort -u)
-	}
+	distrotrees=$(fetch_distro_trees $distro $arch)
+	urls=$(echo "$distrotrees" | awk '/https?:.*\/'"(${variant}|BaseOS)\/"'/{print $3}' | sort -u)
 
 	which fastesturl.sh &>/dev/null || {
 		_url=$baseDownloadUrl/utils/fastesturl.sh
@@ -362,7 +375,6 @@ distro2location() {
 	}
 	fastesturl.sh $urls
 }
-
 getimageurls() {
 	local parenturl=$1
 	local suffix_pattern=$2
@@ -466,27 +478,50 @@ distro2repos() {
 	done
 }
 
+declare -A distroInfo
+distroInfo[CentOS-8-stream]="nil http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/"
+distroInfo[CentOS-8]="nil http://mirror.centos.org/centos/8/BaseOS/x86_64/os/"
+distroInfo[CentOS-7]="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz http://mirror.centos.org/centos/7/os/x86_64/"
+distroInfo[CentOS-6]="https://cloud.centos.org/centos/6/images/CentOS-6-x86_64-GenericCloud.qcow2.xz http://mirror.centos.org/centos/6/os/x86_64/"
+
+distroInfo[fedora-31]="https://ord.mirror.rackspace.com/fedora/releases/31/Cloud/x86_64/images/"
+distroInfo[fedora-30]="https://ord.mirror.rackspace.com/fedora/releases/30/Cloud/x86_64/images/"
+distroInfo[fedora-29]="https://ord.mirror.rackspace.com/fedora/releases/29/Cloud/x86_64/images/"
+
+distroInfo[debian-testing]="https://cdimage.debian.org/cdimage/openstack/testing/debian-testing-openstack-amd64.qcow2 nil"
+distroInfo[debian-10]="https://cdimage.debian.org/cdimage/openstack/10.1.5-20191015/debian-10.1.5-20191015-openstack-amd64.qcow2 nil"
+distroInfo[debian-9]="https://cdimage.debian.org/cdimage/openstack/9.11.4-20191015/debian-9.11.4-20191015-openstack-amd64.qcow2 nil"
+
 [[ -z "$Distro" ]] && Distro=$1
 [[ -z "$Distro" ]] && {
-	if [[ "$Intranet" = yes && -z "$Location" && -z "$Imageurl" ]]; then
-		distrofile=$RuntimeTmp/distro
-		which distro-compose &>/dev/null || {
-			_url=$baseDownloadUrl/utils/distro-compose
-			mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url --no-check-certificate
-			chmod +x ~/bin/distro-compose
-		}
+	if [[ -z "$Location" && -z "$Imageurl" ]]; then
 		which dialog &>/dev/null || yum install -y dialog &>/dev/null
+		distropatternOut=$RuntimeTmp/distroPatternOut
+		distropatternIn=$RuntimeTmp/distroPatternIn
+		distrolist=$RuntimeTmp/distroList
+		dialogres=$RuntimeTmp/dialogRes
+		touch $distropatternOut $distropatternIn
 
-		mainvers=$(echo -e "Fedora\nRHEL-8\nRHEL-7\nRHEL-6\nRHEL-?5"|sed -e 's/.*/"&" "" 1/')
-		dialog --backtitle "$0" --radiolist "please selet family:" 12 40 8 $mainvers 2>$distrofile || { Usage; exit 0; }
-		pattern=$(head -n1 $distrofile|sed 's/"//g')
-		distroList=$(distro-compose --distrolist|sed -e '/ /d' -e 's/.*/"&" "" 1/'|egrep "$pattern")
-		dialog --title "If include nightly build" \
-			--backtitle "Do you want nightly build distros?" \
-			--yesno "Do you want nightly build distros?" 7 60
-		[[ $? = 1 ]] && distroList=$(echo "$distroList"|grep -v '\.n\.[0-9]"')
-		dialog --backtitle "$0" --radiolist "please select distro:" 30 60 28 $distroList 2>$distrofile || { Usage; exit 0; }
-		Distro=$(head -n1 $distrofile|sed 's/"//g')
+		echo -e "CentOS\nfedora\ndebian" >>$distropatternOut
+		for dname in "${!distroInfo[@]}"; do echo "$dname"; done >>$distrolist
+
+		[[ "$Intranet" = yes ]] && {
+			echo -e "Fedora\nRHEL-8\nRHEL-7\nRHEL-6\nRHEL-?5" >$distropatternIn
+			fetch_distro_list >$distrolist
+		}
+
+		mainvers=$(sed -e 's/.*/"&" "" 1/' $distropatternIn $distropatternOut)
+		dialog --backtitle "$0" --radiolist "please selet distro family/pattern:" 12 40 8 $mainvers 2>$dialogres || { Usage; exit 0; }
+		pattern=$(head -n1 $dialogres|sed 's/"//g')
+		dList=$(sed -e '/ /d' -e 's/.*/"&" "" 1/' $distrolist|egrep "$pattern")
+		[[ "$Intranet" = yes ]] && grep -F "$pattern" $distropatternIn && {
+			dialog --title "If include nightly build" \
+				--backtitle "Do you want nightly build distros?" \
+				--yesno "Do you want nightly build distros?" 7 60
+			[[ $? = 1 ]] && dList=$(echo "$dList"|grep -v '\.n\.[0-9]"')
+		}
+		dialog --backtitle "$0" --radiolist "please select distro:" 30 60 28 $dList 2>$dialogres || { Usage; exit 0; }
+		Distro=$(head -n1 $dialogres|sed 's/"//g')
 		printf '\33[H\33[2J'
 	else
 		Usage
@@ -500,11 +535,19 @@ distro2repos() {
 	exit 1
 }
 
+[[ -n "${distroInfo[$Distro]}" ]] && {
+	echo -e "{INFO} ${distroInfo[$Distro]}"
+	read Imageurl Location <<<"${distroInfo[$Distro]}"
+	echo -e "{INFO} image url: $Imageurl"
+	echo -e "{INFO} location url: $Location"
+}
+
 vmname=${Distro//./}
 vmname=${vmname,,}
 [[ -n "$VMName" ]] && vmname=${VMName}
 vmname=${vmprefix}-${vmname}
 
+#get url of install Location or Image
 if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 	if [[ -z "$Imageurl" ]]; then
 		echo "{INFO} searching private image url of $Distro ..." >&2
@@ -540,8 +583,19 @@ if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 			[[ -n "$GetImage" ]] && { exit; }
 			NO_CLOUD_INIT=yes
 		fi
+	else
+		if [[ ! -f $Imageurl ]] && ! is_available_url $Imageurl; then
+			echo "{INFO} image url $Imageurl is not available, switching to Location mode" >&2
+			InstallType=location
+		fi
 	fi
-elif [[ "$InstallType" = location ]]; then
+
+	egrep '(qcow2|qcow2.xz)' <<<"$Imageurl" || {
+		read Imageurl _ < <(getimageurls ${Imageurl} '(qcow2|qcow2.xz)')
+	}
+fi
+
+if [[ "$InstallType" = location ]]; then
 	if [[ -z "$Location" ]]; then
 		echo "{INFO} getting fastest location of $Distro ..." >&2
 		Location=$(distro2location $Distro)
@@ -551,42 +605,6 @@ elif [[ "$InstallType" = location ]]; then
 		}
 		echo -e " -> $Location"
 	fi
-fi
-
-if [[ "$InstallType" = location ]]; then
-	[[ -z "$KSPath" ]] && {
-		echo "{INFO} generating kickstart file for $Distro ..."
-		ksauto=$RuntimeTmp/ks-$VM_OS_VARIANT-$$.cfg
-		KSPath=$ksauto
-		REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
-		which ks-generator.sh &>/dev/null || {
-			_url=$baseDownloadUrl/utils/ks-generator.sh
-			mkdir -p ~/bin && wget -O ~/bin/ks-generator.sh -N -q $_url --no-check-certificate
-			chmod +x ~/bin/ks-generator.sh
-		}
-		ks-generator.sh -d $Distro -url $Location $REPO_OPTS >$KSPath
-
-		cat <<-END >>$KSPath
-		%post --log=/root/extra-ks-post.log
-		yum install -y $PKGS
-		wget -O /usr/bin/brewinstall.sh -N -q $baseDownloadUrl/utils/brewinstall.sh --no-check-certificate
-		chmod +x /usr/bin/brewinstall.sh
-		brewinstall.sh $BPKGS
-		%end
-		END
-
-		sed -i "/^%post/s;$;\ntest -f /etc/hostname \&\& echo ${vmname} >/etc/hostname || echo HOSTNAME=${vmname} >>/etc/sysconfig/network;" $KSPath
-		[[ "$Distro" =~ (RHEL|centos)-?5 ]] && {
-			ex -s $KSPath <<-EOF
-			/%packages/,/%end/ d
-			$ put
-			$ d
-			w
-			EOF
-		}
-	}
-elif [[ "$InstallType" = import ]]; then
-	:
 fi
 
 virsh desc $vmname &>/dev/null && {
@@ -675,6 +693,38 @@ while nc 127.0.0.1 ${VNCPORT} </dev/null &>/dev/null; do
 done
 
 if [[ "$InstallType" = location ]]; then
+	[[ -z "$KSPath" ]] && {
+		echo "{INFO} generating kickstart file for $Distro ..."
+		ksauto=$RuntimeTmp/ks-$VM_OS_VARIANT-$$.cfg
+		KSPath=$ksauto
+		REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
+		which ks-generator.sh &>/dev/null || {
+			_url=$baseDownloadUrl/utils/ks-generator.sh
+			mkdir -p ~/bin && wget -O ~/bin/ks-generator.sh -N -q $_url --no-check-certificate
+			chmod +x ~/bin/ks-generator.sh
+		}
+		ks-generator.sh -d $Distro -url $Location $REPO_OPTS >$KSPath
+
+		cat <<-END >>$KSPath
+		%post --log=/root/extra-ks-post.log
+		yum install -y $PKGS
+		wget -O /usr/bin/brewinstall.sh -N -q $baseDownloadUrl/utils/brewinstall.sh --no-check-certificate
+		chmod +x /usr/bin/brewinstall.sh
+		brewinstall.sh $BPKGS
+		%end
+		END
+
+		sed -i "/^%post/s;$;\ntest -f /etc/hostname \&\& echo ${vmname} >/etc/hostname || echo HOSTNAME=${vmname} >>/etc/sysconfig/network;" $KSPath
+		[[ "$Distro" =~ (RHEL|centos)-?5 ]] && {
+			ex -s $KSPath <<-EOF
+			/%packages/,/%end/ d
+			$ put
+			$ d
+			w
+			EOF
+		}
+	}
+
 	echo -e "{INFO} creating VM by using location:\n ->  $Location"
 	[[ "$GenerateImage" = yes ]] && {
 		sed -i '/^reboot$/s//poweroff/' ${KSPath}
