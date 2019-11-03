@@ -498,6 +498,8 @@ distroInfo[debian-10.1.4]="https://cdimage.debian.org/cdimage/openstack/archive/
 distroInfo[debian-9.11.4]="https://cdimage.debian.org/cdimage/openstack/9.11.4-20191015/debian-9.11.4-20191015-openstack-amd64.qcow2 nil"
 distroInfo[debian-9.11.3]="https://cdimage.debian.org/cdimage/openstack/archive/9.11.3-20191003/debian-9.11.3-20191003-openstack-amd64.qcow2"
 
+distroInfo[openSUSE-leap-15.2]="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images/openSUSE-Leap-15.2-OpenStack.x86_64.qcow2"
+
 [[ -z "$Distro" ]] && Distro=$1
 [[ -z "$Distro" ]] && {
 	if [[ -z "$Location" && -z "$Imageurl" ]]; then
@@ -508,16 +510,16 @@ distroInfo[debian-9.11.3]="https://cdimage.debian.org/cdimage/openstack/archive/
 		dialogres=$RuntimeTmp/dialogRes
 		touch $distropatternOut $distropatternIn
 
-		echo -e "CentOS\nfedora\ndebian" >>$distropatternOut
+		echo -e "CentOS\nfedora\ndebian\nopenSUSE" >>$distropatternOut
 		for dname in "${!distroInfo[@]}"; do echo "$dname"; done >>$distrolist
 
 		[[ "$Intranet" = yes ]] && {
-			echo -e "Fedora\nRHEL-8\nRHEL-7\nRHEL-6\nRHEL-?5" >$distropatternIn
-			fetch_distro_list >$distrolist
+			echo -e "Fedora\nRHEL-8\nRHEL-7\nRHEL-6\nRHEL-?5" >>$distropatternIn
+			fetch_distro_list >>$distrolist
 		}
 
-		mainvers=$(sed -e 's/.*/"&" "" 1/' $distropatternIn $distropatternOut)
-		dialog --backtitle "$0" --radiolist "please selet distro family/pattern:" 12 40 8 $mainvers 2>$dialogres || { Usage; exit 0; }
+		familys=$(sed -e 's/.*/"&" "" 1/' $distropatternIn $distropatternOut)
+		dialog --backtitle "$0" --radiolist "please selet distro family/pattern:" 16 40 12 $familys 2>$dialogres || { Usage; exit 0; }
 		pattern=$(head -n1 $dialogres|sed 's/"//g')
 		dList=$(sed -e '/ /d' -e 's/.*/"&" "" 1/' $distrolist|egrep "$pattern")
 		[[ "$Intranet" = yes ]] && grep -F "$pattern" $distropatternIn && {
