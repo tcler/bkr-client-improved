@@ -79,7 +79,7 @@ vmifaddr() {
 	local addr=
 	[[ -z "$_vmname" ]] && return
 
-	addrs=$(getent hosts "$_vmname"|awk '{print $1}')
+	addrs=$(getent hosts "$_vmname"|awk '{print $1}'|tac)
 	[[ -z "$addrs" ]] && {
 		addrs=$(virsh domifaddr "$_vmname" | awk '$3=="ipv4" {print gensub("/.*","",1,$4)}')
 	}
