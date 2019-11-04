@@ -114,6 +114,59 @@ vmlogin() {
 	done
 }
 vmlist() { virsh list --all; }
+netcreate() {
+	local netname=
+	local brname=
+	local subnet=
+
+	[[ $# = 0 ]] && { virsh net-list; return; }
+	Usage() {
+		cat <<-U
+		Example:
+		  vmc net netname=net10 brname=virbr10 subnet=10  #subnet range: [1-121,123-254]
+		U
+	}
+	for opt; do [[ "$opt" =~ ^(netname|brname|subnet)=.* ]] || continue; eval "$opt"; done
+	[[ -z "$netname" || -z "$brname" || -z "$subnet" ]] && { Usage; return 1; }
+
+	virsh net-info -- "$netname" &>/dev/null && {
+		echo "{WARN} Virt network $netname has been there."
+		return
+	}
+
+	virsh net-define --file <(
+		cat <<-NET
+		<network>
+		  <name>$netname</name>
+		  <bridge name="$brname" />
+		  <forward mode="nat" >
+		    <nat>
+		      <port start='1024' end='65535'/>
+		    </nat>
+		  </forward>
+		  <ip address="192.168.${subnet}.1" netmask="255.255.255.0" >
+		    <dhcp>
+		      <range start="192.168.${subnet}.2" end="192.168.${subnet}.254"/>
+		    </dhcp>
+		  </ip>
+		</network>
+		NET
+	)
+	virsh net-start $netname
+	virsh net-autostart $netname
+}
+netinfo() {
+	for net; do
+		virsh net-info -- $net
+		virsh net-dumpxml -- $net
+	done
+}
+netdelete() {
+	for net; do
+		virsh net-destroy -- $net
+		virsh net-undefine -- $net
+	done
+}
 
 [[ $PROG = vmc ]] && {
 	subcmd=$1
@@ -122,6 +175,9 @@ vmlist() { virsh list --all; }
 	l|lo|log*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
 	ls|li|lis|list) shift; [[ "$1" = -d ]] && shift; vmlist "$@"; exit $?;;
 	i|if|if*) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
+	net|netcreate) shift; [[ "$1" = -d ]] && shift; netcreate "$@"; exit $?;;
+	netinfo) shift; [[ "$1" = -d ]] && shift; netinfo "$@"; exit $?;;
+	netdel|netdelete) shift; [[ "$1" = -d ]] && shift; netdelete "$@"; exit $?;;
 	esac
 }
 #-------------------------------------------------------------------------------
@@ -276,6 +332,11 @@ Usage() {
 	    vmc login [VM]        #ssh login VM //you can use l,lo,log* instead login
 	    vmc rm    [VM list]   #rm VMs       //you can use r,d,de,del* instead rm
 	    vmc list              #list all VM  //you can use ls,li,lis* instead list
+
+	    vmc net               #list all virtual network
+	    vmc net netname=testnet brname=virbrN subnet=100  #create virtual network 'testnet'
+	    vmc netinfo testnet   #show detail info of virtual network 'testnet'
+	    vmc netdel testnet    #delete virtual network 'testnet'
 	EOF
 }
 
@@ -554,6 +615,16 @@ vmname=${Distro//./}
 vmname=${vmname,,}
 [[ -n "$VMName" ]] && vmname=${VMName}
 vmname=${vmprefix}-${vmname}
+virsh desc $vmname &>/dev/null && {
+	if [[ "${OVERWRITE}" = "yes" ]]; then
+		echo "{INFO} VM $vmname has been there, remove it ..."
+		virsh destroy $vmname 2>/dev/null
+		virsh undefine $vmname --remove-all-storage
+	else
+		echo "{INFO} VM $vmname has been there, if you want overwrite please use --force option"
+		exit
+	fi
+}
 
 #get url of install Location or Image
 if [[ "$InstallType" = import || -n "$GetImage" ]]; then
@@ -614,46 +685,6 @@ if [[ "$InstallType" = location ]]; then
 		echo -e " -> $Location"
 	fi
 fi
-
-virsh desc $vmname &>/dev/null && {
-	if [[ "${OVERWRITE}" = "yes" ]]; then
-		echo "{INFO} VM $vmname has been there, remove it ..."
-		virsh destroy $vmname 2>/dev/null
-		virsh undefine $vmname --remove-all-storage
-	else
-		echo "{INFO} VM $vmname has been there, if you want overwrite please use --force option"
-		exit
-	fi
-}
-
-: <<COMM
-virsh net-define --file <(
-	cat <<-NET
-	<network>
-	  <name>subnet10</name>
-	  <bridge name="virbr10" />
-	  <forward mode="nat" >
-	    <nat>
-	      <port start='1024' end='65535'/>
-	    </nat>
-	  </forward>
-	  <ip address="192.168.10.1" netmask="255.255.255.0" >
-	    <dhcp>
-	      <range start='192.168.10.2' end='192.168.10.254'/>
-	    </dhcp>
-	  </ip>
-	</network>
-	NET
-)
-virsh net-start subnet10
-virsh net-autostart subnet10
-COMM
-
-virsh net-info default >/dev/null || {
-	virsh net-define /usr/share/libvirt/networks/default.xml
-	virsh net-autostart default
-	virsh net-start default
-}
 
 is_bridge() {
 	local ifname=$1
