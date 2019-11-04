@@ -10,7 +10,6 @@ VM_OS_VARIANT=
 OVERWRITE=no
 KSPath=
 ksauto=
-MacvtapMode=vepa
 MacvtapMode=bridge
 VMName=
 InstallType=import
@@ -399,8 +398,6 @@ Usage() {
 	    -n|--vmname <name>
 	                   #VM name, will auto generate according distro name if omitting
 	    -f|--force     #over write existing VM with same name
-	    --macvtap <vepa|bridge>
-	                   #macvtap mode
 	    -p|-pkginstall <pkgs>
 	                   #pkgs in default system repo, install by yum or apt-get
 	    -b|-brewinstall <args>
@@ -418,6 +415,12 @@ Usage() {
 	    --nointeract   #exit from virsh console after install finish
 	    --saveimage [path]
 	                   #save image in path if install with import mode
+	    --net <\$name>
+	                   #join libvirt net \$name
+	    --netmacvtap [source NIC]
+	                   #attach a macvtap interface
+	    --macvtapmode <vepa|bridge>
+	                   #macvtap mode
 
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
@@ -465,7 +468,6 @@ _at=`getopt -o hd:L::l:fn:gb:p:I::i: \
 	--long osv: \
 	--long os-variant: \
 	--long force \
-	--long macvtap: \
 	--long vmname: \
 	--long genimage \
 	--long xzopt: \
@@ -478,6 +480,9 @@ _at=`getopt -o hd:L::l:fn:gb:p:I::i: \
 	--long cpus: \
 	--long nointeract \
 	--long saveimage:: \
+	--long net: \
+	--long netmacvtap:: \
+	--long macvtapmode: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -491,7 +496,6 @@ while true; do
 	--ks)      KSPath=$2; shift 2;;
 	--rm)      RM=yes; shift 1;;
 	--xzopt)          XZ="$2"; shift 2;;
-	--macvtap)        MacvtapMode="$2"; shift 2;;
 	-f|--force)       OVERWRITE="yes"; shift 1;;
 	-n|--vmname)      VMName="$2"; shift 2;;
 	-g|--genimage)    GenerateImage=yes; shift 1;;
@@ -504,6 +508,11 @@ while true; do
 	--msize)         MSIZE="$2"; shift 2;;
 	--cpus)          VCPUN="$2"; shift 2;;
 	--nointeract)    INTERACT="no"; shift 1;;
+	--net)           NETWORK_OPTS+=" --network=network=$2,mode=virtio"; shift 2;;
+	--netmacvtap)
+		srcif=${2:-$(get_default_if)}
+		NETWORK_OPTS+=" --network=type=direct,source=$srcif,source_mode=$MacvtapMode,model=virtio"; shift 2;;
+	--macvtapmode)   MacvtapMode="$2"; shift 2;;
 	--saveimage)
 		SAVE_IMAGE="yes"
 		SaveImagePath=${2:-$ImagePath/download}
@@ -731,6 +740,10 @@ get_default_if() {
 }
 
 # Phase-2: start create VM
+[[ -z "$NETWORK_OPTS" ]] && {
+	srcif=$(get_default_if)
+	NETWORK_OPTS="--network=network=default,model=virtio --network=type=direct,source=$srcif,source_mode=$MacvtapMode,model=virtio"
+}
 if [[ "$InstallType" = location ]]; then
 	[[ -z "$KSPath" ]] && {
 		echo "{INFO} generating kickstart file for $Distro ..."
@@ -777,8 +790,7 @@ if [[ "$InstallType" = location ]]; then
 	  --vcpus ${VCPUN:-4} \
 	  --memory ${MSIZE:-2048} \
 	  --disk size=${DSIZE:-16},bus=virtio \
-	  --network network=default,model=virtio \
-	  --network type=direct,source=$(get_default_if),source_mode=$MacvtapMode,model=virtio \
+	  $NETWORK_OPTS \
 	  --initrd-inject $KSPath \
 	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $NOREBOOT &
@@ -919,8 +931,7 @@ elif [[ "$InstallType" = import ]]; then
 	  --memory ${MSIZE:-1024} \
 	  --disk ${imagefile},bus=virtio \
 	  $CLOUD_INIT_OPT \
-	  --network network=default,model=virtio \
-	  --network type=direct,source=$(get_default_if),source_mode=$MacvtapMode,model=virtio \
+	  $NETWORK_OPTS \
 	  --import \
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $OS_VARIANT_OPT &
 	installpid=$!
@@ -962,7 +973,16 @@ elif [[ "$InstallType" = import ]]; then
 
 				send {while ps axf|grep -A2 "/var/lib/cloud/instance/scripts/runcm[d]"; do echo "{INFO}: cloud-init scirpt is still running .."; sleep 5; done; echo "~~~~~~~~ no cloud-init or cloud-init done ~~~~~~~~"\d}
 				send "\r\n"
-				expect "or cloud-init done ~~~~~~~~d" {send "\r\r# Now you can take over the keyboard\r\r"}
+				expect {
+					"or cloud-init done ~~~~~~~~d" {send "\r\r# Now you can take over the keyboard\r\r"}
+					"* login:" {
+						send "root\r"
+						expect "Password:" {
+							send "redhat\r"
+							send "\r\r# Now you can take over the keyboard\r\r"
+						}
+					}
+				}
 				send "# and your are in console, Ctr + ] to exit \r"
 				send "\r\r"
 			}
