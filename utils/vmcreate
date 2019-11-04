@@ -2,13 +2,7 @@
 LANG=C
 PATH=~/bin:$PATH 
 
-egrep -wo '(vmx|svm)' /proc/cpuinfo -q || {
-	echo -e "{WARN} current machine doesn't support Virtualization"
-	exit 1
-}
-
 PROG=${0##*/}
-Intranet=no
 Distro=
 Location=
 Imageurl=
@@ -23,10 +17,11 @@ InstallType=import
 ImagePath=~/myimages
 VMPath=~/VMs
 RuntimeTmp=/tmp/vmc-$$
-baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
 INTERACT=yes
 vmprefix=$(whoami)
 [[ -n "$SUDO_USER" ]] && vmprefix=${SUDO_USER}-sudo
+Intranet=yes
+baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
 
 Cleanup() {
 	cd ~
@@ -35,8 +30,6 @@ Cleanup() {
 	exit
 }
 trap Cleanup EXIT #SIGINT SIGQUIT SIGTERM
-mkdir -p $RuntimeTmp
-
 #-------------------------------------------------------------------------------
 _vmdelete() {
 	local _vmname=$1
@@ -167,19 +160,6 @@ netdelete() {
 		virsh net-undefine -- $net
 	done
 }
-
-[[ $PROG = vmc ]] && {
-	subcmd=$1
-	case "$subcmd" in
-	r|rm|d|de|del*) shift; [[ "$1" = -d ]] && shift; vmdelete "$@"; exit $?;;
-	l|lo|log*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
-	ls|li|lis|list) shift; [[ "$1" = -d ]] && shift; vmlist "$@"; exit $?;;
-	i|if|if*) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
-	net|netcreate) shift; [[ "$1" = -d ]] && shift; netcreate "$@"; exit $?;;
-	netinfo) shift; [[ "$1" = -d ]] && shift; netinfo "$@"; exit $?;;
-	netdel|netdelete) shift; [[ "$1" = -d ]] && shift; netdelete "$@"; exit $?;;
-	esac
-}
 #-------------------------------------------------------------------------------
 
 enable_libvirt() {
@@ -255,146 +235,6 @@ is_intranet() {
 	local iurl=http://download.devel.redhat.com
 	is_available_url $iurl 
 }
-
-enable_libvirt
-is_intranet && {
-	Intranet=yes
-	baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
-}
-
-Usage() {
-	cat <<-'EOF'
-	Usage:
-	    $PROG [subcmd] <-d distroname> [OPTIONs] ...
-
-	Options:
-	    -h, --help     #Display this help.
-	    -I             #create VM by import existing disk image, auto search url according distro name
-	                    `-> just could used in Intranet
-	    -i <url/path>  #create VM by import existing disk image, value can be url or local path
-	    -L             #create VM by using location, auto search url according distro name
-	                    `-> just could used in Intranet
-	    -l <url>       #create VM by using location
-	    --ks <file>    #kickstart file
-	    --msize <size> #memory size, default 2048
-	    --dsize <size> #disk size, default 16
-	    --cpus <N>     #number of virtual cpus, default 4
-	    -n|--vmname <name>
-	                   #VM name, will auto generate according distro name if omitting
-	    -f|--force     #over write existing VM with same name
-	    --macvtap <vepa|bridge>
-	                   #macvtap mode
-	    -p|-pkginstall <pkgs>
-	                   #pkgs in default system repo, install by yum or apt-get
-	    -b|-brewinstall <args>
-	                   #pkgs in brew system or specified by url, install by internal brewinstall.sh
-	                    `-> just could used in Intranet
-	    -g|-genimage   #generate VM image, after install shutdown VM and generate new qcow2.xz file
-	    --rm           #like --rm option of docker/podman, remove VM after quit from console
-	    --nocloud|--nocloud-init
-	                   #don't create cloud-init iso for the image that is not cloud image
-	    --osv <variant>
-	                   #OS_VARIANT, optional. virt-install will attempt to auto detect this value
-	                   # you can get [-osv variant] info by using:
-	                   $ osinfo-query os  #RHEL-7 and later
-	                   $ virt-install --os-variant list  #RHEL-6
-	    --nointeract   #exit from virsh console after install finish
-	    --saveimage [path]
-	                   #save image in path if install with import mode
-
-	EOF
-	[[ "$Intranet" = yes ]] && cat <<-EOF
-	Example Intranet:
-	    $PROG # will enter a TUI show you all available distros that could auto generate source url
-	    $PROG RHEL-6.10 -L
-	    $PROG RHEL-7.7
-	    $PROG RHEL-8.1.0 -f -p "vim wget git"
-	    $PROG RHEL-8.1.0 -L -brewinstall 23822847  # brew scratch build id
-	    $PROG RHEL-8.1.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
-	    $PROG RHEL-8.2.0-20191024.n.0 -g -b \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
-
-	EOF
-	cat <<-EOF
-	Example Internet:
-	    $PROG centos-5 -l http://vault.centos.org/5.11/os/x86_64/
-	    $PROG centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
-	    $PROG centos-7 -l http://mirror.centos.org/centos/7/os/x86_64/
-	    $PROG centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
-	    $PROG centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/x.rpm
-	    $PROG centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -pkginstall "vim git wget"
-	    $PROG debian-10 -i https://cdimage.debian.org/cdimage/openstack/10.1.5-20191015/debian-10.1.5-20191015-openstack-amd64.qcow2
-
-	Example from local image:
-	    $PROG rhel-8-up -i ~/myimages/RHEL-8.1.0-20191015.0/rhel-8-upstream.qcow2.xz --nocloud-init
-	    $PROG debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
-
-	Example [subcmd]:
-	    vmc login [VM]        #ssh login VM //you can use l,lo,log* instead login
-	    vmc rm    [VM list]   #rm VMs       //you can use r,d,de,del* instead rm
-	    vmc list              #list all VM  //you can use ls,li,lis* instead list
-
-	    vmc net               #list all virtual network
-	    vmc net netname=testnet brname=virbrN subnet=100  #create virtual network 'testnet'
-	    vmc netinfo testnet   #show detail info of virtual network 'testnet'
-	    vmc netdel testnet    #delete virtual network 'testnet'
-	EOF
-}
-
-_at=`getopt -o hd:L::l:fn:gb:p:I::i: \
-	--long help \
-	--long ks: \
-	--long rm \
-	--long osv: \
-	--long os-variant: \
-	--long force \
-	--long macvtap: \
-	--long vmname: \
-	--long genimage \
-	--long xzopt: \
-	--long brewinstall: \
-	--long pkginstall: \
-	--long getimage \
-	--long nocloud-init --long nocloud \
-	--long msize: \
-	--long dsize: \
-	--long cpus: \
-	--long nointeract \
-	--long saveimage:: \
-    -a -n "$0" -- "$@"`
-eval set -- "$_at"
-while true; do
-	case "$1" in
-	-h|--help) Usage; shift 1; exit 0;;
-	-d)        Distro=$2; shift 2;;
-	-l)        InstallType=location; Location=$2; shift 2;;
-	-L)        InstallType=location; [[ -n "$2" ]] && Location=${2#=}; shift 2;;
-	-i)        InstallType=import; Imageurl=${2}; shift 2;;
-	-I)        InstallType=import; [[ -n "$2" ]] && Imageurl=${2#=}; shift 2;;
-	--ks)      KSPath=$2; shift 2;;
-	--rm)      RM=yes; shift 1;;
-	--xzopt)          XZ="$2"; shift 2;;
-	--macvtap)        MacvtapMode="$2"; shift 2;;
-	-f|--force)       OVERWRITE="yes"; shift 1;;
-	-n|--vmname)      VMName="$2"; shift 2;;
-	-g|--genimage)    GenerateImage=yes; shift 1;;
-	--getimage)       GetImage=yes; shift 1;;
-	-b|--brewinstall) BPKGS="$2"; shift 2;;
-	-p|--pkginstall)  PKGS="$2"; shift 2;;
-	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
-	--nocloud*)      NO_CLOUD_INIT="yes"; shift 1;;
-	--dsize)         DSIZE="$2"; shift 2;;
-	--msize)         MSIZE="$2"; shift 2;;
-	--cpus)          VCPUN="$2"; shift 2;;
-	--nointeract)    INTERACT="no"; shift 1;;
-	--saveimage)
-		SAVE_IMAGE="yes"
-		SaveImagePath=${2:-$ImagePath/download}
-		mkdir -p ${SaveImagePath}
-		shift 2
-		;;
-	--) shift; break;;
-	esac
-done
 
 # functions that work in Intranet
 install_distro_compose() {
@@ -539,17 +379,171 @@ distro2repos() {
 	done
 }
 
+Usage() {
+	cat <<-'EOF'
+	Usage:
+	    $PROG [subcmd] <-d distroname> [OPTIONs] ...
+
+	Options:
+	    -h, --help     #Display this help.
+	    -I             #create VM by import existing disk image, auto search url according distro name
+	                    `-> just could used in Intranet
+	    -i <url/path>  #create VM by import existing disk image, value can be url or local path
+	    -L             #create VM by using location, auto search url according distro name
+	                    `-> just could used in Intranet
+	    -l <url>       #create VM by using location
+	    --ks <file>    #kickstart file
+	    --msize <size> #memory size, default 2048
+	    --dsize <size> #disk size, default 16
+	    --cpus <N>     #number of virtual cpus, default 4
+	    -n|--vmname <name>
+	                   #VM name, will auto generate according distro name if omitting
+	    -f|--force     #over write existing VM with same name
+	    --macvtap <vepa|bridge>
+	                   #macvtap mode
+	    -p|-pkginstall <pkgs>
+	                   #pkgs in default system repo, install by yum or apt-get
+	    -b|-brewinstall <args>
+	                   #pkgs in brew system or specified by url, install by internal brewinstall.sh
+	                    `-> just could used in Intranet
+	    -g|-genimage   #generate VM image, after install shutdown VM and generate new qcow2.xz file
+	    --rm           #like --rm option of docker/podman, remove VM after quit from console
+	    --nocloud|--nocloud-init
+	                   #don't create cloud-init iso for the image that is not cloud image
+	    --osv <variant>
+	                   #OS_VARIANT, optional. virt-install will attempt to auto detect this value
+	                   # you can get [-osv variant] info by using:
+	                   $ osinfo-query os  #RHEL-7 and later
+	                   $ virt-install --os-variant list  #RHEL-6
+	    --nointeract   #exit from virsh console after install finish
+	    --saveimage [path]
+	                   #save image in path if install with import mode
+
+	EOF
+	[[ "$Intranet" = yes ]] && cat <<-EOF
+	Example Intranet:
+	    $PROG # will enter a TUI show you all available distros that could auto generate source url
+	    $PROG RHEL-6.10 -L
+	    $PROG RHEL-7.7
+	    $PROG RHEL-8.1.0 -f -p "vim wget git"
+	    $PROG RHEL-8.1.0 -L -brewinstall 23822847  # brew scratch build id
+	    $PROG RHEL-8.1.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
+	    $PROG RHEL-8.2.0-20191024.n.0 -g -b \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+
+	EOF
+	cat <<-EOF
+	Example Internet:
+	    $PROG centos-5 -l http://vault.centos.org/5.11/os/x86_64/
+	    $PROG centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
+	    $PROG centos-7 -l http://mirror.centos.org/centos/7/os/x86_64/
+	    $PROG centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
+	    $PROG centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/x.rpm
+	    $PROG centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -pkginstall "vim git wget"
+	    $PROG debian-10 -i https://cdimage.debian.org/cdimage/openstack/10.1.5-20191015/debian-10.1.5-20191015-openstack-amd64.qcow2
+
+	Example from local image:
+	    $PROG rhel-8-up -i ~/myimages/RHEL-8.1.0-20191015.0/rhel-8-upstream.qcow2.xz --nocloud-init
+	    $PROG debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
+
+	Example [subcmd]:
+	    vmc login [VM]        #ssh login VM //you can use l,lo,log* instead login
+	    vmc rm    [VM list]   #rm VMs       //you can use r,d,de,del* instead rm
+	    vmc list              #list all VM  //you can use ls,li,lis* instead list
+
+	    vmc net               #list all virtual network
+	    vmc net netname=testnet brname=virbrN subnet=100  #create virtual network 'testnet'
+	    vmc netinfo testnet   #show detail info of virtual network 'testnet'
+	    vmc netdel testnet    #delete virtual network 'testnet'
+	EOF
+}
+
+# command line parse
+_at=`getopt -o hd:L::l:fn:gb:p:I::i: \
+	--long help \
+	--long ks: \
+	--long rm \
+	--long osv: \
+	--long os-variant: \
+	--long force \
+	--long macvtap: \
+	--long vmname: \
+	--long genimage \
+	--long xzopt: \
+	--long brewinstall: \
+	--long pkginstall: \
+	--long getimage \
+	--long nocloud-init --long nocloud \
+	--long msize: \
+	--long dsize: \
+	--long cpus: \
+	--long nointeract \
+	--long saveimage:: \
+    -a -n "$0" -- "$@"`
+eval set -- "$_at"
+while true; do
+	case "$1" in
+	-h|--help) Usage; shift 1; exit 0;;
+	-d)        Distro=$2; shift 2;;
+	-l)        InstallType=location; Location=$2; shift 2;;
+	-L)        InstallType=location; [[ -n "$2" ]] && Location=${2#=}; shift 2;;
+	-i)        InstallType=import; Imageurl=${2}; shift 2;;
+	-I)        InstallType=import; [[ -n "$2" ]] && Imageurl=${2#=}; shift 2;;
+	--ks)      KSPath=$2; shift 2;;
+	--rm)      RM=yes; shift 1;;
+	--xzopt)          XZ="$2"; shift 2;;
+	--macvtap)        MacvtapMode="$2"; shift 2;;
+	-f|--force)       OVERWRITE="yes"; shift 1;;
+	-n|--vmname)      VMName="$2"; shift 2;;
+	-g|--genimage)    GenerateImage=yes; shift 1;;
+	--getimage)       GetImage=yes; shift 1;;
+	-b|--brewinstall) BPKGS="$2"; shift 2;;
+	-p|--pkginstall)  PKGS="$2"; shift 2;;
+	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
+	--nocloud*)      NO_CLOUD_INIT="yes"; shift 1;;
+	--dsize)         DSIZE="$2"; shift 2;;
+	--msize)         MSIZE="$2"; shift 2;;
+	--cpus)          VCPUN="$2"; shift 2;;
+	--nointeract)    INTERACT="no"; shift 1;;
+	--saveimage)
+		SAVE_IMAGE="yes"
+		SaveImagePath=${2:-$ImagePath/download}
+		mkdir -p ${SaveImagePath}
+		shift 2
+		;;
+	--) shift; break;;
+	esac
+done
+
+# __main__
+egrep -wo '(vmx|svm)' /proc/cpuinfo -q || {
+	echo -e "{WARN} current machine doesn't support Virtualization, show help info with\n  $PROG -h"
+	exit 1
+}
+mkdir -p $RuntimeTmp
+
+# sub-command
+[[ $PROG = vmc ]] && {
+	subcmd=$1
+	case "$subcmd" in
+	r|rm|d|de|del*) shift; [[ "$1" = -d ]] && shift; vmdelete "$@"; exit $?;;
+	l|lo|log*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
+	ls|li|lis|list) shift; [[ "$1" = -d ]] && shift; vmlist "$@"; exit $?;;
+	i|if|if*) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
+	net|netcreate) shift; [[ "$1" = -d ]] && shift; netcreate "$@"; exit $?;;
+	netinfo) shift; [[ "$1" = -d ]] && shift; netinfo "$@"; exit $?;;
+	netdel|netdelete) shift; [[ "$1" = -d ]] && shift; netdelete "$@"; exit $?;;
+	esac
+}
+
 declare -A distroInfo
 distroInfo[CentOS-8-stream]="nil http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/"
 distroInfo[CentOS-8]="nil http://mirror.centos.org/centos/8/BaseOS/x86_64/os/"
 distroInfo[CentOS-7]="https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz http://mirror.centos.org/centos/7/os/x86_64/"
 distroInfo[CentOS-6]="https://cloud.centos.org/centos/6/images/CentOS-6-x86_64-GenericCloud.qcow2.xz http://mirror.centos.org/centos/6/os/x86_64/"
-
 # https://ord.mirror.rackspace.com/fedora/releases/$version/Cloud/
 distroInfo[fedora-31]="https://ord.mirror.rackspace.com/fedora/releases/31/Cloud/x86_64/images/"
 distroInfo[fedora-30]="https://ord.mirror.rackspace.com/fedora/releases/30/Cloud/x86_64/images/"
 distroInfo[fedora-29]="https://ord.mirror.rackspace.com/fedora/releases/29/Cloud/x86_64/images/"
-
 # https://cdimage.debian.org/cdimage/openstack/testing/
 # https://cdimage.debian.org/cdimage/openstack/$latestVersion/
 # https://cdimage.debian.org/cdimage/openstack/archive/$olderVersion/
@@ -558,9 +552,14 @@ distroInfo[debian-10.1.5]="https://cdimage.debian.org/cdimage/openstack/10.1.5-2
 distroInfo[debian-10.1.4]="https://cdimage.debian.org/cdimage/openstack/archive/10.1.4-20191009/debian-10.1.4-20191009-openstack-amd64.qcow2"
 distroInfo[debian-9.11.4]="https://cdimage.debian.org/cdimage/openstack/9.11.4-20191015/debian-9.11.4-20191015-openstack-amd64.qcow2 nil"
 distroInfo[debian-9.11.3]="https://cdimage.debian.org/cdimage/openstack/archive/9.11.3-20191003/debian-9.11.3-20191003-openstack-amd64.qcow2"
-
 distroInfo[openSUSE-leap-15.2]="https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.2/images/openSUSE-Leap-15.2-OpenStack.x86_64.qcow2"
 
+is_intranet || {
+	Intranet=no
+	baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
+}
+
+# Phase-0 get distro name
 [[ -z "$Distro" ]] && Distro=$1
 [[ -z "$Distro" ]] && {
 	if [[ -z "$Location" && -z "$Imageurl" ]]; then
@@ -604,13 +603,7 @@ distroInfo[openSUSE-leap-15.2]="https://download.opensuse.org/repositories/Cloud
 	exit 1
 }
 
-[[ -n "${distroInfo[$Distro]}" ]] && {
-	echo -e "{INFO} ${distroInfo[$Distro]}"
-	read Imageurl Location <<<"${distroInfo[$Distro]}"
-	echo -e "{INFO} image url: $Imageurl"
-	echo -e "{INFO} location url: $Location"
-}
-
+# check if VM exist
 vmname=${Distro//./}
 vmname=${vmname,,}
 [[ -n "$VMName" ]] && vmname=${VMName}
@@ -626,7 +619,14 @@ virsh desc $vmname &>/dev/null && {
 	fi
 }
 
-#get url of install Location or Image
+# Phase-1: get distro's Location or Image url
+[[ -n "${distroInfo[$Distro]}" ]] && {
+	echo -e "{INFO} ${distroInfo[$Distro]}"
+	read Imageurl Location <<<"${distroInfo[$Distro]}"
+	echo -e "{INFO} image url: $Imageurl"
+	echo -e "{INFO} location url: $Location"
+}
+
 if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 	if [[ -z "$Imageurl" ]]; then
 		echo "{INFO} searching private image url of $Distro ..." >&2
@@ -686,6 +686,28 @@ if [[ "$InstallType" = location ]]; then
 	fi
 fi
 
+echo "{INFO} guess/verify os-variant ..."
+[[ -z "$VM_OS_VARIANT" ]] && {
+	VM_OS_VARIANT=${Distro/-/}
+	VM_OS_VARIANT=${VM_OS_VARIANT%%-*}
+	VM_OS_VARIANT=${VM_OS_VARIANT,,}
+}
+osvariants=$(virt-install --os-variant list 2>/dev/null) ||
+	osvariants=$(osinfo-query os 2>/dev/null)
+[[ -n "$osvariants" ]] && {
+	grep -q "^ $VM_OS_VARIANT " <<<"$osvariants" || VM_OS_VARIANT=${VM_OS_VARIANT/.*/-unknown}
+	grep -q "^ $VM_OS_VARIANT " <<<"$osvariants" || VM_OS_VARIANT=${VM_OS_VARIANT/[0-9]*/-unknown}
+	if grep -q "^ $VM_OS_VARIANT " <<<"$osvariants"; then
+		OS_VARIANT_OPT=--os-variant=$VM_OS_VARIANT
+	fi
+}
+
+echo -e "{INFO} get available vnc port ..."
+VNCPORT=${VNCPORT:-7777}
+while nc 127.0.0.1 ${VNCPORT} </dev/null &>/dev/null; do
+	let VNCPORT++
+done
+
 is_bridge() {
 	local ifname=$1
 	[[ -z "$ifname" ]] && return 1
@@ -708,29 +730,7 @@ get_default_if() {
 	echo $iface
 }
 
-echo "{INFO} guess/verify os-variant ..."
-#Speculate the appropriate VM_OS_VARIANT according distro name
-[[ -z "$VM_OS_VARIANT" ]] && {
-	VM_OS_VARIANT=${Distro/-/}
-	VM_OS_VARIANT=${VM_OS_VARIANT%%-*}
-	VM_OS_VARIANT=${VM_OS_VARIANT,,}
-}
-osvariants=$(virt-install --os-variant list 2>/dev/null) ||
-	osvariants=$(osinfo-query os 2>/dev/null)
-[[ -n "$osvariants" ]] && {
-	grep -q "^ $VM_OS_VARIANT " <<<"$osvariants" || VM_OS_VARIANT=${VM_OS_VARIANT/.*/-unknown}
-	grep -q "^ $VM_OS_VARIANT " <<<"$osvariants" || VM_OS_VARIANT=${VM_OS_VARIANT/[0-9]*/-unknown}
-	if grep -q "^ $VM_OS_VARIANT " <<<"$osvariants"; then
-		OS_VARIANT_OPT=--os-variant=$VM_OS_VARIANT
-	fi
-}
-
-echo -e "{INFO} get available vnc port ..."
-VNCPORT=${VNCPORT:-7777}
-while nc 127.0.0.1 ${VNCPORT} </dev/null &>/dev/null; do
-	let VNCPORT++
-done
-
+# Phase-2: start create VM
 if [[ "$InstallType" = location ]]; then
 	[[ -z "$KSPath" ]] && {
 		echo "{INFO} generating kickstart file for $Distro ..."
