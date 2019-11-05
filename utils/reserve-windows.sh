@@ -11,6 +11,7 @@ _at=`getopt -a -o hbd: \
 	--long kdc \
 	--long bridge \
 	--long distro: \
+	--long wim-index:: \
     -a -n "$P" -- "$@"`
 eval set -- "$_at"
 
@@ -20,6 +21,7 @@ while true; do
 	-b|--bridge)  BRIDGE=-b; shift 1;;
 	-d|--distro)  DISTRO=$2; shift 2;;
 	--kdc)        KDC=--enable-kdc; shift 1;;
+	--wim-index)  WIM_IMAGE_INDEX=$2; shift 2;;
 	--)           shift; break;;
 	esac
 done
@@ -37,7 +39,7 @@ which vncviewer &>/dev/null || dep+=\ realvnc-vnc-viewer
 
 echo -e "\nInfo: submit request to beaker ..."
 baseUrl=http://pkgs.devel.redhat.com/cgit/tests/kernel/plain
-submitlog=$(runtest ${DISTRO:-RHEL-7.5} "--cmd=wget $baseUrl/Library/base/tools/build_win_vm.sh -O /win.sh; bash /win.sh --winver=$winVer -- $BRIDGE $KDC --vm-name win-$winVer --disk-size 60 answerfiles-cifs-nfs/*;" --hr-alias=vmhost)
+submitlog=$(runtest ${DISTRO:-RHEL-7.5} "--cmd=wget $baseUrl/Library/base/tools/build_win_vm.sh -O /win.sh; bash /win.sh --winver=$winVer -- $BRIDGE $KDC --vm-name win-$winVer --disk-size 60 answerfiles-cifs-nfs/* --wim-index=${WIM_IMAGE_INDEX};" --hr-alias=vmhost)
 echo "$submitlog"
 job=$(egrep -o J:[0-9]+ <<<"$submitlog")
 [[ -z $job ]] && {
