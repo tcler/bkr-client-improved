@@ -47,7 +47,7 @@ _vmdelete() {
 	echo -e "\n{INFO} dist removing VM $_vmname .."
 	virsh destroy $_vmname 2>/dev/null
 	virsh undefine $_vmname --remove-all-storage
-	[[ -n "$_vmdir" ]] && rmdir $_vmdir 2>/dev/null
+	[[ -n "$_vmdir" && "$_vmdir" = $VMPath/?* ]] && rmdir $_vmdir 2>/dev/null
 }
 
 vmdelete() {
