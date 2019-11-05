@@ -57,6 +57,7 @@ vmdelete() {
 			echo -e "{WARN} there is not any VM in your host .."
 			return 1;
 		}
+		which dialog &>/dev/null || yum install -y dialog &>/dev/null
 		dialog --backtitle "$0" --separate-output --checklist "select vms you want delete" 30 120 28 $vmList  2>$RuntimeTmp/vmlist
 		printf '\33[H\33[2J'
 		rmList=$(< $RuntimeTmp/vmlist)
@@ -82,6 +83,7 @@ vmlogin() {
 	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		vmList=$(virsh list --name | sed -e \$d -e 's/.*/"&" "" 1/')
+		which dialog &>/dev/null || yum install -y dialog &>/dev/null
 		dialog --backtitle "$0" --radiolist "please select vm you want to login:" 30 60 28 $vmList 2>$RuntimeTmp/vmlist
 		printf '\33[H\33[2J'
 		eval _vmname=$(head -n1 $RuntimeTmp/vmlist)
