@@ -68,5 +68,5 @@ echo -e "\nInfo: waiting windows vm start install ..."
 while ! nc $host 7788 </dev/null &>/dev/null; do sleep 10; echo -n .; done
 
 
-echo -e "\nvncviewer $host:7788 ..."
+echo -e "\nvncviewer $host:7788 #..."
 vncviewer $host:7788 -Encryption=PreferOff
