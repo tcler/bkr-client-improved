@@ -41,13 +41,13 @@ _vmdelete() {
 		return 1
 	}
 
-	local _image=$(virsh dumpxml --domain $_vmname | sed -n "/source file=/{s|^.*='||; s|'/>$||; p}")
+	local _image=$(virsh dumpxml --domain $_vmname | sed -n "/source file=.*qcow/{s|^.*='||; s|'/>$||; p; q}")
 	local _vmdir=$(dirname $_image)
 
 	echo -e "\n{INFO} dist removing VM $_vmname .."
 	virsh destroy $_vmname 2>/dev/null
 	virsh undefine $_vmname --remove-all-storage
-	[[ -n "$_vmdir" && "$_vmdir" = $VMPath/?* ]] && rmdir $_vmdir 2>/dev/null
+	[[ "$_vmdir" = $VMPath/?* ]] && rmdir $_vmdir 2>/dev/null
 }
 
 vmdelete() {
