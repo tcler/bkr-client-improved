@@ -51,28 +51,30 @@ _vmdelete() {
 }
 
 vmdialogchecklist() {
-	local resfile=$1
-	local all=$2
+	local cmdinfo=$1
+	local resfile=$2
+	local all=$3
 	local vmList=$(virsh list --name ${all:+--all}| sed -e \$d -e 's/.*/"&" "" 1/')
 	[[ -z "${vmList}" ]] && {
 		echo -e "{WARN} there is not any VM in your host .." >&2
 		return 1;
 	}
 	which dialog &>/dev/null || yum install -y dialog &>/dev/null
-	dialog --backtitle "$0" --separate-output --checklist "select vms you want" 30 120 28 $vmList 2>$resfile; rc=$?
+	dialog --backtitle "$cmdinfo" --separate-output --checklist "${cmdinfo}: please select vms you want " 30 120 28 $vmList 2>$resfile; rc=$?
 	printf '\33[H\33[2J'
 	return $rc
 }
 vmdialogradiolist() {
-	local resfile=$1
-	local all=$2
+	local cmdinfo=$1
+	local resfile=$2
+	local all=$3
 	local vmList=$(virsh list --name ${all:+--all}| sed -e \$d -e 's/.*/"&" "" 1/')
 	[[ -z "${vmList}" ]] && {
 		echo -e "{WARN} there is not any VM in your host .." >&2
 		return 1;
 	}
 	which dialog &>/dev/null || yum install -y dialog &>/dev/null
-	dialog --backtitle "$0" --radiolist "please select vm you want" 30 60 28 $vmList 2>$resfile; rc=$?
+	dialog --backtitle "$cmdinfo" --radiolist "${cmdinfo}: please select vm you want " 30 60 28 $vmList 2>$resfile; rc=$?
 	printf '\33[H\33[2J'
 	return $rc
 }
@@ -80,7 +82,7 @@ vmdialogradiolist() {
 vmdelete() {
 	[[ $# = 0 ]] && {
 		resf=$RuntimeTmp/vmlist
-		vmdialogchecklist $resf all && rmList=$(< $resf)
+		vmdialogchecklist vm-delete $resf all && rmList=$(< $resf)
 		[[ -z "$rmList" ]] && { return; }
 		eval set $rmList
 	}
@@ -91,7 +93,7 @@ vmifaddr() {
 	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
-		vmdialogradiolist $resf && _vmname=$(sed 's/"//g' $resf)
+		vmdialogradiolist vm-ifaddr $resf && _vmname=$(sed 's/"//g' $resf)
 		[[ -z "$_vmname" ]] && { return; }
 	}
 
@@ -106,7 +108,7 @@ vmedit() {
 	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
-		vmdialogradiolist $resf all && _vmname=$(sed 's/"//g' $resf)
+		vmdialogradiolist vm-edit $resf all && _vmname=$(sed 's/"//g' $resf)
 		[[ -z "$_vmname" ]] && { return; }
 	}
 
@@ -123,7 +125,7 @@ vmlogin() {
 	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
-		vmdialogradiolist $resf && _vmname=$(sed 's/"//g' $resf)
+		vmdialogradiolist vm-login $resf && _vmname=$(sed 's/"//g' $resf)
 		[[ -z "$_vmname" ]] && { return; }
 	}
 
