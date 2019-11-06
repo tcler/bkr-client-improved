@@ -114,12 +114,20 @@ vmedit() {
 }
 
 vmlogin() {
+	local console=
+	[[ "$1" = /c ]] && {
+		console=yes
+		shift
+	}
+
 	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
 		vmdialogradiolist $resf && _vmname=$(sed 's/"//g' $resf)
 		[[ -z "$_vmname" ]] && { return; }
 	}
+
+	[[ "$console" = yes ]] && { virsh console "$_vmname"; return $?; }
 
 	#sometimes there's bug in libnss. get more than one addr but some one
 	#of them does not exist. use nc detect and ignore it/them
@@ -502,8 +510,8 @@ Usage() {
 	    $PROG debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
 
 	Example [subcmd]:
-	    vmc login [VM]        #ssh login VM //you can use l,lo,log* instead login
-	    vmc rm    [VM list]   #rm VMs       //you can use r,d,de,del* instead rm
+	    vmc login [/c] [VM]   #ssh or console login VM //you can use l,lo,log* instead login
+	    vmc del   [VM list]   #rm VMs       //you can use d,de,del*,r,rm instead del
 	    vmc list              #list all VM  //you can use ls,li,lis* instead list
 
 	    vmc net               #list all virtual network
