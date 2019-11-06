@@ -514,6 +514,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							set VARIANT [lindex $VARIANT_L 0]
 							set VARIANT_L [lrange $VARIANT_L 1 end]
 						}
+						if {[string match Fedora* $DISTRO] && $VARIANT == ""} {set VARIANT Server}
 						lappend drs distro_method=${METHOD}
 
 						if [info exist Opt(DR)] {
