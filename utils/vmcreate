@@ -267,7 +267,7 @@ is_intranet() {
 install_distro_compose() {
 	which distro-compose &>/dev/null || {
 		_url=$baseDownloadUrl/utils/distro-compose
-		mkdir -p ~/bin && wget -O ~/bin/distro-compose -N -q $_url --no-check-certificate
+		mkdir -p ~/bin && curl -s -o ~/bin/distro-compose -C - -L $_url
 		chmod +x ~/bin/distro-compose
 	}
 }
@@ -282,9 +282,9 @@ fetch_distro_trees() {
 
 	which bkr &>/dev/null &&
 		dtrees=$(bkr distro-trees-list --name "$distro" --arch "$arch"|egrep '(released|compose)')
-	[[ -z "$dtree" ]] && {
+	[[ -z "$dtrees" ]] && {
 		install_distro_compose
-		dtree=$(distro-compose -d "$distro" --distrotrees|egrep "(released|compose).*${arch}")
+		dtrees=$(distro-compose -d "$distro" --distrotrees|egrep "(released|compose).*${arch}")
 	}
 	echo "$dtrees"
 }
@@ -298,7 +298,7 @@ distro2location() {
 
 	which fastesturl.sh &>/dev/null || {
 		_url=$baseDownloadUrl/utils/fastesturl.sh
-		mkdir -p ~/bin && wget -O ~/bin/fastesturl.sh -N -q $_url --no-check-certificate
+		mkdir -p ~/bin && curl -s -o ~/bin/fastesturl.sh -C - -L $_url
 		chmod +x ~/bin/fastesturl.sh
 	}
 	fastesturl.sh $urls
@@ -622,6 +622,8 @@ is_intranet || {
 	baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
 }
 
+enable_libvirt
+
 # Phase-0 get distro name
 [[ -z "$Distro" ]] && Distro=$1
 [[ -z "$Distro" ]] && {
@@ -807,7 +809,7 @@ if [[ "$InstallType" = location ]]; then
 		REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
 		which ks-generator.sh &>/dev/null || {
 			_url=$baseDownloadUrl/utils/ks-generator.sh
-			mkdir -p ~/bin && wget -O ~/bin/ks-generator.sh -N -q $_url --no-check-certificate
+			mkdir -p ~/bin && curl -s -o ~/bin/ks-generator.sh -C - -L $_url
 			chmod +x ~/bin/ks-generator.sh
 		}
 		ks-generator.sh -d $Distro -url $Location $REPO_OPTS >$KSPath
@@ -962,7 +964,7 @@ elif [[ "$InstallType" = import ]]; then
 		echo -e "{INFO} creating cloud-init iso"
 		which cloud-init-iso-gen.sh &>/dev/null || {
 			_url=$baseDownloadUrl/utils/cloud-init-iso-gen.sh
-			mkdir -p ~/bin && wget -O ~/bin/cloud-init-iso-gen.sh -N -q $_url --no-check-certificate
+			mkdir -p ~/bin && curl -s -o ~/bin/cloud-init-iso-gen.sh -C - -L $_url
 			chmod +x ~/bin/cloud-init-iso-gen.sh
 		}
 		cloudinitiso=$vmpath/$vmname-cloud-init.iso
