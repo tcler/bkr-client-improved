@@ -17,7 +17,7 @@ fastesturl() {
 			echo -e " -> $host\t $cavg  \t$minavg" >&2
 		fi
 
-		if (( $(bc -l <<<"${cavg}<${minavg}") )); then
+		if awk "BEGIN{exit !($cavg<$minavg)}"; then
 			minavg=$cavg
 			fast=$url
 		fi
