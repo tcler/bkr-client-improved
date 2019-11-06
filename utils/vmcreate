@@ -50,17 +50,37 @@ _vmdelete() {
 	[[ "$_vmdir" = $VMPath/?* ]] && rmdir $_vmdir 2>/dev/null
 }
 
+vmdialogchecklist() {
+	local resfile=$1
+	local all=$2
+	local vmList=$(virsh list --name ${all:+--all}| sed -e \$d -e 's/.*/"&" "" 1/')
+	[[ -z "${vmList}" ]] && {
+		echo -e "{WARN} there is not any VM in your host .." >&2
+		return 1;
+	}
+	which dialog &>/dev/null || yum install -y dialog &>/dev/null
+	dialog --backtitle "$0" --separate-output --checklist "select vms you want" 30 120 28 $vmList 2>$resfile; rc=$?
+	printf '\33[H\33[2J'
+	return $rc
+}
+vmdialogradiolist() {
+	local resfile=$1
+	local all=$2
+	local vmList=$(virsh list --name ${all:+--all}| sed -e \$d -e 's/.*/"&" "" 1/')
+	[[ -z "${vmList}" ]] && {
+		echo -e "{WARN} there is not any VM in your host .." >&2
+		return 1;
+	}
+	which dialog &>/dev/null || yum install -y dialog &>/dev/null
+	dialog --backtitle "$0" --radiolist "please select vm you want" 30 60 28 $vmList 2>$resfile; rc=$?
+	printf '\33[H\33[2J'
+	return $rc
+}
+
 vmdelete() {
 	[[ $# = 0 ]] && {
-		vmList=$(virsh list --name --all| sed -e \$d -e 's/.*/"&" "" 1/')
-		[[ -z "${vmList}" ]] && {
-			echo -e "{WARN} there is not any VM in your host .."
-			return 1;
-		}
-		which dialog &>/dev/null || yum install -y dialog &>/dev/null
-		dialog --backtitle "$0" --separate-output --checklist "select vms you want delete" 30 120 28 $vmList  2>$RuntimeTmp/vmlist
-		printf '\33[H\33[2J'
-		rmList=$(< $RuntimeTmp/vmlist)
+		resf=$RuntimeTmp/vmlist
+		vmdialogchecklist $resf all && rmList=$(< $resf)
 		[[ -z "$rmList" ]] && { return; }
 		eval set $rmList
 	}
@@ -69,30 +89,36 @@ vmdelete() {
 
 vmifaddr() {
 	local _vmname=$1
-	local addr=
-	[[ -z "$_vmname" ]] && return
+	[[ -z "$_vmname" ]] && {
+		resf=$RuntimeTmp/vmlist
+		vmdialogradiolist $resf && _vmname=$(sed 's/"//g' $resf)
+		[[ -z "$_vmname" ]] && { return; }
+	}
 
-	addrs=$(getent hosts "$_vmname"|awk '{print $1}'|tac)
+	local addrs=$(getent hosts "$_vmname"|awk '{print $1}'|tac)
 	[[ -z "$addrs" ]] && {
 		addrs=$(virsh domifaddr "$_vmname" | awk '$3=="ipv4" {print gensub("/.*","",1,$4)}')
 	}
 	[[ -n "$addrs" ]] && echo "$addrs"
 }
 
-vmlogin() {
+vmedit() {
 	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
-		vmList=$(virsh list --name | sed -e \$d -e 's/.*/"&" "" 1/')
-		which dialog &>/dev/null || yum install -y dialog &>/dev/null
-		dialog --backtitle "$0" --radiolist "please select vm you want to login:" 30 60 28 $vmList 2>$RuntimeTmp/vmlist
-		printf '\33[H\33[2J'
-		eval _vmname=$(head -n1 $RuntimeTmp/vmlist)
+		resf=$RuntimeTmp/vmlist
+		vmdialogradiolist $resf all && _vmname=$(sed 's/"//g' $resf)
 		[[ -z "$_vmname" ]] && { return; }
 	}
 
-	egrep -q "^$_vmname$" <(virsh list --name|sed \$d) || {
-		echo -e "{WARN} VM '$_vmname' does not exist"
-		return 1
+	virsh edit "$_vmname"
+}
+
+vmlogin() {
+	local _vmname=$1
+	[[ -z "$_vmname" ]] && {
+		resf=$RuntimeTmp/vmlist
+		vmdialogradiolist $resf && _vmname=$(sed 's/"//g' $resf)
+		[[ -z "$_vmname" ]] && { return; }
 	}
 
 	#sometimes there's bug in libnss. get more than one addr but some one
@@ -151,7 +177,7 @@ netcreate() {
 }
 netinfo() {
 	for net; do
-		virsh net-info -- $net
+		virsh net-info -- $net || continue
 		virsh net-dumpxml -- $net
 	done
 }
@@ -565,6 +591,7 @@ mkdir -p $RuntimeTmp
 	l|lo|log*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
 	ls|li|lis|list) shift; [[ "$1" = -d ]] && shift; vmlist "$@"; exit $?;;
 	i|if|if*) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
+	e|ed|ed*) shift; [[ "$1" = -d ]] && shift; vmedit "$@"; exit $?;;
 	net|netcreate) shift; [[ "$1" = -d ]] && shift; netcreate "$@"; exit $?;;
 	netinfo) shift; [[ "$1" = -d ]] && shift; netinfo "$@"; exit $?;;
 	netdel|netdelete) shift; [[ "$1" = -d ]] && shift; netdelete "$@"; exit $?;;
