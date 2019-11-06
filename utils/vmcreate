@@ -206,7 +206,8 @@ enable_libvirt() {
 	echo -e "{INFO} checking libvirtd service and related packages ..."
 	rpm -q $pkglist || {
 		echo -e "{*INFO*} you have not install all dependencies package, trying sudo yum install ..."
-		sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+		grep -q '^VERSION=.7' /etc/os-release &&
+			sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 		sudo yum install -y $pkglist
 	}
 
@@ -225,7 +226,7 @@ enable_libvirt() {
 	}
 
 	virtdconf=/etc/libvirt/libvirtd.conf
-	echo -e "{INFO} checking if UNIX domain socket group ownership permission ..."
+	echo -e "{INFO} checking value of 'unix_sock_group' and 'unix_sock_rw_perms' in $virtdconf ..."
 	ls $virtdconf &>/dev/null || sudo chmod +x /etc/libvirt
 	awk '/^unix_sock_group = "libvirt"/{c++} /^unix_sock_rw_perms = "0770"/{c++} END {rc=1; if(c==2) rc=0; exit rc}' $virtdconf || {
 		echo -e "{*INFO*} confiure $virtdconf ..."
@@ -587,10 +588,13 @@ while true; do
 done
 
 # __main__
-egrep -wo '(vmx|svm)' /proc/cpuinfo -q || {
+if egrep -wo '(vmx|svm)' /proc/cpuinfo -q; then
+	enable_libvirt
+else
 	echo -e "{WARN} current machine doesn't support Virtualization, show help info with\n  $PROG -h"
 	exit 1
-}
+fi
+
 mkdir -p $RuntimeTmp
 
 # sub-command
@@ -631,8 +635,6 @@ is_intranet || {
 	Intranet=no
 	baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
 }
-
-enable_libvirt
 
 # Phase-0 get distro name
 [[ -z "$Distro" ]] && Distro=$1
