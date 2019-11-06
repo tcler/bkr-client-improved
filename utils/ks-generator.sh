@@ -99,12 +99,21 @@ selinux --enforcing
 firewall --enabled --http --ftp --smtp --ssh
 skipx
 firstboot --disable
-
-%packages --ignoremissing
-${Packages}
-%end
-
 KSF
+
+case $Distro in
+RHEL-5*|RHEL5*|centos5*|centos-5*)
+	:;;
+*)
+	cat <<-PKG
+
+	%packages --ignoremissing
+	${Packages}
+	%end
+
+	PKG
+	;;
+esac
 
 for repo in "${Repos[@]}"; do
 	read name url <<<"${repo/:/ }"
@@ -151,3 +160,13 @@ KSF
 [[ -n "$Post" && -f "$Post" ]] && {
 	cat $Post
 }
+
+case $Distro in
+RHEL-5*|RHEL5*|centos5*|centos-5*)
+	cat <<-PKG
+
+	%packages --ignoremissing
+	${Packages}
+	PKG
+	;;
+esac

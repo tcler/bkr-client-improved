@@ -268,7 +268,7 @@ distro2location() {
 	local arch=$(arch)
 
 	distrotrees=$(fetch_distro_trees $distro $arch)
-	urls=$(echo "$distrotrees" | awk '/https?:.*\/'"(${variant}|BaseOS)\/"'/{print $3}' | sort -u)
+	urls=$(echo "$distrotrees" | awk '$3 ~ /https?:.*'"(${variant}|BaseOS)"'/{print $3}' | sort -u)
 
 	which fastesturl.sh &>/dev/null || {
 		_url=$baseDownloadUrl/utils/fastesturl.sh
@@ -488,7 +488,7 @@ Usage() {
 }
 
 # command line parse
-_at=`getopt -o hd:L::l:fn:gb:p:I::i: \
+_at=`getopt -o hd:Ll:fn:gb:p:Ii: \
 	--long help \
 	--long ks: \
 	--long rm \
@@ -517,9 +517,9 @@ while true; do
 	-h|--help) Usage; shift 1; exit 0;;
 	-d)        Distro=$2; shift 2;;
 	-l)        InstallType=location; Location=$2; shift 2;;
-	-L)        InstallType=location; [[ -n "$2" ]] && Location=${2#=}; shift 2;;
+	-L)        InstallType=location; shift 1;;
 	-i)        InstallType=import; Imageurl=${2}; shift 2;;
-	-I)        InstallType=import; [[ -n "$2" ]] && Imageurl=${2#=}; shift 2;;
+	-I)        InstallType=import; shift 1;;
 	--ks)      KSPath=$2; shift 2;;
 	--rm)      RM=yes; shift 1;;
 	--xzopt)          XZ="$2"; shift 2;;
@@ -775,6 +775,7 @@ if [[ "$InstallType" = location ]]; then
 	[[ -z "$KSPath" ]] && {
 		echo "{INFO} generating kickstart file for $Distro ..."
 		ksauto=$RuntimeTmp/ks-$VM_OS_VARIANT-$$.cfg
+		postscript=$RuntimeTmp/postscript.ks
 		KSPath=$ksauto
 		REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
 		which ks-generator.sh &>/dev/null || {
@@ -784,24 +785,22 @@ if [[ "$InstallType" = location ]]; then
 		}
 		ks-generator.sh -d $Distro -url $Location $REPO_OPTS >$KSPath
 
-		cat <<-END >>$KSPath
+		cat <<-END >>$postscript
 		%post --log=/root/extra-ks-post.log
 		yum install -y $PKGS
 		wget -O /usr/bin/brewinstall.sh -N -q $baseDownloadUrl/utils/brewinstall.sh --no-check-certificate
 		chmod +x /usr/bin/brewinstall.sh
 		brewinstall.sh $BPKGS
 		%end
+
 		END
 
+		ex -s $KSPath <<-EX
+		/^%packages/-1 r $postscript"
+		w
+		EX
+
 		sed -i "/^%post/s;$;\ntest -f /etc/hostname \&\& echo ${vmname} >/etc/hostname || echo HOSTNAME=${vmname} >>/etc/sysconfig/network;" $KSPath
-		[[ "$Distro" =~ (RHEL|centos)-?5 ]] && {
-			ex -s $KSPath <<-EOF
-			/%packages/,/%end/ d
-			$ put
-			$ d
-			w
-			EOF
-		}
 	}
 
 	echo -e "{INFO} creating VM by using location:\n ->  $Location"
