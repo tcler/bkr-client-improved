@@ -812,6 +812,11 @@ get_default_if() {
 }
 
 # Phase-2: start create VM
+# prepare ssh pub key
+[[ -f ~/.ssh/id_rsa && -f ~/.ssh/id_rsa.pub ]] || {
+	echo -e 'y\n' | ssh-keygen -q -t rsa -f ~/.ssh/id_rsa -N ''
+}
+# prepare network option
 [[ -z "$NETWORK_OPTS" ]] && {
 	srcif=$(get_default_if)
 	NETWORK_OPTS="--network=network=default,model=virtio --network=type=direct,source=$srcif,source_mode=$MacvtapMode,model=virtio"
@@ -828,24 +833,20 @@ if [[ "$InstallType" = location ]]; then
 			mkdir -p ~/bin && curl -s -o ~/bin/ks-generator.sh -C - -L $_url
 			chmod +x ~/bin/ks-generator.sh
 		}
-		ks-generator.sh -d $Distro -url $Location $REPO_OPTS >$KSPath
 
 		cat <<-END >>$postscript
-		%post --log=/root/extra-ks-post.log
-		yum install -y $PKGS
+		echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] configure hostname ..."
+		test -f /etc/hostname && echo ${vmname} >/etc/hostname || echo HOSTNAME=${vmname} >>/etc/sysconfig/network
+
+		echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] yum install ..."
+		yum install -y $PKGS 2>/dev/null
+
+		echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] brew install ..."
 		wget -O /usr/bin/brewinstall.sh -N -q $baseDownloadUrl/utils/brewinstall.sh --no-check-certificate
 		chmod +x /usr/bin/brewinstall.sh
 		brewinstall.sh $BPKGS
-		%end
-
 		END
-
-		ex -s $KSPath <<-EX
-		/^%packages/-1 r $postscript"
-		w
-		EX
-
-		sed -i "/^%post/s;$;\ntest -f /etc/hostname \&\& echo ${vmname} >/etc/hostname || echo HOSTNAME=${vmname} >>/etc/sysconfig/network;" $KSPath
+		ks-generator.sh -d $Distro -url $Location $REPO_OPTS --post $postscript --sshkeyf ~/.ssh/id_rsa.pub >$KSPath
 	}
 
 	echo -e "{INFO} creating VM by using location:\n ->  $Location"
@@ -984,9 +985,6 @@ elif [[ "$InstallType" = import ]]; then
 		cloudinitiso=$VMpath/$vmname-cloud-init.iso
 		[[ -n "$Location" ]] && {
 			REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
-		}
-		[[ -f ~/.ssh/id_rsa && -f ~/.ssh/id_rsa.pub ]] || {
-			echo -e 'y\n' | ssh-keygen -q -t rsa -f ~/.ssh/id_rsa -N ''
 		}
 		cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmname} -b "$BPKGS" -p "$PKGS" \
 			--sshkeyf ~/.ssh/id_rsa.pub -D $REPO_OPTS
