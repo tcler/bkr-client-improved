@@ -14,13 +14,13 @@ KeyCommand=
 Usage() {
 	cat <<-EOF >&2
 	Usage:
-	 $0 <-d distroname> <-url url> [-repo name1:url1 [-repo name2:url2 ...]] [-post <script file>]
+	 $0 <-d distroname> <-url url> [-repo name1:url1 [-repo name2:url2 ...]] [-post <script>] [-sshkeyf <file>]
 
 	Example:
 	 $0 -d centos-5 -url http://vault.centos.org/5.11/os/x86_64/
 	 $0 -d centos-6 -url http://mirror.centos.org/centos/6.10/os/x86_64/
 	 $0 -d centos-7 -url http://mirror.centos.org/centos/7/os/x86_64/
-	 $0 -d centos-8 -url http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
+	 $0 -d centos-8 -url http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ --post post.sh --sshkeyf ~/.ssh/id_rsa.pub
 	EOF
 }
 
@@ -29,6 +29,7 @@ _at=`getopt -o hd: \
 	--long url: \
 	--long repo: \
 	--long post: \
+	--long sshkeyf: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -38,6 +39,7 @@ while true; do
 	--url)     URL="$2"; shift 2;;
 	--repo)    Repos+=("$2"); shift 2;;
 	--post)    Post="$2"; shift 2;;
+	--sshkeyf) sshkeyf="$2"; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -141,25 +143,36 @@ for repo in "${Repos[@]}"; do
 done
 echo -e "%end\n"
 
+# post script
+echo -e "%post --log=/root/extra-ks-post.log"
 cat <<'KSF'
-
-%post --log=/root/extra-ks-post.log
-# post-installation script:
+USER=$(id -un)
+echo "[$USER@${HOSTNAME} ${HOME} $(pwd)] set dnf strict=0 ..."
 test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf
 
+echo "[$USER@${HOSTNAME} ${HOME} $(pwd)] join wheel user to sudoers ..."
 echo "%wheel        ALL=(ALL)       ALL" >> /etc/sudoers
 
+echo "[$USER@${HOSTNAME} ${HOME} $(pwd)] fix CentOS-5 repo ..."
 ver=$(LANG=C rpm -q --qf %{version} centos-release)
 [[ "$ver" = 5* ]] && sed -i -e 's;mirror.centos.org/centos;vault.centos.org;' -e 's/^mirror/#&/' -e 's/^#base/base/' /etc/yum.repos.d/*
 [[ "$ver" = 5 ]] && sed -i -e 's;\$releasever;5.11;' /etc/yum.repos.d/*
 
-%end
+KSF
 
+cat <<KSF
+echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] inject sshkey ..."
+USERS="root foo bar"
+for U in \$USERS; do
+	H=\$(getent passwd "\$U" | awk -F: '{print \$6}')
+	mkdir \$H/.ssh && echo "$(tail -n1 $sshkeyf)" >>\$H/.ssh/authorized_keys
+done
 KSF
 
 [[ -n "$Post" && -f "$Post" ]] && {
 	cat $Post
 }
+echo -e "%end\n"
 
 case $Distro in
 RHEL-5*|RHEL5*|centos5*|centos-5*)
