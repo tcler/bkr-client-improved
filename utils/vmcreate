@@ -14,7 +14,7 @@ MacvtapMode=bridge
 VMName=
 InstallType=import
 ImagePath=~/myimages
-VMPath=~/VMs
+VMSHOME=~/VMs
 RuntimeTmp=/tmp/vmc-$$
 INTERACT=yes
 vmprefix=$(whoami)
@@ -47,7 +47,7 @@ _vmdelete() {
 	echo -e "\n{INFO} dist removing VM $_vmname .."
 	virsh destroy $_vmname 2>/dev/null
 	virsh undefine $_vmname --remove-all-storage
-	[[ "$_vmdir" = $VMPath/?* ]] && rmdir $_vmdir 2>/dev/null
+	[[ "$_vmdir" = $VMSHOME/?* ]] && rmdir $_vmdir 2>/dev/null
 }
 
 vmdialogchecklist() {
@@ -589,7 +589,7 @@ done
 
 # __main__
 if egrep -wo '(vmx|svm)' /proc/cpuinfo -q; then
-	enable_libvirt
+	enable_libvirt &>$(tty)
 else
 	echo -e "{WARN} current machine doesn't support Virtualization, show help info with\n  $PROG -h"
 	exit 1
@@ -695,6 +695,9 @@ virsh desc $vmname &>/dev/null && {
 		exit
 	fi
 }
+
+VMpath=$VMSHOME/$Distro
+mkdir -p $VMpath
 
 # Phase-1: get distro's Location or Image url
 [[ -n "${distroInfo[$Distro]}" ]] && {
@@ -856,7 +859,7 @@ if [[ "$InstallType" = location ]]; then
 	  $OS_VARIANT_OPT \
 	  --vcpus ${VCPUN:-4} \
 	  --memory ${MSIZE:-2048} \
-	  --disk size=${DSIZE:-16},bus=virtio \
+	  --disk size=${DSIZE:-16},bus=virtio,path=$VMpath/${vmname}.qcow2 \
 	  $NETWORK_OPTS \
 	  --initrd-inject $KSPath \
 	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
@@ -950,9 +953,7 @@ if [[ "$InstallType" = location ]]; then
 elif [[ "$InstallType" = import ]]; then
 	[[ -f $Imageurl ]] && Imageurl=file://$(readlink -f ${Imageurl})
 	imagefilename=${Imageurl##*/}
-	vmpath=$VMPath/$Distro
-	imagefile=$vmpath/$imagefilename
-	mkdir -p $vmpath
+	imagefile=$VMpath/$imagefilename
 
 	echo "{INFO} downloading cloud image file of $Distro to $imagefile ..."
 	[[ $Imageurl = file://$imagefile ]] || {
@@ -979,7 +980,7 @@ elif [[ "$InstallType" = import ]]; then
 			mkdir -p ~/bin && curl -s -o ~/bin/cloud-init-iso-gen.sh -C - -L $_url
 			chmod +x ~/bin/cloud-init-iso-gen.sh
 		}
-		cloudinitiso=$vmpath/$vmname-cloud-init.iso
+		cloudinitiso=$VMpath/$vmname-cloud-init.iso
 		[[ -n "$Location" ]] && {
 			REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
 		}
