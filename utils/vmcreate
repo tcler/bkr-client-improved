@@ -450,15 +450,12 @@ Usage() {
 	Options:
 	    -h, --help     #Display this help.
 	    -I             #create VM by import existing disk image, auto search url according distro name
-	                    `-> just could used in Intranet
+	                    `-> just could be used in Intranet
 	    -i <url/path>  #create VM by import existing disk image, value can be url or local path
 	    -L             #create VM by using location, auto search url according distro name
-	                    `-> just could used in Intranet
+	                    `-> just could be used in Intranet
 	    -l <url>       #create VM by using location
 	    --ks <file>    #kickstart file
-	    --msize <size> #memory size, default 2048
-	    --dsize <size> #disk size, default 16
-	    --cpus <N>     #number of virtual cpus, default 4
 	    -n|--vmname <name>
 	                   #VM name, will auto generate according distro name if omitting
 	    -f|--force     #over write existing VM with same name
@@ -466,7 +463,7 @@ Usage() {
 	                   #pkgs in default system repo, install by yum or apt-get
 	    -b|-brewinstall <args>
 	                   #pkgs in brew system or specified by url, install by internal brewinstall.sh
-	                    `-> just could used in Intranet
+	                    `-> just could be used in Intranet
 	    -g|-genimage   #generate VM image, after install shutdown VM and generate new qcow2.xz file
 	    --rm           #like --rm option of docker/podman, remove VM after quit from console
 	    --nocloud|--nocloud-init
@@ -479,6 +476,9 @@ Usage() {
 	    --nointeract   #exit from virsh console after install finish
 	    --saveimage [path]
 	                   #save image in path if install with import mode
+	    --cpus <N>     #number of virtual cpus, default 4
+	    --msize <size> #memory size, default 2048
+	    --dsize <size> #disk size, default 16
 	    --net <\$name>
 	                   #join libvirt net \$name
 	    --netmacvtap [source NIC]
@@ -495,7 +495,8 @@ Usage() {
 	    $PROG RHEL-8.1.0 -f -p "vim wget git"
 	    $PROG RHEL-8.1.0 -L -brewinstall 23822847  # brew scratch build id
 	    $PROG RHEL-8.1.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
-	    $PROG RHEL-8.2.0-20191024.n.0 -g -b \$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+	    $PROG RHEL-8.1.0 -L -brewinstall "lstk -debug"            # latest brew build release debug kernel
+	    $PROG RHEL-8.2.0-20191024.n.0 -g -b "upk -debug"          # latest brew build upstream debug kernel
 
 	EOF
 	cat <<-EOF
@@ -539,14 +540,14 @@ _at=`getopt -o hd:Ll:fn:gb:p:Ii: \
 	--long pkginstall: \
 	--long getimage \
 	--long nocloud-init --long nocloud \
+	--long cpus: \
 	--long msize: \
 	--long dsize: \
-	--long cpus: \
-	--long nointeract \
-	--long saveimage:: \
 	--long net: \
 	--long netmacvtap:: \
 	--long macvtapmode: \
+	--long nointeract \
+	--long saveimage:: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
