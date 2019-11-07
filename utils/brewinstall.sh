@@ -54,7 +54,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $P [-debugkernel] {brew scratch build id] [lstk|upk|brew build name] [url] [-debug] [-noreboot]}
+	 $P <[brew_scratch_build_id] | [lstk|upk|brew_build_name] | [url]>  [-debug] [-noreboot]
 
 	Example:
 	 $P 23822847  # brew scratch build id
