@@ -30,7 +30,7 @@ winVer=${1:-2012}
 
 echo -e "Info: checking dependence ..."
 which nc &>/dev/null || dep=nmap-ncat
-which vncviewer &>/dev/null || dep+=\ realvnc-vnc-viewer
+which vncviewer &>/dev/null || dep+=\ tigervnc
 [[ -n $dep ]] && {
 	echo "Warn: you need install $dep first, try:" >&2
 	echo "    sudo yum install -y $dep" >&2
@@ -69,4 +69,4 @@ while ! nc $host 7788 </dev/null &>/dev/null; do sleep 10; echo -n .; done
 
 
 echo -e "\nvncviewer $host:7788 #..."
-vncviewer $host:7788 -Encryption=PreferOff
+vncviewer $host:7788
