@@ -1101,6 +1101,7 @@ fi
 	   UserKnownHostsFile=/dev/null
 	   LogLevel ERROR
 	EOF
+	chmod 600 ~/.ssh/config
 }
 
 [[ "$RM" = yes && "$GenerateImage" != yes ]] && {
