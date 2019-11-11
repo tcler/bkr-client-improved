@@ -34,7 +34,7 @@ set CommonOptionList {
 }}
 	distro			{arg y	help {Use named distro for job, same as --dr=distro_name=\$DISTRO}}
 	distrot			{arg y	help {define distro template for multihost test, eg: --distrot=6,6,%D)}}
-	variant			{arg m	help {Specify the distro variant, same as --dr=distro_variant=\$VARIANT}}
+	{variant v}		{arg m	help {Specify the distro variant, same as --dr=distro_variant=\$VARIANT}}
 	arch			{arg y	help {Specify the distroRequire.disro_arch and hostRequire.arch, same as: --dr=distro_arch=\$ARCH --hr=arch=\$ARCH}}
   }
 
