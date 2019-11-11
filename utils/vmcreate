@@ -22,6 +22,8 @@ vmprefix=$(whoami)
 Intranet=yes
 baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
 VIRT_READY=unkown
+MSIZE=1024
+DSIZE=16
 
 Cleanup() {
 	cd ~
@@ -509,6 +511,7 @@ Usage() {
 	    --macvtapmode <vepa|bridge>
 	                   #macvtap mode
 	    -r|--ready     #virt config is ready, don't have to run enable_libvirt function
+	    --nvdimm       #add a nvdimm device(2048+2M)
 
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
@@ -573,6 +576,7 @@ _at=`getopt -o hd:Ll:fn:gb:p:Ii:r \
 	--long nointeract \
 	--long saveimage:: \
 	--long ready \
+	--long nvdimm \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -609,7 +613,8 @@ while true; do
 		mkdir -p ${SaveImagePath}
 		shift 2
 		;;
-	-r|--ready)         VIRT_READY=yes; shift 1;;
+	-r|--ready)      VIRT_READY=yes; shift 1;;
+	--nvdimm)        NVDIMM=yes; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -789,6 +794,7 @@ if [[ "$InstallType" = location ]]; then
 		}
 		echo -e " -> $Location"
 	fi
+	MSIZE=${MSIZE:-2048}
 fi
 
 echo "{INFO} guess/verify os-variant ..."
@@ -845,6 +851,15 @@ get_default_if() {
 	srcif=$(get_default_if)
 	NETWORK_OPTS="--network=network=default,model=virtio --network=type=direct,source=$srcif,source_mode=$MacvtapMode,model=virtio"
 }
+
+if [[ "$NVDIMM" = yes ]]; then
+	nvdimmf=$VMpath/nvdimm.dev
+	truncate -s 2050M $nvdimmf
+	MEM_OPTS="--memory=${MSIZE},hotplugmemorymax=32768,hotplugmemoryslots=2 --cpu cell0.cpus=0,cell0.memory=$((MSIZE*1024)) --memdev nvdimm,source_path=$nvdimmf,target_size=2048,target_node=0,target_label_size=2"
+else
+	MEM_OPTS="--memory=${MSIZE}"
+fi
+
 if [[ "$InstallType" = location ]]; then
 	[[ -z "$KSPath" ]] && {
 		echo "{INFO} generating kickstart file for $Distro ..."
@@ -884,8 +899,8 @@ if [[ "$InstallType" = location ]]; then
 	  --location $Location \
 	  $OS_VARIANT_OPT \
 	  --vcpus ${VCPUN:-4} \
-	  --memory ${MSIZE:-2048} \
-	  --disk size=${DSIZE:-16},bus=virtio,path=$VMpath/${vmname}.qcow2 \
+	  $MEM_OPTS \
+	  --disk size=${DSIZE},bus=virtio,path=$VMpath/${vmname}.qcow2 \
 	  $NETWORK_OPTS \
 	  --initrd-inject $KSPath \
 	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
@@ -1019,7 +1034,7 @@ elif [[ "$InstallType" = import ]]; then
 	virt-install --connect=qemu:///system --hvm --accelerate \
 	  --name $vmname \
 	  --vcpus ${VCPUN:-4} \
-	  --memory ${MSIZE:-1024} \
+	  $MEM_OPTS \
 	  --disk ${imagefile},bus=virtio \
 	  $CLOUD_INIT_OPT \
 	  $NETWORK_OPTS \
