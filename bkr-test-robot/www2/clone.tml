@@ -55,9 +55,12 @@ if {$permission != yes} {
 				if {[lsearch -regexp $pkglist ^kernel$] == -1} {
 					set pkglist [linsert $pkglist 0 kernel]
 				}
+				set info {}
 				foreach pkg $pkglist {
-					lappend gset -info=[exec bash -c "vershow -p ^$pkg-\[0-9] -d ^$distro$|sed -n 2p"]
+					lappend info -info=[exec bash -c "vershow -p ^$pkg-\[0-9] -d ^$distro$|sed -n 2p"]
 				}
+				if {[string length $info] = 0} {set info [clock format [clock second] -format %Y-%m-%d]}
+				lappend gset -info=$info
 			} else {
 				if {[regexp -- {^kernel-} $v]} {
 					lappend gset -nvr=$v

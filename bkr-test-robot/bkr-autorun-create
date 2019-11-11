@@ -115,6 +115,10 @@ if {$Distro_ == ""} {
 	exit 1
 }
 
+if [regexp -- {family} $Distro] {
+	lappend Gset "-info=[clock format [clock second] -format %Y-%m-%d]"
+}
+
 # Get the test list
 set _TestList [list]
 set TestList [list]
