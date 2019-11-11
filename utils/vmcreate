@@ -31,8 +31,29 @@ Cleanup() {
 }
 trap Cleanup EXIT #SIGINT SIGQUIT SIGTERM
 #-------------------------------------------------------------------------------
+
+vmname_gen() {
+	local distro=$1
+	local cname=$2
+	local name=${Distro//./}
+	name=${name,,}
+	[[ -n "$cname" ]] && name=${cname}
+	name=${vmprefix}-${name}
+	echo -n $name
+}
+speculate_vmname() {
+	local name=$1
+	[[ -n "$name" && "$name" != ${vmprefix}-* ]] && {
+		namef=$VMSHOME/$name/vmname
+		if [[ -f $namef ]]; then
+			name=$(<$namef)
+		fi
+	}
+	echo -n "$name"
+}
+
 _vmdelete() {
-	local _vmname=$1
+	local _vmname=$(speculate_vmname $1)
 	[[ -z "$_vmname" ]] && {
 		return 1
 	}
@@ -91,7 +112,7 @@ vmdelete() {
 }
 
 vmifaddr() {
-	local _vmname=$1
+	local _vmname=$(speculate_vmname $1)
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
 		vmdialogradiolist vm-ifaddr $resf && _vmname=$(sed 's/"//g' $resf)
@@ -106,7 +127,7 @@ vmifaddr() {
 }
 
 vmedit() {
-	local _vmname=$1
+	local _vmname=$(speculate_vmname $1)
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
 		vmdialogradiolist vm-edit $resf all && _vmname=$(sed 's/"//g' $resf)
@@ -123,7 +144,8 @@ vmlogin() {
 		shift
 	}
 
-	local _vmname=$1; shift
+	local _vmname=$(speculate_vmname $1)
+	shift
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
 		vmdialogradiolist vm-login $resf && _vmname=$(sed 's/"//g' $resf)
@@ -486,7 +508,7 @@ Usage() {
 	                   #attach a macvtap interface
 	    --macvtapmode <vepa|bridge>
 	                   #macvtap mode
-	    --ready        #virt config is ready, don't have to run enable_libvirt function
+	    -r|--ready     #virt config is ready, don't have to run enable_libvirt function
 
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
@@ -528,7 +550,7 @@ Usage() {
 }
 
 # command line parse
-_at=`getopt -o hd:Ll:fn:gb:p:Ii: \
+_at=`getopt -o hd:Ll:fn:gb:p:Ii:r \
 	--long help \
 	--long ks: \
 	--long rm \
@@ -587,7 +609,7 @@ while true; do
 		mkdir -p ${SaveImagePath}
 		shift 2
 		;;
-	--ready)         VIRT_READY=yes; shift 1;;
+	-r|--ready)         VIRT_READY=yes; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -686,10 +708,7 @@ is_intranet || {
 }
 
 # check if VM exist
-vmname=${Distro//./}
-vmname=${vmname,,}
-[[ -n "$VMName" ]] && vmname=${VMName}
-vmname=${vmprefix}-${vmname}
+vmname=$(vmname_gen $Distro $VMName)
 virsh desc $vmname &>/dev/null && {
 	if [[ "${OVERWRITE}" = "yes" ]]; then
 		echo "{INFO} VM $vmname has been there, remove it ..."
@@ -703,6 +722,7 @@ virsh desc $vmname &>/dev/null && {
 
 VMpath=$VMSHOME/$Distro
 mkdir -p $VMpath
+echo -n $vmname >$VMpath/vmname
 
 # Phase-1: get distro's Location or Image url
 [[ -n "${distroInfo[$Distro]}" ]] && {
