@@ -21,6 +21,7 @@ vmprefix=$(whoami)
 [[ -n "$SUDO_USER" ]] && vmprefix=${SUDO_USER}-sudo
 Intranet=yes
 baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
+VIRT_READY=unkown
 
 Cleanup() {
 	cd ~
@@ -122,7 +123,7 @@ vmlogin() {
 		shift
 	}
 
-	local _vmname=$1
+	local _vmname=$1; shift
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
 		vmdialogradiolist vm-login $resf && _vmname=$(sed 's/"//g' $resf)
@@ -139,7 +140,7 @@ vmlogin() {
 			echo -e "{WARN} port $addr:22 is not available"
 			continue
 		}
-		ssh root@$addr
+		ssh root@$addr "$@"
 		return
 	done
 }
@@ -485,6 +486,7 @@ Usage() {
 	                   #attach a macvtap interface
 	    --macvtapmode <vepa|bridge>
 	                   #macvtap mode
+	    --ready        #virt config is ready, don't have to run enable_libvirt function
 
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
@@ -548,6 +550,7 @@ _at=`getopt -o hd:Ll:fn:gb:p:Ii: \
 	--long macvtapmode: \
 	--long nointeract \
 	--long saveimage:: \
+	--long ready \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -584,13 +587,14 @@ while true; do
 		mkdir -p ${SaveImagePath}
 		shift 2
 		;;
+	--ready)         VIRT_READY=yes; shift 1;;
 	--) shift; break;;
 	esac
 done
 
 # __main__
 if egrep -wo '(vmx|svm)' /proc/cpuinfo -q; then
-	enable_libvirt
+	[[ "$VIRT_READY" != yes ]] && enable_libvirt
 else
 	echo -e "{WARN} current machine doesn't support Virtualization, show help info with\n  $PROG -h"
 	exit 1
