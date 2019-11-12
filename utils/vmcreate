@@ -1,4 +1,7 @@
 #!/bin/bash
+# author: yin-jianhong@163.com
+# test pass on RHEL-7/CentOS-7, RHEL-8/CentOS-8 and Fedora-29/30/31
+
 LANG=C
 PATH=~/bin:$PATH 
 
@@ -505,14 +508,13 @@ Usage() {
 	    --cpus <N>     #number of virtual cpus, default 4
 	    --msize <size> #memory size, default 2048
 	    --dsize <size> #disk size, default 16
-	    --net <\$name>
-	                   #join libvirt net \$name
+	    --net <$name>  #join libvirt net $name
 	    --netmacvtap [source NIC]
 	                   #attach a macvtap interface
 	    --macvtapmode <vepa|bridge>
 	                   #macvtap mode
 	    -r|--ready     #virt config is ready, don't have to run enable_libvirt function
-	    --nvdimm       #add a nvdimm device(2048+2M)
+	    --nvdimm       #add a nvdimm device(2048+2M) //need qemu-v2.6.0 or later
 
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
