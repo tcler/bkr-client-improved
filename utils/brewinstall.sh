@@ -9,7 +9,7 @@ is_intranet() {
 	curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $iurl &>/dev/null
 }
 
-[[ function = "$(type -t report_result)" ]] || report_result() { :; }
+[[ function = "$(type -t report_result)" ]] || report_result() {  echo "$@"; }
 
 P=${0##*/}
 KREBOOT=yes
@@ -144,12 +144,13 @@ done
 
 # Install packages
 run "ls -lh"
-run "rpm -Uvh --force --nodeps *.rpm"
+run "ls -lh *.rpm"
 [ $? != 0 ] && {
-	report_result rpm-install FAIL
+	report_result download-rpms FAIL
 	exit 1
 }
 
+run "rpm -Uvh --force --nodeps *.rpm" -
 [[ "$retcode" != 0 ]] && res=FAIL
 report_result install $res
 
