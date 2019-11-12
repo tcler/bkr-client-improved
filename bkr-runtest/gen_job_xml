@@ -202,7 +202,7 @@ if {[llength $DISTRO_L] == 0 && [llength $FAMILY_L] == 0} {
 	exit 1
 }
 
-if {[regexp -- {RHEL-8} $DISTRO_L] == 1 && [info exist Opt(harness)]} {
+if {[regexp -- {RHEL-8|family8} $DISTRO_L] == 1 && [info exist Opt(harness)]} {
 	set Opt(harness) rst
 	if [info exist Opt(wb)] {
 		regsub -line {harness=[[:alnum:]]*} $Opt(wb) {harness=rst} Opt(wb)
