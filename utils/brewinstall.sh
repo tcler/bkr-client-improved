@@ -20,7 +20,7 @@ P=${0##*/}
 KREBOOT=yes
 retcode=0
 res=PASS
-prompt="[pkg-install]"
+prompt="[brew-install]"
 run() {
 	local cmdline=$1
 	local expect_ret=${2:-0}
