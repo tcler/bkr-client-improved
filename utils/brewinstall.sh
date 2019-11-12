@@ -115,12 +115,13 @@ for build; do
 			run "wget --progress=dot:mega http://download.devel.redhat.com/$url" 0  "download-${url##*/}"
 		done
 
+		#try download rpms from brew download server
 		[[ -z "$urllist" ]] && {
 			owner=$(awk '/^Owner:/{print $2}' brew_taskinfo.txt)
 			downloadServerUrl=http://download.devel.redhat.com/brewroot/scratch/$owner/task_$taskid
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
-				run "wget -r -l1 --no-parent -A.rpm --progress=dot:mega $finalUrl/" 0  "download-${finalUrl##*/}"
+				run "wget -r -l1 --no-parent -A.$(arch).rpm -A.noarch.rpm --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
 		}
@@ -141,7 +142,7 @@ for build; do
 			if [[ $url = *.rpm ]]; then
 				run "wget --progress=dot:mega $url" 0  "download-${url##*/}"
 			else
-				run "wget -r -l1 --no-parent -A.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
+				run "wget -r -l1 --no-parent -A.$(arch).rpm -A.noarch.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
