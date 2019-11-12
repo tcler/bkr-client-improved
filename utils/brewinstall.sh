@@ -2,11 +2,16 @@
 # Description: to install brew scratch build or 3rd party pkgs
 # Author: Jianhong Yin <jiyin@redhat.com>
 
+LANG=C
 baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
 
+is_available_url() {
+        local _url=$1
+        curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $_url &>/dev/null
+}
 is_intranet() {
 	local iurl=http://download.devel.redhat.com
-	curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $iurl &>/dev/null
+	is_available_url $iurl
 }
 
 [[ function = "$(type -t report_result)" ]] || report_result() {  echo "$@"; }
@@ -95,8 +100,8 @@ for build; do
 		#wait the scratch build finish
 		while brew taskinfo $taskid|grep -q '^State: open'; do echo "[$(date +%T) Info] build hasn't finished, wait"; sleep 5m; done
 
-		run "brew taskinfo -r $taskid > >(tee brew_buildinfo.txt)"
-		run "awk '/\\<($(arch)|noarch)\\.rpm/{print}' brew_buildinfo.txt >buildArch.txt"
+		run "brew taskinfo -r $taskid > >(tee brew_taskinfo.txt)"
+		run "awk '/\\<($(arch)|noarch)\\.rpm/{print}' brew_taskinfo.txt >buildArch.txt"
 		run "cat buildArch.txt"
 		[ -z "$(< buildArch.txt)" ] && {
 			echo "$prompt [Warn] rpm not found, treat the [$taskid] as build ID."
@@ -109,6 +114,16 @@ for build; do
 		for url in $urllist; do
 			run "wget --progress=dot:mega http://download.devel.redhat.com/$url" 0  "download-${url##*/}"
 		done
+
+		[[ -z "$urllist" ]] && {
+			owner=$(awk '/^Owner:/{print $2}' brew_taskinfo.txt)
+			downloadServerUrl=http://download.devel.redhat.com/brewroot/scratch/$owner/task_$taskid
+			is_available_url $downloadServerUrl && {
+				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
+				run "wget -r -l1 --no-parent -A.rpm --progress=dot:mega $finalUrl/" 0  "download-${finalUrl##*/}"
+				find */ -name '*.rpm' | xargs -i mv {} ./
+			}
+		}
 	elif [[ "$build" =~ ^nfs: ]]; then
 		nfsmp=/mnt/nfsmountpoint-$$
 		mkdir -p $nfsmp
