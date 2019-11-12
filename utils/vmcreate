@@ -514,7 +514,7 @@ Usage() {
 	    --macvtapmode <vepa|bridge>
 	                   #macvtap mode
 	    -r|--ready     #virt config is ready, don't have to run enable_libvirt function
-	    --nvdimm       #add a nvdimm device(2048+2M) //need qemu-v2.6.0 or later
+	    --nvdimm       #add a nvdimm device(2048+2M) //need qemu >= v2.6.0(RHEL/CentOS 8.0 or later)
 
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
