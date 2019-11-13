@@ -73,8 +73,14 @@ _vmdelete() {
 
 	echo -e "\n{INFO} dist removing VM $_vmname .."
 	virsh destroy $_vmname 2>/dev/null
+	sleep 1
 	virsh undefine $_vmname --remove-all-storage
-	[[ "$_vmdir" = $VMSHOME/?* ]] && rmdir $_vmdir 2>/dev/null
+	if [[ "$_vmdir" = $VMSHOME/?* ]]; then
+		echo -e "\n{INFO} removing VM folder $_vmdir ..."
+		rm -f $_vmdir/{vmname,vncport,url}
+		rmdir $_vmdir 2>/dev/null
+	fi
+	return 0
 }
 
 vmdialogchecklist() {
@@ -821,6 +827,7 @@ VNCPORT=${VNCPORT:-7777}
 while nc 127.0.0.1 ${VNCPORT} </dev/null &>/dev/null; do
 	let VNCPORT++
 done
+echo $VNCPORT >$VMpath/vncport
 
 is_bridge() {
 	local ifname=$1
@@ -892,6 +899,8 @@ if [[ "$InstallType" = location ]]; then
 	}
 
 	echo -e "{INFO} creating VM by using location:\n ->  $Location"
+	echo $Location >$VMpath/url
+
 	[[ "$GenerateImage" = yes ]] && {
 		sed -i '/^reboot$/s//poweroff/' ${KSPath}
 		NOREBOOT=--noreboot
@@ -980,7 +989,7 @@ if [[ "$InstallType" = location ]]; then
 		test -d /proc/$installpid || break
 		sleep 2
 	done
-	echo -e "\n{INFO} Quit from console of $vmname"
+	echo -e "\n{INFO} Quit from expect -c 'spawn virsh console $vmname'"
 
 	# waiting install finish ...
 	test -d /proc/$installpid && {
@@ -1034,6 +1043,7 @@ elif [[ "$InstallType" = import ]]; then
 	}
 
 	echo -e "{INFO} creating VM by import $imagefile"
+	echo $Imageurl >$VMpath/url
 	virt-install --connect=qemu:///system --hvm --accelerate \
 	  --name $vmname \
 	  --vcpus ${VCPUN:-4} \
@@ -1102,7 +1112,12 @@ elif [[ "$InstallType" = import ]]; then
 		test -d /proc/$installpid || break
 		sleep 2
 	done
-	echo -e "\n{INFO} Quit from console of $vmname"
+	echo -e "\n{INFO} Quit from expect -c 'spawn virsh console $vmname'"
+fi
+
+if ! virsh desc $vmname &>/dev/null; then
+	echo -e "\n{ERROR} virt-install fail"
+	exit 1
 fi
 
 if [[ "$GenerateImage" = yes ]]; then
