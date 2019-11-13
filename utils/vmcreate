@@ -1136,7 +1136,7 @@ else
 	}
 fi
 
-[[ -f ~/.ssh/config ]] || {
+if [[ ! -f ~/.ssh/config ]]; then
 	cat <<-EOF > ~/.ssh/config
 	Host 192.168.*.*
 	   StrictHostKeyChecking no
@@ -1144,9 +1144,11 @@ fi
 	   LogLevel ERROR
 	EOF
 	chmod 600 ~/.ssh/config
-}
+fi
 
-[[ "$RM" = yes && "$GenerateImage" != yes ]] && {
+if [[ "$RM" = yes && "$GenerateImage" != yes ]]; then
 	vmdelete $vmname
-	exit
-}
+	exit 0
+fi
+
+exit 0
