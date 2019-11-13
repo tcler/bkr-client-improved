@@ -4,7 +4,7 @@ export LANG=C
 P=${0##*/}
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [-b] [-d <distro>] [--kdc] [2012|2016]"
+	echo "Usage: $P [-b] [-d <distro>] [--kdc] [2012|2016|2019]"
 }
 _at=`getopt -a -o hbd: \
 	--long help \
@@ -26,7 +26,7 @@ while true; do
 	esac
 done
 
-winVer=${1:-2012}
+winVer=${1:-2019}
 
 echo -e "Info: checking dependence ..."
 which nc &>/dev/null || dep=nmap-ncat
