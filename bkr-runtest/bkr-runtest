@@ -186,7 +186,7 @@ foreach test $_TestList {
 		set match_black 0
 		set blacklist [dict get $tdict attr distronotin]
 		foreach pattern {*}$blacklist {
-			if [regexp $pattern $Distro] {
+			if [regexp $pattern [string map {family "RHEL-"} $Distro]] {
 				set match_black 1
 				break
 			}
@@ -202,7 +202,7 @@ foreach test $_TestList {
 		set match_white 0
 		set whitelist [dict get $tdict attr distroin]
 		foreach pattern {*}$whitelist {
-			if [regexp $pattern $Distro] {
+			if [regexp $pattern [string map {family "RHEL-"} $Distro]] {
 				set match_white 1
 			}
 		}
