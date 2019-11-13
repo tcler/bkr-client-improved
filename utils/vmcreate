@@ -27,6 +27,7 @@ baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-im
 VIRT_READY=unkown
 MSIZE=1024
 DSIZE=16
+baudrate=115200
 
 Cleanup() {
 	cd ~
@@ -915,7 +916,7 @@ if [[ "$InstallType" = location ]]; then
 	  --disk size=${DSIZE},bus=virtio,path=$VMpath/${vmname}.qcow2 \
 	  $NETWORK_OPTS \
 	  --initrd-inject $KSPath \
-	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,115200n8" \
+	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,${baudrate}n8" \
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $NOREBOOT &
 	installpid=$!
 	sleep 5s
