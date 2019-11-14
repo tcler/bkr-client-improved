@@ -779,16 +779,13 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 				}
 				if [info exist Opt(Brew)] {
-					foreach bid $Opt(Brew) {
-						lappend insertTasks "/distribution/brew-build-install BUILDID=$bid"
-					}
+					foreach build $Opt(Brew) { lappend brewBuildList $build }
 				}
 				if [info exist Opt(brew)] {
-					set build [lindex $Opt(brew) 0]
-					set Opt(brew) [lrange $Opt(brew) 1 end]
-					foreach bid $build {
-						lappend insertTasks "/distribution/brew-build-install BUILDID=$bid"
-					}
+					foreach build $Opt(brew) { lappend brewBuildList $build }
+				}
+				if [info exist brewBuildList] {
+					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList}"
 				}
 
 				# --kdump task
