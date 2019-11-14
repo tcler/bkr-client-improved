@@ -41,16 +41,17 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $P <[brew_scratch_build_id] | [lstk|upk|brew_build_name] | [url]>  [-debug] [-noreboot]
+	 $P <[brew_scratch_build_id] | [lstk|upk|brew_build_name] | [url]>  [-debug] [-noreboot] [-depthLevel=\${N:-2}]
 
 	Example:
 	 $P 23822847  # brew scratch build id
-	 $P kernel-4.18.0-147.8.el8  # brew build name
-	 $P [ftp|http]://url/xyz.rpm # install xyz.rpm
-	 $P [ftp|http]://url/path/   # install all rpms in url/path
-	 $P nfs:server/nfsshare      # install all rpms in nfsshare
-	 $P lstk                     # install latest release kernel
-	 $P upk                      # install latest upstream kernel
+	 $P kernel-4.18.0-147.8.el8    # brew build name
+	 $P [ftp|http]://url/xyz.rpm   # install xyz.rpm
+	 $P nfs:server/nfsshare        # install all rpms in nfsshare
+	 $P lstk                       # install latest release kernel
+	 $P lstk -debug                # install latest release debug kernel
+	 $P upk                        # install latest upstream kernel
+	 $P [ftp|http]://url/path/ [-depthLevel=N]    # install all rpms in url/path, default download depth level 2
 EOF
 }
 
@@ -80,9 +81,11 @@ which brew &>/dev/null || {
 
 # Download packges
 cnt=0
+depthLevel=${DEPTH_LEVEL:-2}
 for build; do
 	[[ "$build" = -debug* ]] && { FLAG=debug; continue; }
 	[[ "$build" = -noreboot* ]] && { KREBOOT=no; continue; }
+	[[ "$build" = -depthLevel=* ]] && { depthLevel=${build/*=/}; continue; }
 	[[ "$build" = -h ]] && { Usage; exit; }
 	[[ "$build" = -* ]] && { continue; }
 
@@ -121,7 +124,7 @@ for build; do
 			downloadServerUrl=http://download.devel.redhat.com/brewroot/scratch/$owner/task_$taskid
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
-				run "wget -r -l1 --no-parent -A.$(arch).rpm -A.noarch.rpm --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
+				run "wget -r -l$depthLevel --no-parent -A.$(arch).rpm -A.noarch.rpm --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
 		}
@@ -142,7 +145,7 @@ for build; do
 			if [[ $url = *.rpm ]]; then
 				run "wget --progress=dot:mega $url" 0  "download-${url##*/}"
 			else
-				run "wget -r -l1 --no-parent -A.$(arch).rpm -A.noarch.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
+				run "wget -r -l$depthLevel --no-parent -A.$(arch).rpm -A.noarch.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
