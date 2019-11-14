@@ -88,7 +88,7 @@ vmdialogchecklist() {
 	local cmdinfo=$1
 	local resfile=$2
 	local all=$3
-	local vmList=$(virsh list --name ${all:+--all}| sed -e \$d -e 's/.*/"&" "" 1/')
+	local vmList=$(virsh list --name ${all:+--all} | sed -e \$d -e 's/.*/"&" "" 1/')
 	[[ -z "${vmList}" ]] && {
 		echo -e "{WARN} there is not any VM in your host .." >&2
 		return 1;
@@ -102,7 +102,7 @@ vmdialogradiolist() {
 	local cmdinfo=$1
 	local resfile=$2
 	local all=$3
-	local vmList=$(virsh list --name ${all:+--all}| sed -e \$d -e 's/.*/"&" "" 1/')
+	local vmList=$(virsh list --name ${all:+--all} | sed -e \$d -e 's/.*/"&" "" 1/')
 	[[ -z "${vmList}" ]] && {
 		echo -e "{WARN} there is not any VM in your host .." >&2
 		return 1;
@@ -136,6 +136,18 @@ vmifaddr() {
 		addrs=$(virsh domifaddr "$_vmname" | awk '$3=="ipv4" {print gensub("/.*","",1,$4)}')
 	}
 	[[ -n "$addrs" ]] && echo "$addrs"
+}
+
+vmvncport() {
+	local _vmname=$(speculate_vmname $1)
+	[[ -z "$_vmname" ]] && {
+		resf=$RuntimeTmp/vmlist
+		vmdialogradiolist vm-edit $resf all && _vmname=$(sed 's/"//g' $resf)
+		[[ -z "$_vmname" ]] && { return; }
+	}
+
+	local port=$(virsh dumpxml "$_vmname" | sed -rn "/.* type=.vnc. port=.([0-9]+).*/{s//\1/;p}")
+	[[ -n "${port}" ]] && echo ${HOSTNAME}:${port}
 }
 
 vmedit() {
@@ -647,6 +659,7 @@ mkdir -p $RuntimeTmp
 	l|lo|log*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
 	ls|li|lis|list) shift; [[ "$1" = -d ]] && shift; vmlist "$@"; exit $?;;
 	i|if|if*) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
+	v|v*) shift; [[ "$1" = -d ]] && shift; vmvncport "$@"; exit $?;;
 	e|ed|ed*) shift; [[ "$1" = -d ]] && shift; vmedit "$@"; exit $?;;
 	net|netcreate) shift; [[ "$1" = -d ]] && shift; netcreate "$@"; exit $?;;
 	netinfo) shift; [[ "$1" = -d ]] && shift; netinfo "$@"; exit $?;;
