@@ -779,10 +779,10 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 				}
 				if [info exist Opt(Brew)] {
-					foreach build $Opt(Brew) { lappend brewBuildList $build }
+					foreach build $Opt(Brew) { lappend brewBuildList {*}$build }
 				}
 				if [info exist Opt(brew)] {
-					foreach build $Opt(brew) { lappend brewBuildList $build }
+					foreach build $Opt(brew) { lappend brewBuildList {*}$build }
 				}
 				if [info exist brewBuildList] {
 					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList}"
