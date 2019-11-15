@@ -567,9 +567,11 @@ Usage() {
 	    $PROG debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
 
 	Example [subcmd]:
-	    vmc login [/c] [VM]   #ssh or console login VM //you can use l,lo,log* instead login
-	    vmc del   [VM list]   #rm VMs       //you can use d,de,del*,r,rm instead del
-	    vmc list              #list all VM  //you can use ls,li,lis* instead list
+	    vmc list              #list all VMs    //you can use ls,li,lis* instead list
+	    vmc login [/c] [VM]   #login VM        //you can use l,lo,log* instead login
+	    vmc delete [VM list]  #delete VMs      //you can use d,de,del*,r,rm instead delete
+	    vmc ifaddr [VM]       #show ip address //you can use i,if,if* instead ifaddr
+	    vmc vncport [VM]      #show vnc host:port //you can use v,vnc instead vncport
 
 	    vmc net               #list all virtual network
 	    vmc net netname=testnet brname=virbrN subnet=100  #create virtual network 'testnet'
