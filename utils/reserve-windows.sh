@@ -4,7 +4,7 @@ export LANG=C
 P=${0##*/}
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [-b] [-d <distro>] [--kdc] [2012|2016|2019]"
+	echo "Usage: $P [-b] [-d <distro>] [--kdc] [win10|2012|2016|2019]"
 }
 _at=`getopt -a -o hbd: \
 	--long help \
