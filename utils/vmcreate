@@ -914,6 +914,11 @@ if [[ "$InstallType" = location ]]; then
 		wget -O /usr/bin/brewinstall.sh -N -q $baseDownloadUrl/utils/brewinstall.sh --no-check-certificate
 		chmod +x /usr/bin/brewinstall.sh
 		brewinstall.sh $BPKGS
+
+		echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] kdump-setup ..."
+		wget -O /usr/bin/kdump-setup.sh -N -q $baseDownloadUrl/utils/kdump-setup.sh --no-check-certificate
+		chmod +x /usr/bin/kdump-setup.sh
+		kdump-setup.sh
 		END
 		ks-generator.sh -d $Distro -url $Location $REPO_OPTS --post $postscript --sshkeyf ~/.ssh/id_rsa.pub >$KSPath
 	}

@@ -2,10 +2,21 @@
 # author: yin-jianhong@163.com
 # ref: https://cloudinit.readthedocs.io/en/latest/topics/examples.html
 
+LANG=C
 HostName=mylinux
 Repos=()
 BPKGS=
 PKGS=
+baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
+
+is_available_url() {
+        local _url=$1
+        curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $_url &>/dev/null
+}
+is_intranet() {
+	local iurl=http://download.devel.redhat.com
+	is_available_url $iurl
+}
 
 _at=`getopt -o hp:b:D \
 	--long help \
@@ -44,6 +55,10 @@ else
 	touch $isof
 	isof=$(readlink -f $isof)
 fi
+
+is_intranet && {
+	baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
+}
 
 tmpdir=.cloud-init-iso-gen-$$
 mkdir -p $tmpdir
@@ -96,8 +111,10 @@ runcmd:
   - which yum && yum install -y vim curl wget $PKGS
   -   which apt-get && apt-get install -y vim curl wget $PKGS
   -   which zypper && zypper install -y vim curl wget $PKGS
-  - which yum && curl -L -m 30 -o /usr/bin/brewinstall.sh "http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/utils/brewinstall.sh" &&
-    chmod +x /usr/bin/brewinstall.sh && brewinstall.sh $BPKGS
+  - which yum && curl -L -m 30 -o /usr/bin/brewinstall.sh "$baseDownloadUrl/utils/brewinstall.sh" &&
+    chmod +x /usr/bin/brewinstall.sh && brewinstall.sh $BPKGS -noreboot
+  - which yum && curl -L -m 30 -o /usr/bin/kdump-setup.sh "$baseDownloadUrl/utils/kdump-setup.sh" &&
+    chmod +x /usr/bin/kdump-setup.sh && kdump-setup.sh reboot
 EOF
 
 genisoimage -output $isof -volid cidata -joliet -rock user-data meta-data
