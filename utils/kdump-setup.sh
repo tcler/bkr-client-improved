@@ -24,23 +24,24 @@ echo
 #phase2: reserve memory
 #----------------------------------
 kver=$(uname -r|awk -F. '{print $1}')
-msize=$(free -gt | awk '/^Mem/{print $2}')
+mgsize=$(free -gt | awk '/^Mem/{print $2}')
 
 #RHEL-8
 if [[ $kver -ge 4 ]]; then
 	val=auto
+	[[ ${mmsize} -lt 960 ]] && val=64M
 #RHEL-7
 elif [[ $kver -eq 3 ]]; then
-	if [[ ${msize} -ge 4 ]]; then
+	if [[ ${mgsize} -ge 4 ]]; then
 		val=auto
-	elif [[ ${msize} -ge 2 ]]; then
+	elif [[ ${mgsize} -ge 2 ]]; then
 		if [[ $(arch) = s390* ]]; then
 			val="161M"
 		else
 			val=auto
 		fi
 	else
-		val="256M-512M:32M,512M-960M:64M,960M-2G:128M"
+		val="0M-960M:64M,960M-2G:128M"
 	fi
 else
 	echo "{WARN} don't support kernel older then kernel-3"
