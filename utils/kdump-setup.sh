@@ -1,5 +1,10 @@
 #!/bin/bash
 # author: yin-jianhong@163.com
+#
+# ref: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/kernel_administration_guide/kernel_crash_dump_guide#sect-kdump-memory-requirements
+# ref: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/kernel_administration_guide/kernel_crash_dump_guide#sect-kdump-memory-thresholds
+
+LANG=C
 
 [[ $(id -u) != 0 ]] && {
 	echo -e "{Warn} configure kdump need root permission, try:\n  sudo $0 ..." >&2
@@ -19,9 +24,24 @@ echo
 #phase2: reserve memory
 #----------------------------------
 kver=$(uname -r|awk -F. '{print $1}')
-if [[ $kver -ge 3 ]]; then
-	val="1G-2G:128M,2G-4G:384M,4G-16G:512M,16G-64G:1G,64G-128G:2G,128G-:4G"
-	val="auto"
+msize=$(free -gt | awk '/^Mem/{print $2}')
+
+#RHEL-8
+if [[ $kver -ge 4 ]]; then
+	val=auto
+#RHEL-7
+elif [[ $kver -eq 3 ]]; then
+	if [[ ${msize} -ge 4 ]]; then
+		val=auto
+	elif [[ ${msize} -ge 2 ]]; then
+		if [[ $(arch) = s390* ]]; then
+			val="161M"
+		else
+			val=auto
+		fi
+	else
+		val="256M-512M:32M,512M-960M:64M,960M-2G:128M"
+	fi
 else
 	echo "{WARN} don't support kernel older then kernel-3"
 	exit 1
