@@ -88,7 +88,9 @@ vmdialogchecklist() {
 	local cmdinfo=$1
 	local resfile=$2
 	local all=$3
-	local vmList=$(virsh list --name ${all:+--all} | sed -e \$d -e 's/.*/"&" "" 1/')
+	local vmlist=$(virsh list --name ${all:+--all})
+	vmlist=$(grep "^$vmprefix" <<<"$vmlist"; grep -v "^$vmprefix" <<<"$vmlist";)
+	local vmList=$(echo "$vmlist" | sed -e \$d -e 's/.*/"&" "" 1/')
 	[[ -z "${vmList}" ]] && {
 		echo -e "{WARN} there is not any VM in your host .." >&2
 		return 1;
@@ -102,7 +104,9 @@ vmdialogradiolist() {
 	local cmdinfo=$1
 	local resfile=$2
 	local all=$3
-	local vmList=$(virsh list --name ${all:+--all} | sed -e \$d -e 's/.*/"&" "" 1/')
+	local vmlist=$(virsh list --name ${all:+--all})
+	vmlist=$(grep "^$vmprefix" <<<"$vmlist"; grep -v "^$vmprefix" <<<"$vmlist";)
+	local vmList=$(echo "$vmlist" | sed -e \$d -e 's/.*/"&" "" 1/')
 	[[ -z "${vmList}" ]] && {
 		echo -e "{WARN} there is not any VM in your host .." >&2
 		return 1;
@@ -643,7 +647,9 @@ done
 
 # __main__
 if egrep -wo '(vmx|svm)' /proc/cpuinfo -q; then
-	[[ "$VIRT_READY" != yes ]] && enable_libvirt
+	[[ "$VIRT_READY" != yes ]] && {
+		enable_libvirt &>$(ls /dev/tty || echo /dev/null)
+	}
 else
 	echo -e "{WARN} current machine doesn't support Virtualization, show help info with\n  $PROG -h"
 	exit 1
