@@ -91,7 +91,7 @@ vmdialogchecklist() {
 	local all=$3
 	local vmlist=$(virsh list --name ${all:+--all})
 	vmlist=$(grep "^$vmprefix" <<<"$vmlist"; grep -v "^$vmprefix" <<<"$vmlist";)
-	local vmList=$(echo "$vmlist" | sed -e \$d -e 's/.*/"&" "" 1/')
+	local vmList=$(echo "$vmlist" | sed -e /^$/d -e 's/.*/"&" "" 1/')
 	[[ -z "${vmList}" ]] && {
 		echo -e "{WARN} there is not any VM in your host .." >&2
 		return 1;
@@ -107,7 +107,7 @@ vmdialogradiolist() {
 	local all=$3
 	local vmlist=$(virsh list --name ${all:+--all})
 	vmlist=$(grep "^$vmprefix" <<<"$vmlist"; grep -v "^$vmprefix" <<<"$vmlist";)
-	local vmList=$(echo "$vmlist" | sed -e \$d -e 's/.*/"&" "" 1/')
+	local vmList=$(echo "$vmlist" | sed -e /^$/d -e 's/.*/"&" "" 1/')
 	[[ -z "${vmList}" ]] && {
 		echo -e "{WARN} there is not any VM in your host .." >&2
 		return 1;
@@ -136,10 +136,9 @@ vmifaddr() {
 		[[ -z "$_vmname" ]] && { return; }
 	}
 
-	local addrs=$(getent hosts "$_vmname"|awk '{print $1}'|tac)
-	[[ -z "$addrs" ]] && {
-		addrs=$(virsh domifaddr "$_vmname" | awk '$3=="ipv4" {print gensub("/.*","",1,$4)}')
-	}
+	local addrs=
+	#addrs=$(getent hosts "$_vmname"|awk '{print $1}'|tac)
+	addrs=$(virsh domifaddr "$_vmname" | awk '$3=="ipv4" {print gensub("/.*","",1,$4)}')
 	[[ -n "$addrs" ]] && echo "$addrs"
 }
 
