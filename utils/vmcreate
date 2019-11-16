@@ -50,16 +50,16 @@ vmname_gen() {
 speculate_vmname() {
 	local name=$1
 	[[ -n "$name" && "$name" != ${vmprefix}-* ]] && {
-		namef=$VMSHOME/$name/vmname
-		if [[ -f $namef ]]; then
-			name=$(<$namef)
-		fi
+		[[ -d $VMSHOME/$name ]] && {
+			ls -tr $VMSHOME/$name
+			return
+		}
 	}
 	echo -n "$name"
 }
 
 _vmdelete() {
-	local _vmname=$(speculate_vmname $1)
+	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		return 1
 	}
@@ -78,8 +78,9 @@ _vmdelete() {
 	virsh undefine $_vmname --remove-all-storage
 	if [[ "$_vmdir" = $VMSHOME/?* ]]; then
 		echo -e "\n{INFO} removing VM folder $_vmdir ..."
-		rm -f $_vmdir/{vmname,vncport,url}
+		rm -f $_vmdir/{vncport,url}
 		rmdir $_vmdir 2>/dev/null
+		rmdir ${_vmdir%/*} 2>/dev/null
 	fi
 	return 0
 }
@@ -124,7 +125,7 @@ vmdelete() {
 		[[ -z "$rmList" ]] && { return; }
 		eval set $rmList
 	}
-	for vm; do _vmdelete "$vm"; done
+	for vm; do _vmdelete $(speculate_vmname "$vm"); done
 }
 
 vmifaddr() {
@@ -756,9 +757,8 @@ virsh desc $vmname &>/dev/null && {
 	fi
 }
 
-VMpath=$VMSHOME/$Distro
+VMpath=$VMSHOME/$Distro/$vmname
 mkdir -p $VMpath
-echo -n $vmname >$VMpath/vmname
 
 # Phase-1: get distro's Location or Image url
 [[ -n "${distroInfo[$Distro]}" ]] && {
