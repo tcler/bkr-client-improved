@@ -26,12 +26,13 @@ Intranet=yes
 baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
 VIRT_READY=unkown
 MSIZE=1024
-DSIZE=16
+DSIZE=20
 baudrate=115200
 
 Cleanup() {
 	cd ~
 	#echo "{DEBUG} Removing $RuntimeTmp"
+	[[ -n "$Installpid" ]] && kill $Installpid
 	rm -rf $RuntimeTmp
 	exit
 }
@@ -47,16 +48,6 @@ vmname_gen() {
 	name=${vmprefix}-${name}
 	echo -n $name
 }
-speculate_vmname() {
-	local name=$1
-	[[ -n "$name" && "$name" != ${vmprefix}-* ]] && {
-		[[ -d $VMSHOME/$name ]] && {
-			ls -tr $VMSHOME/$name
-			return
-		}
-	}
-	echo -n "$name"
-}
 
 _vmdelete() {
 	local _vmname=$1
@@ -69,6 +60,11 @@ _vmdelete() {
 		return 1
 	}
 
+	[[ "$_vmname" != ${vmprefix}-* ]] && {
+		echo -e "{WARN} VM '$_vmname' was not created by current user"
+		return 1
+	}
+
 	local _image=$(virsh dumpxml --domain $_vmname | sed -n "/source file=.*qcow/{s|^.*='||; s|'/>$||; p; q}")
 	local _vmdir=$(dirname $_image)
 
@@ -76,7 +72,7 @@ _vmdelete() {
 	virsh destroy $_vmname 2>/dev/null
 	sleep 1
 	virsh undefine $_vmname --remove-all-storage
-	if [[ "$_vmdir" = $VMSHOME/?* ]]; then
+	if [[ "$_vmdir" = $VMSHOME/?*/$_vmname ]]; then
 		echo -e "\n{INFO} removing VM folder $_vmdir ..."
 		rm -f $_vmdir/{vncport,url}
 		rmdir $_vmdir 2>/dev/null
@@ -125,11 +121,11 @@ vmdelete() {
 		[[ -z "$rmList" ]] && { return; }
 		eval set $rmList
 	}
-	for vm; do _vmdelete $(speculate_vmname "$vm"); done
+	for vm; do _vmdelete $vm; done
 }
 
 vmifaddr() {
-	local _vmname=$(speculate_vmname $1)
+	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
 		vmdialogradiolist vm-ifaddr $resf && _vmname=$(sed 's/"//g' $resf)
@@ -143,7 +139,7 @@ vmifaddr() {
 }
 
 vmvncport() {
-	local _vmname=$(speculate_vmname $1)
+	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
 		vmdialogradiolist vm-edit $resf all && _vmname=$(sed 's/"//g' $resf)
@@ -155,7 +151,7 @@ vmvncport() {
 }
 
 vmedit() {
-	local _vmname=$(speculate_vmname $1)
+	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
 		vmdialogradiolist vm-edit $resf all && _vmname=$(sed 's/"//g' $resf)
@@ -172,7 +168,7 @@ vmlogin() {
 		shift
 	}
 
-	local _vmname=$(speculate_vmname $1)
+	local _vmname=$1
 	shift
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
@@ -342,12 +338,12 @@ fetch_distro_trees() {
 	local arch=$2
 	local dtrees=
 
-	which bkr &>/dev/null &&
-		dtrees=$(bkr distro-trees-list --name "$distro" --arch "$arch"|egrep '(released|compose)')
-	[[ -z "$dtrees" ]] && {
-		install_distro_compose
-		dtrees=$(distro-compose -d "$distro" --distrotrees|egrep "(released|compose).*${arch}")
-	}
+	#dtrees=$(bkr distro-trees-list --name "$distro" --arch "$arch"|egrep '(released|compose)')
+	install_distro_compose
+	dtrees=$(distro-compose -d "$distro" --distrotrees|egrep "(released|compose).*${arch}")
+
+	[[ -z "$dtrees" ]] &&
+		dtrees=$(distro-compose -d "$distro" --distrotrees|egrep "(Everything).*${arch}")
 	echo "$dtrees"
 }
 distro2location() {
@@ -356,7 +352,7 @@ distro2location() {
 	local arch=$(arch)
 
 	distrotrees=$(fetch_distro_trees $distro $arch)
-	urls=$(echo "$distrotrees" | awk '$3 ~ /https?:.*'"(${variant}|BaseOS)"'/{print $3}' | sort -u)
+	urls=$(echo "$distrotrees" | awk '$3 ~ /https?:.*'"(${variant}|BaseOS|Everything)"'/{print $3}' | sort -u)
 
 	which fastesturl.sh &>/dev/null || {
 		_url=$baseDownloadUrl/utils/fastesturl.sh
@@ -785,7 +781,8 @@ if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 			echo -e " -> $Location"
 			echo "{INFO} getting image url according location url ^^^ ..." >&2
 			imageLocation=${Location/\/os\//\/images\/}
-			[[ $Distro = Fedora-* ]] && imageLocation=${imageLocation/\/[Ss]erver\//\/Cloud\/}
+			[[ $Distro = Fedora-* ]] &&
+				imageLocation=$(echo "$imageLocation" | sed -r 's;/[Ss]erver|Everything/;/Cloud/;')
 			is_available_url $imageLocation ||
 				imageLocation=${imageLocation/Cloud/CloudImages}
 			read Imageurl _ < <(getimageurls $imageLocation "(qcow2|qcow2.xz)")
@@ -824,7 +821,7 @@ if [[ "$InstallType" = location ]]; then
 		}
 		echo -e " -> $Location"
 	fi
-	MSIZE=${MSIZE:-2048}
+	MSIZE=2048
 fi
 
 echo "{INFO} guess/verify os-variant ..."
@@ -941,11 +938,11 @@ if [[ "$InstallType" = location ]]; then
 	  --disk size=${DSIZE},bus=virtio,path=$VMpath/${vmname}.qcow2 \
 	  $NETWORK_OPTS \
 	  --initrd-inject $KSPath \
-	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,${baudrate}n8" \
+	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,${baudrate}n8 rd.driver.pre=loop" \
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $NOREBOOT &
-	installpid=$!
+	Installpid=$!
 	sleep 5s
-	while ! virsh desc $vmname &>/dev/null; do test -d /proc/$installpid || exit 1; sleep 1s; done
+	while ! virsh desc $vmname &>/dev/null; do test -d /proc/$Installpid || exit 1; sleep 1s; done
 
 	trap - SIGINT
 	for ((i=0; i<8; i++)); do
@@ -1012,22 +1009,23 @@ if [[ "$InstallType" = location ]]; then
 			if {$env(INTERACT) == "no"} { exit 0 }
 			interact
 		' && break
-		test -d /proc/$installpid || break
+		test -d /proc/$Installpid || break
 		sleep 2
 	done
 	echo -e "\n{INFO} Quit from expect -c 'spawn virsh console $vmname'"
 
 	# waiting install finish ...
-	test -d /proc/$installpid && {
+	test -d /proc/$Installpid && {
 		echo -e "\n{INFO} check/waiting install process finish ..."
-		while test -d /proc/$installpid; do sleep 1; [[ $((loop++)) -gt 30 ]] && break; done
+		while test -d /proc/$Installpid; do sleep 1; [[ $((loop++)) -gt 10 ]] && break; done
 	}
-	test -d /proc/$installpid && {
+	test -d /proc/$Installpid && {
 		echo -e "\n{INFO} something is wrong(please check disk space), will clean all tmp files ..."
-		kill -9 $installpid
+		kill -9 $Installpid
 		RM=yes
 		GenerateImage=
 	}
+	unset Installpid
 
 elif [[ "$InstallType" = import ]]; then
 	[[ -f $Imageurl ]] && Imageurl=file://$(readlink -f ${Imageurl})
@@ -1079,7 +1077,7 @@ elif [[ "$InstallType" = import ]]; then
 	  $NETWORK_OPTS \
 	  --import \
 	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $OS_VARIANT_OPT &
-	installpid=$!
+	Installpid=$!
 	sleep 5s
 
 	trap - SIGINT
@@ -1135,14 +1133,16 @@ elif [[ "$InstallType" = import ]]; then
 			if {$env(INTERACT) == "no"} { exit 0 }
 			interact
 		' && break
-		test -d /proc/$installpid || break
+		test -d /proc/$Installpid || break
 		sleep 2
 	done
+	unset Installpid
 	echo -e "\n{INFO} Quit from expect -c 'spawn virsh console $vmname'"
 fi
 
 if ! virsh desc $vmname &>/dev/null; then
 	echo -e "\n{ERROR} virt-install fail"
+	rm -rf $VMpath && rmdir {$VMpath%/*} 2>/dev/null
 	exit 1
 fi
 
@@ -1165,18 +1165,14 @@ if [[ "$GenerateImage" = yes ]]; then
 
 	echo -e "\n{INFO} undefine temprory temporary VM $vmname ..."
 	virsh undefine $vmname --remove-all-storage
-else
-	#echo "{DEBUG} VNC port ${VNCPORT}"
-	echo -e "\n{INFO} you can try login $vmname again by using:"
-	echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
-	echo -e "  $ virsh console $vmname"
-	echo -e "  $ ssh foo@$vmname  #password: redhat"
-	read addr < <(vmifaddr $vmname)
-	[[ -n "$addr" ]] && {
-		echo -e "  $ ssh foo@$addr  #password: redhat"
-	}
 fi
 
+if [[ "$RM" = yes && "$GenerateImage" != yes ]]; then
+	vmdelete $vmname
+	exit 0
+fi
+
+#echo "{DEBUG} VNC port ${VNCPORT}"
 if [[ ! -f ~/.ssh/config ]]; then
 	cat <<-EOF > ~/.ssh/config
 	Host 192.168.*.*
@@ -1186,10 +1182,12 @@ if [[ ! -f ~/.ssh/config ]]; then
 	EOF
 	chmod 600 ~/.ssh/config
 fi
-
-if [[ "$RM" = yes && "$GenerateImage" != yes ]]; then
-	vmdelete $vmname
-	exit 0
-fi
-
+echo -e "\n{INFO} you can try login $vmname again by using:"
+echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
+echo -e "  $ virsh console $vmname"
+echo -e "  $ ssh foo@$vmname  #password: redhat"
+read addr < <(vmifaddr $vmname)
+[[ -n "$addr" ]] && {
+	echo -e "  $ ssh foo@$addr  #password: redhat"
+}
 exit 0
