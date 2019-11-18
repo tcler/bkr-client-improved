@@ -74,7 +74,7 @@ _vmdelete() {
 	virsh undefine $_vmname --remove-all-storage
 	if [[ "$_vmdir" = $VMSHOME/?*/$_vmname ]]; then
 		echo -e "\n{INFO} removing VM folder $_vmdir ..."
-		rm -f $_vmdir/{vncport,url}
+		rm -f $_vmdir/{vncport,url,ext4,qcow2,xfs.qcow2}
 		rmdir $_vmdir 2>/dev/null
 		rmdir ${_vmdir%/*} 2>/dev/null
 	fi
@@ -533,7 +533,8 @@ Usage() {
 	    --macvtapmode <vepa|bridge>
 	                   #macvtap mode
 	    -r|--ready     #virt config is ready, don't have to run enable_libvirt function
-	    --nvdimm       #add a nvdimm device(2048+2M) //need qemu >= v2.6.0(RHEL/CentOS 8.0 or later)
+	    --xdisk        #add 2 extra disk for test
+	    --nvdimm       #add 2 nvdimm device(2048+2M) //need qemu >= v2.6.0(RHEL/CentOS 8.0 or later)
 
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
@@ -600,6 +601,7 @@ _at=`getopt -o hd:Ll:fn:gb:p:Ii:r \
 	--long nointeract \
 	--long saveimage:: \
 	--long ready \
+	--long xdisk \
 	--long nvdimm \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
@@ -638,6 +640,7 @@ while true; do
 		shift 2
 		;;
 	-r|--ready)      VIRT_READY=yes; shift 1;;
+	--xdisk)         EXTRA_DISKS=yes; shift 1;;
 	--nvdimm)        NVDIMM=yes; shift 1;;
 	--) shift; break;;
 	esac
@@ -880,10 +883,18 @@ get_default_if() {
 	NETWORK_OPTS="--network=network=default,model=virtio --network=type=direct,source=$srcif,source_mode=$MacvtapMode,model=virtio"
 }
 
+if [[ "$EXTRA_DISKS" = yes ]]; then
+	qemu-img create -f qcow2 $VMpath/ext4.qcow2 10G
+	qemu-img create -f qcow2 $VMpath/xfs.qcow2 10G
+	DISK_OPTS="--disk path=$VMpath/ext4.qcow2,bus=scsi --disk path=$VMpath/xfs.qcow2,bus=scsi"
+fi
+
 if [[ "$NVDIMM" = yes ]]; then
-	nvdimmf=$VMpath/nvdimm.dev
-	truncate -s 2050M $nvdimmf
-	MEM_OPTS="--memory=${MSIZE},hotplugmemorymax=32768,hotplugmemoryslots=2 --cpu cell0.cpus=0,cell0.memory=$((MSIZE*1024)) --memdev nvdimm,source_path=$nvdimmf,target_size=2048,target_node=0,target_label_size=2"
+	nvdimmf0=$VMpath/nvdimm-0.dev
+	nvdimmf1=$VMpath/nvdimm-1.dev
+	truncate -s 2050M $nvdimmf0
+	truncate -s 2050M $nvdimmf1
+	MEM_OPTS="--memory=${MSIZE},hotplugmemorymax=32768,hotplugmemoryslots=2 --cpu cell0.cpus=0,cell0.memory=$((MSIZE*1024)) --memdev nvdimm,source_path=$nvdimmf0,target_size=2048,target_node=0,target_label_size=2 --memdev nvdimm,source_path=$nvdimmf1,target_size=2048,target_node=0,target_label_size=2"
 else
 	MEM_OPTS="--memory=${MSIZE}"
 fi
@@ -935,7 +946,8 @@ if [[ "$InstallType" = location ]]; then
 	  $OS_VARIANT_OPT \
 	  --vcpus ${VCPUN:-4} \
 	  $MEM_OPTS \
-	  --disk size=${DSIZE},bus=virtio,path=$VMpath/${vmname}.qcow2 \
+	  --disk path=$VMpath/${vmname}.qcow2,size=${DSIZE},bus=virtio \
+	  $DISK_OPTS \
 	  $NETWORK_OPTS \
 	  --initrd-inject $KSPath \
 	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,${baudrate}n8 rd.driver.pre=loop" \
@@ -1068,11 +1080,18 @@ elif [[ "$InstallType" = import ]]; then
 
 	echo -e "{INFO} creating VM by import $imagefile"
 	echo $Imageurl >$VMpath/url
+
+	_size=$(qemu-img info ${imagefile}|sed -rn '/^virtual size:.*\(([0-9]+).*$/{s//\1/;p}')
+	[[ "$_size" -lt $((DSIZE*1024*1024*1024)) ]] && {
+		echo -e "{INFO} resize $imagefile to ${DSIZE}G"
+		qemu-img resize ${imagefile} ${DSIZE}G
+	}
 	virt-install --connect=qemu:///system --hvm --accelerate \
 	  --name $vmname \
 	  --vcpus ${VCPUN:-4} \
 	  $MEM_OPTS \
-	  --disk ${imagefile},bus=virtio \
+	  --disk path=${imagefile},bus=virtio \
+	  $DISK_OPTS \
 	  $CLOUD_INIT_OPT \
 	  $NETWORK_OPTS \
 	  --import \
@@ -1182,6 +1201,17 @@ if [[ ! -f ~/.ssh/config ]]; then
 	EOF
 	chmod 600 ~/.ssh/config
 fi
+
+: <<\COMM
+echo -e "\n{INFO} attach test disk ext4.qcow2 and xfs.qcow2:"
+qemu-img create -f qcow2 $VMpath/ext4.qcow2 10G
+qemu-img create -f qcow2 $VMpath/xfs.qcow2 10G
+virsh attach-disk $vmname --subdriver qcow2 --persistent $VMpath/ext4.qcow2 vdb
+virsh attach-disk $vmname --subdriver qcow2 --persistent $VMpath/xfs.qcow2 vdc
+#virsh detach-disk $vmname --persistent vdb
+#virsh detach-disk $vmname --persistent vdc
+COMM
+
 echo -e "\n{INFO} you can try login $vmname again by using:"
 echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
 echo -e "  $ virsh console $vmname"
