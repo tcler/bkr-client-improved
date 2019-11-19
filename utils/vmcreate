@@ -649,7 +649,7 @@ done
 # __main__
 if egrep -wo '(vmx|svm)' /proc/cpuinfo -q; then
 	[[ "$VIRT_READY" != yes ]] && {
-		if [[ -c /dev/tty ]]; then
+		if [[ -t 1 ]]; then
 			enable_libvirt &>/dev/tty
 		else
 			echo -e "{WARN} there's not /dev/tty file redirect enable_libvirt msg to stderr"
