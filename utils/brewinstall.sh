@@ -90,6 +90,7 @@ for build; do
 	[[ "$build" = -h ]] && { Usage; exit; }
 	[[ "$build" = -* ]] && { continue; }
 
+	install_brew
 	[[ "$build" = upk ]] && {
 		build=$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
 	}
@@ -97,8 +98,6 @@ for build; do
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		build=$(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head -1)
 	}
-
-	install_brew
 
 	let cnt++
 	if [[ "$build" =~ ^[0-9]+(:.*)?$ ]]; then
