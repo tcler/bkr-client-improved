@@ -649,7 +649,12 @@ done
 # __main__
 if egrep -wo '(vmx|svm)' /proc/cpuinfo -q; then
 	[[ "$VIRT_READY" != yes ]] && {
-		enable_libvirt &>$(ls /dev/tty || echo /dev/null)
+		if [[ -c /dev/tty ]]; then
+			enable_libvirt &>/dev/tty
+		else
+			echo -e "{WARN} there's not /dev/tty file redirect enable_libvirt msg to stderr"
+			enable_libvirt >&2
+		fi
 	}
 else
 	echo -e "{WARN} current machine doesn't support Virtualization, show help info with\n  $PROG -h"
