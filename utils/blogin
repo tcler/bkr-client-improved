@@ -1,0 +1,34 @@
+#!/bin/bash
+# bugzilla credential will never be expired
+
+read -p "Username: " username
+read -s -p "Password: " password
+echo
+
+_login() {
+	bugzilla login $username $password > /tmp/blogin-$USER.log 2>&1
+	if [ $? -eq 0 ] ; then
+		cat /tmp/blogin-$USER.log
+		cat /tmp/blogin-$USER.log |
+		mail -s "blogin(`hostname -s`): login error" $username
+	fi
+}
+
+forever_login() {
+	while : ; do
+		sleep 8h
+		_login
+	done
+}
+
+# make sure password is correct
+_login || exit 1
+
+# then function can run in background forever, untill you kill it
+trap "" HUP
+forever_login & pid=$!
+
+echo $pid | tee /tmp/blogin-$USER.pid
+
+# and the script can exit.
+exit 0
