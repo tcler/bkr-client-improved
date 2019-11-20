@@ -41,7 +41,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $P <[brew_scratch_build_id] | [lstk|upk|brew_build_name] | [url]>  [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo]
+	 $P <[brew_scratch_build_id] | [lstk|upk|brew_build_name] | [url]>  [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload]
 
 	Example:
 	 $P 23822847  # brew scratch build id
@@ -54,6 +54,7 @@ Usage() {
 	 $P upk                        # install latest upstream kernel
 	 $P [ftp|http]://url/path/ [-depthLevel=N]  # install all rpms in url/path, default download depth level 2
 	 $P kernel-4.18.0-148.el8 -onlydebuginfo    # install -debuginfo pkg of kernel-4.18.0-148.el8
+	 $P -onlydownload [other option] <args>      # only download rpms and exit
 EOF
 }
 
@@ -88,6 +89,7 @@ for arg; do
 	case "$arg" in
 	-debuginfo)      DEBUG_INFO_OPT=--debuginfo;;
 	-onlydebuginfo)  DEBUG_INFO_OPT=--debuginfo; ONLY_DEBUG_INFO=yes; KREBOOT=no;;
+	-onlydownload)   ONLY_DOWNLOAD=yes;;
 	-debug|-debugk*) FLAG=debugkernel;;
 	-noreboot*)      KREBOOT=no;;
 	-depthLevel=*)   depthLevel=${arg/*=/};;
@@ -181,6 +183,10 @@ run "ls -lh *.rpm"
 [ $? != 0 ] && {
 	report_result download-rpms FAIL
 	exit 1
+}
+
+[[ "$ONLY_DOWNLOAD" = yes ]] && {
+	exit 0
 }
 
 for rpm in *.rpm; do
