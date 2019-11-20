@@ -102,12 +102,13 @@ done
 	exit
 }
 
+install_brew
+
 # Download packges
 depthLevel=${DEPTH_LEVEL:-2}
 for build in "${builds[@]}"; do
 	[[ "$build" = -* ]] && { continue; }
 
-	install_brew
 	[[ "$build" = upk ]] && {
 		build=$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
 	}
@@ -183,7 +184,10 @@ run "ls -lh *.rpm"
 }
 
 for rpm in *.rpm; do
-	[[ "$ONLY_DEBUG_INFO" = yes && $rpm != *-debuginfo-* ]] && continue
+	[[ "$ONLY_DEBUG_INFO" = yes && $rpm != *-debuginfo-* ]] && {
+		rm -f $rpm
+		continue
+	}
 	run "rpm -Uvh --force --nodeps $rpm" -
 done
 
