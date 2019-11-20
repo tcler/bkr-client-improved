@@ -41,7 +41,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $P <[brew_scratch_build_id] | [lstk|upk|brew_build_name] | [url]>  [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload]
+	 $P <[brew_scratch_build_id] | [lstk|upk|brew_build_name] | [url]>  [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch]
 
 	Example:
 	 $P 23822847  # brew scratch build id
@@ -54,7 +54,8 @@ Usage() {
 	 $P upk                        # install latest upstream kernel
 	 $P [ftp|http]://url/path/ [-depthLevel=N]  # install all rpms in url/path, default download depth level 2
 	 $P kernel-4.18.0-148.el8 -onlydebuginfo    # install -debuginfo pkg of kernel-4.18.0-148.el8
-	 $P -onlydownload [other option] <args>      # only download rpms and exit
+	 $P -onlydownload [other option] <args>     # only download rpms and exit
+	 $P -onlydownload -arch=src,noarch kernel-4.18.0-148.el8  # only download src and noarch package of build kernel-4.18.0-148.el8
 EOF
 }
 
@@ -93,6 +94,7 @@ for arg; do
 	-debug|-debugk*) FLAG=debugkernel;;
 	-noreboot*)      KREBOOT=no;;
 	-depthLevel=*)   depthLevel=${arg/*=/};;
+	-arch=*)         _ARCH=${arg/*=/};;
 	-h)              Usage; exit;;
 	-*)              echo "{WARN} unkown option '${arg}'";;
 	*)               builds+=($arg);;
@@ -105,6 +107,11 @@ done
 }
 
 install_brew
+
+archList=($(arch) noarch)
+[[ -n "$_ARCH" ]] && archList=(${_ARCH//,/ })
+archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
+wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A.${a}.rpm"; done)
 
 # Download packges
 depthLevel=${DEPTH_LEVEL:-2}
@@ -125,13 +132,13 @@ for build in "${builds[@]}"; do
 		while brew taskinfo $taskid|grep -q '^State: open'; do echo "[$(date +%T) Info] build hasn't finished, wait"; sleep 5m; done
 
 		run "brew taskinfo -r $taskid > >(tee brew_taskinfo.txt)"
-		run "awk '/\\<($(arch)|noarch)\\.rpm/{print}' brew_taskinfo.txt >buildArch.txt"
+		run "awk '/\\<($archPattern)\\.rpm/{print}' brew_taskinfo.txt >buildArch.txt"
 		run "cat buildArch.txt"
 		[ -z "$(< buildArch.txt)" ] && {
 			echo "$prompt [Warn] rpm not found, treat the [$taskid] as build ID."
 			buildid=$taskid
 			run "brew buildinfo $buildid > >(tee brew_buildinfo.txt)"
-			run "awk '/\\<($(arch)|noarch)\\.rpm/{print}' brew_buildinfo.txt >buildArch.txt"
+			run "awk '/\\<($archPattern)\\.rpm/{print}' brew_buildinfo.txt >buildArch.txt"
 			run "cat buildArch.txt"
 		}
 		urllist=$(sed '/mnt.redhat..*rpm$/s; */mnt/redhat/;;' buildArch.txt)
@@ -145,7 +152,7 @@ for build in "${builds[@]}"; do
 			downloadServerUrl=http://download.devel.redhat.com/brewroot/scratch/$owner/task_$taskid
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
-				run "wget -r -l$depthLevel --no-parent -A.$(arch).rpm -A.noarch.rpm --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
+				run "wget -r -l$depthLevel --no-parent $wgetOpts --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
 		}
@@ -156,24 +163,25 @@ for build in "${builds[@]}"; do
 		nfsserver=${nfsaddr%:/*}
 		exportdir=${nfsaddr#*:/}
 		run "mount $nfsserver:/ $nfsmp"
-		ls $nfsmp/$exportdir/*.noarch.rpm &&
-			run "cp -f $nfsmp/$exportdir/*.noarch.rpm ."
-		ls $nfsmp/$exportdir/*.$(arch).rpm &&
-			run "cp -f $nfsmp/$exportdir/*.$(arch).rpm ."
+		for a in "${archList[@]}"; do
+			ls $nfsmp/$exportdir/*.${a}.rpm &&
+				run "cp -f $nfsmp/$exportdir/*.${a}.rpm ."
+		done
 		run "umount $nfsmp" -
 	elif [[ "$build" =~ ^(ftp|http|https):// ]]; then
 		for url in $build; do
 			if [[ $url = *.rpm ]]; then
 				run "wget --progress=dot:mega $url" 0  "download-${url##*/}"
 			else
-				run "wget -r -l$depthLevel --no-parent -A.$(arch).rpm -A.noarch.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
+				run "wget -r -l$depthLevel --no-parent $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
 	else
 		buildname=$build
-		brew download-build $DEBUG_INFO_OPT $buildname --arch=noarch
-		brew download-build $DEBUG_INFO_OPT $buildname --arch=$(arch)
+		for a in "${archList[@]}"; do
+			brew download-build $DEBUG_INFO_OPT $buildname --arch=${a}
+		done
 	fi
 done
 
