@@ -314,7 +314,7 @@ COMM
 
 is_available_url() {
 	local _url=$1
-	curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $_url &>/dev/null
+	curl --connect-timeout 8 -m 16 --output /dev/null --silent --head --fail $_url &>/dev/null
 }
 is_intranet() {
 	local iurl=http://download.devel.redhat.com
@@ -1187,7 +1187,8 @@ fi
 if [[ "$GenerateImage" = yes ]]; then
 	mkdir -p $ImagePath/$Distro
 	image=$(virsh dumpxml --domain $vmname | sed -n "/source file=/{s|^.*='||; s|'/>$||; p}")
-	newimage=$ImagePath/$Distro/${image##*/}
+	imgfilename=$(sed "s;.*/${vmprefix}-;;" <<<"${image}")
+	newimage=$ImagePath/$Distro/${imgfilename}
 
 	echo -e "\n{INFO} force shutdown $vmname ..."
 	virsh destroy $vmname 2>/dev/null
