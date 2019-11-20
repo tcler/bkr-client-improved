@@ -35,7 +35,7 @@ install install_runtest: _isroot
 	@yum install -y bash-completion
 	cp -fd bash-completion/* ${completion_path}/.||cp -fd bash-completion/* $${completion_path/\/*/}/.
 	@rm -f /usr/lib/python2.7/site-packages/bkr/client/commands/cmd_recipes_list.py $(_bin)/distro-pkg #remove old file
-	@rm -f $(_bin)/distro-to-vm.sh #remove old file
+	@rm -f $(_bin)/{distro-to-vm.sh,downloadBrewBuild,installBrewPkg} #remove old file
 
 install_all: install_robot _install_web
 
