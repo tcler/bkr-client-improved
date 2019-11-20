@@ -181,12 +181,32 @@ vmlogin() {
 	#sometimes there's bug in libnss. get more than one addr but some one
 	#of them does not exist. use nc detect and ignore it/them
 	addrs=$(vmifaddr "$_vmname")
+	[[ -z "$addrs" ]] && { virsh console "$_vmname"; return $?; }
+
 	for addr in $addrs; do
 		nc $addr 22 </dev/null &>/dev/null || {
 			echo -e "{WARN} port $addr:22 is not available"
 			continue
 		}
-		ssh root@$addr "$@"
+		#ssh root@$addr "$@"
+		expect <(cat <<-EOF
+		set timeout 120
+		log_user 0
+		spawn bash -c "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l root $addr $@"
+		#log_user 1
+		if {\$argc == 0} {
+			expect {
+			"password:" { send "redhat\r"; log_user 1; exp_continue }
+			"*# " { send "\r"; interact }
+			}
+		} else {
+			expect {
+			"password:" { send "redhat\r"; log_user 1; exp_continue }
+			eof
+			}
+		}
+		EOF
+		) "$@"
 		return
 	done
 }
