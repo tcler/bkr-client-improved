@@ -160,14 +160,16 @@ ver=$(LANG=C rpm -q --qf %{version} centos-release)
 
 KSF
 
-cat <<KSF
-echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] inject sshkey ..."
-USERS="root foo bar"
-for U in \$USERS; do
-	H=\$(getent passwd "\$U" | awk -F: '{print \$6}')
-	mkdir \$H/.ssh && echo "$(tail -n1 $sshkeyf)" >>\$H/.ssh/authorized_keys
-done
-KSF
+[[ -n "$sshkeyf" ]] && {
+	cat <<-KSF
+	echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] inject sshkey ..."
+	USERS="root foo bar"
+	for U in \$USERS; do
+		H=\$(getent passwd "\$U" | awk -F: '{print \$6}')
+		mkdir \$H/.ssh && echo "$(tail -n1 $sshkeyf)" >>\$H/.ssh/authorized_keys
+	done
+	KSF
+}
 
 [[ -n "$Post" && -f "$Post" ]] && {
 	cat $Post

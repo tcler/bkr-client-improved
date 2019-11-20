@@ -535,6 +535,7 @@ Usage() {
 	    -r|--ready     #virt config is ready, don't have to run enable_libvirt function
 	    --xdisk        #add 2 extra disk for test
 	    --nvdimm       #add 2 nvdimm device(2048+2M) //need qemu >= v2.6.0(RHEL/CentOS 8.0 or later)
+	    --nosshkey     #don't inject sshkey
 
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
@@ -603,6 +604,7 @@ _at=`getopt -o hd:Ll:fn:gb:p:Ii:r \
 	--long ready \
 	--long xdisk \
 	--long nvdimm \
+	--long nosshkey \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -642,6 +644,7 @@ while true; do
 	-r|--ready)      VIRT_READY=yes; shift 1;;
 	--xdisk)         EXTRA_DISKS=yes; shift 1;;
 	--nvdimm)        NVDIMM=yes; shift 1;;
+	--nosshkey)      NO_SSHKEY=yes; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -759,6 +762,8 @@ virsh desc $vmname &>/dev/null && {
 		exit
 	fi
 }
+vmhostname=$vmname
+[[ "$GenerateImage" = yes ]] && vmhostname=${vmname#${vmprefix}-}
 
 VMpath=$VMSHOME/$Distro/$vmname
 mkdir -p $VMpath
@@ -919,7 +924,7 @@ if [[ "$InstallType" = location ]]; then
 
 		cat <<-END >>$postscript
 		echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] configure hostname ..."
-		test -f /etc/hostname && echo ${vmname} >/etc/hostname || echo HOSTNAME=${vmname} >>/etc/sysconfig/network
+		test -f /etc/hostname && echo ${vmhostname} >/etc/hostname || echo HOSTNAME=${vmhostname} >>/etc/sysconfig/network
 
 		echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] yum install ..."
 		yum install -y $PKGS 2>/dev/null
@@ -934,7 +939,11 @@ if [[ "$InstallType" = location ]]; then
 		chmod +x /usr/bin/kdump-setup.sh
 		kdump-setup.sh
 		END
-		ks-generator.sh -d $Distro -url $Location $REPO_OPTS --post $postscript --sshkeyf ~/.ssh/id_rsa.pub >$KSPath
+		if [[ "$NO_SSHKEY" = yes ]]; then
+			ks-generator.sh -d $Distro -url $Location $REPO_OPTS --post $postscript >$KSPath
+		else
+			ks-generator.sh -d $Distro -url $Location $REPO_OPTS --post $postscript --sshkeyf ~/.ssh/id_rsa.pub >$KSPath
+		fi
 	}
 
 	echo -e "{INFO} creating VM by using location:\n ->  $Location"
@@ -945,13 +954,14 @@ if [[ "$InstallType" = location ]]; then
 		NOREBOOT=--noreboot
 	}
 	ksfile=${KSPath##*/}
+	qemu-img create -f qcow2 $VMpath/${vmname}.qcow2 ${DSIZE}G
 	virt-install --connect=qemu:///system --hvm --accelerate \
 	  --name $vmname \
 	  --location $Location \
 	  $OS_VARIANT_OPT \
 	  --vcpus ${VCPUN:-4} \
 	  $MEM_OPTS \
-	  --disk path=$VMpath/${vmname}.qcow2,size=${DSIZE},bus=virtio \
+	  --disk path=$VMpath/${vmname}.qcow2,bus=virtio \
 	  $DISK_OPTS \
 	  $NETWORK_OPTS \
 	  --initrd-inject $KSPath \
@@ -1078,8 +1088,12 @@ elif [[ "$InstallType" = import ]]; then
 		[[ -n "$Location" ]] && {
 			REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
 		}
-		cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmname} -b "$BPKGS" -p "$PKGS" \
-			--sshkeyf ~/.ssh/id_rsa.pub -D $REPO_OPTS
+		if [[ "$NO_SSHKEY" = yes ]]; then
+			cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmhostname} -b "$BPKGS" -p "$PKGS" -D $REPO_OPTS
+		else
+			cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmhostname} -b "$BPKGS" -p "$PKGS" -D $REPO_OPTS \
+				--sshkeyf ~/.ssh/id_rsa.pub
+		fi
 		CLOUD_INIT_OPT="--disk $cloudinitiso,device=cdrom"
 	}
 
@@ -1178,20 +1192,26 @@ if [[ "$GenerateImage" = yes ]]; then
 	echo -e "\n{INFO} force shutdown $vmname ..."
 	virsh destroy $vmname 2>/dev/null
 
-	echo -e "\n{INFO} virt-sparsify image $image to ${newimage} ..."
-	LIBGUESTFS_BACKEND=direct virt-sparsify ${image} ${newimage}
-	ls -lh ${image}
-	ls -lh ${newimage}
+	if true; then
+		echo -e "\n{INFO} copy image $image to ${newimage} ..."
+		cp ${image} ${newimage}
+	else
+		echo -e "\n{INFO} virt-sparsify image $image to ${newimage} ..."
+		LIBGUESTFS_BACKEND=direct virt-sparsify ${image} ${newimage}
+		ls -lh ${image}
+		ls -lh ${newimage}
+	fi
 
 	echo -e "\n{INFO} xz compress image ..."
 	time xz -z -f -T 0 ${XZ:--9} ${newimage}
 	ls -lh ${newimage}.xz
 
-	echo -e "\n{INFO} undefine temprory temporary VM $vmname ..."
-	virsh undefine $vmname --remove-all-storage
+	echo -e "\n{INFO} remove temporary VM $vmname ..."
+	vmdelete $vmname
+	exit 0
 fi
 
-if [[ "$RM" = yes && "$GenerateImage" != yes ]]; then
+if [[ "$RM" = yes ]]; then
 	vmdelete $vmname
 	exit 0
 fi

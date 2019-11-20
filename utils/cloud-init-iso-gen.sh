@@ -60,6 +60,7 @@ is_intranet && {
 	baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
 }
 
+sshkeyf=${sshkeyf:-/dev/null}
 tmpdir=.cloud-init-iso-gen-$$
 mkdir -p $tmpdir
 pushd $tmpdir &>/dev/null
@@ -75,7 +76,7 @@ users:
     plain_text_passwd: redhat
     lock_passwd: false
     ssh_authorized_keys:
-      - $(tail -n1 $sshkeyf)
+      - $(tail -n1 ${sshkeyf})
 
   - name: foo
     group: users, admin
@@ -83,7 +84,7 @@ users:
     plain_text_passwd: redhat
     lock_passwd: false
     ssh_authorized_keys:
-      - $(tail -n1 $sshkeyf)
+      - $(tail -n1 ${sshkeyf})
 
 chpasswd: { expire: False }
 
