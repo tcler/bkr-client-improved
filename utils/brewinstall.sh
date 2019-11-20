@@ -7,7 +7,7 @@ baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/mast
 
 is_available_url() {
         local _url=$1
-        curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $_url &>/dev/null
+        curl --connect-timeout 8 -m 16 --output /dev/null --silent --head --fail $_url &>/dev/null
 }
 is_intranet() {
 	local iurl=http://download.devel.redhat.com
