@@ -41,7 +41,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $P <[brew_scratch_build_id] | [lstk|upk|brew_build_name] | [url]>  [-debug] [-noreboot] [-depthLevel=\${N:-2}]
+	 $P <[brew_scratch_build_id] | [lstk|upk|brew_build_name] | [url]>  [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo]
 
 	Example:
 	 $P 23822847  # brew scratch build id
@@ -49,9 +49,11 @@ Usage() {
 	 $P [ftp|http]://url/xyz.rpm   # install xyz.rpm
 	 $P nfs:server/nfsshare        # install all rpms in nfsshare
 	 $P lstk                       # install latest release kernel
-	 $P lstk -debug                # install latest release debug kernel
+	 $P lstk -debuginfo            # install latest release kernel and it's -debuginfo package
+	 $P lstk -debugk               # install latest release debug kernel
 	 $P upk                        # install latest upstream kernel
-	 $P [ftp|http]://url/path/ [-depthLevel=N]    # install all rpms in url/path, default download depth level 2
+	 $P [ftp|http]://url/path/ [-depthLevel=N]  # install all rpms in url/path, default download depth level 2
+	 $P kernel-4.18.0-148.el8 -onlydebuginfo    # install -debuginfo pkg of kernel-4.18.0-148.el8
 EOF
 }
 
@@ -80,14 +82,29 @@ install_brew() {
 	}
 }
 
+# parse options
+builds=()
+for arg; do
+	case "$arg" in
+	-debuginfo)      DEBUG_INFO_OPT=--debuginfo;;
+	-onlydebuginfo)  DEBUG_INFO_OPT=--debuginfo; ONLY_DEBUG_INFO=yes; KREBOOT=no;;
+	-debug|-debugk*) FLAG=debugkernel;;
+	-noreboot*)      KREBOOT=no;;
+	-depthLevel=*)   depthLevel=${arg/*=/};;
+	-h)              Usage; exit;;
+	-*)              echo "{WARN} unkown option '${arg}'";;
+	*)               builds+=($arg);;
+	esac
+done
+
+[ "${#builds[@]}" = 0 ] && {
+	Usage >&2
+	exit
+}
+
 # Download packges
-cnt=0
 depthLevel=${DEPTH_LEVEL:-2}
-for build; do
-	[[ "$build" = -debug* ]] && { FLAG=debug; continue; }
-	[[ "$build" = -noreboot* ]] && { KREBOOT=no; continue; }
-	[[ "$build" = -depthLevel=* ]] && { depthLevel=${build/*=/}; continue; }
-	[[ "$build" = -h ]] && { Usage; exit; }
+for build in "${builds[@]}"; do
 	[[ "$build" = -* ]] && { continue; }
 
 	install_brew
@@ -99,7 +116,6 @@ for build; do
 		build=$(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head -1)
 	}
 
-	let cnt++
 	if [[ "$build" =~ ^[0-9]+(:.*)?$ ]]; then
 		read taskid FLAG <<<${build/:/ }
 		#wait the scratch build finish
@@ -153,15 +169,10 @@ for build; do
 		done
 	else
 		buildname=$build
-		brew download-build $buildname --arch=noarch
-		brew download-build $buildname --arch=$(arch)
+		brew download-build $DEBUG_INFO_OPT $buildname --arch=noarch
+		brew download-build $DEBUG_INFO_OPT $buildname --arch=$(arch)
 	fi
 done
-
-[ "$cnt" = 0 ] && {
-	Usage >&2
-	exit
-}
 
 # Install packages
 run "ls -lh"
@@ -171,12 +182,13 @@ run "ls -lh *.rpm"
 	exit 1
 }
 
-run "rpm -Uvh --force --nodeps *.rpm" -
-[[ "$retcode" != 0 ]] && res=FAIL
-report_result install $res
+for rpm in *.rpm; do
+	[[ "$ONLY_DEBUG_INFO" = yes && $rpm != *-debuginfo-* ]] && continue
+	run "rpm -Uvh --force --nodeps $rpm" -
+done
 
 # if include debug in FLAG
-[[ "$FLAG" =~ debug ]] && {
+[[ "$FLAG" =~ debugkernel ]] && {
 	if [ -x /sbin/grubby -o -x /usr/sbin/grubby ]; then
 		VRA=$(rpm -qp --qf '%{version}-%{release}.%{arch}' $(ls kernel-debug*rpm | head -1))
 		grubby --set-default /boot/vmlinuz-${VRA}*debug
@@ -187,6 +199,6 @@ report_result install $res
 	fi
 }
 
-if ls *.rpm|grep ^kernel-; then
+if ls *.rpm|grep '^kernel-[0-9]'; then
 	[[ "$KREBOOT" = yes ]] && reboot
 fi
