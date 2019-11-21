@@ -1226,7 +1226,10 @@ if [[ "$GenerateImage" = yes ]]; then
 		cp ${image} ${newimage}
 	else
 		echo -e "\n{INFO} virt-sparsify image $image to ${newimage} ..."
-		LIBGUESTFS_BACKEND=direct virt-sparsify --check-tmpdir continue ${image} ${newimage}
+		LIBGUESTFS_BACKEND=direct virt-sparsify --check-tmpdir fail ${image} ${newimage} || {
+			cp ${image} ${newimage}
+			LIBGUESTFS_BACKEND=direct virt-sparsify --in-place ${newimage}
+		}
 		ls -lh ${image}
 		ls -lh ${newimage}
 	fi
