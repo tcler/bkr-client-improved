@@ -52,27 +52,27 @@ done
 shopt -s nocasematch
 case $Distro in
 RHEL-5*|RHEL5*|centos5*|centos-5*)
-	Packages="@base @cifs-file-server @nfs-file-server redhat-lsb-core vim-enhanced git iproute screen"
+	Packages="@base @cifs-file-server @nfs-file-server redhat-lsb-core vim-enhanced git iproute screen wget"
 
 	NetCommand="network --device=eth0 --bootproto=dhcp"
 	KeyCommand="key --skip"
 	Bootloader='bootloader --location=mbr --append="console=ttyS0,9600 rhgb quiet"'
-	EPEL=https://archive.fedoraproject.org/pub/archive/epel/epel-release-latest-5.noarch.rpm
+	EPEL=http://archive.fedoraproject.org/pub/archive/epel/epel-release-latest-5.noarch.rpm
 	;;
 RHEL-6*|RHEL6*|centos6*|centos-6*)
-	Packages="@base @cifs-file-server @nfs-file-server redhat-lsb-core vim-enhanced git iproute screen"
+	Packages="@base @cifs-file-server @nfs-file-server redhat-lsb-core vim-enhanced git iproute screen wget"
 
 	NetCommand="network --device=eth0 --bootproto=dhcp"
 	KeyCommand="key --skip"
-	EPEL=https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
+	EPEL=http://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
 	;;
 RHEL-7*|RHEL7*|centos7*|centos-7*)
-	Packages="-iwl* @base @file-server redhat-lsb-core vim-enhanced git iproute screen"
-	EPEL=https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+	Packages="-iwl* @base @file-server redhat-lsb-core vim-enhanced git iproute screen wget"
+	EPEL=http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 	;;
 RHEL-8*|RHEL8*|centos8*|centos-8*|Fedora-*)
-	Packages="-iwl* @standard @file-server redhat-lsb-core vim-enhanced git iproute screen"
-	EPEL=https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+	Packages="-iwl* @standard @file-server redhat-lsb-core vim-enhanced git iproute screen wget"
+	EPEL=http://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
 	;;
 esac
 shopt -u nocasematch
@@ -164,7 +164,8 @@ ver=$(LANG=C rpm -q --qf %{version} centos-release)
 KSF
 cat <<KSF
 echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] yum install $EPEL ..."
-yum install -y $EPEL
+wget $EPEL --no-check-certificate
+rpm -ivh --force ${EPEL##*/}
 KSF
 
 [[ -n "$sshkeyf" ]] && {

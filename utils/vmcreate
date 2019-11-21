@@ -948,8 +948,8 @@ if [[ "$InstallType" = location ]]; then
 		echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] configure hostname ..."
 		test -f /etc/hostname && echo ${vmhostname} >/etc/hostname || echo HOSTNAME=${vmhostname} >>/etc/sysconfig/network
 
-		echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] yum install ..."
-		yum install -y $PKGS 2>/dev/null
+		echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] yum install pkgs ${PKGS} ..."
+		yum install -y "${PKGS}" 2>/dev/null
 
 		echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] brew install ..."
 		wget -O /usr/bin/brewinstall.sh -N -q $baseDownloadUrl/utils/brewinstall.sh --no-check-certificate
@@ -1221,11 +1221,6 @@ if [[ "$GenerateImage" = yes ]]; then
 	echo -e "\n{INFO} force shutdown $vmname ..."
 	virsh destroy $vmname 2>/dev/null
 
-	echo -e "\n{INFO} virt-sysprep ..."
-	ls -lh ${image}
-	LIBGUESTFS_BACKEND=direct virt-sysprep -a ${image}
-	ls -lh ${image}
-
 	if ! true; then
 		echo -e "\n{INFO} copy image $image to ${newimage} ..."
 		cp ${image} ${newimage}
@@ -1238,6 +1233,11 @@ if [[ "$GenerateImage" = yes ]]; then
 		ls -lh ${image}
 		ls -lh ${newimage}
 	fi
+
+	echo -e "\n{INFO} virt-sysprep ..."
+	ls -lh ${newimage}
+	LIBGUESTFS_BACKEND=direct virt-sysprep -a ${newimage}
+	ls -lh ${newimage}
 
 	echo -e "\n{INFO} xz compress image ..."
 	time xz -z -f -T 0 ${XZ:--9} ${newimage}
