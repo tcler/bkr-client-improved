@@ -1223,7 +1223,7 @@ if [[ "$GenerateImage" = yes ]]; then
 
 	echo -e "\n{INFO} virt-sysprep ..."
 	ls -lh ${image}
-	virt-sysprep -a ${image}
+	LIBGUESTFS_BACKEND=direct virt-sysprep -a ${image}
 	ls -lh ${image}
 
 	if ! true; then
