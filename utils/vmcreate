@@ -453,6 +453,7 @@ distro2repos() {
 			${osv}-SAP-debuginfo:${debug_url/$osv/${osv}-SAP}
 			${osv}-SAPHAHA-debuginfo:${debug_url/$osv/${osv}-SAPHAHA}
 			extras:http://cdn.stage.redhat.com/content/dist/rhel/server/6/6Server/x86_64/extras/os
+			cdn-os:http://cdn.stage.redhat.com/content/dist/rhel/server/6/6Server/x86_64/os
 		)
 		;;
 	RHEL-7*|RHEL7*|centos7*|centos-7*)
@@ -473,6 +474,7 @@ distro2repos() {
 			${osv}-SAP-debuginfo:${debug_url/$osv/${osv}-SAP}
 			${osv}-SAPHAHA-debuginfo:${debug_url/$osv/${osv}-SAPHAHA}
 			extras:http://cdn.stage.redhat.com/content/dist/rhel/server/7/7Server/x86_64/extras/os
+			cdn-os:http://cdn.stage.redhat.com/content/dist/rhel/server/7/7Server/x86_64/os
 		)
 		;;
 	RHEL-8*|RHEL8*)
