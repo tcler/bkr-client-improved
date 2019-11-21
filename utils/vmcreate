@@ -961,6 +961,12 @@ if [[ "$InstallType" = location ]]; then
 		chmod +x /usr/bin/kdump-setup.sh
 		kdump-setup.sh
 		END
+		[[ "$GenerateImage" = yes ]] && {
+			cat <<-END >>$postscript
+			echo "[\$USER@\${HOSTNAME} \${HOME} \$(pwd)] install cloud-init ..."
+			yum install -y cloud-init
+			END
+		}
 		if [[ "$NO_SSHKEY" = yes ]]; then
 			ks-generator.sh -d $Distro -url $Location $REPO_OPTS --post $postscript >$KSPath
 		else
@@ -1215,7 +1221,7 @@ if [[ "$GenerateImage" = yes ]]; then
 	echo -e "\n{INFO} force shutdown $vmname ..."
 	virsh destroy $vmname 2>/dev/null
 
-	if true; then
+	if ! true; then
 		echo -e "\n{INFO} copy image $image to ${newimage} ..."
 		cp ${image} ${newimage}
 	else
@@ -1224,6 +1230,9 @@ if [[ "$GenerateImage" = yes ]]; then
 		ls -lh ${image}
 		ls -lh ${newimage}
 	fi
+
+	echo -e "\n{INFO} virt-sysprep ..."
+	virt-sysprep -a ${newimage}
 
 	echo -e "\n{INFO} xz compress image ..."
 	time xz -z -f -T 0 ${XZ:--9} ${newimage}
