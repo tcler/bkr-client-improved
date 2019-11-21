@@ -145,6 +145,8 @@ for repo in "${Repos[@]}"; do
 
 	EOF
 done
+
+echo EPEL=$EPEL
 echo -e "%end\n"
 
 # post script
@@ -162,7 +164,7 @@ ver=$(LANG=C rpm -q --qf %{version} centos-release)
 [[ "$ver" = 5* ]] && sed -i -e 's;mirror.centos.org/centos;vault.centos.org;' -e 's/^mirror/#&/' -e 's/^#base/base/' /etc/yum.repos.d/*
 [[ "$ver" = 5 ]] && sed -i -e 's;\$releasever;5.11;' /etc/yum.repos.d/*
 
-echo "[$USER@${HOSTNAME} ${HOME} $(pwd)] yum install $RPEL ..."
+echo "[$USER@${HOSTNAME} ${HOME} $(pwd)] yum install $EPEL ..."
 yum install -y $EPEL
 KSF
 
