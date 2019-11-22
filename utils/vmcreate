@@ -695,7 +695,7 @@ fi
 mkdir -p $RuntimeTmp
 
 # sub-command
-[[ $PROG = vmc ]] && {
+[[ $PROG = vmc || $PROG = vm || true ]] && {
 	subcmd=$1
 	case "$subcmd" in
 	r|rm|d|de|del*) shift; [[ "$1" = -d ]] && shift; vmdelete "$@"; exit $?;;
