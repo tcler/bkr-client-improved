@@ -1290,6 +1290,6 @@ read addr < <(vmifaddr $vmname)
 COMM
 
 echo -e "\n{INFO} you can try login $vmname again by using:"
-echo -e "  $ vmc -r login $vmname          #from host"
+echo -e "  $ vmc login $vmname          #from host"
 echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
 exit 0
