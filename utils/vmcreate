@@ -838,7 +838,6 @@ if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 		else
 			echo -e " -> $Imageurl"
 			[[ -n "$GetImage" ]] && { exit; }
-			NO_CLOUD_INIT=yes
 		fi
 	else
 		if [[ ! -f $Imageurl ]] && ! is_available_url $Imageurl; then
