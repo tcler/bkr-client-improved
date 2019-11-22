@@ -193,18 +193,20 @@ vmlogin() {
 		set timeout 120
 		log_user 0
 		spawn bash -c "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l root $addr $@"
-		#log_user 1
+		log_user 1
 		if {\$argc == 0} {
 			expect {
-			"password:" { send "redhat\r"; log_user 1; exp_continue }
+			"password:" { send "redhat\r"; exp_continue }
 			"*# " { send "\r"; interact }
 			}
 		} else {
 			expect {
-			"password:" { send "redhat\r"; log_user 1; exp_continue }
+			"password:" { send "redhat\r"; exp_continue }
 			eof
 			}
 		}
+		foreach {pid spawnid os_error_flag value} [wait] break
+		exit \$value
 		EOF
 		) "$@"
 		return
