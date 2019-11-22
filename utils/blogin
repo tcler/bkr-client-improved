@@ -7,7 +7,7 @@ echo
 
 _login() {
 	bugzilla login $username $password > /tmp/blogin-$USER.log 2>&1
-	if [ $? -eq 0 ] ; then
+	if [ $? -ne 0 ] ; then
 		cat /tmp/blogin-$USER.log
 		cat /tmp/blogin-$USER.log |
 		mail -s "blogin(`hostname -s`): login error" $username
