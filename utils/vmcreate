@@ -270,6 +270,9 @@ netdelete() {
 
 enable_libvirt() {
 	local pkglist="libvirt libvirt-client virt-install virt-viewer qemu-kvm expect nmap-ncat libguestfs-tools-c libvirt-nss dialog qemu-img"
+	local sudouser=${SUDO_USER:-$(whoami)}
+	eval sudouserhome=~$sudouser
+	[[ -d $sudouserhome/.config/vmc ]] && return 0
 
 	echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ enable libvirt start ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	echo -e "{INFO} checking libvirtd service and related packages ..."
@@ -286,8 +289,6 @@ enable_libvirt() {
 		sudo sed -ri '/^hosts:/s/files /&libvirt libvirt_guest /' /etc/nsswitch.conf
 	}
 
-	sudouser=${SUDO_USER:-$(whoami)}
-	eval sudouserhome=~$sudouser
 	echo -e "{INFO} checking if ${sudouser} has joined group libvirt ..."
 	[[ $(id -u) != 0 ]] && id -Gn | egrep -q -w libvirt || {
 		echo -e "{*INFO*} run: sudo usermod -a -G libvirt $sudouser ..."
@@ -330,6 +331,7 @@ COMM
 		}
 	}
 
+	mkdir -p $sudouserhome/.config/vmc
 	echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ enable libvirt done! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	printf '\33[H\33[2J'
 }
@@ -589,11 +591,13 @@ Usage() {
 	    $PROG debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
 
 	Example [subcmd]:
-	    vmc list              #list all VMs    //you can use ls,li,lis* instead list
-	    vmc login [/c] [VM]   #login VM        //you can use l,lo,log* instead login
-	    vmc delete [VM list]  #delete VMs      //you can use d,de,del*,r,rm instead delete
-	    vmc ifaddr [VM]       #show ip address //you can use i,if,if* instead ifaddr
+	    vmc list              #list all VMs       //you can use ls,li,lis* instead list
+	    vmc login [/c] [VM]   #login VM           //you can use l,lo,log* instead login
+	    vmc delete [VM list]  #delete VMs         //you can use d,de,del*,r,rm instead delete
+	    vmc ifaddr [VM]       #show ip address    //you can use i,if,if* instead ifaddr
 	    vmc vncport [VM]      #show vnc host:port //you can use v,vnc instead vncport
+	    vmc edit [VM]         #show ip address    //you can use i,if,if* instead ifaddr
+	    vmc exec "\$VM" -- "cmd"  #login VM and exec cmd  //you can use e,ex instead exec
 
 	    vmc net               #list all virtual network
 	    vmc net netname=testnet brname=virbrN subnet=100  #create virtual network 'testnet'
@@ -695,11 +699,11 @@ mkdir -p $RuntimeTmp
 	subcmd=$1
 	case "$subcmd" in
 	r|rm|d|de|del*) shift; [[ "$1" = -d ]] && shift; vmdelete "$@"; exit $?;;
-	l|lo|log*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
+	l|lo|log*|e|ex|ex*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
 	ls|li|lis|list) shift; [[ "$1" = -d ]] && shift; vmlist "$@"; exit $?;;
 	i|if|if*) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
 	v|v*) shift; [[ "$1" = -d ]] && shift; vmvncport "$@"; exit $?;;
-	e|ed|ed*) shift; [[ "$1" = -d ]] && shift; vmedit "$@"; exit $?;;
+	ed|ed*) shift; [[ "$1" = -d ]] && shift; vmedit "$@"; exit $?;;
 	net|netcreate) shift; [[ "$1" = -d ]] && shift; netcreate "$@"; exit $?;;
 	netinfo) shift; [[ "$1" = -d ]] && shift; netinfo "$@"; exit $?;;
 	netdel|netdelete) shift; [[ "$1" = -d ]] && shift; netdelete "$@"; exit $?;;
