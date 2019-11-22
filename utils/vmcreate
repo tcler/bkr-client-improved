@@ -1272,14 +1272,16 @@ virsh attach-disk $vmname --subdriver qcow2 --persistent $VMpath/ext4.qcow2 vdb
 virsh attach-disk $vmname --subdriver qcow2 --persistent $VMpath/xfs.qcow2 vdc
 #virsh detach-disk $vmname --persistent vdb
 #virsh detach-disk $vmname --persistent vdc
-COMM
 
-echo -e "\n{INFO} you can try login $vmname again by using:"
-echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
 echo -e "  $ virsh console $vmname"
 echo -e "  $ ssh foo@$vmname  #password: redhat"
 read addr < <(vmifaddr $vmname)
 [[ -n "$addr" ]] && {
 	echo -e "  $ ssh foo@$addr  #password: redhat"
 }
+COMM
+
+echo -e "\n{INFO} you can try login $vmname again by using:"
+echo -e "  $ vmc -r login $vmname          #from host"
+echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
 exit 0
