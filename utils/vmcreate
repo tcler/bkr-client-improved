@@ -73,7 +73,7 @@ _vmdelete() {
 	virsh undefine $_vmname --remove-all-storage
 	if [[ "$_vmdir" = $VMSHOME/?*/$_vmname ]]; then
 		echo -e "\n{INFO} removing VM folder $_vmdir ..."
-		rm -f $_vmdir/{vncport,url,nohup.log,ext4.qcow2,xfs.qcow2}
+		rm -f $_vmdir/{url,nohup.log,ext4.qcow2,xfs.qcow2}
 		rmdir $_vmdir 2>/dev/null
 		rmdir ${_vmdir%/*} 2>/dev/null
 	fi
@@ -879,13 +879,6 @@ osvariants=$(virt-install --os-variant list 2>/dev/null) ||
 	fi
 }
 
-echo -e "{INFO} get available vnc port ..."
-VNCPORT=${VNCPORT:-7777}
-while nc 127.0.0.1 ${VNCPORT} </dev/null &>/dev/null; do
-	let VNCPORT++
-done
-echo $VNCPORT >$VMpath/vncport
-
 is_bridge() {
 	local ifname=$1
 	[[ -z "$ifname" ]] && return 1
@@ -999,9 +992,10 @@ if [[ "$InstallType" = location ]]; then
 	  --initrd-inject $KSPath \
 	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,${baudrate}n8 rd.driver.pre=loop" \
 	  --noautoconsole \
-	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $NOREBOOT &>$VMpath/nohup.log &
+	  --vnc --vnclisten 0.0.0.0 $NOREBOOT &>$VMpath/nohup.log &
 	Installpid=$!
-	#timeout 8 tail -f $VMpath/nohup.log
+
+	while true; do test -f $VMpath/nohup.log && break; done
 	expect -c "spawn tail -f $VMpath/nohup.log
 		expect {
 			{* to complete the installation process.} { exit }
@@ -1072,8 +1066,8 @@ if [[ "$InstallType" = location ]]; then
 		'
 		ReturnCode=$?
 		[[ $ReturnCode = 0 || $ReturnCode = 255 ]] && break
-		[[ $ReturnCode = 127 ]] && { virsh start $vmname 2>&1 | sed 's/error: //'; }
-		sleep 2
+		[[ $ReturnCode = 127 ]] && { virsh start $vmname 2>&1 | sed 's/error: //'; continue; }
+		sleep 1
 	done
 	echo -e "\n{INFO} Quit from expect -c 'spawn virsh console $vmname'"
 
@@ -1144,9 +1138,10 @@ elif [[ "$InstallType" = import ]]; then
 	  $NETWORK_OPTS \
 	  --import \
 	  --noautoconsole \
-	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $OS_VARIANT_OPT &>$VMpath/nohup.log &
+	  --vnc --vnclisten 0.0.0.0 $OS_VARIANT_OPT &>$VMpath/nohup.log &
 	Installpid=$!
-	#timeout 4 tail -f $VMpath/nohup.log
+
+	while true; do test -f $VMpath/nohup.log && break; done
 	expect -c "spawn tail -f $VMpath/nohup.log
 		expect {
 			{*Domain creation completed.} { exit }
@@ -1208,7 +1203,7 @@ elif [[ "$InstallType" = import ]]; then
 			interact
 		' && break
 		test -d /proc/$Installpid || break
-		sleep 2
+		sleep 1
 	done
 	unset Installpid
 	echo -e "\n{INFO} Quit from expect -c 'spawn virsh console $vmname'"
@@ -1261,7 +1256,6 @@ if [[ "$RM" = yes ]]; then
 	exit 0
 fi
 
-#echo "{DEBUG} VNC port ${VNCPORT}"
 if [[ ! -f ~/.ssh/config ]]; then
 	cat <<-EOF > ~/.ssh/config
 	Host 192.168.*.*
@@ -1291,5 +1285,5 @@ COMM
 
 echo -e "\n{INFO} you can try login $vmname again by using:"
 echo -e "  $ vmc login $vmname          #from host"
-echo -e "  $ vncviewer $HOSTNAME:$VNCPORT  #from remote"
+echo -e "  $ vncviewer $(vmc -r vnc $vmname)    #from remote"
 exit 0
