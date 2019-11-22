@@ -25,6 +25,7 @@ echo
 #----------------------------------
 kver=$(uname -r|awk -F. '{print $1}')
 mgsize=$(free -gt | awk '/^Mem/{print $2}')
+mmsize=$(free -mt | awk '/^Mem/{print $2}')
 
 #RHEL-8
 if [[ $kver -ge 4 ]]; then
