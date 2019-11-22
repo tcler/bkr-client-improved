@@ -32,7 +32,6 @@ baudrate=115200
 Cleanup() {
 	cd ~
 	#echo "{DEBUG} Removing $RuntimeTmp"
-	[[ -n "$Installpid" ]] && kill $Installpid
 	rm -rf $RuntimeTmp
 	exit
 }
@@ -74,7 +73,7 @@ _vmdelete() {
 	virsh undefine $_vmname --remove-all-storage
 	if [[ "$_vmdir" = $VMSHOME/?*/$_vmname ]]; then
 		echo -e "\n{INFO} removing VM folder $_vmdir ..."
-		rm -f $_vmdir/{vncport,url,ext4,qcow2,xfs.qcow2}
+		rm -f $_vmdir/{vncport,url,nohup.log,ext4.qcow2,xfs.qcow2}
 		rmdir $_vmdir 2>/dev/null
 		rmdir ${_vmdir%/*} 2>/dev/null
 	fi
@@ -628,7 +627,7 @@ _at=`getopt -o hd:Ll:fn:gb:p:Ii:r \
 	--long netmacvtap:: \
 	--long macvtapmode: \
 	--long nointeract \
-	--long saveimage:: \
+	--long saveimage:: --long sa:: \
 	--long ready \
 	--long xdisk \
 	--long nvdimm \
@@ -663,7 +662,7 @@ while true; do
 		srcif=${2:-$(get_default_if)}
 		NETWORK_OPTS+=" --network=type=direct,source=$srcif,source_mode=$MacvtapMode,model=virtio"; shift 2;;
 	--macvtapmode)   MacvtapMode="$2"; shift 2;;
-	--saveimage)
+	--saveimage|--sa)
 		SAVE_IMAGE="yes"
 		SaveImagePath=${2:-$ImagePath/download}
 		mkdir -p ${SaveImagePath}
@@ -988,7 +987,7 @@ if [[ "$InstallType" = location ]]; then
 	}
 	ksfile=${KSPath##*/}
 	qemu-img create -f qcow2 $VMpath/${vmname}.qcow2 ${DSIZE}G
-	virt-install --connect=qemu:///system --hvm --accelerate \
+	nohup virt-install --connect=qemu:///system --hvm --accelerate \
 	  --name $vmname \
 	  --location $Location \
 	  $OS_VARIANT_OPT \
@@ -999,10 +998,16 @@ if [[ "$InstallType" = location ]]; then
 	  $NETWORK_OPTS \
 	  --initrd-inject $KSPath \
 	  --extra-args="ks=file:/$ksfile console=tty0 console=ttyS0,${baudrate}n8 rd.driver.pre=loop" \
-	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $NOREBOOT &
+	  --noautoconsole \
+	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $NOREBOOT &>$VMpath/nohup.log &
 	Installpid=$!
-	sleep 5s
-	while ! virsh desc $vmname &>/dev/null; do test -d /proc/$Installpid || exit 1; sleep 1s; done
+	#timeout 8 tail -f $VMpath/nohup.log
+	expect -c "spawn tail -f $VMpath/nohup.log
+		expect {
+			{* to complete the installation process.} { exit }
+			{*\r} { exp_continue }
+		}
+	"
 
 	trap - SIGINT
 	for ((i=0; i<8; i++)); do
@@ -1024,11 +1029,6 @@ if [[ "$InstallType" = location ]]; then
 					puts $expect_out(buffer)
 					exit 5
 				}
-				"error: The domain is not running" {
-					send "\r"
-					puts $expect_out(buffer)
-					exit 6
-				}
 				"error: internal error: character device console0 is not using a PTY" {
 					send "\r"
 					puts $expect_out(buffer)
@@ -1044,18 +1044,19 @@ if [[ "$InstallType" = location ]]; then
 					interact
 				}
 
-				"reboot: Restarting system" { exit 1 }
-				"Restarting system" { exit 1 }
-
 				"reboot: Power down" { exit 0 }
 				"Power down" { exit 0 }
 
-				"reboot: System halted" { send_user "\r\rsomething is wrong! cancel installation ..\r\r"; exit 0 }
-				"System halted" { send_user "\r\rsomething is wrong! cancel installation ..\r\r"; exit 0 }
+				"reboot: Restarting system" { send "\r"; exit 1 }
+				"Restarting system" { send "\r"; exit 1 }
 
-				"An unknown error has occurred" {
-					interact
-				}
+				"error: The domain is not running" { send "\r"; exit 127 }
+
+				"reboot: System halted" { send_user "\r\rsomething is wrong! cancel installation ..\r\r"; exit 255 }
+				"System halted" { send_user "\r\rsomething is wrong! cancel installation ..\r\r"; exit 255 }
+
+				"An unknown error has occurred" { exit 255 }
+				"error: Domain not found:" { exit 255 }
 
 				"* login:" { send "root\r" }
 			}
@@ -1068,24 +1069,19 @@ if [[ "$InstallType" = location ]]; then
 
 			if {$env(INTERACT) == "no"} { exit 0 }
 			interact
-		' && break
-		test -d /proc/$Installpid || break
+		'
+		ReturnCode=$?
+		[[ $ReturnCode = 0 || $ReturnCode = 255 ]] && break
+		[[ $ReturnCode = 127 ]] && { virsh start $vmname 2>&1 | sed 's/error: //'; }
 		sleep 2
 	done
 	echo -e "\n{INFO} Quit from expect -c 'spawn virsh console $vmname'"
 
-	# waiting install finish ...
-	test -d /proc/$Installpid && {
-		echo -e "\n{INFO} check/waiting install process finish ..."
-		while test -d /proc/$Installpid; do sleep 1; [[ $((loop++)) -gt 10 ]] && break; done
-	}
-	test -d /proc/$Installpid && {
-		echo -e "\n{INFO} something is wrong(please check disk space), will clean all tmp files ..."
-		kill -9 $Installpid
+	[[ $ReturnCode = 255 ]] && {
+		echo -e "\n{INFO} something is wrong(please check screen log), will clean all tmp files ..."
 		RM=yes
 		GenerateImage=
 	}
-	unset Installpid
 
 elif [[ "$InstallType" = import ]]; then
 	[[ -f $Imageurl ]] && Imageurl=file://$(readlink -f ${Imageurl})
@@ -1138,7 +1134,7 @@ elif [[ "$InstallType" = import ]]; then
 		echo -e "{INFO} resize $imagefile to ${DSIZE}G"
 		qemu-img resize ${imagefile} ${DSIZE}G
 	}
-	virt-install --connect=qemu:///system --hvm --accelerate \
+	nohup virt-install --connect=qemu:///system --hvm --accelerate \
 	  --name $vmname \
 	  --vcpus ${VCPUN:-4} \
 	  $MEM_OPTS \
@@ -1147,9 +1143,16 @@ elif [[ "$InstallType" = import ]]; then
 	  $CLOUD_INIT_OPT \
 	  $NETWORK_OPTS \
 	  --import \
-	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $OS_VARIANT_OPT &
+	  --noautoconsole \
+	  --vnc --vnclisten 0.0.0.0 --vncport ${VNCPORT} $OS_VARIANT_OPT &>$VMpath/nohup.log &
 	Installpid=$!
-	sleep 5s
+	#timeout 4 tail -f $VMpath/nohup.log
+	expect -c "spawn tail -f $VMpath/nohup.log
+		expect {
+			{*Domain creation completed.} { exit }
+			{*\r} { exp_continue }
+		}
+	"
 
 	trap - SIGINT
 	for ((i=0; i<8; i++)); do
