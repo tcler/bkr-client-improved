@@ -5,7 +5,7 @@
 LANG=C
 PATH=~/bin:$PATH 
 
-PROG=${0##*/}
+P=${0##*/}
 Distro=
 Location=
 Imageurl=
@@ -519,7 +519,7 @@ distro2repos() {
 Usage() {
 	cat <<-'EOF'
 	Usage:
-	    $PROG [subcmd] <-d distroname> [OPTIONs] ...
+	    vmc [subcmd] <-d distroname> [OPTIONs] ...
 
 	Options:
 	    -h, --help     #Display this help.
@@ -566,29 +566,29 @@ Usage() {
 	EOF
 	[[ "$Intranet" = yes ]] && cat <<-EOF
 	Example Intranet:
-	    $PROG # will enter a TUI show you all available distros that could auto generate source url
-	    $PROG RHEL-6.10 -L
-	    $PROG RHEL-7.7
-	    $PROG RHEL-8.1.0 -f -p "vim wget git"
-	    $PROG RHEL-8.1.0 -L -brewinstall 23822847  # brew scratch build id
-	    $PROG RHEL-8.1.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
-	    $PROG RHEL-8.1.0 -L -brewinstall "lstk -debug"            # latest brew build release debug kernel
-	    $PROG RHEL-8.2.0-20191024.n.0 -g -b "upk -debug"          # latest brew build upstream debug kernel
+	    $P # will enter a TUI show you all available distros that could auto generate source url
+	    $P RHEL-6.10 -L
+	    $P RHEL-7.7
+	    $P RHEL-8.1.0 -f -p "vim wget git"
+	    $P RHEL-8.1.0 -L -brewinstall 23822847  # brew scratch build id
+	    $P RHEL-8.1.0 -L -brewinstall kernel-4.18.0-147.8.el8  # brew build name
+	    $P RHEL-8.1.0 -L -brewinstall "lstk -debug"            # latest brew build release debug kernel
+	    $P RHEL-8.2.0-20191024.n.0 -g -b "upk -debug"          # latest brew build upstream debug kernel
 
 	EOF
 	cat <<-EOF
 	Example Internet:
-	    $PROG centos-5 -l http://vault.centos.org/5.11/os/x86_64/
-	    $PROG centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
-	    $PROG centos-7 -l http://mirror.centos.org/centos/7/os/x86_64/
-	    $PROG centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
-	    $PROG centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/x.rpm
-	    $PROG centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -pkginstall "vim git wget"
-	    $PROG debian-10 -i https://cdimage.debian.org/cdimage/openstack/10.1.5-20191015/debian-10.1.5-20191015-openstack-amd64.qcow2
+	    $P centos-5 -l http://vault.centos.org/5.11/os/x86_64/
+	    $P centos-6 -l http://mirror.centos.org/centos/6.10/os/x86_64/
+	    $P centos-7 -l http://mirror.centos.org/centos/7/os/x86_64/
+	    $P centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/
+	    $P centos-8 -l http://mirror.centos.org/centos/8/BaseOS/x86_64/os/ -brewinstall ftp://url/path/x.rpm
+	    $P centos-7 -i https://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz -pkginstall "vim git wget"
+	    $P debian-10 -i https://cdimage.debian.org/cdimage/openstack/10.1.5-20191015/debian-10.1.5-20191015-openstack-amd64.qcow2
 
 	Example from local image:
-	    $PROG rhel-8-up -i ~/myimages/RHEL-8.1.0-20191015.0/rhel-8-upstream.qcow2.xz --nocloud-init
-	    $PROG debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
+	    $P rhel-8-up -i ~/myimages/RHEL-8.1.0-20191015.0/rhel-8-upstream.qcow2.xz --nocloud-init
+	    $P debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
 
 	Example [subcmd]:
 	    vmc list              #list all VMs       //you can use ls,li,lis* instead list
@@ -596,7 +596,7 @@ Usage() {
 	    vmc delete [VM list]  #delete VMs         //you can use d,de,del*,r,rm instead delete
 	    vmc ifaddr [VM]       #show ip address    //you can use i,if,if* instead ifaddr
 	    vmc vncport [VM]      #show vnc host:port //you can use v,vnc instead vncport
-	    vmc edit [VM]         #show ip address    //you can use i,if,if* instead ifaddr
+	    vmc edit [VM]         #show ip address    //you can use ed,ed* instead edit
 	    vmc exec "\$VM" -- "cmd"  #login VM and exec cmd  //you can use e,ex instead exec
 
 	    vmc net               #list all virtual network
@@ -695,7 +695,7 @@ fi
 mkdir -p $RuntimeTmp
 
 # sub-command
-[[ $PROG = vmc || $PROG = vm || true ]] && {
+[[ $P = vmc || $P = vm ]] && {
 	subcmd=$1
 	case "$subcmd" in
 	r|rm|d|de|del*) shift; [[ "$1" = -d ]] && shift; vmdelete "$@"; exit $?;;
