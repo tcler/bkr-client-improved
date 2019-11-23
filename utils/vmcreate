@@ -18,7 +18,7 @@ VMName=
 InstallType=import
 ImagePath=~/myimages
 VMSHOME=~/VMs
-RuntimeTmp=/tmp/vmc-$$
+RuntimeTmp=/tmp/vm-$$
 INTERACT=yes
 vmprefix=$(whoami)
 [[ -n "$SUDO_USER" ]] && vmprefix=${SUDO_USER}-sudo
@@ -221,7 +221,7 @@ netcreate() {
 	Usage() {
 		cat <<-U
 		Example:
-		  vmc net netname=net10 brname=virbr10 subnet=10  #subnet range: [1-121,123-254]
+		  vm net netname=net10 brname=virbr10 subnet=10  #subnet range: [1-121,123-254]
 		U
 	}
 	for opt; do [[ "$opt" =~ ^(netname|brname|subnet)=.* ]] || continue; eval "$opt"; done
@@ -271,7 +271,7 @@ enable_libvirt() {
 	local pkglist="libvirt libvirt-client virt-install virt-viewer qemu-kvm expect nmap-ncat libguestfs-tools-c libvirt-nss dialog qemu-img"
 	local sudouser=${SUDO_USER:-$(whoami)}
 	eval sudouserhome=~$sudouser
-	[[ -d $sudouserhome/.config/vmc ]] && return 0
+	[[ -d $sudouserhome/.config/vm.conf ]] && return 0
 
 	echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ enable libvirt start ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	echo -e "{INFO} checking libvirtd service and related packages ..."
@@ -330,7 +330,7 @@ COMM
 		}
 	}
 
-	mkdir -p $sudouserhome/.config/vmc
+	mkdir -p $sudouserhome/.config/vm.conf
 	echo -e "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ enable libvirt done! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 	printf '\33[H\33[2J'
 }
@@ -518,7 +518,7 @@ distro2repos() {
 Usage() {
 	cat <<-'EOF'
 	Usage:
-	    vmc [subcmd] <-d distroname> [OPTIONs] ...
+	    vm [subcmd] <-d distroname> [OPTIONs] ...
 
 	Options:
 	    -h, --help     #Display this help.
@@ -590,18 +590,18 @@ Usage() {
 	    $P debian-10 -i /mnt/vm-images/debian-10.1.5-20191015-openstack-amd64.qcow2
 
 	Example [subcmd]:
-	    vmc list              #list all VMs       //you can use ls,li,lis* instead list
-	    vmc login [/c] [VM]   #login VM           //you can use l,lo,log* instead login
-	    vmc delete [VM list]  #delete VMs         //you can use d,de,del*,r,rm instead delete
-	    vmc ifaddr [VM]       #show ip address    //you can use i,if,if* instead ifaddr
-	    vmc vncport [VM]      #show vnc host:port //you can use v,vnc instead vncport
-	    vmc edit [VM]         #show ip address    //you can use ed,ed* instead edit
-	    vmc exec "\$VM" -- "cmd"  #login VM and exec cmd  //you can use e,ex instead exec
+	    vm list              #list all VMs       //you can use ls,li,lis* instead list
+	    vm login [/c] [VM]   #login VM           //you can use l,lo,log* instead login
+	    vm delete [VM list]  #delete VMs         //you can use d,de,del*,r,rm instead delete
+	    vm ifaddr [VM]       #show ip address    //you can use i,if,if* instead ifaddr
+	    vm vncport [VM]      #show vnc host:port //you can use v,vnc instead vncport
+	    vm edit [VM]         #show ip address    //you can use ed,ed* instead edit
+	    vm exec "\$VM" -- "cmd"  #login VM and exec cmd  //you can use e,ex instead exec
 
-	    vmc net               #list all virtual network
-	    vmc net netname=testnet brname=virbrN subnet=100  #create virtual network 'testnet'
-	    vmc netinfo testnet   #show detail info of virtual network 'testnet'
-	    vmc netdel testnet    #delete virtual network 'testnet'
+	    vm net               #list all virtual network
+	    vm net netname=testnet brname=virbrN subnet=100  #create virtual network 'testnet'
+	    vm netinfo testnet   #show detail info of virtual network 'testnet'
+	    vm netdel testnet    #delete virtual network 'testnet'
 	EOF
 }
 
@@ -782,8 +782,7 @@ vmname=$(vmname_gen $Distro $VMName)
 virsh desc $vmname &>/dev/null && {
 	if [[ "${OVERWRITE}" = "yes" ]]; then
 		echo "{INFO} VM $vmname has been there, remove it ..."
-		virsh destroy $vmname 2>/dev/null
-		virsh undefine $vmname --remove-all-storage
+		_vmdelete $vmname
 	else
 		echo "{INFO} VM $vmname has been there, if you want overwrite please use --force option"
 		exit
@@ -1247,12 +1246,12 @@ if [[ "$GenerateImage" = yes ]]; then
 	ls -lh ${newimage}.xz
 
 	echo -e "\n{INFO} remove temporary VM $vmname ..."
-	vmdelete $vmname
+	_vmdelete $vmname
 	exit 0
 fi
 
 if [[ "$RM" = yes ]]; then
-	vmdelete $vmname
+	_vmdelete $vmname
 	exit 0
 fi
 
@@ -1284,6 +1283,6 @@ read addr < <(vmifaddr $vmname)
 COMM
 
 echo -e "\n{INFO} you can try login $vmname again by using:"
-echo -e "  $ vmc login $vmname          #from host"
-echo -e "  $ vncviewer $(vmc -r vnc $vmname)    #from remote"
+echo -e "  $ vm login $vmname          #from host"
+echo -e "  $ vncviewer $(vmvncport $vmname)    #from remote"
 exit 0
