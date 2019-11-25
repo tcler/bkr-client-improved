@@ -640,6 +640,7 @@ _at=`getopt -o hd:Ll:fn:gb:p:Ii:r \
 	--long brewinstall: \
 	--long pkginstall: \
 	--long geturl \
+	--long getvmname \
 	--long nocloud-init --long nocloud \
 	--long cpus: \
 	--long msize: \
@@ -670,6 +671,7 @@ while true; do
 	-n|--vmname)      VMName="$2"; shift 2;;
 	-g|--genimage)    GenerateImage=yes; shift 1;;
 	--geturl)         OnlyGetUrl=yes; shift 1;;
+	--getvmname)      OnlyGetVMName=yes; shift 1;;
 	-b|--brewinstall) BPKGS="$2"; shift 2;;
 	-p|--pkginstall)  PKGS="$2"; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
@@ -797,6 +799,11 @@ is_intranet || {
 	echo -e "{WARN} you have to select a distro name or specified it by adding command line parameter:\n"
 	Usage
 	exit 1
+}
+
+[[ "$OnlyGetVMName" = yes ]] && {
+	vmname_gen $Distro $VMName
+	exit $?
 }
 
 [[ -z "$OnlyGetUrl" ]] && {
