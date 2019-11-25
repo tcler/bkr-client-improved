@@ -67,12 +67,12 @@ _vmdelete() {
 	local _image=$(virsh dumpxml --domain $_vmname | sed -n "/source file=.*qcow/{s|^.*='||; s|'/>$||; p; q}")
 	local _vmdir=$(dirname $_image)
 
-	echo -e "\n{INFO} dist removing VM $_vmname .."
+	echo -e "{INFO} => dist removing VM $_vmname .."
 	virsh destroy $_vmname 2>/dev/null
 	sleep 1
 	virsh undefine $_vmname --remove-all-storage
 	if [[ "$_vmdir" = $VMSHOME/?*/$_vmname ]]; then
-		echo -e "\n{INFO} removing VM folder $_vmdir ..."
+		echo -e "{INFO} removing VM folder $_vmdir ..."
 		rm -f $_vmdir/{url,nohup.log,ext4.qcow2,xfs.qcow2}
 		rmdir $_vmdir 2>/dev/null
 		rmdir ${_vmdir%/*} 2>/dev/null
