@@ -548,7 +548,7 @@ Usage() {
 	    -L             #create VM by using location, auto search url according distro name
 	                    `-> just could be used in Intranet
 	    -l <url>       #create VM by using location
-	    --ks <file>    #kickstart file
+	    --ks <file>    #kickstart file, will auto generate according distro name if omitting
 	    -n|--vmname <name>
 	                   #VM name, will auto generate according distro name if omitting
 	    -f|--force     #over write existing VM with same name
