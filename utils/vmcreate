@@ -141,7 +141,7 @@ vmvncport() {
 	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
-		vmdialogradiolist vm-edit $resf all && _vmname=$(sed 's/"//g' $resf)
+		vmdialogradiolist vm-vncport $resf all && _vmname=$(sed 's/"//g' $resf)
 		[[ -z "$_vmname" ]] && { return; }
 	}
 
@@ -175,19 +175,36 @@ vmlogin() {
 		[[ -z "$_vmname" ]] && { return; }
 	}
 
-	[[ "$console" = yes ]] && { virsh console "$_vmname"; return $?; }
+	[[ "${EXEC}" = yes && $# = 0 ]] && set "exit 0";
+
+	[[ "$console" = yes ]] && {
+		if [[ "$EXEC" = yes ]]; then
+			:
+		else
+			virsh console "$_vmname"
+			return $?
+		fi
+	}
 
 	#sometimes there's bug in libnss. get more than one addr but some one
 	#of them does not exist. use nc detect and ignore it/them
 	addrs=$(vmifaddr "$_vmname")
-	[[ -z "$addrs" ]] && { virsh console "$_vmname"; return $?; }
+	[[ -z "$addrs" ]] && {
+		echo -e "{WARN} can not get ip info of $_vmname, try login with console ..."
+		virsh console "$_vmname"
+		return $?
+	}
 
 	for addr in $addrs; do
 		nc $addr 22 </dev/null &>/dev/null || {
 			echo -e "{WARN} port $addr:22 is not available"
 			continue
 		}
-		#ssh root@$addr "$@"
+		ssh root@$addr "exit 0" || {
+			echo -e "{WARN} ssh root@$addr is not available, try login with console ..."
+			virsh console "$_vmname"
+			return $?
+		}
 		expect <(cat <<-EOF
 		set timeout 120
 		log_user 0
@@ -211,6 +228,7 @@ vmlogin() {
 		return
 	done
 }
+vmexec() { EXEC=yes vmlogin "$@"; }
 vmlist() { virsh list --all; }
 netcreate() {
 	local netname=
@@ -592,6 +610,7 @@ Usage() {
 	Example [subcmd]:
 	    vm list              #list all VMs       //you can use ls,li,lis* instead list
 	    vm login [/c] [VM]   #login VM           //you can use l,lo,log* instead login
+	    vm exec VM cmd       #exec command on VM //you can use e,ex,ex* instead exec
 	    vm delete [VM list]  #delete VMs         //you can use d,de,del*,r,rm instead delete
 	    vm ifaddr [VM]       #show ip address    //you can use i,if,if* instead ifaddr
 	    vm vncport [VM]      #show vnc host:port //you can use v,vnc instead vncport
@@ -698,7 +717,8 @@ mkdir -p $RuntimeTmp
 	subcmd=$1
 	case "$subcmd" in
 	r|rm|d|de|del*) shift; [[ "$1" = -d ]] && shift; vmdelete "$@"; exit $?;;
-	l|lo|log*|e|ex|ex*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
+	l|lo|log*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
+	e|ex|ex*) shift; [[ "$1" = -d ]] && shift; vmexec "$@"; exit $?;;
 	ls|li|lis|list) shift; [[ "$1" = -d ]] && shift; vmlist "$@"; exit $?;;
 	i|if|if*) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
 	v|v*) shift; [[ "$1" = -d ]] && shift; vmvncport "$@"; exit $?;;
@@ -1269,8 +1289,8 @@ fi
 echo -e "\n{INFO} attach test disk ext4.qcow2 and xfs.qcow2:"
 qemu-img create -f qcow2 $VMpath/ext4.qcow2 10G
 qemu-img create -f qcow2 $VMpath/xfs.qcow2 10G
-virsh attach-disk $vmname --subdriver qcow2 --persistent $VMpath/ext4.qcow2 vdb
-virsh attach-disk $vmname --subdriver qcow2 --persistent $VMpath/xfs.qcow2 vdc
+virsh attach-disk $vmname --subdriver qcow2 --persistent $VMpath/ext4.qcow2 vdb #--current --targetbus usb
+virsh attach-disk $vmname --subdriver qcow2 --persistent $VMpath/xfs.qcow2 vdc #--current --targetbus usb
 #virsh detach-disk $vmname --persistent vdb
 #virsh detach-disk $vmname --persistent vdc
 
