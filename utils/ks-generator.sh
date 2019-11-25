@@ -60,7 +60,7 @@ RHEL-5*|RHEL5*|centos5*|centos-5*)
 	EPEL=http://archive.fedoraproject.org/pub/archive/epel/epel-release-latest-5.noarch.rpm
 	;;
 RHEL-6*|RHEL6*|centos6*|centos-6*)
-	Packages="@base @cifs-file-server @nfs-file-server redhat-lsb-core vim-enhanced git iproute screen wget"
+	Packages="-iwl* @base @cifs-file-server @nfs-file-server redhat-lsb-core vim-enhanced git iproute screen wget"
 
 	NetCommand="network --device=eth0 --bootproto=dhcp"
 	KeyCommand="key --skip"

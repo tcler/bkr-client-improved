@@ -109,9 +109,9 @@ done
 runcmd:
   - test -f /etc/dnf/dnf.conf && { echo strict=0 >>/etc/dnf/dnf.conf; ln -s /usr/bin/{dnf,yum}; }
   - sed -ri -e '/^#?PasswordAuthentication /{s/no/yes/;s/^#//}' -e 's/^#?(PermitRootLogin) .*$/\1 yes/' /etc/ssh/sshd_config && service sshd restart
-  - which yum && yum install -y vim curl wget $PKGS
-  -   which apt-get && apt-get install -y vim curl wget $PKGS
-  -   which zypper && zypper install -y vim curl wget $PKGS
+  - which yum && yum install -y curl $PKGS
+  -   which apt-get && apt-get install -y curl $PKGS
+  -   which zypper && zypper install -y curl $PKGS
   - which yum && curl -L -m 30 -o /usr/bin/brewinstall.sh "$baseDownloadUrl/utils/brewinstall.sh" &&
     chmod +x /usr/bin/brewinstall.sh && brewinstall.sh $BPKGS -noreboot
   - which yum && curl -L -m 30 -o /usr/bin/kdump-setup.sh "$baseDownloadUrl/utils/kdump-setup.sh" &&
