@@ -612,12 +612,11 @@ Usage() {
 	Example [subcmd]:
 	    vm list              #list all VMs       //you can use ls,li,lis* instead list
 	    vm login [/c] [VM]   #login VM           //you can use l,lo,log* instead login
-	    vm exec VM cmd       #exec command on VM //you can use e,ex,ex* instead exec
 	    vm delete [VM list]  #delete VMs         //you can use d,de,del*,r,rm instead delete
 	    vm ifaddr [VM]       #show ip address    //you can use i,if,if* instead ifaddr
 	    vm vncport [VM]      #show vnc host:port //you can use v,vnc instead vncport
-	    vm edit [VM]         #show ip address    //you can use ed,ed* instead edit
-	    vm exec "\$VM" -- "cmd"  #login VM and exec cmd  //you can use e,ex instead exec
+	    vm edit [VM]         #edit vm xml file   //you can use ed,ed* instead edit
+	    vm exec "\$VM" -- "cmd"  #login VM and exec cmd  //you can use e,ex,ex* instead exec
 
 	    vm net               #list all virtual network
 	    vm net netname=testnet brname=virbrN subnet=100  #create virtual network 'testnet'
