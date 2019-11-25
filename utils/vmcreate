@@ -195,6 +195,7 @@ vmlogin() {
 		return $?
 	}
 
+	echo "$*" >$RuntimeTmp/sshcmd
 	for addr in $addrs; do
 		nc $addr 22 </dev/null &>/dev/null || {
 			echo -e "{WARN} port $addr:22 is not available"
@@ -207,8 +208,9 @@ vmlogin() {
 		}
 		expect <(cat <<-EOF
 		set timeout 120
+		set sshcmd [exec cat $RuntimeTmp/sshcmd]
 		log_user 0
-		spawn bash -c "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -l root $addr $@"
+		spawn ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@$addr \$sshcmd
 		log_user 1
 		if {\$argc == 0} {
 			expect {
