@@ -637,7 +637,7 @@ _at=`getopt -o hd:Ll:fn:gb:p:Ii:r \
 	--long xzopt: \
 	--long brewinstall: \
 	--long pkginstall: \
-	--long getimage \
+	--long geturl \
 	--long nocloud-init --long nocloud \
 	--long cpus: \
 	--long msize: \
@@ -667,7 +667,7 @@ while true; do
 	-f|--force)       OVERWRITE="yes"; shift 1;;
 	-n|--vmname)      VMName="$2"; shift 2;;
 	-g|--genimage)    GenerateImage=yes; shift 1;;
-	--getimage)       GetImage=yes; shift 1;;
+	--geturl)         OnlyGetUrl=yes; shift 1;;
 	-b|--brewinstall) BPKGS="$2"; shift 2;;
 	-p|--pkginstall)  PKGS="$2"; shift 2;;
 	--osv|--os-variant) VM_OS_VARIANT="$2"; shift 2;;
@@ -797,32 +797,32 @@ is_intranet || {
 	exit 1
 }
 
-# check if VM exist
-vmname=$(vmname_gen $Distro $VMName)
-virsh desc $vmname &>/dev/null && {
-	if [[ "${OVERWRITE}" = "yes" ]]; then
-		echo "{INFO} VM $vmname has been there, remove it ..."
-		_vmdelete $vmname
-	else
-		echo "{INFO} VM $vmname has been there, if you want overwrite please use --force option"
-		exit
-	fi
-}
-vmhostname=$vmname
-[[ "$GenerateImage" = yes ]] && vmhostname=${vmname#${vmprefix}-}
+[[ -z "$OnlyGetUrl" ]] && {
+	# check if VM exist
+	vmname=$(vmname_gen $Distro $VMName)
+	virsh desc $vmname &>/dev/null && {
+		if [[ "${OVERWRITE}" = "yes" ]]; then
+			echo "{INFO} VM $vmname has been there, remove it ..."
+			_vmdelete $vmname
+		else
+			echo "{INFO} VM $vmname has been there, if you want overwrite please use --force option"
+			exit
+		fi
+	}
+	vmhostname=$vmname
+	[[ "$GenerateImage" = yes ]] && vmhostname=${vmname#${vmprefix}-}
 
-VMpath=$VMSHOME/$Distro/$vmname
-mkdir -p $VMpath
+	VMpath=$VMSHOME/$Distro/$vmname
+	mkdir -p $VMpath
+}
 
 # Phase-1: get distro's Location or Image url
 [[ -n "${distroInfo[$Distro]}" ]] && {
 	echo -e "{INFO} ${distroInfo[$Distro]}"
 	read Imageurl Location <<<"${distroInfo[$Distro]}"
-	echo -e "{INFO} image url: $Imageurl"
-	echo -e "{INFO} location url: $Location"
 }
 
-if [[ "$InstallType" = import || -n "$GetImage" ]]; then
+if [[ "$InstallType" = import ]]; then
 	if [[ -z "$Imageurl" ]]; then
 		echo "{INFO} searching private image url of $Distro ..." >&2
 		baseurl=http://download.eng.bos.redhat.com/qa/rhts/lookaside/distro-vm-images
@@ -845,28 +845,26 @@ if [[ "$InstallType" = import || -n "$GetImage" ]]; then
 			is_available_url $imageLocation ||
 				imageLocation=${imageLocation/Cloud/CloudImages}
 			read Imageurl _ < <(getimageurls $imageLocation "(qcow2|qcow2.xz)")
-			if [[ $? = 0 ]]; then
-				echo -e " -> $Imageurl"
-				[[ -n "$GetImage" ]] && { exit; }
-			else
-				[[ -n "$GetImage" ]] && { exit 1; }
+			if [[ $? != 0 ]]; then
 				echo "{INFO} can not find image info of '$Distro', switching to Location mode" >&2
 				InstallType=location
+				Imageurl=
 			fi
-		else
-			echo -e " -> $Imageurl"
-			[[ -n "$GetImage" ]] && { exit; }
 		fi
 	else
 		if [[ ! -f $Imageurl ]] && ! is_available_url $Imageurl; then
 			echo "{INFO} image url $Imageurl is not available, switching to Location mode" >&2
 			InstallType=location
+			Imageurl=
 		fi
 	fi
 
-	egrep '(qcow2|qcow2.xz)' <<<"$Imageurl" || {
+	egrep -q '(qcow2|qcow2.xz)' <<<"$Imageurl" || {
 		read Imageurl _ < <(getimageurls ${Imageurl} '(qcow2|qcow2.xz)')
 	}
+
+	[[ -n "$Imageurl" ]] &&
+		echo -e "image url: $Imageurl"
 fi
 
 if [[ "$InstallType" = location ]]; then
@@ -877,10 +875,14 @@ if [[ "$InstallType" = location ]]; then
 			echo "{WARN} can not find distro location. please check if '$Distro' is valid distro" >&2
 			exit 1
 		}
-		echo -e " -> $Location"
 	fi
 	MSIZE=2048
+
+	[[ -n "$Location" ]] &&
+		echo -e "location url: $Location"
 fi
+
+[[ -n "$OnlyGetUrl" ]] && { exit; }
 
 echo "{INFO} guess/verify os-variant ..."
 [[ -z "$VM_OS_VARIANT" ]] && {
