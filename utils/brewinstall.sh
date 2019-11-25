@@ -162,6 +162,8 @@ for build in "${builds[@]}"; do
 		nfsaddr=${build/nfs:/}
 		nfsserver=${nfsaddr%:/*}
 		exportdir=${nfsaddr#*:/}
+		which mount.nfs &>/dev/null ||
+			yum install -y nfs-utils
 		run "mount $nfsserver:/ $nfsmp"
 		for a in "${archList[@]}"; do
 			ls $nfsmp/$exportdir/*.${a}.rpm &&
