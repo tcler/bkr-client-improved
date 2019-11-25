@@ -74,7 +74,7 @@ install_brew() {
 	which brew &>/dev/null || {
 		which brewkoji_install.sh &>/dev/null || {
 			_url=$baseDownloadUrl/utils/brewkoji_install.sh
-			mkdir -p ~/bin && wget -O ~/bin/brewkoji_install.sh -N -q $_url
+			mkdir -p ~/bin && curl -o ~/bin/brewkoji_install.sh -s -L $_url
 			chmod +x ~/bin/brewkoji_install.sh
 		}
 		PATH=~/bin:$PATH brewkoji_install.sh >/dev/null || {
@@ -106,7 +106,7 @@ done
 	exit
 }
 
-install_brew
+run install_brew -
 
 archList=($(arch) noarch)
 [[ -n "$_ARCH" ]] && archList=(${_ARCH//,/ })
@@ -143,7 +143,7 @@ for build in "${builds[@]}"; do
 		}
 		urllist=$(sed '/mnt.redhat..*rpm$/s; */mnt/redhat/;;' buildArch.txt)
 		for url in $urllist; do
-			run "wget --progress=dot:mega http://download.devel.redhat.com/$url" 0  "download-${url##*/}"
+			run "curl -O -L http://download.devel.redhat.com/$url" 0  "download-${url##*/}"
 		done
 
 		#try download rpms from brew download server
@@ -152,6 +152,7 @@ for build in "${builds[@]}"; do
 			downloadServerUrl=http://download.devel.redhat.com/brewroot/scratch/$owner/task_$taskid
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
+				which wget &>/dev/null || yum install -y wget
 				run "wget -r -l$depthLevel --no-parent $wgetOpts --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
@@ -173,8 +174,9 @@ for build in "${builds[@]}"; do
 	elif [[ "$build" =~ ^(ftp|http|https):// ]]; then
 		for url in $build; do
 			if [[ $url = *.rpm ]]; then
-				run "wget --progress=dot:mega $url" 0  "download-${url##*/}"
+				run "curl -O -L $url" 0  "download-${url##*/}"
 			else
+				which wget &>/dev/null || yum install -y wget
 				run "wget -r -l$depthLevel --no-parent $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
@@ -182,7 +184,7 @@ for build in "${builds[@]}"; do
 	else
 		buildname=$build
 		for a in "${archList[@]}"; do
-			brew download-build $DEBUG_INFO_OPT $buildname --arch=${a}
+			run "brew download-build $DEBUG_INFO_OPT $buildname --arch=${a}" -
 		done
 	fi
 done
