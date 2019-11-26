@@ -47,7 +47,7 @@ install_robot: _isroot install_runtest _install_require
 _install_web: _isroot _install_tclsh8.6
 	#install webfront
 	[ -d /opt/wub2 ] || { \
-	yum install -y svn &>/dev/null; \
+	yum install -y svn nmap-ncat &>/dev/null; \
 	svn export https://github.com/tcler/wub/trunk /opt/wub2 >/dev/null; }
 	cd bkr-test-robot/www2; for f in *; do rm -fr /opt/wub2/docroot/$$f; done
 	cp -rf -d bkr-test-robot/www2/* /opt/wub2/docroot/.

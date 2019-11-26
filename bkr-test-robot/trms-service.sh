@@ -23,9 +23,9 @@ trmsstat() {
 	local all=$1
 	ps -U root -u root -o pid,user:16,cmd|grep -v grep|grep tclsh.*Wub.tcl && {
 		if [[ $LOGNAME != root ]]; then
-			echo -e "url: $(gethostname):$port/trms/?user=$LOGNAME"
+			echo -e "url: $(getDefaultIp):$port/trms/?user=$LOGNAME"
 		else
-			echo -e "url: $(gethostname):$port"
+			echo -e "url: $(getDefaultIp):$port"
 		fi
 	}
 
@@ -45,7 +45,7 @@ start() {
 	nohup tclsh8.6 Wub.tcl site-trms.config 2>/dev/null &
 	rm -f nohup.out
 	echo -n "Waiting service is available"
-	while ! nc $(gethostname) $port </dev/null &>/dev/null; do sleep 5; echo -n .; done
+	while ! nc $(getDefaultIp) $port </dev/null &>/dev/null; do sleep 5; echo -n .; done
 	echo
 	trmsstat
 }
