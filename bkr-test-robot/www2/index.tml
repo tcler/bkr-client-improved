@@ -289,7 +289,7 @@ if {[info exist nodbfile]} {
 		append warn "<p id=\"p2\">please see <a href=\"https://github.com/tcler/bkr-client-improved\">bkr-client-improved</a> for more information <br><br><br></p>"
 	}
 
-	set users [exec bash -c {ls /home/*/.testrundb/testrun.db|awk -F/ '{print $3}'}]
+	set users [exec bash -c {ls /home/*/.testrundb/testrun.db 2>/dev/null|awk -F/ '{print $3}'}]
 	if {[llength $users] > 0} {
 		append warn {<p id="p2">Now available test run robot instance[s]:<br></p>}
 		set uri [dict get $req -uri]
