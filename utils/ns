@@ -5,16 +5,19 @@
 # used to create light container/ns for nfs/cifs test on RHEL/CentOS 7 or later
 
 NSHome=~/NS
+NSHome=/var/lib/machines
 
 [[ $(id -u) != 0 ]] && {
-	echo -e "{Warn} run $0 need root permission, try:\n  sudo $0 ..." >&2
+	echo -e "{Warn} $0 need root permission, try:\n  sudo $0 ..." >&2
 	exec sudo $0 "$@"
 }
 
-echo -e "{Info} checking dependence ..."
 which screen &>/dev/null || dep=screen
 which systemd-nspawn &>/dev/null || dep+=\ systemd-container
-[[ -n "$dep" ]] && yum install -y $dep >&2
+[[ -n "$dep" ]] && {
+	echo -e "{Info} install dependences ..."
+	yum install -y $dep >&2
+}
 
 Usage() {
 	cat <<-EOF
