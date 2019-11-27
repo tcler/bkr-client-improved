@@ -503,6 +503,7 @@ distro2repos() {
 	RHEL-8*|RHEL8*)
 		{ read; read os arch osv ver _; } < <(tac -s ' ' <<<"${url//\// }")
 		debug_url=${url/\/os/\/debug\/tree}
+		read dtype distro < <(awk -F/+ '{ for (i=3;i<NF;i++) { if ($(i+1) ~ /RHEL-/) { print($i, $(i+1)); break }}}' <<<"$url")
 		Repos+=(
 			BaseOS:${url}
 			AppStream:${url/BaseOS/AppStream}
@@ -523,6 +524,7 @@ distro2repos() {
 			RT-debuginfo:${debug_url/BaseOS/RT}
 			SAP-debuginfo:${debug_url/BaseOS/SAP}
 			SAPHANA-debuginfo:${debug_url/BaseOS/SAPHANA}
+			Buildroot:http://download.devel.redhat.com/$dtype/latest-BUILDROOT-8-RHEL-8/compose/Buildroot/$arch/os
 		)
 		;;
 	esac
