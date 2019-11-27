@@ -74,7 +74,7 @@ get_init_pid() {
 get_pstree() {
 	local nsdir=$1
 
-	ps xf | sed -rn -e 's/^(( *[^ ]+){4} )(.*)$/\3 \t\t\t \1/' -e "/^SCREEN.*${nsdir//\//\\/}/,/^[^ ]/p" | sed '$d'
+	ps axf | sed -rn -e 's/^(( *[^ ]+){4} )(.*)$/\3 \t\t\t \1/' -e "/^SCREEN.*${nsdir//\//\\/}/,/^[^ ]/p" | sed '$d'
 }
 
 _nsexec() {
