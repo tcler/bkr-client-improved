@@ -90,7 +90,7 @@ for f in $kfList; do
 	echo "# $url" >>$patch
 	for nvr in $newkernel; do
 		echo -e "{Info} ${nvr} changelog read from pkg:"
-		downloadBrewBuild $nvr --arch=src
+		brewinstall.sh $nvr -onlydownload -arch=src >/dev/null
 		[ -f ${nvr}.src.rpm ] && available=1
 		LANG=C rpm -qp --changelog ${nvr}.src.rpm >changeLog-$V
 		[ -s changeLog-$V ] && cp -f changeLog-$V /var/ftp/pub/kernel-changelog/.
