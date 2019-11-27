@@ -1,0 +1,153 @@
+#!/bin/bash
+# author: yin-jianhong@163.com
+# version: draft
+# dependency: systemd-nspawn
+# used to create light container/ns for nfs/cifs test on RHEL/CentOS 7 or later
+
+NSHome=~/NS
+
+Usage() {
+	cat <<-EOF
+	Usage:
+	  $0 <-n nsname> [options] [exec -- cmdline | ps | del]
+	  $0 ls
+
+	Options:
+	  -h, --help        ; show this help info
+	  -n {nsname}       ; ns(name space) name
+	  -p {pkgs}         ; packages you want in ns(name space)
+	  --nsip {ip}       ; ip address for ns veth if
+	  --hostip {ip}     ; ip address for host veth if
+
+	Examples:
+	  $0 -n nfsclient -p "nfs-utils iproute" --hostip 192.168.1.1 --nsip 192.168.1.101  # create new ns
+	  $0 -n nfsclient exec -- ls -l /               # exec command in ns
+	  $0 -n nfsclient exec ip addr show             # exec command in ns
+	  $0 -n nfsclient exec mkdir /mnt/nfs           # exec command in ns
+	  $0 -n nfsclient exec mount 192.168.1.1:/ /mnt/nfs  # exec command in ns
+	  $0 -n nfsclient ps  # show ps tree in ns
+	  $0 -n nfsclient del # delete/remove ns
+	  $0 ls               # list all ns
+	EOF
+}
+
+# command line parse
+_at=`getopt -o hn:p: \
+	--long help \
+	--long hostip: \
+	--long nsip: \
+    -a -n "$0" -- "$@"`
+eval set -- "$_at"
+while true; do
+	case "$1" in
+	-h|--help) Usage; shift 1; exit 0;;
+	-n) NS="$2"; shift 2;;
+	-p) PKGS="$2"; shift 2;;
+	--hostip) HOSTIP="$2"; shift 2;;
+	--nsip) NSIP="$2"; shift 2;;
+	--) shift; break;;
+	esac
+done
+
+get_init_pid() {
+	local nsdir=$1
+	local ppid initpid
+
+	ppid=$(pgrep -f "^systemd-nspawn.*$nsdir$") || return 1
+	initpid=$(pgrep -f ^/usr/lib/systemd/systemd -P "$ppid") || return 1
+	echo $initpid
+}
+
+get_pstree() {
+	local nsdir=$1
+
+	ps xf | sed -rn -e 's/^(( *[^ ]+){4} )(.*)$/\3 \t\t\t \1/' -e "/^SCREEN.*${nsdir//\//\\/}/,/^[^ ]/p" | sed '$d'
+}
+
+_nsexec() {
+	local initpid=$1
+	shift
+	nsenter --target "$initpid" --mount --uts --ipc --net --pid "$@"
+}
+
+nsexec() {
+	local nsdir=$1
+	shift
+	local initpid=$(get_init_pid $nsdir)
+	_nsexec "$initpid" "$@"
+}
+
+# __main__
+NS=${NS}
+NSdir=$NSHome/$NS
+HOSTIP=${HOSTIP}
+NSIP=${NSIP}
+InitPid=
+PKGS=${PKGS:-nfs-utils openssh-server iproute net-tools}
+
+subcmd=$1
+case $subcmd in
+exec|exe|ex|e)
+	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
+	shift; nsexec $NSdir $@; exit $?;;
+ps)
+	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
+	shift; get_pstree $NSdir; exit $?;;
+del*|del|de|d)
+	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
+	shift; systemd-run -M $NS "poweroff"; exit $?;;
+ls)
+	shift; machinectl -l; exit $?;;
+creat*)
+	shift;;
+esac
+
+[[ -z "$NS" ]] && { Usage >&2; exit 1; }
+
+echo -e "\n{INFO} creating NS directory $NSdir ..."
+mkdir -p $NSdir
+yum -y --nogpg --installroot=$NSdir install yum $PKGS
+\cp -rf /etc/yum.repos.d $NSdir/etc/.
+\cp /etc/{passwd,group,shadow} $NSdir/etc/.
+yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
+rm -rf $NSdir/var/cache/yum/*
+
+hostif=ve-$NS
+ip link del $hostif 2>/dev/null
+
+echo -e "\n{INFO} creating NS $NS ..."
+screen -dm -S $NS systemd-nspawn -n -bD $NSdir
+
+echo -e "\n{INFO} waiting NS $NSdir start ..."
+sleep 1
+for ((i=0; i<8; i++)); do InitPid=$(get_init_pid $NSdir) && break; sleep 1; done
+[[ -z "$InitPid" ]] && {
+	echo -e "\n{Error} something is wrong, exit ."
+	exit 1
+}
+
+echo -e "\n{INFO} NS info"
+machinectl -l
+get_pstree $NSdir
+
+[[ -n "$HOSTIP" ]] && {
+	echo -e "\n{INFO} setup $hostif $HOSTIP"
+	ip addr add $HOSTIP/24 dev $hostif
+	ip link set dev $hostif up
+	ip a s $hostif
+}
+
+[[ -n "$NSIP" ]] && {
+	vifidx=$(ip a s $hostif|sed -nr -e '/.*@if([0-9]+): .*/{s//\1/;p}')
+	nsif=$(_nsexec "$InitPid" ip a s | awk -F[@:\ ]+ '/^'$vifidx':/{print $2}')
+	echo -e "\n{INFO} setup $nsif $NSIP"
+	_nsexec "$InitPid" ip addr add $NSIP/24 dev $nsif
+	_nsexec "$InitPid" ip link set dev $nsif up
+	_nsexec "$InitPid" ip a s $nsif
+}
+
+[[ -n "$HOSTIP" && -n "$NSIP" ]] && {
+	echo -e "\n{INFO} ping test $NSIP ($hostif -> $nsif)"
+	ping -c 4 $NSIP
+}
+
