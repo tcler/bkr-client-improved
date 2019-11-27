@@ -4,16 +4,17 @@
 # dependency: systemd-nspawn
 # used to create light container/ns for nfs/cifs test on RHEL/CentOS 7 or later
 
+NSHome=~/NS
+
+[[ $(id -u) != 0 ]] && {
+	echo -e "{Warn} run $0 need root permission, try:\n  sudo $0 ..." >&2
+	exec sudo $0 "$@"
+}
+
 echo -e "{Info} checking dependence ..."
 which screen &>/dev/null || dep=screen
 which systemd-nspawn &>/dev/null || dep+=\ systemd-container
-[[ -n $dep ]] && {
-	echo "{Warn} you need install $dep first, try:" >&2
-	echo "    sudo yum install -y $dep" >&2
-	exit 1
-}
-
-NSHome=~/NS
+yum install -y $dep >&2
 
 Usage() {
 	cat <<-EOF
@@ -115,8 +116,8 @@ esac
 
 echo -e "\n{INFO} creating NS directory $NSdir ..."
 mkdir -p $NSdir
-sudo yum -y --nogpg --installroot=$NSdir install yum $PKGS
-sudo yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
+yum -y --nogpg --installroot=$NSdir install yum $PKGS
+yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
 \cp -rf /etc/yum.repos.d $NSdir/etc/.
 \cp /etc/{passwd,group,shadow} $NSdir/etc/.
 rm -rf $NSdir/var/cache/yum/*
