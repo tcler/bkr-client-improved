@@ -14,7 +14,7 @@ NSHome=~/NS
 echo -e "{Info} checking dependence ..."
 which screen &>/dev/null || dep=screen
 which systemd-nspawn &>/dev/null || dep+=\ systemd-container
-yum install -y $dep >&2
+[[ -n "$dep" ]] && yum install -y $dep >&2
 
 Usage() {
 	cat <<-EOF
