@@ -476,7 +476,7 @@ distro2repos() {
 			${osv}-SAP-debuginfo:${debug_url/$osv/${osv}-SAP}
 			${osv}-SAPHAHA-debuginfo:${debug_url/$osv/${osv}-SAPHAHA}
 			extras:http://cdn.stage.redhat.com/content/dist/rhel/server/6/6Server/x86_64/extras/os
-			cdn-os:http://cdn.stage.redhat.com/content/dist/rhel/server/6/6Server/x86_64/os
+			cdn_os:http://cdn.stage.redhat.com/content/dist/rhel/server/6/6Server/x86_64/os
 		)
 		;;
 	RHEL-7*|RHEL7*|centos7*|centos-7*)
@@ -497,7 +497,7 @@ distro2repos() {
 			${osv}-SAP-debuginfo:${debug_url/$osv/${osv}-SAP}
 			${osv}-SAPHAHA-debuginfo:${debug_url/$osv/${osv}-SAPHAHA}
 			extras:http://cdn.stage.redhat.com/content/dist/rhel/server/7/7Server/x86_64/extras/os
-			cdn-os:http://cdn.stage.redhat.com/content/dist/rhel/server/7/7Server/x86_64/os
+			cdn_os:http://cdn.stage.redhat.com/content/dist/rhel/server/7/7Server/x86_64/os
 		)
 		;;
 	RHEL-8*|RHEL8*)
@@ -993,6 +993,7 @@ if [[ "$InstallType" = location ]]; then
 			yum install -y cloud-init
 			END
 		}
+		sed -i 's/enabled = 1/enabled = 0/' /etc/yum.repo.d/cdn_os.repo
 		if [[ "$NO_SSHKEY" = yes ]]; then
 			ks-generator.sh -d $Distro -url $Location $REPO_OPTS --post $postscript >$KSPath
 		else
@@ -1138,7 +1139,7 @@ elif [[ "$InstallType" = import ]]; then
 		}
 		cloudinitiso=$VMpath/$vmname-cloud-init.iso
 		[[ -n "$Location" ]] && {
-			REPO_OPTS=$(distro2repos $Distro $Location | sed 's/^/--repo /')
+			REPO_OPTS=$(distro2repos $Distro $Location | sed -e '/cdn_os:/d' -e 's/^/--repo /')
 		}
 		if [[ "$NO_SSHKEY" = yes ]]; then
 			cloud-init-iso-gen.sh $cloudinitiso -hostname ${vmhostname} -b "$BPKGS" -p "$PKGS" -D $REPO_OPTS
