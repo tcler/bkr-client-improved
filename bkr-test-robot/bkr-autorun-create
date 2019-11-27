@@ -40,6 +40,7 @@ lappend OptionList {*}[string map {"\{arg " "\{forward y arg "} $CommonOptionLis
 proc Usage {progname {detail n}} {
 	puts "Usage0: $progname <distro> <-|testfile...> <--pkg pkgname> \[gen_job_xml options\]"
 	puts "Usage1: lstest <argument> | $progname <distro> <--pkg pkgname> \[gen_job_xml options\]"
+	puts "Usage1: lstest <argument> | $progname <family> <--pkg pkgname> \[gen_job_xml options\]"
 	puts ""
 	if {$detail != "n"} {
 		getUsage $::OptionList
