@@ -23,7 +23,7 @@ which systemd-nspawn &>/dev/null || dep+=\ systemd-container
 Usage() {
 	cat <<-EOF
 	Usage:
-	  $0 <-n nsname> [options] [exec -- cmdline | ps | del]
+	  $0 <-n nsname> [options] [exec -- cmdline | ps | del | install pkgs]
 	  $0 ls
 
 	Options:
@@ -44,6 +44,8 @@ Usage() {
 	  $0 -n nfsc ps  # show ps tree of ns
 	  $0 -n nfsc del # delete/remove ns
 	  $0 ls          # list all ns
+
+	  $0 -n nfsc install cifs-utils # install cifs-utils in ns
 	EOF
 }
 
@@ -106,7 +108,12 @@ case $subcmd in
 exec|exe|ex|e) shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
 	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
-	nsexec $NS $@
+	nsexec $NS "$@"
+	exit $?;;
+install|ins*) shift
+	[[ -z "$NS" ]] && { NS=$1; shift; }
+	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
+	yum -y --nogpg --installroot=$NSHome/$NS install "$@"
 	exit $?;;
 ps) shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
@@ -140,18 +147,18 @@ macvlan4host=macvlan-host
 macvlan4ns=$NS
 NSdir=$NSHome/$NS
 InitPid=
-PKGS=${PKGS:-nfs-utils openssh-server iproute net-tools}
+PKGS=${PKGS:-iputils iproute nfs-utils}
 
 echo -e "\n{INFO} creating NS directory $NSdir ..."
 mkdir -p $NSdir/etc
 \cp -rf /etc/yum.repos.d $NSdir/etc/.
-yum -y --nogpg --installroot=$NSdir install yum $PKGS
+yum -y --nogpg --installroot=$NSdir install iputils $PKGS
 yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
 \cp /etc/{passwd,group,shadow} $NSdir/etc/.
 rm -rf $NSdir/var/cache/yum/*
 
-hostif=ve-$NS
-ip link del $hostif 2>/dev/null
+hostvethif=ve-$NS
+ip link del $hostvethif 2>/dev/null
 
 echo -e "\n{INFO} creating macvlan if for NS ..."
 NET_MACVLAN_OPTS=
@@ -181,25 +188,34 @@ echo -e "\n{INFO} NS info"
 machinectl -l
 ns_pstree $NSdir
 
-[[ -n "$HOST_VETH_IP" ]] && {
-	echo -e "\n{INFO} setup veth host side $hostif $HOST_VETH_IP"
-	ip addr add $HOST_VETH_IP/24 dev $hostif
-	ip link set dev $hostif up
-	ip a s $hostif
-}
-[[ -n "$NS_VETH_IP" ]] && {
-	vifidx=$(ip a s $hostif|sed -nr -e '/.*@if([0-9]+): .*/{s//\1/;p}')
-	nsif=$(_nsexec "$InitPid" ip a s | awk -F[@:\ ]+ '/^'$vifidx':/{print $2}')
-	echo -e "\n{INFO} setup veth ns side $nsif $NS_VETH_IP"
-	_nsexec "$InitPid" ip addr add $NS_VETH_IP/24 dev $nsif
-	_nsexec "$InitPid" ip link set dev $nsif up
-	_nsexec "$InitPid" ip a s $nsif
-}
+if [[ -n "$HOST_VETH_IP" && -n "$NS_VETH_IP" ]]; then
+	echo -e "\n{INFO} setup veth host side $hostvethif $HOST_VETH_IP"
+	ip addr add $HOST_VETH_IP/24 dev $hostvethif
+	ip link set dev $hostvethif up
+	ip a s $hostvethif
 
+	vifidx=$(ip a s $hostvethif|sed -nr -e '/.*@if([0-9]+): .*/{s//\1/;p}')
+	nsvethif=$(_nsexec "$InitPid" ip a s | awk -F[@:\ ]+ '/^'$vifidx':/{print $2}')
+	echo -e "\n{INFO} setup veth ns side $nsvethif $NS_VETH_IP"
+	_nsexec "$InitPid" ip addr add $NS_VETH_IP/24 dev $nsvethif
+	_nsexec "$InitPid" ip link set dev $nsvethif up
+	_nsexec "$InitPid" ip a s $nsvethif
+
+	#add default route
+	_nsexec "$InitPid" ip route add default via $HOST_VETH_IP dev $nsvethif
+
+	#enable NAT
+	sysctl -w net.ipv4.conf.all.forwarding=1
+	iptables -A POSTROUTING -s ${HOST_VETH_IP%.*}.0/24 -j MASQUERADE -t nat
+else
+	:
+fi
+
+echo -e "\n{INFO} => setup macvlan ns side:"
 loop=0
 for addr in $NS_MACVLAN_IPS; do
 	nsifname=mv-${macvlan4ns}$((loop++))
-	echo -e "\n{INFO} setup macvlan ns side $nsifname $addr"
+	echo -e "\n{INFO} setup macvlan if $nsifname $addr"
 	_nsexec "$InitPid" ip addr add $addr/24 dev $nsifname
 	_nsexec "$InitPid" ip link set dev $nsifname up
 	_nsexec "$InitPid" ip a s $nsifname
@@ -214,7 +230,7 @@ ip link set dev $macvlan4host up
 ip a s $macvlan4host
 
 [[ -n "$HOST_VETH_IP" && -n "$NS_VETH_IP" ]] && {
-	echo -e "\n{INFO} ping veth nic $NS_VETH_IP ($hostif -> $nsif)"
+	echo -e "\n{INFO} ping veth nic $NS_VETH_IP ($hostvethif -> $nsvethif)"
 	ping -c 2 $NS_VETH_IP
 }
 
