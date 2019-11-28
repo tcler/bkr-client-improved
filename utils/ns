@@ -137,7 +137,7 @@ del*|del|de|d) shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
 	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
 	systemd-run -M $NS "poweroff"
-	ns_pstree $NS | awk '{print $(NF-3)}' | xargs kill 2>/dev/null
+	ns_pstree $NS | awk 'NF > 4 {print $(NF-3)}' | xargs kill 2>/dev/null
 	ip link del ve-$NS 2>/dev/null
 	macvlan4ns=$NS
 	for dev in $(ip a s | awk -F'[: @]+' -v pre=$macvlan4ns '/^[0-9]+:/ {if ($2 ~ "^" pre "[0-9]*$") print $2}'); do
