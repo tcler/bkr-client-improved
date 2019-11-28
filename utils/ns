@@ -49,6 +49,19 @@ Usage() {
 	EOF
 }
 
+is_valid_ip() {
+    local  ip=$1
+    local  stat=1
+
+    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        ip=(${ip//./ })
+        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+            && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+        stat=$?
+    fi
+    return $stat
+}
+
 ns_init_pid() {
 	local nsdir=$1
 	local ppid initpid
@@ -140,6 +153,9 @@ esac
 
 [[ -z "$NS" ]] && { Usage >&2; exit 1; }
 
+#remove existed one
+$0 del "$NS"
+
 NS_VETH_IP=${NS_VETH_IP}
 NS_MACVLAN_IPS=${NS_MACVLAN_IPS}
 HOST_VETH_IP=${HOST_VETH_IP}
@@ -164,6 +180,7 @@ echo -e "\n{INFO} creating macvlan if for NS ..."
 NET_MACVLAN_OPTS=
 loop=0
 for addr in $NS_MACVLAN_IPS; do
+	is_valid_ip "$addr" || { echo -e "\n{WARN} '$addr' is not a valid address"|grep --color=always . >&2; continue; }
 	ifname=${macvlan4ns}$((loop++))
 	ip link add link $(getDefaultNic) name ${ifname} type macvlan mode bridge
 	NET_MACVLAN_OPTS+="--network-macvlan=$ifname "
@@ -188,6 +205,8 @@ echo -e "\n{INFO} NS info"
 machinectl -l
 ns_pstree $NSdir
 
+is_valid_ip $HOST_VETH_IP || { HOST_VETH_IP=; echo -e "\n{WARN} '$HOST_VETH_IP' is not a valid address"|grep --color=always . >&2; }
+is_valid_ip $NS_VETH_IP || { NS_VETH_IP=; echo -e "\n{WARN} '$NS_VETH_IP' is not a valid address"|grep --color=always . >&2; }
 if [[ -n "$HOST_VETH_IP" && -n "$NS_VETH_IP" ]]; then
 	echo -e "\n{INFO} setup veth host side $hostvethif $HOST_VETH_IP"
 	ip addr add $HOST_VETH_IP/24 dev $hostvethif
@@ -214,6 +233,7 @@ fi
 echo -e "\n{INFO} => setup macvlan ns side:"
 loop=0
 for addr in $NS_MACVLAN_IPS; do
+	is_valid_ip "$addr" || { echo -e "\n{WARN} '$addr' is not a valid address"|grep --color=always . >&2; continue; }
 	nsifname=mv-${macvlan4ns}$((loop++))
 	echo -e "\n{INFO} setup macvlan if $nsifname $addr"
 	_nsexec "$InitPid" ip addr add $addr/24 dev $nsifname
@@ -236,6 +256,7 @@ ip a s $macvlan4host
 
 loop=0
 for addr in $NS_MACVLAN_IPS; do
+	is_valid_ip "$addr" || { echo -e "\n{WARN} '$addr' is not a valid address"|grep --color=always . >&2; continue; }
 	nsifname=mv-${macvlan4ns}$((loop++))
 	echo -e "\n{INFO} ping macvlan nic $addr ($macvlan4host -> $nsifname)"
 	while ! ping -c 2 $addr; do sleep 1; done
