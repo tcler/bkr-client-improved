@@ -36,15 +36,8 @@ Usage() {
 	  --macvlan-ip {ip1[,ip2...]} ; ip address[es] for ns macvlan if[s]; all for ns side
 	  --bind {src[:dst]}   ; see systemd-nspawn --bind
 	  --robind {src[:dst]} ; see systemd-nspawn --bind-ro
-	  --ostree={yes|no}    ; use host os tree instead creating full seperated os tree, default is no
 	  --vol, --volatile {yes|no}  ; see systemd-nspawn --volatile. default is no
 	  --clone {ns}         ; clone from ns
-
-	Examples create ns by using host fs tree(/usr,/etc,/var. need --ostree=yes):
-	  # create a ns ns1 with veth net config: host side ip 192.168.1.1, ns side ip 192.168.1.2
-	  # and two extra macvlan netif: ip addres are 192.168.254.11 and 192.168.253.11
-	  $0 -n ns1 --veth-ip 192.168.1.1,192.168.1.2 --macvlan-ip 192.168.254.11,192.168.253.11 --ostree=yes
-	  # note: https://lists.freedesktop.org/archives/systemd-devel/2018-September/041327.html
 
 	Examples create ns by using own fs tree:
 	  # same as example ns1, but use a it's own fs tree instead reuse host os tree
@@ -120,7 +113,6 @@ getDefaultNic() {
 	ip route | awk '/default/{match($0,"dev ([^ ]+)",M); print M[1]; exit}'
 }
 
-OSTREE=no
 VOLATILE=no
 NET_MACVLAN_OPTS=
 BIND_OPTS=
@@ -137,7 +129,6 @@ _at=`getopt -o hn:p:d \
 	--long macvlan-ip: \
 	--long bind: \
 	--long robind: \
-	--long ostree: \
 	--long volatile: --long vol: \
 	--long clone: \
     -a -n "$0" -- "$@"`
@@ -152,7 +143,6 @@ while true; do
 	--macvlan-ip) NS_MACVLAN_IPS="${2//,/ }"; shift 2;;
 	--bind) BIND_OPTS+="--bind=$2 "; shift 2;;
 	--robind) BIND_OPTS+="--bind-ro=$2 "; shift 2;;
-	--ostree) OSTREE=$2; shift 2;;
 	--volatile|--vol) VOLATILE=$2; shift 2;;
 	--clone) CLONE=$2; shift 2;;
 	--) shift; break;;
@@ -228,22 +218,26 @@ done
 
 echo -e "\n{INFO} creating fs tree for NS $NSdir ..."
 mkdir -p $NSdir
-if [[ "$OSTREE" = yes ]]; then
-	trap 'echo -e "\n{Note} can not abort now"' 1 2 15
-	mount / $NSdir/ -oro,bind
-	BIND_OPTS="--bind=/etc --bind-ro=/var"
-else
-	if [[ -n "$CLONE" && -d "$NSHome/$CLONE" ]]; then
-		rsync -a --info=progress2 $NSHome/$CLONE/  $NSdir/.
-	fi
 
-	if ! rpm --root $NSdir -q systemd; then
-		yum -y --nogpg --installroot=$NSdir install $PKGS
-		\cp -rf /etc/yum.repos.d $NSdir/etc/.
-		\cp /etc/{passwd,group,shadow} $NSdir/etc/.
+if [[ -n "$CLONE" && -d "$NSHome/$CLONE" ]]; then
+	rsync -a --info=progress2 $NSHome/$CLONE/  $NSdir/.
+	systemd-machine-id-setup --root $NSdir
+fi
+if rpm --root $NSdir -q systemd; then
+	systemd-machine-id-setup --root $NSdir
+else
+	if which dnf &>/dev/null; then
+		releasever=$(rpm -q --qf "%{version}" -f /etc/os-release)
+		dnf --setopt=strict=0 --setopt=skip_if_unavailable=1 -y --nogpg --installroot=$NSdir install $PKGS --releasever=$releasever
+		dnf -y --nogpg --installroot=$NSdir clean all 2>/dev/null
+		rm -rf $NSdir/var/cache/dnf/*
+	else
+		yum --setopt=strict=0 --setopt=skip_if_unavailable=1 -y --nogpg --installroot=$NSdir install $PKGS
 		yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
 		rm -rf $NSdir/var/cache/yum/*
 	fi
+	\cp -rf /etc/yum.repos.d $NSdir/etc/.
+	\cp /etc/{passwd,group,shadow} $NSdir/etc/.
 fi
 
 echo -e "\n{INFO} creating NS $NS ..."
@@ -264,7 +258,6 @@ for ((i=0; i<4; i++)); do InitPid=$(ns_init_pid $NSdir) && break; sleep 1; done
 [[ -z "$InitPid" ]] && {
 	$CMD
 	echo -e "\n{Error} something is wrong, exit ."
-	[[ "$OSTREE" = yes ]] && { umount $NSdir; }
 	$0 del "$NS" 2>/dev/null
 	exit 1
 }
@@ -272,10 +265,6 @@ for ((i=0; i<4; i++)); do InitPid=$(ns_init_pid $NSdir) && break; sleep 1; done
 echo -e "\n{INFO} NS info"
 machinectl -l
 ns_pstree $NS
-[[ "$OSTREE" = yes ]] && {
-	umount $NSdir
-	trap - 1 2 15
-}
 
 # post setup
 macvlan4host=macvlan-host
