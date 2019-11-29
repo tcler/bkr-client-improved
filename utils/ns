@@ -22,42 +22,48 @@ which systemd-nspawn &>/dev/null || dep+=\ systemd-container
 Usage() {
 	cat <<-EOF
 	Usage:
-	  $0 <-n nsname> [options] [exec -- cmdline | ps | del | install pkgs]
+	  $0 <-n nsname> [options] [exec -- cmdline | ps | del | install pkgs | reinstall pkgs]
 	  $0 ls
 
 	Options:
 	  -h, --help           ; show this help info
 	  -n {nsname}          ; ns(name space) name
 	  -p {pkgs}            ; packages you want in ns(name space)
+	  -d                   ; debug mode
 	  --veth-ip {ip1,ip2}  ; ip address pair for veth pair; ip1 for host side and ip2 for ns side
 	  --macvlan-ip {ip1[,ip2...]} ; ip address[es] for ns macvlan if[s]; all for ns side
-	  --ostree={yes|no}    ; default is yes, use host os tree instead creating full seperated os tree
 	  --bind {src[:dst]}   ; see systemd-nspawn --bind
 	  --robind {src[:dst]} ; see systemd-nspawn --bind-ro
-	  --vol, --volatile {yes|no}  ; see systemd-nspawn --volatile. default is yes
+	  --ostree={yes|no}    ; use host os tree instead creating full seperated os tree, default is no
+	  --vol, --volatile {yes|no}  ; see systemd-nspawn --volatile. default is no
 
-	Examples create ns by using host fs tree(/usr,/etc,/var):
-          # create a ns ns1 with veth net config: host side ip 192.168.1.1, ns side ip 192.168.1.2
-	  $0 -n ns1 --veth-ip 192.168.1.1,192.168.2.2
+	Examples create ns by using host fs tree(/usr,/etc,/var. need --ostree=yes):
+	  # create a ns ns1 with veth net config: host side ip 192.168.1.1, ns side ip 192.168.1.2
+	  # and two extra macvlan netif: ip addres are 192.168.254.11 and 192.168.253.11
+	  $0 -n ns1 --veth-ip 192.168.1.1,192.168.1.2 --macvlan-ip 192.168.254.11,192.168.253.11 --ostree=yes
+	  # note: https://lists.freedesktop.org/archives/systemd-devel/2018-September/041327.html
 
-          # create a ns ns2 with veth net and two extra macvlan netif: ip addres are 192.168.254.22 and 192.168.253.22
-	  $0 -n ns2 --veth-ip 192.168.2.1,192.168.2.2 --macvlan-ip 192.168.254.22,192.168.253.22
-
-	Examples create ns by using own fs tree(need option: --ostree=no -p "\$pkg_list"):
-          # same as example ns1, but use a it's own fs tree instead reuse host os tree
+	Examples create ns by using own fs tree:
+	  # same as example ns1, but use a it's own fs tree instead reuse host os tree
 	  #  so you can do anything in this ns, and don't worry about any impact on the host
-	  $0 -n nsx --ostree=no -p "nfs-utils iproute" --veth-ip 192.168.0.1,192.168.0.2
+	  $0 -n ns2 --veth-ip 192.168.2.1,192.168.2.2 --macvlan-ip 192.168.254.22,192.168.253.22 -p "nfs-utils"
 
 	Examples sub-command:
-	  $0 -n nfsc exec -- ls -l /               # exec command in ns
-	  $0 -n nfsc exec ip addr show             # exec command in ns
-	  $0 -n nfsc exec mkdir /mnt/nfs           # exec command in ns
-	  $0 -n nfsc exec mount 192.168.2.1:/ /mnt/nfs    # exec command in ns
-	  $0 -n nfsc exec mount 192.168.254.1:/ /mnt/nfs  # exec command in ns
-	  $0 -n nfsc ps  # show ps tree of ns
-	  $0 -n nfsc del # delete/remove ns
-	  $0 -n nfsc install cifs-utils # install cifs-utils in ns
-	  $0 ls          # list all ns
+	  $0 ls                                # list all ns
+	  $0 ps ns2                            # show ps tree of ns2
+	  $0 del ns2                           # delete/remove ns2
+	  $0 install ns2 cifs-utils            # install cifs-utils in ns2
+
+	  $0 exec ns2 ip addr show             # exec command in ns2
+	  $0 exec ns2 -- ls -l /               # exec command in ns2
+
+	  systemctl start nfs-server
+	  exportfs -o ro,no_root_squash "*:/usr/share"
+	  $0 exec ns2 -- mkdir -p /mnt/nfs              # exec command in ns2
+	  $0 exec ns2 -- showmount -e 192.168.2.1       # exec command in ns2
+	  $0 exec ns2 -- mount 192.168.2.1:/ /mnt/nfs   # exec command in ns2
+	  $0 exec ns2 -- showmount -e 192.168.254.1     # exec command in ns2
+	  $0 exec ns2 -- mount 192.168.254.1:/ /mnt/nfs # exec command in ns2
 
 	EOF
 }
@@ -110,8 +116,8 @@ getDefaultNic() {
 	ip route | awk '/default/{match($0,"dev ([^ ]+)",M); print M[1]; exit}'
 }
 
-OSTREE=yes
-VOLATILE=yes
+OSTREE=no
+VOLATILE=no
 NET_MACVLAN_OPTS=
 BIND_OPTS=
 NS_VETH_IP=
@@ -121,13 +127,13 @@ InitPid=
 PKGS="nfs-utils cifs-utils autofs"
 
 # command line parse
-_at=`getopt -o hn:p: \
+_at=`getopt -o hn:p:d \
 	--long help \
 	--long veth-ip: \
 	--long macvlan-ip: \
-	--long ostree: \
 	--long bind: \
 	--long robind: \
+	--long ostree: \
 	--long volatile: --long vol: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
@@ -136,11 +142,12 @@ while true; do
 	-h|--help) Usage; shift 1; exit 0;;
 	-n) NS="$2"; shift 2;;
 	-p) PKGS="$2"; shift 2;;
+	-d) DEBUG=yes; shift 1;;
 	--veth-ip) read HOST_VETH_IP NS_VETH_IP <<<"${2//,/ }"; shift 2;;
 	--macvlan-ip) NS_MACVLAN_IPS="${2//,/ }"; shift 2;;
-	--ostree) OSTREE=$2; shift 2;;
 	--bind) BIND_OPTS+="--bind=$2 "; shift 2;;
 	--robind) BIND_OPTS+="--bind-ro=$2 "; shift 2;;
+	--ostree) OSTREE=$2; shift 2;;
 	--volatile|--vol) VOLATILE=$2; shift 2;;
 	--) shift; break;;
 	esac
@@ -158,6 +165,15 @@ install|ins*) shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
 	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
 	yum -y --nogpg --installroot=$NSHome/$NS install "$@"
+	yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
+	rm -rf $NSdir/var/cache/yum/*
+	exit $?;;
+reinstall|reins*) shift
+	[[ -z "$NS" ]] && { NS=$1; shift; }
+	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
+	yum -y --nogpg --installroot=$NSHome/$NS reinstall "$@"
+	yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
+	rm -rf $NSdir/var/cache/yum/*
 	exit $?;;
 ps) shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
@@ -206,7 +222,7 @@ mkdir -p $NSdir
 if [[ "$OSTREE" = yes ]]; then
 	trap 'echo -e "\n{Note} can not abort now"' 1 2 15
 	mount / $NSdir/ -oro,bind
-	BIND_OPTS="--bind=/etc --bind=/var"
+	BIND_OPTS="--bind=/etc --bind-ro=/var"
 else
 	yum -y --nogpg --installroot=$NSdir install systemd iproute iputils $PKGS
 	\cp -rf /etc/yum.repos.d $NSdir/etc/.
@@ -216,10 +232,15 @@ else
 fi
 
 echo -e "\n{INFO} creating NS $NS ..."
-if which screen &>/dev/null; then
-	screen -dm -S $NS -- systemd-nspawn $BIND_OPTS --volatile=$VOLATILE -n $NET_MACVLAN_OPTS -bD $NSdir
+export SYSTEMD_NSPAWN_LOCK=0
+if [[ "$DEBUG" = yes ]]; then
+	systemd-nspawn $BIND_OPTS --volatile=$VOLATILE -n $NET_MACVLAN_OPTS -bD $NSdir
 else
-	tmux new -s $NS -d "systemd-nspawn $BIND_OPTS --volatile=$VOLATILE -n $NET_MACVLAN_OPTS -bD $NSdir"
+	if which screen &>/dev/null; then
+		screen -dm -S $NS -- systemd-nspawn $BIND_OPTS --volatile=$VOLATILE -n $NET_MACVLAN_OPTS -bD $NSdir
+	else
+		tmux new -s $NS -d "systemd-nspawn $BIND_OPTS --volatile=$VOLATILE -n $NET_MACVLAN_OPTS -bD $NSdir"
+	fi
 fi
 
 echo -e "\n{INFO} waiting NS $NSdir start ..."
@@ -234,7 +255,7 @@ for ((i=0; i<8; i++)); do InitPid=$(ns_init_pid $NSdir) && break; sleep 1; done
 
 echo -e "\n{INFO} NS info"
 machinectl -l
-ns_pstree $NSdir
+ns_pstree $NS
 [[ "$OSTREE" = yes ]] && {
 	umount $NSdir
 	trap - 1 2 15
