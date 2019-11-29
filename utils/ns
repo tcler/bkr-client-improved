@@ -29,18 +29,24 @@ Usage() {
 	  -h, --help           ; show this help info
 	  -n {nsname}          ; ns(name space) name
 	  -p {pkgs}            ; packages you want in ns(name space)
-	  --veth-ip {ip1,ip2}  ; ip address pair for veth pair
-	  --macvlan-ip {ip1[,ip2...]} ; ip address[es] for ns macvlan if[s]
+	  --veth-ip {ip1,ip2}  ; ip address pair for veth pair; ip1 for host side and ip2 for ns side
+	  --macvlan-ip {ip1[,ip2...]} ; ip address[es] for ns macvlan if[s]; all for ns side
 	  --ostree={yes|no}    ; default is yes, use host os tree instead creating full seperated os tree
 	  --bind {src[:dst]}   ; see systemd-nspawn --bind
 	  --robind {src[:dst]} ; see systemd-nspawn --bind-ro
 	  --vol, --volatile {yes|no}  ; see systemd-nspawn --volatile. default is yes
 
 	Examples create ns by using host fs tree(/usr,/etc,/var):
-	  $0 -n nfsc --veth-ip 192.168.2.1,192.168.2.2 --macvlan-ip 192.168.254.22,192.168.253.22 # create ns as nfs client
+          # create a ns ns1 with veth net config: host side ip 192.168.1.1, ns side ip 192.168.1.2
+	  $0 -n ns1 --veth-ip 192.168.1.1,192.168.2.2
+
+          # create a ns ns2 with veth net and two extra macvlan netif: ip addres are 192.168.254.22 and 192.168.253.22
+	  $0 -n ns2 --veth-ip 192.168.2.1,192.168.2.2 --macvlan-ip 192.168.254.22,192.168.253.22
 
 	Examples create ns by using own fs tree(need option: --ostree=no -p "\$pkg_list"):
-	  $0 -n nfsserv --ostree=no -p "nfs-utils iproute" --veth-ip 192.168.1.1,192.168.1.2 --macvlan-ip 192.168.254.11,192.168.253.11 # create ns as nfs server
+          # same as example ns1, but use a it's own fs tree instead reuse host os tree
+	  #  so you can do anything in this ns, and don't worry about any impact on the host
+	  $0 -n nsx --ostree=no -p "nfs-utils iproute" --veth-ip 192.168.0.1,192.168.0.2
 
 	Examples sub-command:
 	  $0 -n nfsc exec -- ls -l /               # exec command in ns
