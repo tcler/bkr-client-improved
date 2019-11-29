@@ -1,6 +1,6 @@
 #!/bin/bash
 # author: yin-jianhong@163.com
-# version: draft
+# version: v0.2
 # dependency: systemd-nspawn
 # used to create light container/ns for nfs/cifs test on RHEL/CentOS 7 or later
 
@@ -128,7 +128,7 @@ NS_VETH_IP=
 NS_MACVLAN_IPS=
 HOST_VETH_IP=
 InitPid=
-PKGS="nfs-utils cifs-utils autofs"
+PKGS="systemd iproute iputils "
 
 # command line parse
 _at=`getopt -o hn:p:d \
@@ -146,7 +146,7 @@ while true; do
 	case "$1" in
 	-h|--help) Usage; shift 1; exit 0;;
 	-n) NS="$2"; shift 2;;
-	-p) PKGS="$2"; shift 2;;
+	-p) PKGS+="$2"; shift 2;;
 	-d) DEBUG=yes; shift 1;;
 	--veth-ip) read HOST_VETH_IP NS_VETH_IP <<<"${2//,/ }"; shift 2;;
 	--macvlan-ip) NS_MACVLAN_IPS="${2//,/ }"; shift 2;;
@@ -170,14 +170,16 @@ exec|exe|ex|e) shift
 install|ins*) shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
 	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
-	yum -y --nogpg --installroot=$NSHome/$NS install "$@"
+	NSdir=$NSHome/$NS
+	yum -y --nogpg --installroot=$NSdir install "$@"
 	yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
 	rm -rf $NSdir/var/cache/yum/*
 	exit $?;;
 reinstall|reins*) shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
 	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
-	yum -y --nogpg --installroot=$NSHome/$NS reinstall "$@"
+	NSdir=$NSHome/$NS
+	yum -y --nogpg --installroot=$NSdir reinstall "$@"
 	yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
 	rm -rf $NSdir/var/cache/yum/*
 	exit $?;;
@@ -232,8 +234,10 @@ if [[ "$OSTREE" = yes ]]; then
 else
 	if [[ -n "$CLONE" && -d "$NSHome/$CLONE" ]]; then
 		rsync -a --info=progress2 $NSHome/$CLONE/  $NSdir/.
-	else
-		yum -y --nogpg --installroot=$NSdir install systemd iproute iputils $PKGS
+	fi
+
+	if ! rpm --root $NSdir -q systemd; then
+		yum -y --nogpg --installroot=$NSdir install $PKGS
 		\cp -rf /etc/yum.repos.d $NSdir/etc/.
 		\cp /etc/{passwd,group,shadow} $NSdir/etc/.
 		yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
