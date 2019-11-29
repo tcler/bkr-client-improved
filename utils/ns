@@ -24,7 +24,7 @@ which systemd-nspawn &>/dev/null || dep+=\ systemd-container
 Usage() {
 	cat <<-EOF
 	Usage:
-	  $0 <-n nsname> [options] [exec -- cmdline | ps | del | install pkgs | reinstall pkgs]
+	  $0 <-n nsname> [options] [exec -- cmdline | ps | del | install pkgs]
 	  $0 ls
 
 	Options:
@@ -113,6 +113,22 @@ getDefaultNic() {
 	ip route | awk '/default/{match($0,"dev ([^ ]+)",M); print M[1]; exit}'
 }
 
+chroot_install() {
+	local releasever
+	local rootfs=$1; shift
+
+	if which dnf &>/dev/null; then
+		releasever=$(rpm -q --qf "%{version}" -f /etc/os-release)
+		dnf --setopt=strict=0 --setopt=skip_if_unavailable=1 -y --nogpg --installroot=$rootfs --releasever=$releasever install "$@"
+		dnf -y --nogpg --installroot=$rootfs clean all 2>/dev/null
+		rm -rf $rootfs/var/cache/dnf/*
+	else
+		yum --setopt=strict=0 --setopt=skip_if_unavailable=1 -y --nogpg --installroot=$rootfs install "$@"
+		yum -y --nogpg --installroot=$rootfs clean all 2>/dev/null
+		rm -rf $rootfs/var/cache/yum/*
+	fi
+}
+
 VOLATILE=no
 NET_MACVLAN_OPTS=
 BIND_OPTS=
@@ -161,17 +177,7 @@ install|ins*) shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
 	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
 	NSdir=$NSHome/$NS
-	yum -y --nogpg --installroot=$NSdir install "$@"
-	yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
-	rm -rf $NSdir/var/cache/yum/*
-	exit $?;;
-reinstall|reins*) shift
-	[[ -z "$NS" ]] && { NS=$1; shift; }
-	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
-	NSdir=$NSHome/$NS
-	yum -y --nogpg --installroot=$NSdir reinstall "$@"
-	yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
-	rm -rf $NSdir/var/cache/yum/*
+	chroot_install $NSdir "$@"
 	exit $?;;
 ps) shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
@@ -226,16 +232,7 @@ fi
 if rpm --root $NSdir -q systemd; then
 	systemd-machine-id-setup --root $NSdir
 else
-	if which dnf &>/dev/null; then
-		releasever=$(rpm -q --qf "%{version}" -f /etc/os-release)
-		dnf --setopt=strict=0 --setopt=skip_if_unavailable=1 -y --nogpg --installroot=$NSdir install $PKGS --releasever=$releasever
-		dnf -y --nogpg --installroot=$NSdir clean all 2>/dev/null
-		rm -rf $NSdir/var/cache/dnf/*
-	else
-		yum --setopt=strict=0 --setopt=skip_if_unavailable=1 -y --nogpg --installroot=$NSdir install $PKGS
-		yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
-		rm -rf $NSdir/var/cache/yum/*
-	fi
+	chroot_install $NSdir "$@"
 	\cp -rf /etc/yum.repos.d $NSdir/etc/.
 	\cp /etc/{passwd,group,shadow} $NSdir/etc/.
 fi
