@@ -13,6 +13,8 @@ NSHome=/opt/NS
 
 which screen &>/dev/null || dep=screen
 which tmux &>/dev/null || dep+=\ tmux
+which iptables &>/dev/null || dep+=\ iptables
+which rsync &>/dev/null || dep+=\ rsync
 which systemd-nspawn &>/dev/null || dep+=\ systemd-container
 [[ -n "$dep" ]] && {
 	echo -e "{Info} install dependences ..."
@@ -36,6 +38,7 @@ Usage() {
 	  --robind {src[:dst]} ; see systemd-nspawn --bind-ro
 	  --ostree={yes|no}    ; use host os tree instead creating full seperated os tree, default is no
 	  --vol, --volatile {yes|no}  ; see systemd-nspawn --volatile. default is no
+	  --clone {ns}         ; clone from ns
 
 	Examples create ns by using host fs tree(/usr,/etc,/var. need --ostree=yes):
 	  # create a ns ns1 with veth net config: host side ip 192.168.1.1, ns side ip 192.168.1.2
@@ -46,7 +49,8 @@ Usage() {
 	Examples create ns by using own fs tree:
 	  # same as example ns1, but use a it's own fs tree instead reuse host os tree
 	  #  so you can do anything in this ns, and don't worry about any impact on the host
-	  $0 -n ns2 --veth-ip 192.168.2.1,192.168.2.2 --macvlan-ip 192.168.254.22,192.168.253.22 -p "nfs-utils"
+	  $0 -n ns2 --veth-ip 192.168.2.1,192.168.2.2 --macvlan-ip 192.168.254.12,192.168.253.12 -p "nfs-utils"
+	  $0 -n ns3 --veth-ip 192.168.3.1,192.168.3.2 --macvlan-ip 192.168.254.13,192.168.253.13 --clone ns2
 
 	Examples sub-command:
 	  $0 ls                                # list all ns
@@ -135,6 +139,7 @@ _at=`getopt -o hn:p:d \
 	--long robind: \
 	--long ostree: \
 	--long volatile: --long vol: \
+	--long clone: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -149,6 +154,7 @@ while true; do
 	--robind) BIND_OPTS+="--bind-ro=$2 "; shift 2;;
 	--ostree) OSTREE=$2; shift 2;;
 	--volatile|--vol) VOLATILE=$2; shift 2;;
+	--clone) CLONE=$2; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -224,29 +230,34 @@ if [[ "$OSTREE" = yes ]]; then
 	mount / $NSdir/ -oro,bind
 	BIND_OPTS="--bind=/etc --bind-ro=/var"
 else
-	yum -y --nogpg --installroot=$NSdir install systemd iproute iputils $PKGS
-	\cp -rf /etc/yum.repos.d $NSdir/etc/.
-	\cp /etc/{passwd,group,shadow} $NSdir/etc/.
-	yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
-	rm -rf $NSdir/var/cache/yum/*
+	if [[ -n "$CLONE" && -d "$NSHome/$CLONE" ]]; then
+		rsync -a --info=progress2 $NSHome/$CLONE/  $NSdir/.
+	else
+		yum -y --nogpg --installroot=$NSdir install systemd iproute iputils $PKGS
+		\cp -rf /etc/yum.repos.d $NSdir/etc/.
+		\cp /etc/{passwd,group,shadow} $NSdir/etc/.
+		yum -y --nogpg --installroot=$NSdir clean all 2>/dev/null
+		rm -rf $NSdir/var/cache/yum/*
+	fi
 fi
 
 echo -e "\n{INFO} creating NS $NS ..."
-export SYSTEMD_NSPAWN_LOCK=0
+CMD="systemd-nspawn $BIND_OPTS --volatile=$VOLATILE -n $NET_MACVLAN_OPTS -bD $NSdir"
 if [[ "$DEBUG" = yes ]]; then
-	systemd-nspawn $BIND_OPTS --volatile=$VOLATILE -n $NET_MACVLAN_OPTS -bD $NSdir
+	$CMD
 else
 	if which screen &>/dev/null; then
-		screen -dm -S $NS -- systemd-nspawn $BIND_OPTS --volatile=$VOLATILE -n $NET_MACVLAN_OPTS -bD $NSdir
+		screen -dm -S $NS -- $CMD
 	else
-		tmux new -s $NS -d "systemd-nspawn $BIND_OPTS --volatile=$VOLATILE -n $NET_MACVLAN_OPTS -bD $NSdir"
+		tmux new -s $NS -d "$CMD"
 	fi
 fi
 
 echo -e "\n{INFO} waiting NS $NSdir start ..."
 sleep 1
-for ((i=0; i<8; i++)); do InitPid=$(ns_init_pid $NSdir) && break; sleep 1; done
+for ((i=0; i<4; i++)); do InitPid=$(ns_init_pid $NSdir) && break; sleep 1; done
 [[ -z "$InitPid" ]] && {
+	$CMD
 	echo -e "\n{Error} something is wrong, exit ."
 	[[ "$OSTREE" = yes ]] && { umount $NSdir; }
 	$0 del "$NS" 2>/dev/null
