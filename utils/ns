@@ -38,11 +38,14 @@ Usage() {
 	  --robind {src[:dst]} ; see systemd-nspawn --bind-ro
 	  --vol, --volatile {yes|no}  ; see systemd-nspawn --volatile. default is no
 	  --clone {ns}         ; clone from ns
+	  --noboot             ; no boot
+	  -x                   ; see systemd-nspawn -x, need btrfs as rootfs
 
 	Examples create ns by using own fs tree:
 	  # same as example ns1, but use a it's own fs tree instead reuse host os tree
 	  #  so you can do anything in this ns, and don't worry about any impact on the host
-	  $0 -n ns2 --veth-ip 192.168.2.1,192.168.2.2 --macvlan-ip 192.168.254.12,192.168.253.12 -p "nfs-utils"
+	  $0 -n ns1 --veth-ip 192.168.1.1,192.168.1.2 --macvlan-ip 192.168.254.11,192.168.253.11 -robind=/usr
+	  $0 -n ns2 --veth-ip 192.168.2.1,192.168.2.2 --macvlan-ip 192.168.254.12,192.168.253.12 -p "iproute iputils nfs-utils"
 	  $0 -n ns3 --veth-ip 192.168.3.1,192.168.3.2 --macvlan-ip 192.168.254.13,192.168.253.13 --clone ns2
 
 	Examples sub-command:
@@ -82,14 +85,17 @@ ns_init_pid() {
 	local nsdir=$1
 	local ppid initpid
 
-	ppid=$(pgrep -f "^systemd-nspawn .*$nsdir$") || return 1
-	initpid=$(pgrep -f ^/usr/lib/systemd/systemd -P "$ppid") || return 1
+	ppid=$(pgrep -f "^systemd-nspawn .*(-D $nsdir|-M ${nsdir##*/})$") || return 1
+	initpid=$(pgrep -f ^/usr/lib/systemd/systemd -P "$ppid") || {
+		return 1
+	}
 	echo $initpid
 }
 
 ns_pstree() {
-	local nsdir=$NSHome/$1
-	local tree=$(ps axf | sed -rn -e 's/^(( *[^ ]+){4} )(.*)$/\3 # \1/' -e "/^( ._ )?systemd-nspawn .*${nsdir//\//\\/}/,/^( ._ )?[^ ]/p" | sed '/^[^ ]/d')
+	local ns=$1
+	local nsdir=$NSHome/$ns
+	local tree=$(ps axf | sed -rn -e 's/^(( *[^ ]+){4} )(.*)$/\3 # \1/' -e "/^( ._ )?systemd-nspawn .*(${nsdir//\//\\/}|-M $ns)/,/^( ._ )?[^ ]/p" | sed '/^[^ ]/d')
 	[[ "$tree" = ' \_ '* ]] && {
 		tree=$(sed 's/^....//' <<<"$tree")
 	}
@@ -129,17 +135,19 @@ chroot_install() {
 	fi
 }
 
-VOLATILE=no
+BOOT_OPT=-b
 NET_MACVLAN_OPTS=
 BIND_OPTS=
+VOLATILE_OPT=
+MachineOpt=
 NS_VETH_IP=
 NS_MACVLAN_IPS=
 HOST_VETH_IP=
 InitPid=
-PKGS="systemd iproute iputils "
+PKGS="systemd "
 
 # command line parse
-_at=`getopt -o hn:p:d \
+_at=`getopt -o hn:p:dx \
 	--long help \
 	--long veth-ip: \
 	--long macvlan-ip: \
@@ -147,6 +155,7 @@ _at=`getopt -o hn:p:d \
 	--long robind: \
 	--long volatile: --long vol: \
 	--long clone: \
+	--long noboot \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -159,8 +168,10 @@ while true; do
 	--macvlan-ip) NS_MACVLAN_IPS="${2//,/ }"; shift 2;;
 	--bind) BIND_OPTS+="--bind=$2 "; shift 2;;
 	--robind) BIND_OPTS+="--bind-ro=$2 "; shift 2;;
-	--volatile|--vol) VOLATILE=$2; shift 2;;
+	--volatile|--vol) VOLATILE_OPT="--volatile=$2"; shift 2;;
 	--clone) CLONE=$2; shift 2;;
+	-x) SHARE_SYSTEM=yes; shift 1;;
+	--noboot) BOOT_OPT=; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -222,23 +233,27 @@ for addr in $NS_MACVLAN_IPS; do
 	NET_MACVLAN_OPTS+="--network-macvlan=$ifname "
 done
 
-echo -e "\n{INFO} creating fs tree for NS $NSdir ..."
 mkdir -p $NSdir
-
-if [[ -n "$CLONE" && -d "$NSHome/$CLONE" ]]; then
-	rsync -a --info=progress2 $NSHome/$CLONE/  $NSdir/.
-	systemd-machine-id-setup --root $NSdir
-fi
-if rpm --root $NSdir -q systemd; then
-	systemd-machine-id-setup --root $NSdir
+if [[ "$SHARE_SYSTEM" = yes ]]; then
+	MachineOpt="-x -D / -M $NS"
 else
-	chroot_install $NSdir $PKGS
-	\cp -rf /etc/yum.repos.d $NSdir/etc/.
-	\cp /etc/{passwd,group,shadow} $NSdir/etc/.
+	echo -e "\n{INFO} creating fs tree for NS $NSdir ..."
+	if [[ -n "$CLONE" && -d "$NSHome/$CLONE" ]]; then
+		rsync -a --info=progress2 $NSHome/$CLONE/  $NSdir/.
+		systemd-machine-id-setup --root $NSdir
+	fi
+	if rpm --root $NSdir -q systemd; then
+		systemd-machine-id-setup --root $NSdir
+	else
+		chroot_install $NSdir $PKGS
+		\cp -rf /etc/yum.repos.d $NSdir/etc/.
+		\cp /etc/{passwd,group,shadow} $NSdir/etc/.
+	fi
+	MachineOpt="-D $NSdir"
 fi
 
-echo -e "\n{INFO} creating NS $NS ..."
-CMD="systemd-nspawn $BIND_OPTS --volatile=$VOLATILE -n $NET_MACVLAN_OPTS -bD $NSdir"
+CMD="systemd-nspawn $BIND_OPTS $VOLATILE_OPT -n $NET_MACVLAN_OPTS $BOOT_OPT $MachineOpt"
+echo -e "\n{INFO} [creating NS $NS]: $CMD"
 if [[ "$DEBUG" = yes ]]; then
 	$CMD
 else
