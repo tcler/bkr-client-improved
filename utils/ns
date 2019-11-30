@@ -232,7 +232,7 @@ fi
 if rpm --root $NSdir -q systemd; then
 	systemd-machine-id-setup --root $NSdir
 else
-	chroot_install $NSdir "$@"
+	chroot_install $NSdir $PKGS
 	\cp -rf /etc/yum.repos.d $NSdir/etc/.
 	\cp /etc/{passwd,group,shadow} $NSdir/etc/.
 fi
