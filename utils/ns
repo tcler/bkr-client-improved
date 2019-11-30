@@ -41,10 +41,13 @@ Usage() {
 	  --noboot             ; no boot
 	  -x                   ; see systemd-nspawn -x, need btrfs as rootfs
 
-	Examples create ns by using own fs tree:
+	Examples create ns by using mini fs tree + host /usr:
 	  # same as example ns1, but use a it's own fs tree instead reuse host os tree
 	  #  so you can do anything in this ns, and don't worry about any impact on the host
-	  $0 -n ns1 --veth-ip 192.168.1.1,192.168.1.2 --macvlan-ip 192.168.254.11,192.168.253.11 -robind=/usr
+	  $0 -n ns0 --veth-ip 192.168.0.1,192.168.0.2 --noboot -robind=/usr
+	  $0 -n ns1 --veth-ip 192.168.1.1,192.168.1.2 --macvlan-ip 192.168.254.11 -bind=/usr
+
+	Examples create ns by using absolute own fs tree:
 	  $0 -n ns2 --veth-ip 192.168.2.1,192.168.2.2 --macvlan-ip 192.168.254.12,192.168.253.12 -p "iproute iputils nfs-utils"
 	  $0 -n ns3 --veth-ip 192.168.3.1,192.168.3.2 --macvlan-ip 192.168.254.13,192.168.253.13 --clone ns2
 
@@ -107,7 +110,7 @@ ns_pstree() {
 _nsexec() {
 	local initpid=$1
 	shift
-	nsenter --target "$initpid" --mount --uts --ipc --net --pid "$@"
+	nsenter --target "$initpid" --mount --uts --ipc --net --pid -- bash -c "$*"
 }
 
 nsexec() {
@@ -146,7 +149,7 @@ NS_VETH_IP=
 NS_MACVLAN_IPS=
 HOST_VETH_IP=
 InitPid=
-PKGS="systemd "
+INIT_PKG=systemd
 
 # command line parse
 _at=`getopt -o hn:p:dx \
@@ -173,7 +176,7 @@ while true; do
 	--volatile|--vol) VOLATILE_OPT="--volatile=$2"; shift 2;;
 	--clone) CLONE=$2; shift 2;;
 	-x) SHARE_SYSTEM=yes; shift 1;;
-	--noboot) BOOT_OPT=; shift 1;;
+	--noboot) BOOT_OPT=; INIT_PKG="bash"; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -244,10 +247,10 @@ else
 		rsync -a --info=progress2 $NSHome/$CLONE/  $NSdir/.
 		systemd-machine-id-setup --root $NSdir
 	fi
-	if rpm --root $NSdir -q systemd; then
+	if rpm --root $NSdir -q $INIT_PKG; then
 		systemd-machine-id-setup --root $NSdir
 	else
-		chroot_install $NSdir $PKGS
+		chroot_install $NSdir $INIT_PKG $PKGS
 		\cp -rf /etc/yum.repos.d $NSdir/etc/.
 		\cp /etc/{passwd,group,shadow} $NSdir/etc/.
 	fi
