@@ -87,7 +87,9 @@ ns_init_pid() {
 
 	ppid=$(pgrep -f "^systemd-nspawn .*(-D $nsdir|-M ${nsdir##*/})$") || return 1
 	initpid=$(pgrep -f ^/usr/lib/systemd/systemd -P "$ppid") || {
-		return 1
+		initpid=$(pgrep -f ^-bash -P "$ppid") || {
+			return 1
+		}
 	}
 	echo $initpid
 }
