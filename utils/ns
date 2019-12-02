@@ -4,20 +4,15 @@
 # dependency: systemd-nspawn
 # used to create light container/ns for nfs/cifs test on RHEL/CentOS 7 or later
 
+LANG=C
 NSHome=/opt/NS
+AT=("$@")
 
-[[ $(id -u) != 0 ]] && {
-	echo -e "{Warn} $0 need root permission, try:\n  sudo $0 $@" | grep --color=always . >&2
-	exec sudo $0 "$@"
-}
-
-which tmux &>/dev/null || dep+=\ tmux
-which iptables &>/dev/null || dep+=\ iptables
-which rsync &>/dev/null || dep+=\ rsync
-which systemd-nspawn &>/dev/null || dep+=\ systemd-container
-[[ -n "$dep" ]] && {
-	echo -e "{Info} install dependences ..."
-	yum install -y $dep >&2
+switchroot() {
+	[[ $(id -u) != 0 ]] && {
+		echo -e "{Warn} $0 need root permission, try:\n  sudo $0 ${AT[@]}" | grep --color=always . >&2
+		exec sudo $0 "${AT[@]}"
+	}
 }
 
 Usage() {
@@ -99,7 +94,7 @@ ns_init_pid() {
 ns_pstree() {
 	local ns=$1
 	local nsdir=$NSHome/$ns
-	local tree=$(ps axf | sed -rn -e 's/^(( *[^ ]+){4} )(.*)$/\3 # \1/' -e "/^( ._ )?systemd-nspawn .*(${nsdir//\//\\/}|-M $ns)/,/^( ._ )?[^ ]/p" | sed '/^[^ ]/d')
+	local tree=$(ps axf | sed -rn -e 's/^(( *[^ ]+){4} )(.*)$/\3 # \1/' -e "/^( ._ )?systemd-nspawn .*(${nsdir//\//\\/}|-M $ns)/,/^( ._ )?[^ ]/p" | sed -r '${/^( ._ )?[^ ]/d}')
 	[[ "$tree" = ' \_ '* ]] && {
 		tree=$(sed 's/^....//' <<<"$tree")
 	}
@@ -182,15 +177,27 @@ while true; do
 	esac
 done
 
+[[ $# -lt 1 ]] && { Usage >&2; exit 1; }
+
+# __prepare__
+which tmux &>/dev/null || dep+=\ tmux
+which iptables &>/dev/null || dep+=\ iptables
+which rsync &>/dev/null || dep+=\ rsync
+which systemd-nspawn &>/dev/null || dep+=\ systemd-container
+[[ -n "$dep" ]] && {
+	echo -e "{Info} install dependences ..."
+	sudo yum install -y $dep >&2
+}
+
 # __main__
 subcmd=$1
 case $subcmd in
-exec|exe|ex|e) shift
+exec|exe|ex|e) switchroot; shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
 	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
 	nsexec $NS "$@"
 	exit $?;;
-install|ins*) shift
+install|ins*) switchroot; shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
 	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
 	NSdir=$NSHome/$NS
@@ -201,7 +208,7 @@ ps) shift
 	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
 	ns_pstree $NS
 	exit $?;;
-del*|del|de|d) shift
+del*|del|de|d) switchroot; shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
 	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
 	systemd-run -M $NS "poweroff"
@@ -222,6 +229,8 @@ creat*) shift
 esac
 
 [[ -z "$NS" ]] && { Usage >&2; exit 1; }
+
+switchroot;
 
 #remove existed one
 $0 del "$NS" 2>/dev/null
