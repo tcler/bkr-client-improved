@@ -129,11 +129,13 @@ chroot_install() {
 
 	if which dnf &>/dev/null; then
 		releasever=$(rpm -q --qf "%{version}" -f /etc/os-release)
-		dnf --setopt=strict=0 --setopt=skip_if_unavailable=1 -y --nogpg --installroot=$rootfs --releasever=$releasever install "$@"
+		read repo < <(LANG=C dnf whatprovides bash|awk '$1 == "Repo" && $3 != "@System" {print $3}')
+		dnf --setopt=strict=0 --disablerepo=* --enablerepo=$repo --nogpg --installroot=$rootfs --releasever=$releasever install -y "$@"
 		dnf -y --nogpg --installroot=$rootfs clean all 2>/dev/null
 		rm -rf $rootfs/var/cache/dnf/*
 	else
-		yum --setopt=strict=0 --setopt=skip_if_unavailable=1 -y --nogpg --installroot=$rootfs install "$@"
+		read repo < <(LANG=C yum whatprovides bash|awk '$1 == "Repo" && $3 != "installed" {print $3}')
+		yum --setopt=strict=0 --disablerepo=* --enablerepo=$repo --nogpg --installroot=$rootfs install -y "$@"
 		yum -y --nogpg --installroot=$rootfs clean all 2>/dev/null
 		rm -rf $rootfs/var/cache/yum/*
 	fi
