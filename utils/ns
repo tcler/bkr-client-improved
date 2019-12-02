@@ -7,7 +7,7 @@
 NSHome=/opt/NS
 
 [[ $(id -u) != 0 ]] && {
-	echo -e "{Warn} $0 need root permission, try:\n  sudo $0 ..." >&2
+	echo -e "{Warn} $0 need root permission, try:\n  sudo $0 $@" | grep --color=always . >&2
 	exec sudo $0 "$@"
 }
 
@@ -213,7 +213,7 @@ del*|del|de|d) shift
 	done
 	exit $?;;
 ls) shift
-	machinectl -l
+	machinectl -l | awk '$2 != "vm" && $2 != "machines"'
 	exit $?;;
 creat*) shift
 	;;
