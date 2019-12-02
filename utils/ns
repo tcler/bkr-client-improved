@@ -11,7 +11,6 @@ NSHome=/opt/NS
 	exec sudo $0 "$@"
 }
 
-which screen &>/dev/null || dep=screen
 which tmux &>/dev/null || dep+=\ tmux
 which iptables &>/dev/null || dep+=\ iptables
 which rsync &>/dev/null || dep+=\ rsync
@@ -262,11 +261,7 @@ echo -e "\n{INFO} [creating NS $NS]: $CMD"
 if [[ "$DEBUG" = yes ]]; then
 	$CMD
 else
-	if which screen &>/dev/null; then
-		screen -dm -S $NS -- $CMD
-	else
-		tmux new -s $NS -d "$CMD"
-	fi
+	tmux new -s $NS -d "$CMD"
 fi
 
 echo -e "\n{INFO} waiting NS $NSdir start ..."
