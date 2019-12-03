@@ -177,8 +177,6 @@ while true; do
 	esac
 done
 
-[[ $# -lt 1 ]] && { Usage >&2; exit 1; }
-
 # __prepare__
 which tmux &>/dev/null || dep+=\ tmux
 which iptables &>/dev/null || dep+=\ iptables
