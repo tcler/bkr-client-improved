@@ -59,8 +59,8 @@ Usage() {
 	  $0 exec ns2 -- mkdir -p /mnt/nfs              # exec command in ns2
 	  $0 exec ns2 -- showmount -e 192.168.2.1       # exec command in ns2
 	  $0 exec ns2 -- mount 192.168.2.1:/ /mnt/nfs   # exec command in ns2
-	  $0 exec ns2 -- showmount -e 192.168.254.1     # exec command in ns2
-	  $0 exec ns2 -- mount 192.168.254.1:/ /mnt/nfs # exec command in ns2
+	  $0 exec ns2 -- showmount -e 192.168.254.254     # exec command in ns2
+	  $0 exec ns2 -- mount 192.168.254.254:/ /mnt/nfs # exec command in ns2
 
 	EOF
 }
@@ -328,7 +328,7 @@ for addr in $NS_MACVLAN_IPS; do
 	_nsexec "$InitPid" ip a s $nsifname
 done
 
-HOST_MACVLAN_IP=192.168.254.1
+HOST_MACVLAN_IP=192.168.254.254
 echo -e "\n{INFO} setup default macvlan host side $macvlan4host $HOST_MACVLAN_IP"
 ip link show $macvlan4host &>/dev/null ||
 	ip link add link $(getDefaultNic) name $macvlan4host type macvlan mode bridge
