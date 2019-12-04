@@ -544,6 +544,7 @@ Usage() {
 
 	Options:
 	    -h, --help     #Display this help.
+	    --prepare      #check/install/configure libvirt and other dependent packages
 	    -I             #create VM by import existing disk image, auto search url according distro name
 	                    `-> just could be used in Intranet
 	    -i <url/path>  #create VM by import existing disk image, value can be url or local path
@@ -630,6 +631,7 @@ Usage() {
 # command line parse
 _at=`getopt -o hd:Ll:fn:gb:p:Ii:r \
 	--long help \
+	--long prepare \
 	--long ks: \
 	--long rm \
 	--long osv: \
@@ -660,6 +662,7 @@ eval set -- "$_at"
 while true; do
 	case "$1" in
 	-h|--help) Usage; shift 1; exit 0;;
+	--prepare) ONLY_PREPARE=yes; shift 1;;
 	-d)        Distro=$2; shift 2;;
 	-l)        InstallType=location; Location=$2; shift 2;;
 	-L)        InstallType=location; shift 1;;
@@ -709,6 +712,7 @@ if egrep -wo '(vmx|svm)' /proc/cpuinfo -q; then
 			echo -e "{WARN} there's not /dev/tty file redirect enable_libvirt msg to stderr"
 			enable_libvirt >&2
 		fi
+		[[ "$ONLY_PREPARE" = yes ]] && exit
 	}
 else
 	echo -e "{WARN} current machine doesn't support Virtualization, show help info with\n  $PROG -h"
@@ -721,6 +725,7 @@ mkdir -p $RuntimeTmp
 [[ $P = vmc || $P = vm ]] && {
 	subcmd=$1
 	case "$subcmd" in
+	create|creat) shift;;
 	r|rm|d|de|del*) shift; [[ "$1" = -d ]] && shift; vmdelete "$@"; exit $?;;
 	l|lo|log*) shift; [[ "$1" = -d ]] && shift; vmlogin "$@"; exit $?;;
 	e|ex|ex*) shift; [[ "$1" = -d ]] && shift; vmexec "$@"; exit $?;;
