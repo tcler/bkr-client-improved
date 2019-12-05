@@ -160,6 +160,18 @@ vmedit() {
 	virsh edit "$_vmname"
 }
 
+vmreboot() {
+	local _vmname=$1
+	[[ -z "$_vmname" ]] && {
+		resf=$RuntimeTmp/vmlist
+		vmdialogradiolist vm-reboot $resf all && _vmname=$(sed 's/"//g' $resf)
+		[[ -z "$_vmname" ]] && { return; }
+	}
+
+	virsh destroy "$_vmname"
+	virsh start "$_vmname"
+}
+
 vmlogin() {
 	local console=
 	[[ "$1" = /c ]] && {
@@ -733,6 +745,7 @@ mkdir -p $RuntimeTmp
 	i|if|if*) shift; [[ "$1" = -d ]] && shift; vmifaddr "$@"; exit $?;;
 	v|v*) shift; [[ "$1" = -d ]] && shift; vmvncport "$@"; exit $?;;
 	ed|ed*) shift; [[ "$1" = -d ]] && shift; vmedit "$@"; exit $?;;
+	reboot|reb|re*) shift; [[ "$1" = -d ]] && shift; vmreboot "$@"; exit $?;;
 	net|netcreate) shift; [[ "$1" = -d ]] && shift; netcreate "$@"; exit $?;;
 	netinfo) shift; [[ "$1" = -d ]] && shift; netinfo "$@"; exit $?;;
 	netdel|netdelete) shift; [[ "$1" = -d ]] && shift; netdelete "$@"; exit $?;;
