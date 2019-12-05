@@ -16,6 +16,7 @@ install install_runtest: _isroot
 	  fi; \
 	fi
 	@rpm -q beaker-client || utils/beaker-client_install.sh
+	@yum install -y rhts-devel
 	@rpm -q tcl >/dev/null || yum install -y tcl #package that in default RHEL repo
 	@yum install -y tcllib #epel
 	@ rpm -q tcllib || yum install -y rpms/tcllib-1.19-2.el8.noarch.rpm #workaround for missing tcllib on RHEL-8
