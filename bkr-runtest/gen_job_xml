@@ -523,16 +523,18 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 						set FamilyX {}
 						set FamilyY {}
+						set DistroPattern {}
+						set _FAMILY $FAMILY
 						if {[string match family* $DISTRO] || $DISTRO == ""} {
-							if {$FAMILY == ""} {
+							if {$_FAMILY == ""} {
 								lassign [split [string map {family ""} $DISTRO] .] FamilyX FamilyY
-								set FAMILY "RedHatEnterpriseLinux$FamilyX"
-							} elseif [regexp -- {^[0-9]} ${FAMILY}] {
-								set FAMILY "RedHatEnterpriseLinux${FAMILY}"
+								set _FAMILY "RedHatEnterpriseLinux$FamilyX"
+							} elseif [regexp -- {^[0-9]} ${_FAMILY}] {
+								set _FAMILY "RedHatEnterpriseLinux${_FAMILY}"
 							}
-							if {[lsearch -glob $drs distro_family=*] == -1} {lappend drs distro_family=${FAMILY}}
+							if {[lsearch -glob $drs distro_family=*] == -1} {lappend drs distro_family=${_FAMILY}}
 							if {[lsearch -glob $drs distro_tag=*] == -1} {lappend drs distro_tag=${TAG}}
-							set verx [string map {RedHatEnterpriseLinux ""} $FAMILY]
+							set verx [string map {RedHatEnterpriseLinux ""} $_FAMILY]
 							if {$verx >= 8} {set VARIANT BaseOS}
 							if {$FamilyY != ""} {
 								set DistroPattern %${FamilyX}.${FamilyY}%
@@ -714,9 +716,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				set distroBuild $DISTRO
 				if [string match family* $DISTRO] {
 					if [info exist DistroPattern] {
-						set distroBuild [exec bash -c "bkr distro-trees-list --arch $ARCH --family $FAMILY --name $DistroPattern --limit=1 | awk '/Name:/{print \$2}'"]
+						set distroBuild [exec bash -c "bkr distro-trees-list --arch $ARCH --family $_FAMILY --name $DistroPattern --limit=1 | awk '/Name:/{print \$2}'"]
 					} else {
-						set distroBuild [exec bash -c "bkr distro-trees-list --arch $ARCH --family $FAMILY --limit=1 | awk '/Name:/{print \$2}'"]
+						set distroBuild [exec bash -c "bkr distro-trees-list --arch $ARCH --family $_FAMILY --limit=1 | awk '/Name:/{print \$2}'"]
 					}
 				}
 
