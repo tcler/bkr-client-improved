@@ -801,6 +801,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					foreach build $Opt(brew) { lappend brewBuildList {*}$build }
 				}
 				if [info exist brewBuildList] {
+					if [info exist Opt(dbgk)] {
+						lappend brewBuildList "-debugk"
+					}
 					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList}"
 				}
 
