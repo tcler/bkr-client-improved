@@ -628,20 +628,22 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						makeTag $taginfo
 					}
 
-					or ! {
-						foreach m "$ORMACHINE_L $NETQE_NIC_MACHINE($role)" {
-							hostname op=like value=$m -
-						}
-						foreach taginfo [lsearch -glob -inline -all $hrs {or[-:]*}] {
-							set taginfo [string range $taginfo 3 end]
-							makeTag $taginfo
-						}
-					}
-					not ! {
+					if {[string length $MACHINE] == 0} {
 						or ! {
-							foreach taginfo [lsearch -glob -inline -all $hrs {not[-:]*}] {
-								set taginfo [string range $taginfo 4 end]
+							foreach m "$ORMACHINE_L $NETQE_NIC_MACHINE($role)" {
+								hostname op=like value=$m -
+							}
+							foreach taginfo [lsearch -glob -inline -all $hrs {or[-:]*}] {
+								set taginfo [string range $taginfo 3 end]
 								makeTag $taginfo
+							}
+						}
+						not ! {
+							or ! {
+								foreach taginfo [lsearch -glob -inline -all $hrs {not[-:]*}] {
+									set taginfo [string range $taginfo 4 end]
+									makeTag $taginfo
+								}
 							}
 						}
 					}
