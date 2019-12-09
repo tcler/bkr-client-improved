@@ -307,6 +307,7 @@ if [[ -n "$HOST_VETH_IP" && -n "$NS_VETH_IP" ]]; then
 
 	#add default route
 	_nsexec "$InitPid" ip route add default via $HOST_VETH_IP dev $nsvethif
+	_nsexec "$InitPid" sysctl -w net.ipv4.conf.all.rp_filter=2
 
 	#enable NAT
 	sysctl -w net.ipv4.conf.all.forwarding=1
