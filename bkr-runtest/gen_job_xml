@@ -728,7 +728,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				lappend insertTasks "/distribution/install DISTRO_BUILD=$distroBuild"
 				if {[regexp -- {Fedora|RHEL-8|family8} $DISTRO] != 1} {
 					lappend insertTasks "/distribution/Library/epel"
-				} else {
+				} elseif {[lsearch -regexp -nocase [concat $_lfamily $_ldistro] {^(family|RHEL-?|RedHatEnterpriseLinux)?[567]}] != -1} {
 					lappend insertTasks "/distribution/utils/dummy"
 				}
 
