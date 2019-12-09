@@ -5,11 +5,12 @@
 
 DIR="${@:-.}"
 
-for i in $DIR; do
-    test -d $i && {
-    pushd $i &>/dev/null
-    pwd
-    make tag && git push --tags && make bkradd
-    popd &>/dev/null
+for d in $DIR; do
+    test -f $d && d=${d%/*}
+    test -d $d && {
+        pushd $d &>/dev/null
+            pwd
+            make tag && git push --tags && make bkradd
+        popd &>/dev/null
     }
 done
