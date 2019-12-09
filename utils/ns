@@ -179,7 +179,7 @@ done
 
 # __prepare__
 which tmux &>/dev/null || dep+=\ tmux
-which iptables &>/dev/null || dep+=\ iptables
+which firewall-cmd &>/dev/null || dep+=\ firewalld
 which rsync &>/dev/null || dep+=\ rsync
 which systemd-nspawn &>/dev/null || dep+=\ systemd-container
 [[ -n "$dep" ]] && {
@@ -310,7 +310,10 @@ if [[ -n "$HOST_VETH_IP" && -n "$NS_VETH_IP" ]]; then
 
 	#enable NAT
 	sysctl -w net.ipv4.conf.all.forwarding=1
-	iptables -A POSTROUTING -s ${HOST_VETH_IP%.*}.0/24 -j MASQUERADE -t nat
+	#iptables -A POSTROUTING -s ${HOST_VETH_IP%.*}.0/24 -j MASQUERADE -t nat
+	systemctl start firewalld
+	firewall-cmd --permanent --zone=public --add-masquerade
+	firewall-cmd --reload
 else
 	:
 fi
