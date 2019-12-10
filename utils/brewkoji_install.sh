@@ -1,7 +1,6 @@
 #!/bin/bash
 #author jiyin@redhat.com
 
-
 installBrew2() {
 	#https://mojo.redhat.com/docs/DOC-1024827
 	#https://docs.engineering.redhat.com/display/RCMDOC/RCM+Tools+Release+Guide
@@ -70,5 +69,6 @@ update-ca-trust
 which brew &>/dev/null ||
 	yum --setopt=strict=0 install -y koji python-koji python-pycurl brewkoji
 which brew &>/dev/null || installBrew2 || installBrewFromSourceCode
+yum install -y bash-completion-brew
 
 which brew
