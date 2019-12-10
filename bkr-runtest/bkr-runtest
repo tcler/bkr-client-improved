@@ -65,7 +65,7 @@ proc Usage {{detail n}} {
 	puts ""
 	puts "Example 1: $::prog RHEL-7.3 nfs.list"
 	puts "Example 2: lstest /some/path/case | $::prog RHEL-6.6 --netqe-nic-driver=tg3 --netqe-nic-num=2"
-	puts "Example 3: lstest ./pnfs/blklayout | $::prog runtest Fedora-22,RHEL-7.2,RHEL-7.2 "
+	puts "Example 3: lstest ./pnfs/blklayout | $::prog Fedora-22,RHEL-7.2,RHEL-7.2 "
 	puts "Example 4: $::prog family7 --arch=x86_64 --kdump -B=lstk # reserve a host with latest RHEL-7 and latest kernel-*.el7"
 	puts "Example 5: $::prog family8.2 --arch=x86_64 --kdump -B=upk # reserve a host with upstream kernel"
 	puts ""

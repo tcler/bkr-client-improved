@@ -52,13 +52,14 @@ Notes:
 *   ***bkr-runtest*** - Genarate job XML files from test items (by `lstest` and `gen_job_xml`), then group them (by hardware requirement) and submit to beaker
 
 	```
-	Usage0: runtest [options] <distro[,distro,...]> [-|testfile...] [gen_job_xml options] 
-	Usage1: runtest [options] <family[,family,...]> [-|testfile...] [gen_job_xml options]
+	Usage0: bkr-runtest [options] <distro[,distro,...]> [-|testfile...] [gen_job_xml options] 
+	Usage1: bkr-runtest [options] <family[,family,...]> [-|testfile...] [gen_job_xml options]
 
-	Example 1: runtest RHEL-7.3 nfs.list
-	Example 2: lstest /some/path/case | runtest RHEL-6.6 --netqe-nic-driver=tg3 --netqe-nic-num=2
-	Example 3: lstest ./pnfs/blklayout | runtest runtest Fedora-22,RHEL-7.2,RHEL-7.2 
-	Example 4: runtest RHEL-7.4 --arch=x86_64 --kdump --nvr=upstream # reserve a host with upstream kernel
+	Example 1: bkr-runtest RHEL-7.3 nfs.list
+	Example 2: lstest /some/path/case | bkr-runtest RHEL-6.6 --netqe-nic-driver=tg3 --netqe-nic-num=2
+	Example 3: lstest ./pnfs/blklayout | bkr-runtest Fedora-22,RHEL-7.2,RHEL-7.2 
+	Example 4: bkr-runtest family7 --arch=x86_64 --kdump -B=lstk # reserve a host with latest RHEL-7 and latest kernel-*.el7
+	Example 5: bkr-runtest family8.2 --arch=x86_64 --kdump -B=upk # reserve a host with upstream kernel
 	```
 	(Use `bkr-runtest -h` to get more helps)
 
