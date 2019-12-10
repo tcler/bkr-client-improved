@@ -490,10 +490,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 			}
 
-			if {[info exist Opt(p9)] != 1 && ![regexp -- {.*(POWER9|ibm-p9).*} $hrs]} {
-				lappend hrs not:kv-CPUMODEL~POWER9%
-				lappend hrs not:hostname~ibm-p9%
-			}
 			recipe kernel_options=$KOPTS kernel_options_post=$KOPTS_POST whiteboard=$recipe_wb ks_meta=$recipe_ks_meta ! {
 				set pick "false"
 				if [info exist Opt(random)] {set pick "true"}
