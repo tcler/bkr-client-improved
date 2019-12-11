@@ -134,6 +134,8 @@ for build in "${builds[@]}"; do
 		run "brew taskinfo -r $taskid > >(tee brew_taskinfo.txt)"
 		run "awk '/\\<($archPattern)\\.rpm/{print}' brew_taskinfo.txt >buildArch.txt"
 		run "cat buildArch.txt"
+
+		: <<-'COMM'
 		[ -z "$(< buildArch.txt)" ] && {
 			echo "$prompt [Warn] rpm not found, treat the [$taskid] as build ID."
 			buildid=$taskid
@@ -141,6 +143,8 @@ for build in "${builds[@]}"; do
 			run "awk '/\\<($archPattern)\\.rpm/{print}' brew_buildinfo.txt >buildArch.txt"
 			run "cat buildArch.txt"
 		}
+		COMM
+
 		urllist=$(sed '/mnt.redhat..*rpm$/s; */mnt/redhat/;;' buildArch.txt)
 		for url in $urllist; do
 			run "curl -O -L http://download.devel.redhat.com/$url" 0  "download-${url##*/}"
