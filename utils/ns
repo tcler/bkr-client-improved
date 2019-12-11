@@ -43,7 +43,8 @@ Usage() {
 
 	Examples create ns by using absolute own fs tree:
 	  $0 -n ns2 --veth-ip 192.168.2.1,192.168.2.2 --macvlan-ip 192.168.254.12,192.168.253.12 -p "iproute iputils nfs-utils"
-	  $0 -n ns3 --veth-ip 192.168.3.1,192.168.3.2 --macvlan-ip 192.168.254.13,192.168.253.13 --clone ns2
+	  $0 jj nsbase iproute iputils nfs-utils firewalld   # create a base rootfs
+	  $0 -n ns3 --veth-ip 192.168.3.1,192.168.3.2 --macvlan-ip 192.168.254.13,192.168.253.13 --clone nsbase
 
 	Examples sub-command:
 	  $0 ls                                # list all ns
@@ -136,6 +137,13 @@ chroot_install() {
 	fi
 }
 
+nsjinjia() {
+	local ns=$1
+	local rootdir=$NSHome/$ns
+	shift
+	chroot_install $rootdir "$@"
+}
+
 BOOT_OPT=-b
 NET_MACVLAN_OPTS=
 BIND_OPTS=
@@ -190,6 +198,11 @@ which systemd-nspawn &>/dev/null || dep+=\ systemd-container
 # __main__
 subcmd=$1
 case $subcmd in
+jj) switchroot; shift
+	[[ -z "$NS" ]] && { NS=$1; shift; }
+	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
+	nsjinjia $NS "$@"
+	exit $?;;
 exec|exe|ex|e) switchroot; shift
 	[[ -z "$NS" ]] && { NS=$1; shift; }
 	[[ -z "$NS" ]] && { Usage >&2; exit 1; }
