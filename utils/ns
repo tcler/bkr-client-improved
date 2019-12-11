@@ -248,10 +248,13 @@ esac
 
 switchroot;
 
-#remove existed one
-$0 del "$NS" 2>/dev/null
-
 NSdir=$NSHome/$NS
+
+#remove existed one
+[[ -d $NSdir ]] && {
+	echo -e "\n{INFO} remove existed ns and/or rootfs $NSdir ..."
+	$0 delete "$NS" 2>/dev/null
+}
 
 echo -e "\n{INFO} creating macvlan if for NS ..."
 macvlan4ns=${NS}.
