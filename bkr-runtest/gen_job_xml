@@ -467,12 +467,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 			set KOPTS ""
 			set KOPTS_POST ""
 			if [info exist Opt(k-opts)] {
-				set KOPTS $Opt(k-opts)
-				if {[llength $Opt(k-opts)] > 1} { set KOPTS [lindex $Opt(k-opts) $R]}
+				set KOPTS {*}$Opt(k-opts)
+				if {[llength $Opt(k-opts)] > 1} { set KOPTS {*}[lindex $Opt(k-opts) $R]}
 			}
 			if [info exist Opt(k-opts-post)] {
-				set KOPTS_POST $Opt(k-opts-post)
-				if {[llength $Opt(k-opts-post)] > 1} { set KOPTS_POST [lindex $Opt(k-opts-post) $R]}
+				set KOPTS_POST {*}$Opt(k-opts-post)
+				if {[llength $Opt(k-opts-post)] > 1} { set KOPTS_POST {*}[lindex $Opt(k-opts-post) $R]}
 			}
 			set recipe_wb $Opt(wb)
 			if [info exist Opt(rwb)] { set recipe_wb "$Opt(rwb)" }
