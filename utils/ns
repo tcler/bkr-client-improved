@@ -111,9 +111,11 @@ _nsexec() {
 }
 
 nsexec() {
-	local nsdir=$NSHome/$1
+	local ns=$1
+	local nsdir=$NSHome/$ns
 	shift
 	local initpid=$(ns_init_pid $nsdir)
+	echo "[NS:$ns] # $@"
 	_nsexec "$initpid" "$@"
 }
 
