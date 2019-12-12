@@ -26,6 +26,7 @@ Usage() {
 	  -n {nsname}          ; ns(name space) name
 	  -p {pkgs}            ; packages you want in ns(name space)
 	  -d                   ; debug mode
+	  -v                   ; verbose mode, output more info
 	  --veth-ip {ip1,ip2}  ; ip address pair for veth pair; ip1 for host side and ip2 for ns side
 	  --macvlan-ip {ip1[,ip2...]} ; ip address[es] for ns macvlan if[s]; all for ns side
 	  --bind {src[:dst]}   ; see systemd-nspawn --bind
@@ -115,7 +116,7 @@ nsexec() {
 	local nsdir=$NSHome/$ns
 	shift
 	local initpid=$(ns_init_pid $nsdir)
-	echo "[NS:$ns] # $@"
+	[[ "$nsverbose" = yes ]] && echo "[NS:$ns] # $@"
 	_nsexec "$initpid" "$@"
 }
 
@@ -160,7 +161,7 @@ InitPid=
 INIT_PKG=systemd
 
 # command line parse
-_at=`getopt -o hn:p:dx \
+_at=`getopt -o hn:p:dxv \
 	--long help \
 	--long veth-ip: \
 	--long macvlan-ip: \
@@ -177,6 +178,7 @@ while true; do
 	-n) NS="$2"; shift 2;;
 	-p) PKGS+="$2"; shift 2;;
 	-d) DEBUG=yes; shift 1;;
+	-v) nsverbose=yes; shift 1;;
 	--veth-ip) read HOST_VETH_IP NS_VETH_IP <<<"${2//,/ }"; shift 2;;
 	--macvlan-ip) NS_MACVLAN_IPS="${2//,/ }"; shift 2;;
 	--bind) BIND_OPTS+="--bind=$2 "; shift 2;;
