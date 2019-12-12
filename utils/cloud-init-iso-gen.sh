@@ -109,7 +109,7 @@ done
 runcmd:
   - test -f /etc/dnf/dnf.conf && { echo strict=0 >>/etc/dnf/dnf.conf; ln -s /usr/bin/{dnf,yum}; }
   - sed -ri -e '/^#?PasswordAuthentication /{s/no/yes/;s/^#//}' -e 's/^#?(PermitRootLogin) .*$/\1 yes/' /etc/ssh/sshd_config && service sshd restart
-  - echo net.ipv4.conf.all.rp_filter=2 >>/etc/sysctl.conf && systcl -p
+  - echo net.ipv4.conf.all.rp_filter=2 >>/etc/sysctl.conf && sysctl -p
   - which yum && yum install -y curl wget $PKGS
   -   which apt-get && apt-get install -y curl wget $PKGS
   -   which zypper && zypper install -y curl wget $PKGS
