@@ -291,7 +291,10 @@ else
 	MachineOpt="-D $NSdir"
 fi
 
-CMD="systemd-nspawn $BIND_OPTS $VOLATILE_OPT -n $NET_MACVLAN_OPTS $BOOT_OPT $MachineOpt"
+NETWORK_VETH_OPT=
+[[ -n "$HOST_VETH_IP" && -n "$NS_VETH_IP" ]] && NETWORK_VETH_OPT=--network-veth
+
+CMD="systemd-nspawn $BIND_OPTS $VOLATILE_OPT $NETWORK_VETH_OPT $NET_MACVLAN_OPTS $BOOT_OPT $MachineOpt"
 echo -e "\n{INFO} [creating NS $NS]: $CMD"
 if [[ "$DEBUG" = yes ]]; then
 	$CMD
