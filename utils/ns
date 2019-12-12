@@ -319,9 +319,10 @@ ns_pstree $NS
 # post setup
 macvlan4host=macvlan-host
 hostvethif=ve-$NS
-is_valid_ip $HOST_VETH_IP || { HOST_VETH_IP=; echo -e "\n{WARN} '$HOST_VETH_IP' is not a valid address"|grep --color=always . >&2; }
-is_valid_ip $NS_VETH_IP || { NS_VETH_IP=; echo -e "\n{WARN} '$NS_VETH_IP' is not a valid address"|grep --color=always . >&2; }
 if [[ -n "$HOST_VETH_IP" && -n "$NS_VETH_IP" ]]; then
+	is_valid_ip $HOST_VETH_IP || { HOST_VETH_IP=; echo -e "\n{WARN} '$HOST_VETH_IP' is not a valid address"|grep --color=always . >&2; }
+	is_valid_ip $NS_VETH_IP || { NS_VETH_IP=; echo -e "\n{WARN} '$NS_VETH_IP' is not a valid address"|grep --color=always . >&2; }
+
 	echo -e "\n{INFO} setup veth host side $hostvethif $HOST_VETH_IP"
 	ip addr add $HOST_VETH_IP/24 dev $hostvethif
 	ip link set dev $hostvethif up
