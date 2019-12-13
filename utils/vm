@@ -645,6 +645,7 @@ Usage() {
 	    vm vncport [VM]      #show vnc host:port //you can use v,vnc instead vncport
 	    vm edit [VM]         #edit vm xml file   //you can use ed,ed* instead edit
 	    vm exec "\$VM" -- "cmd"  #login VM and exec cmd  //you can use e,ex,ex* instead exec
+	    vm reboot [/w] [VM]  #reboot VM          //option /w indicate wait until reboot complete(port 22 is available)
 
 	    vm net               #list all virtual network
 	    vm net netname=testnet brname=virbrN subnet=100  #create virtual network 'testnet'
