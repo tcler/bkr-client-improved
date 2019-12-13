@@ -160,7 +160,16 @@ vmedit() {
 	virsh edit "$_vmname"
 }
 
+port_available() {
+	nc $1 $2 </dev/null &>/dev/null
+}
+
 vmreboot() {
+	[[ "$1" = /w ]] && {
+		shift
+		local WAIT=yes
+	}
+
 	local _vmname=$1
 	[[ -z "$_vmname" ]] && {
 		resf=$RuntimeTmp/vmlist
@@ -170,6 +179,10 @@ vmreboot() {
 
 	virsh destroy "$_vmname"
 	virsh start "$_vmname"
+	[[ "$WAIT" = yes ]] && {
+		echo -e "{INFO} waiting restart finish ..."
+		until port_available ${_vmname} 22; do sleep 1; done
+	}
 }
 
 vmlogin() {
