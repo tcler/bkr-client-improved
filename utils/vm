@@ -185,6 +185,28 @@ vmreboot() {
 	}
 }
 
+vmstop() {
+	local _vmname=$1
+	[[ -z "$_vmname" ]] && {
+		resf=$RuntimeTmp/vmlist
+		vmdialogradiolist vm-shutdown $resf && _vmname=$(sed 's/"//g' $resf)
+		[[ -z "$_vmname" ]] && { return; }
+	}
+
+	virsh destroy "$_vmname"
+}
+
+vmstart() {
+	local _vmname=$1
+	[[ -z "$_vmname" ]] && {
+		resf=$RuntimeTmp/vmlist
+		vmdialogradiolist vm-start $resf all && _vmname=$(sed 's/"//g' $resf)
+		[[ -z "$_vmname" ]] && { return; }
+	}
+
+	virsh start "$_vmname"
+}
+
 vmlogin() {
 	local console=
 	[[ "$1" = /c ]] && {
@@ -646,6 +668,8 @@ Usage() {
 	    vm edit [VM]         #edit vm xml file   //you can use ed,ed* instead edit
 	    vm exec "\$VM" -- "cmd"  #login VM and exec cmd  //you can use e,ex,ex* instead exec
 	    vm reboot [/w] [VM]  #reboot VM          //option /w indicate wait until reboot complete(port 22 is available)
+	    vm stop [VM]         #stop/shutdonw VM   //nil
+	    vm start [VM]        #stop/shutdonw VM   //nil
 
 	    vm net               #list all virtual network
 	    vm net netname=testnet brname=virbrN subnet=100  #create virtual network 'testnet'
@@ -760,6 +784,8 @@ mkdir -p $RuntimeTmp
 	v|v*) shift; [[ "$1" = -d ]] && shift; vmvncport "$@"; exit $?;;
 	ed|ed*) shift; [[ "$1" = -d ]] && shift; vmedit "$@"; exit $?;;
 	reboot|reb|re*) shift; [[ "$1" = -d ]] && shift; vmreboot "$@"; exit $?;;
+	stop|sto*) shift; [[ "$1" = -d ]] && shift; vmstop "$@"; exit $?;;
+	start|sta*) shift; [[ "$1" = -d ]] && shift; vmstart "$@"; exit $?;;
 	net|netcreate) shift; [[ "$1" = -d ]] && shift; netcreate "$@"; exit $?;;
 	netinfo) shift; [[ "$1" = -d ]] && shift; netinfo "$@"; exit $?;;
 	netdel|netdelete) shift; [[ "$1" = -d ]] && shift; netdelete "$@"; exit $?;;
