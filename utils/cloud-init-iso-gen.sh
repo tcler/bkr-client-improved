@@ -7,6 +7,7 @@ HostName=mylinux
 Repos=()
 BPKGS=
 PKGS=
+Intranet=no
 baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
 
 is_available_url() {
@@ -57,6 +58,7 @@ else
 fi
 
 is_intranet && {
+	Intranet=yes
 	baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
 }
 
@@ -113,9 +115,13 @@ runcmd:
   - which yum && yum install -y curl wget $PKGS
   -   which apt-get && apt-get install -y curl wget $PKGS
   -   which zypper && zypper install -y curl wget $PKGS
-  - which yum && curl -L -m 30 -o /usr/bin/brewinstall.sh "$baseDownloadUrl/utils/brewinstall.sh" &&
+$(
+[[ $Intranet = yes ]] && cat <<IntranetCMD
+  - which yum && curl -L -m 30 -o /usr/bin/brewinstall.sh "$bkrClientImprovedUrl/utils/brewinstall.sh" &&
     chmod +x /usr/bin/brewinstall.sh && brewinstall.sh $BPKGS -noreboot
-  - which yum && curl -L -m 30 -o /usr/bin/kdump-setup.sh "$baseDownloadUrl/utils/kdump-setup.sh" &&
+IntranetCMD
+)
+  - which yum && curl -L -m 30 -o /usr/bin/kdump-setup.sh "$baseUrl/utils/kdump-setup.sh" &&
     chmod +x /usr/bin/kdump-setup.sh && kdump-setup.sh reboot
 EOF
 
