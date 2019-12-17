@@ -1053,7 +1053,7 @@ if [[ "$InstallType" = location ]]; then
 			yum install -y cloud-init
 			END
 		}
-		sed -i 's/enabled = 1/enabled = 0/' /etc/yum.repo.d/cdn_os.repo
+		test -f /etc/yum.repo.d/cdn_os.repo && sed -i 's/enabled = 1/enabled = 0/' /etc/yum.repo.d/cdn_os.repo
 		if [[ "$NO_SSHKEY" = yes ]]; then
 			ks-generator.sh -d $Distro -url $Location $REPO_OPTS --post $postscript >$KSPath
 		else
