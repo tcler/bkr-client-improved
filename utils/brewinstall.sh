@@ -126,8 +126,8 @@ for build in "${builds[@]}"; do
 		build=$(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head -1)
 	}
 
-	if [[ "$build" =~ ^[0-9]+(:.*)?$ ]]; then
-		read taskid FLAG <<<${build/:/ }
+	if [[ "$build" =~ ^[0-9]+$ ]]; then
+		taskid=${build}
 		#wait the scratch build finish
 		while brew taskinfo $taskid|grep -q '^State: open'; do echo "[$(date +%T) Info] build hasn't finished, wait"; sleep 5m; done
 
@@ -217,11 +217,11 @@ done
 [[ "$FLAG" =~ debugkernel ]] && {
 	if [ -x /sbin/grubby -o -x /usr/sbin/grubby ]; then
 		VRA=$(rpm -qp --qf '%{version}-%{release}.%{arch}' $(ls kernel-debug*rpm | head -1))
-		grubby --set-default /boot/vmlinuz-${VRA}*debug
+		run "grubby --set-default /boot/vmlinuz-${VRA}*debug"
 	elif [ -x /usr/sbin/grub2-set-default ]; then
-		grub2-set-default $(grep ^menuentry /boot/grub2/grub.cfg | cut -f 2 -d \' | nl -v 0 | awk '/\.debug)/{print $1}')
+		run "grub2-set-default $(grep ^menuentry /boot/grub2/grub.cfg | cut -f 2 -d \' | nl -v 0 | awk '/\.debug)/{print $1}')"
 	elif [ -x /usr/sbin/grub-set-default ]; then
-		grub-set-default $(grep '^[[:space:]]*kernel' /boot/grub/grub.conf | nl -v 0 | awk '/\.debug /{print $1}')
+		run "grub-set-default $(grep '^[[:space:]]*kernel' /boot/grub/grub.conf | nl -v 0 | awk '/\.debug /{print $1}')"
 	fi
 }
 
