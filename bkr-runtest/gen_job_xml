@@ -481,6 +481,11 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 			lappend Opt(hr)
 			set drs $Opt(dr)
 			set hrs $Opt(hr)
+
+			lappend hrs not:kv-DISKSPACE>=10000000
+			lappend hrs not:cpu_count>=256
+			lappend hrs not:memory>=500000
+
 			if [info exist Opt(lab)] {
 				if {[catch {exec bkr labcontroller-list} lablist] != 0} {
 					puts stderr "{Warn} run bkr labcontroller-list fail"
