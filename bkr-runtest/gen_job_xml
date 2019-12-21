@@ -48,6 +48,15 @@ if {[info commands lmap] == ""} {
 	}
 }
 
+proc json2dict {txt} {
+  set rc [catch {::json::json2dict $txt} result options]
+  if {$rc != 0} {
+    #puts stderr "{WARN} JSON ERROR: $result"
+    return {}
+  }
+  return $result
+}
+
 # global var
 array set Opt {}
 array set InvalidOpt {}
@@ -549,8 +558,11 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						if {[lsearch -glob $drs distro_arch=*] == -1} {
 							set distro_arch $ARCH
 							if {[string length $MACHINE] > 0} {
-								set hostinfo [exec bash -c "curl -L -k -s $bkrurl/systems/$MACHINE"]
-								set distro_arch [lindex [dict get [::json::json2dict $hostinfo] arches] end]
+								set hostinfo [exec bash -c "curl -L -k -s $bkrurl/systems/$MACHINE; :"]
+								set hidict [json2dict $hostinfo]
+								if [dict exists $hidict arches] {
+									set distro_arch [lindex [dict get $hidict arches] end]
+								}
 							}
 							if [info exist Opt(HR)] {
 								set HRs [lindex $Opt(HR) $R]
