@@ -13,7 +13,6 @@ package require tdom
 package require sqlite3
 package require runtestlib 1.1
 package require getOpt 3.0
-package require Tclx
 namespace import ::getOpt::* ::runtestlib::*
 
 exec bash -c {recipe.sh $(klist | awk -F'[ :@]+' '/Default principal/{print $3}') >/dev/null}
@@ -116,15 +115,13 @@ proc updateJobTask {jobid distro_rgset} {
 }
 
 proc lockfile {file} {
-	try {
-		set fd [open $file {CREAT EXCL RDWR}]
+	if {![catch {set fd [open $file {CREAT EXCL RDWR}]} err]} {
 		puts -nonewline $fd "[pid]"
 		close $fd
 		return 1
-	} on error err {
-		try {
+	} else {
+		if {![catch {set fd [open $file {RDWR}]} err]} {
 			set rc 0
-			set fd [open $file {RDWR}]
 			gets $fd pid
 			if {$pid != "" && [file exists /proc/$pid]} {
 				set rc 0
@@ -135,7 +132,7 @@ proc lockfile {file} {
 			}
 			close $fd
 			return $rc
-		} on error err {
+		} else {
 			return 0
 		}
 	}
@@ -146,11 +143,9 @@ proc unlockfile {file} {
 }
 
 #_main_
-set cntrlc_flag 1
-signal trap {SIGINT SIGTERM} {unlockfile [dbroot]/bkr-autorun-monitor.lock; exit}
-
 cd [dbroot]
 if {[lockfile bkr-autorun-monitor.lock] == 0} {
+	puts "[exec bash -c {ps -uwp $(< bkr-autorun-monitor.lock)}]"
 	puts "{Warn} bkr-autorun-monitor is running!"
 	exit 0
 }
