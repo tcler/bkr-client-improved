@@ -42,7 +42,6 @@ install_all: install_robot _install_web
 
 install_robot: _isroot install_runtest _install_require
 	#install test robot
-	@yum install -y tclx #epel
 	cd bkr-test-robot; for f in *; do [ -d $$f ] && continue; cp -fd $$f $(_bin)/$$f; done
 
 _install_web: _isroot _install_tclsh8.6
