@@ -6,7 +6,7 @@ _share=/usr/share/bkr-client-improved
 _confdir=/etc/bkr-client-improved
 completion_path=/usr/share/bash-completion/completions
 
-install install_runtest: _isroot
+install install_runtest: _isroot install_kiss_vm_ns
 	@rpm -q redhat-lsb >/dev/null || yum install -y redhat-lsb #package that in default RHEL repo
 	@if [[ $$(lsb_release -si) != Fedora ]]; then \
 	  if ! rpm -q epel-release; then \
@@ -37,6 +37,12 @@ install install_runtest: _isroot
 	cp -fd bash-completion/* ${completion_path}/.||cp -fd bash-completion/* $${completion_path/\/*/}/.
 	@rm -f /usr/lib/python2.7/site-packages/bkr/client/commands/cmd_recipes_list.py $(_bin)/distro-pkg #remove old file
 	@rm -f $(_bin)/{distro-to-vm.sh,downloadBrewBuild,installBrewPkg} #remove old file
+
+install_kiss_vm_ns:
+	@rm -rf kiss-vm-ns
+	@git clone https://github.com/tcler/kiss-vm-ns
+	@make -C kiss-vm-ns
+	@rm -rf kiss-vm-ns
 
 install_all: install_robot _install_web
 
