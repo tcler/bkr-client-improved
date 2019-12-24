@@ -101,10 +101,14 @@ for arg; do
 	esac
 done
 
-[ "${#builds[@]}" = 0 ] && {
-	Usage >&2
-	exit
-}
+if [[ "${#builds[@]}" = 0 ]]; then
+	if [[ "$FLAG" = debugkernel ]]; then
+		builds+=(kernel-$(uname -r|sed 's/\.[^.]*$//'))
+	else
+		Usage >&2
+		exit
+	fi
+fi
 
 run install_brew -
 
