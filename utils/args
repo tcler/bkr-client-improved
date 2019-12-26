@@ -10,3 +10,9 @@ echo -e "\E[44m""$*""\E[0m"
 echo
 echo '[echo "$@"]'
 echo -e "\E[44m""$@""\E[0m"
+
+echo
+echo '[cat <(echo "$*")]'
+echo -ne "\E[44m"
+cat <(echo "$*")
+echo -ne "\E[0m"
