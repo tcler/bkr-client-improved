@@ -10,3 +10,7 @@ echo "$*"
 echo
 echo 'echo "$@"'
 echo "$@"
+
+echo
+echo 'bash -c "$*"'
+bash -c "$*"
