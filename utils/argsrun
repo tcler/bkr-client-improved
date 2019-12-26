@@ -4,13 +4,21 @@ echo -e "argc=\E[45m$(($#+1))\E[0m"
 for ((i=0; i<=$#; i++)); do echo -e "argv[$i]: \E[44m${!i}\E[0m"; done
 
 echo
-echo 'echo "$*"'
-echo "$*"
+echo '[echo "$*"]'
+echo -e "\E[44m""$*""\E[0m"
 
 echo
-echo 'echo "$@"'
-echo "$@"
+echo '[echo "$@"]'
+echo -e "\E[44m""$@""\E[0m"
 
 echo
-echo 'bash -c "$*"'
+echo '[bash -c "$*"]'
 bash -c "$*"
+
+echo
+echo '[eval "$@"]'
+eval "$@"
+
+echo
+echo '["$@"]'
+"$@"
