@@ -13,9 +13,9 @@ for ((i=0; i<=$#; i++)); do echo -ne "argv[$i] | \${$i}: \E[44m"; echo -n "${AT[
 
 	# this program is used for learning how do bash parse command line argument
 	# try:
-	  args   "" '' a b c "x  y   z"  '$var' "$var" \  \" \\  "'"
-	  args   sh -c 'echo xyz'
-	  args   sh -c "'echo xyz'"
+	  args  "" '' a b c "x  y   z"  '$var' "$var" \  \" \\ "'" \$ "${empty[@]}" . "${empty[*]}"
+	  args  sh -c 'echo xyz'
+	  args  sh -c "'echo xyz'"
 	EOF
 	echo -en "\E[0m"
 	exit
