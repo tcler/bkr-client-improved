@@ -11,6 +11,7 @@ _login() {
 		cat /tmp/blogin-$USER.log
 		cat /tmp/blogin-$USER.log |
 		mail -s "blogin(`hostname -s`): login error" $username
+		return 1
 	fi
 }
 
