@@ -1,18 +1,30 @@
 #!/bin/bash
 
-echo -e "argc=\E[45m$(($#+1))\E[0m"
-for ((i=0; i<=$#; i++)); do echo -e "argv[$i]: \E[44m${!i}\E[0m"; done
+echo ---------------------------------
+echo -e "C: argc=\E[45m$(($#+1))\E[0m | Bash: \$#=\E[45m$#\E[0m"
+echo
+echo ---------------------------------
+AT=($0 "$@")
+for ((i=0; i<=$#; i++)); do echo -ne "argv[$i] | \${$i}: \E[44m"; echo -n "${AT[$i]}"; echo -e "\E[0m"; done
+
+[[ $# = 0 ]] && {
+	echo -en "\E[35m"
+	cat <<-'EOF'
+
+	# this program is used for learning how do bash parse command line argument
+	# try:
+	  args   "" '' a b c "x  y   z"  '$var' "$var" \  \" \\  "'"
+	  args   sh -c 'echo xyz'
+	  args   sh -c "'echo xyz'"
+	EOF
+	echo -en "\E[0m"
+	exit
+}
 
 echo
 echo '[echo "$*"]'
-echo -e "\E[44m""$*""\E[0m"
+echo -ne "\E[44m"; echo -n "$*"; echo -e "\E[0m"
 
 echo
 echo '[echo "$@"]'
-echo -e "\E[44m""$@""\E[0m"
-
-echo
-echo '[cat <(echo "$*")]'
-echo -ne "\E[44m"
-cat <(echo "$*")
-echo -ne "\E[0m"
+echo -ne "\E[44m"; echo -n "$@"; echo -e "\E[0m"
