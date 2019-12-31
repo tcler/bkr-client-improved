@@ -72,7 +72,9 @@ _install_require: _isroot
 	@rpm -q sqlite >/dev/null || yum install -y sqlite #package that in default RHEL repo
 	@rpm -q sqlite-tcl >/dev/null || { yum install -y sqlite-tcl; exit 0; } #package that in default RHEL repo
 	@-! tclsh <<<"lappend ::auto_path $(_lib) /usr/lib64; package require tdom" 2>&1|grep -q 'can.t find' || \
-{ yum install -y tdom || ./utils/tdom_install.sh; }
+{ yum install -y tdom; \
+rpm -q tdom &>/dev/null || yum install -y rpms/tdom-0.8.2-27.el8.x86_64.rpm; \
+rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
 
 _isroot:
 	@test `id -u` = 0 || { echo "[Warn] need root permission" >&2; exit 1; }
