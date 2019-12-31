@@ -1,5 +1,8 @@
 #!/bin/bash
 
+Usage() { echo -e "Usage: ${0} <src.rpm> [p|b]"; }
+[[ $# = 0 ]] && { Usage >&2; exit 1; }
+
 which rpmbuild &>/dev/null || yum install -y /usr/bin/rpmbuild
 
 pkg=$1
