@@ -123,11 +123,23 @@ for build in "${builds[@]}"; do
 	[[ "$build" = -* ]] && { continue; }
 
 	[[ "$build" = upk ]] && {
-		build=$(brew search build "kernel-*.elrdy" | sort -Vr | head -n1)
+		builds=($(brew search build "kernel-*.elrdy" | sort -Vr | head -n3))
+		for B in "${builds[@]}"; do
+			if brew buildinfo $B | grep -q '.*\.rpm$'; then
+				build=$B
+				break
+			fi
+		done
 	}
 	[[ "$build" = lstk ]] && {
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		build=$(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head -1)
+		builds=($(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head -n3))
+		for B in "${builds[@]}"; do
+			if brew buildinfo $B | grep -q '.*\.rpm$'; then
+				build=$B
+				break
+			fi
+		done
 	}
 
 	if [[ "$build" =~ ^[0-9]+$ ]]; then
