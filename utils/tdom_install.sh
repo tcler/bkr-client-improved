@@ -1,17 +1,14 @@
 #!/bin/bash
 
 which gcc || yum install -y gcc
-pkg=tDOM-0.8.3.tgz
-pkg2=tdom_0_8_3_postrelease.tar.gz
-
-wget https://github.com/tDOM/tdom/archive/$pkg2
-mv $pkg2 $pkg
+pkg=tdom-0.9.1-src.tgz
+wget http://tdom.org/downloads/$pkg
 [ -f "$pkg" ] || {
 	echo "$pkg not exist!" >&2
 	exit 1
 }
 
-compileDir=tDOM-0.8.3
+compileDir=${pkg%-src.tgz}
 mkdir -p $compileDir
 tar -C $compileDir -zxf "$pkg" --strip-components=1 '*/*'
 pushd $compileDir/unix
