@@ -123,8 +123,8 @@ set CommonOptionList {
 				e.g: --Brew=https://host/path/to/rpms/b.rpm      #install specified rpm from https/http/ftp
 				e.g: --Brew=https://host/path/to/rpms/           #install all rpms in web path https/http/ftp
 				e.g: --Brew=lstk               #install latest brew release kernel
-				e.g: --Brew=upk                #install latest brew upstream kernel}}
-				e.g: --Brew=$build -debugk     #install debug kernel if it's a kernel build}}
+				e.g: --Brew=upk                #install latest brew upstream kernel
+				e.g: --Brew=$build -debugk     #install debug kernel if it's a kernel build
 				e.g: --Brew=-debugk            #install debug kernel of the default kernel}}
 	{brew b scratch}	{arg m  help {same as Brew, but every specified just apply one host, if in multihost mode}}
 	dbgk			{arg n	help {Use the debug kernel}}
