@@ -811,13 +811,14 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					lappend insertTasks "/kernel/distribution/upstream-kernel/install $params"
 
 				}
+				set brewBuildList ""
 				if [info exist Opt(Brew)] {
 					foreach build $Opt(Brew) { lappend brewBuildList {*}$build }
 				}
 				if [info exist Opt(brew)] {
-					foreach build $Opt(brew) { lappend brewBuildList {*}$build }
+					lappend brewBuildList {*}[lindex $Opt(brew) $R]
 				}
-				if [info exist brewBuildList] {
+				if {[info exist Opt(Brew)] || [info exist Opt(brew)]} {
 					if [info exist Opt(dbgk)] {
 						lappend brewBuildList "-debugk"
 					}
