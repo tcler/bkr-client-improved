@@ -115,15 +115,17 @@ set CommonOptionList {
 				e.g: --upstream-use-clone=--depth=1}}
 	upstream-patch		{arg y	help {apply specified patch[es] before compile upstream kernel}}
 	upstream-kernel-kasan   {arg n  help {Flag to enable upstream kernel kasan support}}
-	{Brew B Scratch}	{arg m  help {Install brew built or 3rd party pkg[s] by using /distribution/scratchinstall, can use multiple times
+	{Brew B Scratch}	{arg m  help {Install brew built or 3rd party pkg[s] by using /distribution/brew-build-install, can use multiple times
 				e.g: --Brew=\$brew_scratch_build_id              #install according brew scratch build id
 				e.g: --Brew=\$brew_build_name                    #install according brew build name
 				e.g: --Brew=nfs:\$nfsserver:/path/to/rpms/a.rpm  #install specified rpm from nfs
 				e.g: --Brew=nfs:\$nfsserver:/path/to/rpms/       #install all rpms in nfs share
 				e.g: --Brew=https://host/path/to/rpms/b.rpm      #install specified rpm from https/http/ftp
 				e.g: --Brew=https://host/path/to/rpms/           #install all rpms in web path https/http/ftp
-				e.g: --Brew=lstk           #install latest brew release kernel
-				e.g: --Brew=upk            #install latest brew upstream kernel}}
+				e.g: --Brew=lstk               #install latest brew release kernel
+				e.g: --Brew=upk                #install latest brew upstream kernel}}
+				e.g: --Brew=$build -debugk     #install debug kernel if it's a kernel build}}
+				e.g: --Brew=-debugk            #install debug kernel of the default kernel}}
 	{brew b scratch}	{arg m  help {same as Brew, but every specified just apply one host, if in multihost mode}}
 	dbgk			{arg n	help {Use the debug kernel}}
 	gcov			{arg y	help {Enable gcov for coverage data collection, use arg to specify Package, example: --gcov="nfs-utils"}}
