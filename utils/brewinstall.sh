@@ -97,7 +97,14 @@ for arg; do
 	-arch=*)         _ARCH=${arg/*=/};;
 	-h)              Usage; exit;;
 	-*)              echo "{WARN} unkown option '${arg}'";;
-	*)               builds+=($arg);;
+	*)
+		curknvr=kernel-$(uname -r)
+		if [[ "$arg" = ${curknvr%.*} && "$*" != *-debug* ]]; then
+			report_result ${arg}--has-been-installed--kernel-$(uname -r) PASS
+		else
+			builds+=($arg)
+		fi
+		;;
 	esac
 done
 
