@@ -108,6 +108,11 @@ for arg; do
 	esac
 done
 
+# fix ssl certificate verify failed
+curl -s https://password.corp.redhat.com/RH-IT-Root-CA.crt -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt
+curl -s https://password.corp.redhat.com/legacy.crt -o /etc/pki/ca-trust/source/anchors/legacy.crt
+update-ca-trust
+
 if [[ "${#builds[@]}" = 0 ]]; then
 	if [[ "$FLAG" = debugkernel ]]; then
 		builds+=(kernel-$(uname -r|sed 's/\.[^.]*$//'))
