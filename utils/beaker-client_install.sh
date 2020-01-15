@@ -94,10 +94,6 @@ includedir /etc/krb5.conf.d/
  redhat.com = REDHAT.COM
 EOF
 
-curl -s https://password.corp.redhat.com/legacy.crt -o /etc/pki/ca-trust/source/anchors/legacy.crt
-curl -s https://password.corp.redhat.com/RH-IT-Root-CA.crt -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt
-update-ca-trust
-
 yum install -y krb5-workstation
 
 cat <<EOF
