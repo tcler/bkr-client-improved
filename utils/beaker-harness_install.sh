@@ -1,4 +1,6 @@
 #!/bin/bash
+#ref: https://restraint.readthedocs.io/en/latest/install.html
+#ref: https://restraint.readthedocs.io/en/latest/commands.html
 
 rpm -q restraint-rhts restraint-client restraint && {
 	echo "{INFO} restraint has been installed in your system"
