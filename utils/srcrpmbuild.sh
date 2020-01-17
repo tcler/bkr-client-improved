@@ -12,7 +12,7 @@ buildtype=${2:-p}
 	which gcc &>/dev/null || yum install -y gcc
 }
 
-mkdir -p ~/rpm/build
+mkdir -p ~/rpmbuild
 rm -rf ~/rpmbuild/*
 rpm -ivh $pkg
 rpmbuild -b${buildtype} ~/rpmbuild/SPECS/*.spec
