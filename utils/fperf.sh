@@ -5,6 +5,7 @@ export LANG=C
 P=${0##*/}
 Usage() {
 	echo "Usage: $P -f <file> [-t <r|w>] [dd args]"
+	echo "  e.g: $P -f /mnt/nfsmp/testfile -t w bs=1M count=20000"
 }
 _at=`getopt -o hf:t: \
 	--long help \
@@ -21,7 +22,7 @@ while true; do
 	--) shift; break;;
 	esac
 done
-ddargs=$@
+ddargs="$*"
 
 [[ -z "$testf" ]] && {
 	Usage >&2
@@ -39,6 +40,8 @@ r*|R*)
 	[[ -z "$ddargs" && "$testf" =~ ^/dev/ ]] && ddargs="bs=1M count=500"
 	ddinfo=$(LANG=C dd if="$testf"  of=/dev/null $ddargs 2>&1)
 	read B _a _b _c _d S _y _z < <(echo "$ddinfo" | tail -n1)
+	[[ $S = [0-9]* ]] ||
+		read B _a _b _c _d _e _f S _y _z < <(echo "$ddinfo" | tail -n1)
 	;;
 *)
 	[[ -f "$testf" ]] && {
@@ -51,6 +54,8 @@ r*|R*)
 
 	ddinfo=$(LANG=C dd if=/dev/zero  of="$testf" $ddargs 2>&1)
 	read B _a _b _c _d S _y _z < <(echo "$ddinfo" | tail -n1)
+	[[ $S = [0-9]* ]] ||
+		read B _a _b _c _d _e _f S _y _z < <(echo "$ddinfo" | tail -n1)
 
 	[[ "$rmflag" == 1 ]] && rm -f "$testf"
 	;;
