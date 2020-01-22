@@ -15,6 +15,7 @@ if grep -q NAME=Fedora /etc/os-release; then
 	baseurl=https://download.devel.redhat.com/beakerrepos/harness/Fedora$releasever/
 	enabled=1
 	gpgcheck=0
+	skip_if_unavailable=1
 	EOF
 else
 	cat <<-'EOF' >/etc/yum.repos.d/beaker-harness.repo
@@ -23,6 +24,7 @@ else
 	baseurl=https://download.devel.redhat.com/beakerrepos/harness/RedHatEnterpriseLinux$releasever/
 	enabled=1
 	gpgcheck=0
+	skip_if_unavailable=1
 	EOF
 fi
 
