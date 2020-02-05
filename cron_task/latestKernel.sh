@@ -82,7 +82,7 @@ for f in $kfList; do
 	newkernel=$(tac ${patch} | sed 's/^+//')
 
 	#url=http://patchwork.lab.bos.redhat.com/status/rhel${V}/changelog.html
-	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V
+	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V.html
 
 	# send email
 	echo >>$patch
@@ -93,7 +93,10 @@ for f in $kfList; do
 		brewinstall.sh $nvr -onlydownload -arch=src >/dev/null
 		[ -f ${nvr}.src.rpm ] && available=1
 		LANG=C rpm -qp --changelog ${nvr}.src.rpm >changeLog-$V
-		[ -s changeLog-$V ] && cp -f changeLog-$V /var/ftp/pub/kernel-changelog/.
+		[ -s changeLog-$V ] && {
+			cp -f changeLog-$V /var/ftp/pub/kernel-changelog/.
+			sed -r -e 's#\[([0-9]+)\]$#[<a href="https://bugzilla.redhat.com/show_bug.cgi?id=\1">\1</a>]#' -e 's/$/<\br>/' changeLog-$V >/var/ftp/pub/kernel-changelog/changeLog-$V.html
+		}
 		\rm ${nvr}.src.rpm
 
 		vr=${nvr/kernel-/}
