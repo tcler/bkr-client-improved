@@ -138,6 +138,7 @@ for V in $DVLIST; do
 	echo >>$p
 	echo "#-------------------------------------------------------------------------------" >>$p
 	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V
+	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V.html
 	echo "# $url" >>$p
 	tagr=$(awk '$1 ~ /^RHEL-/ && $2 ~ /kernel-/ {print $2}' $p | tail -n1 | sed s/$/.el${V}/)
 	(echo -e "{Info} ${tagr} change log:"
