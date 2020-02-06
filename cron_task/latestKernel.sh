@@ -95,7 +95,7 @@ for f in $kfList; do
 		LANG=C rpm -qp --changelog ${nvr}.src.rpm >changeLog-$V
 		[ -s changeLog-$V ] && {
 			cp -f changeLog-$V /var/ftp/pub/kernel-changelog/.
-			sed -r -e 's#\[([0-9]+)\]$#[<a href="https://bugzilla.redhat.com/show_bug.cgi?id=\1">\1</a>]#' -e 's/$/<\br>/' changeLog-$V >/var/ftp/pub/kernel-changelog/changeLog-$V.html
+			head -n$((1024*32)) changeLog-$V | sed -r -e 's#\[([0-9]+)\]$#[<a href="https://bugzilla.redhat.com/show_bug.cgi?id=\1">\1</a>]#' -e 's/$/<\br>/' >/var/ftp/pub/kernel-changelog/changeLog-$V.html
 		}
 		\rm ${nvr}.src.rpm
 
