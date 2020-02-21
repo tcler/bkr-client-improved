@@ -64,6 +64,9 @@ set NotOptions [list]
 source $::runtestConf
 if [file exists $::runtestConfPrivate] { source $::runtestConfPrivate }
 set OSInstaller /distribution/check-install
+if [info exist defaultOSInstaller] {
+	set OSInstaller $defaultOSInstaller
+}
 
 set OptionList {
   "  Options:" {
