@@ -323,8 +323,8 @@ if [info exist Opt(jobn)] {
 }
 
 if ![regexp -- {--?harness=} $ForwardOpt] {
-	if [info exist defaultHarness] {
-		set SubcmdOpt [lappend SubcmdOpt "-harness=$defaultHarness"]
+	if [info exist Harness] {
+		set SubcmdOpt [lappend SubcmdOpt "-harness=$Harness"]
 	}
 }
 

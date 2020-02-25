@@ -25,8 +25,11 @@ install install_runtest: _isroot install_kiss_vm_ns
 	  libpath=$$(rpm -ql tcllib|egrep 'tcl8../tcllib-[.0-9]+$$'); ln -sf $${libpath} /usr/lib/$${libpath##*/}; \
 	fi
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
-	mkdir -p $(_confdir) && cp -n -r -d conf/* $(_confdir)/.
-	cp -f conf/*.example $(_confdir)/.
+	mkdir -p $(_confdir) && cp -f conf/*.example $(_confdir)/.
+	test -f $(_confdir)/bkr-runtest.conf || cp $(_confdir)/bkr-runtest.conf{.example,}
+	test -f $(_confdir)/bkr-autorun.conf || cp $(_confdir)/bkr-autorun.conf{.example,}
+	test -f $(_confdir)/default-ks.cfg || cp $(_confdir)/default-ks.cfg{.example,}
+	sed -i -e 's/defaultHarness/Harness/g' -e 's/defaultOSInstaller/OSInstaller/g' $(_confdir)/bkr-runtest.conf
 	test -f /etc/beaker/default-ks.cfg || cp -f conf/default-ks.cfg /etc/beaker/.
 	cd lib; for d in *; do rm -fr $(_lib)/$$d; done
 	cd utils; for f in *; do rm -fr $(_bin)/$$f; done

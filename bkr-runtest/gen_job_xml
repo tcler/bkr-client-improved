@@ -63,8 +63,8 @@ array set InvalidOpt {}
 set NotOptions [list]
 source $::runtestConf
 if [file exists $::runtestConfPrivate] { source $::runtestConfPrivate }
-set OSInstaller /distribution/check-install
-if [info exist defaultOSInstaller] {
+set defaultOSInstaller /distribution/check-install
+if {![info exist OSInstaller]} {
 	set OSInstaller $defaultOSInstaller
 }
 

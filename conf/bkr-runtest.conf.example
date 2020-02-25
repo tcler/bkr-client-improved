@@ -22,6 +22,6 @@ set WB_FORMAT {[%T] [%P@%D %H:%N] %C%S/%s %G%O}
 
 #set hostRequireAlias http://pkgs.devel.redhat.com/cgit/tests/kernel/plain/filesystems/Inventory/hostrequire-alias.tcl
 
-#set defaultHarness beah
+#set Harness beah # or restraint
 
-#set defaultOSInstaller /distribution/check-install
+set OSInstaller /distribution/check-install
