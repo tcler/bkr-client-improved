@@ -114,7 +114,7 @@ curl -s https://password.corp.redhat.com/legacy.crt -o /etc/pki/ca-trust/source/
 update-ca-trust
 
 if [[ "${#builds[@]}" = 0 ]]; then
-	if [[ "$FLAG" = debugkernel ]]; then
+	if [[ "$FLAG" = debugkernel || "$ONLY_DEBUG_INFO" = yes ]]; then
 		builds+=(kernel-$(uname -r|sed 's/\.[^.]*$//'))
 	else
 		Usage >&2
