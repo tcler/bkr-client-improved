@@ -133,6 +133,7 @@ set CommonOptionList {
 	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
 	nokdump			{arg n	help {disable kdump, some tests can not work with kdump}}
 	cmd			{arg m	help {Add /distribution/command before test task}}
+	cmd-and-reboot		{arg m	help {Add /distribution/command before test task, and reboot}}
 	cmdb			{arg m	help {Add /distribution/command before install kernel}}
 	cmd-end			{arg m	help {Add /distribution/command in the end of the recipe}}
 	leap-second		{arg n	help {Add leap-second task}}

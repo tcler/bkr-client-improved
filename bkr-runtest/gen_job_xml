@@ -868,6 +868,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
 					}
 				}
+				if [info exist Opt(cmd-and-reboot)] {
+					foreach cmd $Opt(cmd-and-reboot) {
+						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
+					}
+					lappend insertTasks "/distribution/utils/reboot"
+				}
 				# pkg install
 				if [info exist Opt(install)] {
 					foreach pkg $Opt(install) {
