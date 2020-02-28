@@ -791,14 +791,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						}
 						set UP 1
 					}
-				} elseif {[info exist Opt(dbgk)] && ![info exist Opt(upstream)]} {
-					set NVR [getDefaultNVR $DISTRO]
-					set KN [regsub {((^[a-z][a-z-]*)-)?.*} $NVR {\2}]
-					if {$KN == ""} {set KN kernel}
-					set KVR [regsub {^[a-z-]*} $NVR {}]
-					set params [list]
-					lappend params KERNELARGNAME=$KN KERNELARGVERSION=$KVR KERNELARGVARIANT=$KVARIANT NoDeps=--nodeps
-					lappend insertTasks "/distribution/kernelinstall $params"
 				}
 				if {[info exist Opt(upstream)] || $UP != ""} {
 					set params [list]
@@ -816,16 +808,16 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 				}
 				set brewBuildList ""
+				if [info exist Opt(dbgk)] {
+					lappend brewBuildList "-debugk"
+				}
 				if [info exist Opt(Brew)] {
 					foreach build $Opt(Brew) { lappend brewBuildList {*}$build }
 				}
 				if [info exist Opt(brew)] {
 					lappend brewBuildList {*}[lindex $Opt(brew) $R]
 				}
-				if {[info exist Opt(Brew)] || [info exist Opt(brew)]} {
-					if [info exist Opt(dbgk)] {
-						lappend brewBuildList "-debugk"
-					}
+				if {[llength $brewBuildList] > 0} {
 					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList}"
 				}
 
