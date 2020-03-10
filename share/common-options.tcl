@@ -130,8 +130,8 @@ set CommonOptionList {
 	dbgk			{arg n	help {Use the debug kernel}}
 	gcov			{arg y	help {Enable gcov for coverage data collection, use arg to specify Package, example: --gcov="nfs-utils"}}
 	kcov			{arg o	help {Enable kcov for coverage data collection, use arg to specify KDIR, example: --kcov="fs, drivers/net"}}
-	crashsize               {arg o  help {Use custom kdump crashsize}}
 	kdump			{arg o	help {Enable kdump using /kernel/kdump/setup-nfsdump}}
+	crashsize               {arg y  help {specify/custom kdump crashsize}}
 	nokdump			{arg n	help {disable kdump, some tests can not work with kdump}}
 	cmd			{arg m	help {Add /distribution/command before test task}}
 	cmd-and-reboot		{arg m	help {Add /distribution/command before test task, and reboot}}
