@@ -30,7 +30,7 @@ install install_runtest: _isroot install_kiss_vm_ns
 	test -f $(_confdir)/bkr-autorun.conf || cp $(_confdir)/bkr-autorun.conf{.example,}
 	test -f $(_confdir)/default-ks.cfg || cp $(_confdir)/default-ks.cfg{.example,}
 	sed -i -e 's/defaultHarness/Harness/g' -e 's/defaultOSInstaller/OSInstaller/g' $(_confdir)/bkr-runtest.conf
-	test -f /etc/beaker/default-ks.cfg || cp -f conf/default-ks.cfg /etc/beaker/.
+	test -f /etc/beaker/default-ks.cfg || mv $(_confdir)/default-ks.cfg /etc/beaker/.
 	cd lib; for d in *; do rm -fr $(_lib)/$$d; done
 	cd utils; for f in *; do rm -fr $(_bin)/$$f; done
 	cd bkr-runtest; for f in *; do rm -fr $(_bin)/$$f; done
