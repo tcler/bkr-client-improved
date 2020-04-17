@@ -18,7 +18,7 @@ if [[ "$distro" = RHEL-8* ]]; then
 	EOF
 fi
 
-yum install -y gcc wget screen bc redhat-lsb-core sg3_utils sg3_utils-libs sg3_utils-devel rsyslog python2
+yum install -y gcc wget bzip2 screen bc redhat-lsb-core sg3_utils sg3_utils-libs sg3_utils-devel rsyslog python2
 yum install -y libnsl2 libtirpc-devel python2-lxml python3-lxml
 
 [[ -f /usr/bin/python ]] || {
