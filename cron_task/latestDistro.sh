@@ -1,6 +1,8 @@
 #!/bin/bash
 #author: jiyin@redhat.com
 
+LANG=C
+
 # https://en.wikichip.org/wiki/irc/colors
 ircBold=$'\x02'
 ircItalics=$'\x1D'
@@ -61,7 +63,7 @@ done <.distroListr >.distroList
 
 test -n "`cat .distroList`" &&
 	for V in $DVLIST; do
-	    egrep -i "^RHEL-${V}.[0-9]+" .distroList >${prefix}$V.tmp
+	    egrep -a -i "^RHEL-${V}.[0-9]+" .distroList >${prefix}$V.tmp
 	done
 
 for V in $DVLIST; do
