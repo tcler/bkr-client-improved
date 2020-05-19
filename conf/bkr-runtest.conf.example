@@ -20,7 +20,7 @@ set WB_FORMAT {[%T] [%P@%D %H:%N] %C%S/%s %G%O}
 
 #set jobOwner <krb5_name>
 
-#set hostRequireAlias http://pkgs.devel.redhat.com/cgit/tests/kernel/plain/filesystems/Inventory/hostrequire-alias.tcl
+#set hostRequireAlias https://gitlab.cee.redhat.com/kernel-qe/kernel/raw/master/filesystems/Inventory/hostrequire-alias.tcl
 
 #set Harness beah # or restraint
 

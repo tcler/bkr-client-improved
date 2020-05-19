@@ -103,6 +103,7 @@ proc getDefaultNVR {_distro} {
 
 # _parse_ argument
 set option-alias-path http://pkgs.devel.redhat.com/cgit/tests/kernel/plain/filesystems/Inventory/hostrequire-alias.tcl
+set option-alias-path https://gitlab.cee.redhat.com/kernel-qe/kernel/raw/master/filesystems/Inventory/hostrequire-alias.tcl
 set bkrurl https://beaker.engineering.redhat.com
 set aliasf alias.tcl
 set ARGV $::argv
