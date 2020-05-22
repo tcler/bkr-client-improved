@@ -50,15 +50,14 @@ while read d; do
 		pkgList=$(vershow '^(kernel|nfs-utils|autofs|rpcbind|[^b].*fs-?progs)-[0-9]+\..*' "/$r$" |
 			grep -v ^= | sed -r 's/\..?el[0-9_+.]+.?\.(x86_64|i686|noarch|ppc64le)\.rpm//g' |
 			sort --unique | xargs | sed -r 's/(.*)(\<kernel-[^ ]* )(.*)/\2\1\3/')
+		# Append the compose label if NOT a nightly distro
+		if [ -n "$pkgList" ] && ! echo $d | egrep -q 'RHEL[-.[:digit:]]+n[.[:digit:]]+'; then
+			pkgList="$pkgList  $(distro-compose -d $d --composeinfo 2>/dev/null | grep -o '"label": "[^"]*"')"
+		fi
 	}
 	[ -z "$pkgList" ] && continue
-	pkgList=${pkgList%%\"label\":*}
 
-	read kernel nil <<<$pkgList
-	echo -n "$d  ${pkgList}  "
-
-	# Append the compose label if it exists
-	distro-compose -d $d --composeinfo 2>/dev/null | grep -o '"label": "[^"]*"' || echo
+	echo "$d  ${pkgList}"
 done <.distroListr >.distroList
 
 test -n "`cat .distroList`" &&
@@ -130,6 +129,8 @@ for V in $DVLIST; do
 			fi
 		}
 		mv ${f}.pkgvers_${dtype}.tmp ${f}.pkgvers_${dtype}
+		# provide latest distro info via ftp
+		[ -s ${f}.pkgvers_${dtype} ] && cp -f ${f}.pkgvers_${dtype} /var/ftp/pub/distro-latest/rhel${V}.${dtype}
 	done <$p
 
 	#get stable version
@@ -139,7 +140,6 @@ for V in $DVLIST; do
 	# print kernel changelog
 	echo >>$p
 	echo "#-------------------------------------------------------------------------------" >>$p
-	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V
 	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V.html
 	echo "# $url" >>$p
 	tagr=$(awk '$1 ~ /^RHEL-/ && $2 ~ /kernel-/ {print $2}' $p | tail -n1 | sed s/$/.el${V}/)
