@@ -49,7 +49,7 @@ echo -e "\nInfo: waiting host OS install done ..."
 while ! nc $host 22 </dev/null &>/dev/null; do sleep 10; echo -n .; done
 
 echo -e "\nInfo: waiting ontap simulator install done ..."
-while ! grep /distribution/command.*status=Completed < <(bkr job-results $job --prettyxml); do sleep 10; echo -n .; done
+while ! grep /distribution/command.*status=.Completed < <(bkr job-results $job --prettyxml); do sleep 10; echo -n .; done
 task=$(bkr job-results $job --prettyxml | sed -rn '/name=.\/distribution\/command/{s;^.*id="([0-9]+)".*$;\1;; p}')
 logurl=$(bkr job-logs $job|grep /$task/.*taskout.log)
 curl -s -L $logurl|egrep '^[[:space:]]*lif[12].[01]|uniq'
