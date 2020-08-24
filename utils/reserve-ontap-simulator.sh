@@ -54,7 +54,7 @@ echo -e "\nInfo: waiting ontap simulator install done ..."
 while ! grep -q /distribution/command.*status=.Completed < <(bkr job-results $job --prettyxml); do sleep 10; echo -n .; done
 grep /distribution/command.*status=.Completed < <(bkr job-results $job --prettyxml)
 
-echo -e "\nInfo: getting data lif's info ..."
+echo -e "\nInfo: getting ontap lif's info ..."
 task=$(bkr job-results $job --prettyxml | sed -rn '/name=.\/distribution\/command/{s;^.*id="([0-9]+)".*$;\1;; p}')
 logurl=$(bkr job-logs $job|grep /$task/.*taskout.log)
-curl -s -L $logurl|egrep '^[[:space:]]*lif[12]|uniq'
+curl -s -L $logurl| tac | sed -nr '/^[ \t]+lif/ {:loop /\nfsqe-[s2]nc1/!{N; b loop}; p;q}'|tac
