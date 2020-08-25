@@ -21,13 +21,8 @@ fi
 yum install -y git patch gcc wget bzip2 screen bc redhat-lsb-core sg3_utils sg3_utils-libs sg3_utils-devel rsyslog python2
 yum install -y libnsl2 libtirpc-devel python2-lxml python3-lxml
 
-[[ -f /usr/bin/python ]] || {
-	if [[ -f /usr/bin/python2 ]]; then
-		alternatives --set python /usr/bin/python2
-	elif [[ -f /usr/bin/python3 ]]; then
-		alternatives --set python /usr/bin/python3
-	fi
-}
+#alternatives --set python /usr/bin/python2
+#alternatives --set python /usr/bin/python3
 
 #yum update -y pkg1 pkg2 --nogpgcheck --repofrompath=abc,http://x.y.z/path/to/repo
 %end
