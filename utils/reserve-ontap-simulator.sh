@@ -59,5 +59,5 @@ grep /distribution/command.*status=.Completed < <(bkr job-results $job --prettyx
 
 echo -e "\nInfo: getting ontap lif's info ..."
 task=$(bkr job-results $job --prettyxml | sed -rn '/name=.\/distribution\/command/{s;^.*id="([0-9]+)".*$;\1;; p}')
-logurl=$(bkr job-logs $job|grep /$task/.*taskout.log)
+logurl=$(bkr job-logs $job|egrep /$task/.*(taskout.log|TESTOUT.log))
 curl -s -L $logurl| tac | sed -nr '/^[ \t]+lif/ {:loop /\nfsqe-[s2]nc1/!{N; b loop}; p;q}'|tac
