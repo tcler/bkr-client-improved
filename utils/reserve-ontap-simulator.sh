@@ -18,7 +18,7 @@ while true; do
 	esac
 done
 
-HostDistro=${HostDistro:-Fedora-32}
+HostDistro=${HostDistro:-8}
 KissVMUrl=https://github.com/tcler/kiss-vm-ns
 ImageUrl=ftp://fs-qe.usersys.redhat.com/pub/Netapp-Simulator/vsim-netapp-DOT9.7-cm_nodar.ova
 ImageUrl=http://download.devel.redhat.com/qa/rhts/lookaside/Netapp-Simulator/vsim-netapp-DOT9.7-cm_nodar.ova
