@@ -41,7 +41,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $P <[brew_scratch_build_id] | [lstk|upk|brew_build_name] | [url]>  [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch]
+	 $P <[brew_scratch_build_id] | [lstk|lstdtk|upk|brew_build_name] | [url]>  [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch]
 
 	Example:
 	 $P 23822847  # brew scratch build id
@@ -51,6 +51,7 @@ Usage() {
 	 $P lstk                       # install latest release kernel
 	 $P lstk -debuginfo            # install latest release kernel and it's -debuginfo package
 	 $P lstk -debugk               # install latest release debug kernel
+	 $P lstdtk                     # install latest dt(devel/test) kernel
 	 $P upk                        # install latest upstream kernel
 	 $P [ftp|http]://url/path/ [-depthLevel=N]  # install all rpms in url/path, default download depth level 2
 	 $P kernel-4.18.0-148.el8 -onlydebuginfo    # install -debuginfo pkg of kernel-4.18.0-148.el8
@@ -146,6 +147,16 @@ for build in "${builds[@]}"; do
 	[[ "$build" = lstk ]] && {
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		builds=($(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head -n3))
+		for B in "${builds[@]}"; do
+			if brew buildinfo $B | grep -q '.*\.rpm$'; then
+				build=$B
+				break
+			fi
+		done
+	}
+	[[ "$build" = lstdtk ]] && {
+		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
+		builds=($(brew search build kernel-$ver-${rel/*./*.}.dt* | sort -Vr | head -n3))
 		for B in "${builds[@]}"; do
 			if brew buildinfo $B | grep -q '.*\.rpm$'; then
 				build=$B
