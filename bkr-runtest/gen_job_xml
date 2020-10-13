@@ -744,9 +744,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 				# distro install
 				lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
-				if {[regexp -- {Fedora|RHEL-8|family8} $DISTRO] != 1} {
+				if {[regexp -- {Fedora} $DISTRO] != 1} {
 					lappend insertTasks "/distribution/Library/epel"
-				} elseif {[lsearch -regexp -nocase [concat $_lfamily $_ldistro] {^(family|RHEL-?|RedHatEnterpriseLinux)?[567]}] != -1} {
+				} else
 					lappend insertTasks "/distribution/utils/dummy"
 				}
 
