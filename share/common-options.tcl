@@ -122,6 +122,7 @@ set CommonOptionList {
 				e.g: --Brew=nfs:\$nfsserver:/path/to/rpms/       #install all rpms in nfs share
 				e.g: --Brew=https://host/path/to/rpms/b.rpm      #install specified rpm from https/http/ftp
 				e.g: --Brew=https://host/path/to/rpms/           #install all rpms in web path https/http/ftp
+				e.g: --Brew=lstdtk             #install latest brew dt kernel
 				e.g: --Brew=lstk               #install latest brew release kernel
 				e.g: --Brew=upk                #install latest brew upstream kernel
 				e.g: --Brew=$build -debugk     #install debug kernel if it's a kernel build
