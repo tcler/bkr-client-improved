@@ -136,7 +136,7 @@ for build in "${builds[@]}"; do
 	[[ "$build" = -* ]] && { continue; }
 
 	[[ "$build" = upk ]] && {
-		builds=($(brew search build "kernel-*.elrdy" | sort -Vr | head -n3))
+		builds=($(koji search build -r '^kernel-[0-9].*eln' | sort -V -r | head -n3))
 		for B in "${builds[@]}"; do
 			if brew buildinfo $B | grep -q '.*\.rpm$'; then
 				build=$B
