@@ -138,7 +138,7 @@ for build in "${builds[@]}"; do
 	[[ "$build" = upk ]] && {
 		builds=($(koji search build -r '^kernel-[0-9].*eln' | sort -V -r | head -n3))
 		for B in "${builds[@]}"; do
-			if brew buildinfo $B | grep -q '.*\.rpm$'; then
+			if koji buildinfo $B | grep -q '.*\.rpm\>'; then
 				build=$B
 				break
 			fi
@@ -227,7 +227,8 @@ for build in "${builds[@]}"; do
 	else
 		buildname=$build
 		for a in "${archList[@]}"; do
-			run "brew download-build $DEBUG_INFO_OPT $buildname --arch=${a}" -
+			run "brew download-build $DEBUG_INFO_OPT $buildname --arch=${a}" - ||
+				run "koji download-build $DEBUG_INFO_OPT $buildname --arch=${a}" -
 		done
 	fi
 done
