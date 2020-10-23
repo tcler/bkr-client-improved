@@ -136,7 +136,7 @@ for build in "${builds[@]}"; do
 	[[ "$build" = -* ]] && { continue; }
 
 	[[ "$build" = upk ]] && {
-		builds=($(koji search build -r '^kernel-[0-9].*eln' | sort -V -r | head -n3))
+		builds=($(koji search build -r '^kernel-[0-9].*eln' | sort -V -r | head))
 		for B in "${builds[@]}"; do
 			RPMS=$(koji buildinfo $B|awk "\$1 ~ /($archPattern).rpm/ {print \$1}"|sed 's;.*/;;')
 			if [[ -n "$RPMS" ]]; then
@@ -147,7 +147,7 @@ for build in "${builds[@]}"; do
 	}
 	[[ "$build" = lstk ]] && {
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		builds=($(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head -n3))
+		builds=($(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head))
 		for B in "${builds[@]}"; do
 			if brew buildinfo $B | grep -q '.*\.rpm$'; then
 				build=$B
@@ -157,7 +157,7 @@ for build in "${builds[@]}"; do
 	}
 	[[ "$build" = lstdtk ]] && {
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		builds=($(brew search build kernel-$ver-${rel/*./*.}.dt* | sort -Vr | head -n3))
+		builds=($(brew search build kernel-$ver-${rel/*./*.}.dt* | sort -Vr | head))
 		for B in "${builds[@]}"; do
 			if brew buildinfo $B | grep -q '.*\.rpm$'; then
 				build=$B
