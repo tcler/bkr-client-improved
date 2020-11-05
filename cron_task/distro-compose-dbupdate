@@ -39,7 +39,7 @@ UpdateDB() {
 	lockfile $lockf || return 0
 
 	#Update distro list
-	for family in 8 7 6 5; do
+	for family in 9 8 7 6; do
 		distro-list.sh -f $family -t all
 	done > >(tee distro.list.tmp) 2>err.log
 	distro-list.sh -n fedora-% -t '' > >(tee -a distro.list.tmp) 2>>err.log

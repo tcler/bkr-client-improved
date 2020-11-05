@@ -7,7 +7,7 @@ tag=rtt
 
 Usage() {
 	cat <<-EOF
-	Usage: $P [-f <3|4|5[s]|5c|6|7|alt-7|8|full-family-name>] [-t <rtt|stb|rel|ins|act|full-tag-name>] [-n distro-name-filter]
+	Usage: $P [-f <3|4|5[s]|5c|6|7|alt-7|8|9|full-family-name>] [-t <rtt|stb|rel|ins|act|full-tag-name>] [-n distro-name-filter]
 	  e.g: $P -f alt7 -t rtt
 	  e.g: $P -f 7 -t rel -n %7.2
 	  e.g: $P -n fedora-% -t rel
@@ -39,7 +39,7 @@ done
 
 case $family in
 alt7|alt-7)	family=RedHatEnterpriseLinuxAlternateArchitectures7;;
-3|4|6|7|8)	family=RedHatEnterpriseLinux$family;;
+3|4|6|7|8|9)	family=RedHatEnterpriseLinux$family;;
 5s|5)		family=RedHatEnterpriseLinuxServer5;;
 5c)		family=RedHatEnterpriseLinuxClient5;;
 [0-9].*)	name=RHEL-$family; family=;;

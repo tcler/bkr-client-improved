@@ -32,11 +32,11 @@ pushd /var/cache/distroDB  >/dev/null
 mailTo=fs@redhat.com
 mailCc=net@redhat.com
 from="distro monitor <from@redhat.com>"
-chanList="#fs-qe #network-qe"
+chanList="#fs-qe #network-qe #kernel-qe-sti"
 fschan="#fs-qe"
 
 kgitDir=/home/yjh/ws/code.repo
-DVLIST="6 7 8"
+DVLIST="7 8 9"
 prefix=.latest.distro
 debug=$1
 
@@ -48,7 +48,7 @@ while read d; do
 		r=$d
 		[[ "$r" =~ ^RHEL-?[0-9]\.[0-9]$ ]] && r=${r%%-*}-./${r##*-}
 		pkgList=$(vershow '^(kernel|nfs-utils|autofs|rpcbind|[^b].*fs-?progs)-[0-9]+\..*' "/$r$" |
-			grep -v ^= | sed -r 's/\..?el[0-9_+.]+.?\.(x86_64|i686|noarch|ppc64le)\.rpm//g' |
+			grep -v ^= | sed -r 's/\.(x86_64|i686|noarch|ppc64le)\.rpm//g' |
 			sort --unique | xargs | sed -r 's/(.*)(\<kernel-[^ ]* )(.*)/\2\1\3/')
 		# Append the compose label if NOT a nightly distro
 		if [ -n "$pkgList" ] && ! echo $d | egrep -q 'RHEL[-.[:digit:]]+n[.[:digit:]]+'; then
@@ -91,18 +91,26 @@ for V in $DVLIST; do
 	while read line; do
 		[[ -z "$line" ]] && continue
 
-		read distro pkglist <<< "$line"
+		read distro knvr pkglist <<< "$line"
 		for chan in $chanList; do
-			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
-				"${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line #for detail: distro-compose -d ^$distro$ -l -p . | less -r"
+			if test "$fschan" = "$chan"; then
+				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
+				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line #for detail: distro-compose -d ^$distro$ -l -p . | less -r"
+			else
+				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
+				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: ${distro} ${knvr} #for detail: distro-compose -d ^$distro$ -l -p . | less -r"
+			fi
 			sleep 1
 		done
 
 		# Highlight the packages whose version is increasing
-		if echo $line | egrep -q 'RHEL[-.[:digit:]]+n[.[:digit:]]+'; then
+		if echo $line | egrep -q 'RHEL[-.[:digit:]]+n[.[:digit:]]+$'; then
 			# nightly
 			dtype="n"
-		elif echo $line | egrep -q 'RHEL-[.[:digit:]]+-[.[:digit:]]+'; then
+		elif echo $line | egrep -q 'RHEL[-.[:digit:]]+d[.[:digit:]]+$'; then
+			# development
+			dtype="d"
+		elif echo $line | egrep -q 'RHEL-[.[:digit:]]+-[.[:digit:]]+$'; then
 			# rtt
 			dtype="r"
 		else
@@ -113,11 +121,11 @@ for V in $DVLIST; do
 		test -f ${f}.pkgvers_${dtype} && {
 			tmpKernel=$(awk -F'-' '/^kernel/{print $3}' ${f}.pkgvers_${dtype}.tmp)
 			preKernel=$(awk -F'-' '/^kernel/{print $3}' ${f}.pkgvers_${dtype})
-			if [[ $tmpKernel -lt $preKernel ]]; then
+			if /usr/local/bin/vercmp "$tmpKernel" lt "$preKernel"; then
 				# ignore the distro whose (kernel) version gets reversed
 				continue
 			fi
-			if ! grep -q "${tmpKernel}.el${V}" /var/cache/kernelnvrDB/*changeLog-${V}; then
+			if ! grep -q "${tmpKernel}" /var/cache/kernelnvrDB/*changeLog-${V}; then
 				# skip if kernel dose not exist in the changelog
 				continue
 			fi
