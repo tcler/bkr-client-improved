@@ -47,7 +47,7 @@ while read d; do
 	pkgList=$(awk -v d=$d 'BEGIN{ret=1} $1 == d {$1=""; print; ret=0} END{exit ret}' .distroList.orig 2>/dev/null) || {
 		r=$d
 		[[ "$r" =~ ^RHEL-?[0-9]\.[0-9]$ ]] && r=${r%%-*}-./${r##*-}
-		pkgList=$(vershow '^(kernel|nfs-utils|autofs|rpcbind|[^b].*fs-?progs)-[0-9]+\..*' "/$r$" |
+		pkgList=$(distro-compose -p '^(kernel|nfs-utils|autofs|rpcbind|[^b].*fs-?progs)-[0-9]+\..*' -d "$d" |
 			grep -v ^= | sed -r 's/\.(x86_64|i686|noarch|ppc64le)\.rpm//g' |
 			sort --unique | xargs | sed -r 's/(.*)(\<kernel-[^ ]* )(.*)/\2\1\3/')
 		# Append the compose label if NOT a nightly distro
@@ -92,13 +92,15 @@ for V in $DVLIST; do
 		[[ -z "$line" ]] && continue
 
 		read distro knvr pkglist <<< "$line"
+		label=
+		[[ "$line" = *label?:* ]] && label="${line/*label?:/- with label:}"
 		for chan in $chanList; do
 			if test "$fschan" = "$chan"; then
 				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
 				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line #for detail: distro-compose -d ^$distro$ -l -p . | less -r"
 			else
 				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
-				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: ${distro} ${knvr} #for detail: distro-compose -d ^$distro$ -l -p . | less -r"
+				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: ${distro} ${knvr} ${label}"
 			fi
 			sleep 1
 		done
