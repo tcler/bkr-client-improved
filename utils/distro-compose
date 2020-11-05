@@ -136,7 +136,8 @@ while read distro; do
 	cachefile=$dbpath/${distro// /_}.json.gz
 
 	variant=$Variant
-	[[ $distro = RHEL-8* ]] && {
+	read _ VX _ <<< "${distro//[-.]/ }"
+	[[ $VX -ge 8 ]] && {
 		case $variant in Workstation|Client|Server|ComputeNode) variant=;; esac
 	}
 	[[ $distro = [Ff]edora* ]] && variant=Everything
