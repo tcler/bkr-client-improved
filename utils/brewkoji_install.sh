@@ -50,15 +50,6 @@ installBrew2() {
 
 	which brew &>/dev/null
 }
-installBrewFromSourceCode() {
-	yum install -y git make python2 &>/dev/null
-	git -c http.sslVerify=false clone  https://code.engineering.redhat.com/gerrit/rcm-brewkoji.git
-	cd rcm-brewkoji
-	make install >/dev/null
-	cd .. && rm -rf rcm-brewkoji
-
-	which brew &>/dev/null
-}
 
 # fix ssl certificate verify failed
 curl -s https://password.corp.redhat.com/RH-IT-Root-CA.crt -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt
@@ -68,7 +59,7 @@ update-ca-trust
 # install koji & brew
 which brew &>/dev/null ||
 	yum --setopt=strict=0 install -y koji python-koji python-pycurl brewkoji
-which brew &>/dev/null || installBrew2 || installBrewFromSourceCode
+which brew &>/dev/null || installBrew2
 yum install -y bash-completion-brew
 
 which brew
