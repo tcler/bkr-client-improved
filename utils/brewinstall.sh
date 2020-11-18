@@ -123,8 +123,6 @@ if [[ "${#builds[@]}" = 0 ]]; then
 	fi
 fi
 
-run install_brew -
-
 archList=($(arch) noarch)
 [[ -n "$_ARCH" ]] && archList=(${_ARCH//,/ })
 archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
@@ -136,6 +134,7 @@ for build in "${builds[@]}"; do
 	[[ "$build" = -* ]] && { continue; }
 
 	[[ "$build" = upk ]] && {
+		run install_brew -
 		builds=($(koji search build -r '^kernel-[0-9].*eln' | sort -V -r | head))
 		for B in "${builds[@]}"; do
 			RPMS=$(koji buildinfo $B|awk "\$1 ~ /($archPattern).rpm/ {print \$1}"|sed 's;.*/;;')
@@ -146,6 +145,7 @@ for build in "${builds[@]}"; do
 		done
 	}
 	[[ "$build" = lstk ]] && {
+		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		builds=($(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head))
 		for B in "${builds[@]}"; do
@@ -156,6 +156,7 @@ for build in "${builds[@]}"; do
 		done
 	}
 	[[ "$build" = lstdtk ]] && {
+		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		builds=($(brew search build kernel-$ver-${rel/*./*.}.dt* | sort -Vr | head))
 		for B in "${builds[@]}"; do
@@ -167,6 +168,7 @@ for build in "${builds[@]}"; do
 	}
 
 	if [[ "$build" =~ ^[0-9]+$ ]]; then
+		run install_brew -
 		taskid=${build}
 		#wait the scratch build finish
 		while brew taskinfo $taskid|grep -q '^State: open'; do echo "[$(date +%T) Info] build hasn't finished, wait"; sleep 5m; done
@@ -226,6 +228,7 @@ for build in "${builds[@]}"; do
 			fi
 		done
 	else
+		run install_brew -
 		buildname=$build
 		for a in "${archList[@]}"; do
 			run "brew download-build $DEBUG_INFO_OPT $buildname --arch=${a}" - ||
