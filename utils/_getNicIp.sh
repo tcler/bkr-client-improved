@@ -31,7 +31,13 @@ getIp() {
 }
 
 getDefaultNic() {
-  ip route | awk '/default/{match($0,"dev ([^ ]+)",M); print M[1]; exit}'
+  local ifs=$(ip route | awk '/default/{match($0,"dev ([^ ]+)",M); print M[1];}')
+  for iface in $ifs; do
+    [[ -z "$(ip -d link show  dev $iface|sed -n 3p)" ]] && {
+      break
+    }
+  done
+  echo $iface
 }
 
 getDefaultIp() {
