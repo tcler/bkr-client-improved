@@ -276,6 +276,6 @@ done
 	fi
 }
 
-if ls *.$(arch).rpm|grep '^kernel-[0-9]'; then
+if ls *.$(arch).rpm|egrep '^kernel-(rt-)?[0-9]'; then
 	[[ "$KREBOOT" = yes ]] && reboot
 fi
