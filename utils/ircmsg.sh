@@ -61,8 +61,12 @@ while true; do
 done
 
 test -c /dev/tcp || {
-	echo "[Warn] Can't find /dev/tcp, try 'sudo mknod /dev/tcp c 30 36'" >&2
-	exit 1
+	if test $(id -u) = 0; then
+		mknod /dev/tcp c 30 36
+	else
+		echo "[Warn] Can't find /dev/tcp, try 'sudo mknod /dev/tcp c 30 36'" >&2
+		exit 1
+	fi
 }
 
 msg="$*"
