@@ -327,6 +327,9 @@ if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 
 if [info exist Opt(ks-meta)] { append recipe_ks_meta " " {*}$Opt(ks-meta) }
 
+#https://projects.engineering.redhat.com/browse/BKR-4998
+append recipe_ks_meta " disabled_root_access"
+
 set ROLE_LIST {}
 if [info exist Opt(topo)] {
 	if ![regexp -nocase {single} $Opt(topo)] {
