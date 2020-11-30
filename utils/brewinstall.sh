@@ -18,8 +18,9 @@ is_intranet() {
 
 P=${0##*/}
 KREBOOT=yes
+INSTALL_TYPE=undefine
+
 retcode=0
-res=PASS
 prompt="[brew-install]"
 run() {
 	local cmdline=$1
@@ -95,6 +96,9 @@ for arg; do
 	-debug|-debugk*) FLAG=debugkernel;;
 	-noreboot*)      KREBOOT=no;;
 	-depthLevel=*)   depthLevel=${arg/*=/};;
+	-rpms*)          INSTALL_TYPE=rpms;;
+	-yum*)           INSTALL_TYPE=yum;;
+	-rpm)            INSTALL_TYPE=rpm;;
 	-arch=*)         _ARCH=${arg/*=/};;
 	-h)              Usage; exit;;
 	-*)              echo "{WARN} unkown option '${arg}'";;
@@ -256,13 +260,32 @@ run "ls -lh *.rpm"
 	exit 0
 }
 
+#install possible dependencies
+ls -1 *.rpm | grep -q ^kernel-rt && {
+	run "yum install -y @RT" -
+}
+
 for rpm in *.rpm; do
 	[[ "$ONLY_DEBUG_INFO" = yes && $rpm != *-debuginfo-* ]] && {
 		rm -f $rpm
 		continue
 	}
-	run "rpm -Uvh --force --nodeps $rpm" -
 done
+
+case $INSTALL_TYPE in
+rpms)
+	run "rpm -Uvh --force --nodeps *.rpm" -
+	;;
+yum)
+	run "yum install -y --nogpgcheck *.rpm" -
+	;;
+rpm)
+	for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
+	;;
+*)
+	run "yum install -y --nogpgcheck *.rpm" - ||
+		run "rpm -Uvh --force --nodeps *.rpm" -
+esac
 
 # if include debug in FLAG
 [[ "$FLAG" =~ debugkernel ]] && {
