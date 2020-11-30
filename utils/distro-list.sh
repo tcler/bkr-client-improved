@@ -14,13 +14,12 @@ Usage() {
 	  e.g: $P -n fedora-% -t ''
 	EOF
 }
-_at=`getopt -o hdf:t:n:l: \
+_at=`getopt -o hdf:t:n: \
 	--long help \
 	--long debug \
 	--long family: \
 	--long tag: \
 	--long name: \
-	--long lab: \
     -a -n "$P" -- "$@"`
 eval set -- "$_at"
 
@@ -31,7 +30,6 @@ while true; do
 	-f|--family)    family=$2; shift 2;;
 	-t|--tag)       tag=$2; shift 2;;
 	-n|--name)      name=$2; shift 2;;
-	-l|--lab)       lab=$2; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -62,11 +60,10 @@ FamilyOption=
 [[ -n "$tag" ]] && TagOption=--tag=$tag
 [[ -n "$family" ]] && FamilyOption=--family=$family
 [[ -n "$name" ]] && NameOption=--name=$name
-[[ -n "$lab" ]] && LabOption=--labcontroller=$lab
 [[ -n "$debug" ]] && echo "[debug] args: $TagOption $FamilyOption" >&2
 
 if [[ ${P} != getLatestRHEL ]]; then
-	bkr distros-list --limit=0 $TagOption $FamilyOption $NameOption $LabOption 2>/dev/null > >(sed -n '/^ *Name: /{s///;p}')
+	bkr distros-list --limit=0 $TagOption $FamilyOption $NameOption 2>/dev/null > >(sed -n '/^ *Name: /{s///;p}')
 else
-	bkr distros-list --limit=0 $TagOption $FamilyOption $NameOption $LabOption 2>/dev/null > >(sed -n '/^ *Name: /{s///;p}' | head -n1)
+	bkr distros-list --limit=0 $TagOption $FamilyOption $NameOption 2>/dev/null > >(sed -n '/^ *Name: /{s///;p}' | head -n1)
 fi
