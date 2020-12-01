@@ -3,6 +3,7 @@
 
 dbRoot=/var/cache/distroInfoDB
 
+Prompt="[distro-compost-dbupdate]"
 rpmdb=rpmsdata
 lockf=/tmp/distroDB.w.lock
 trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
@@ -10,6 +11,32 @@ sigproc() {
 	rm -f $lockf
 	exit
 }
+
+chanList="#fs-qe #network-qe #kernel-qe-sti"
+
+# https://en.wikichip.org/wiki/irc/colors
+ircBold=$'\x02'
+ircItalics=$'\x1D'
+ircUnderline=$'\x1F'
+ircReverse=$'\x16'
+ircPlain=$'\x0F'
+
+ircWhite=$'\x03'00
+ircBlack=$'\x03'01
+ircNavy=$'\x03'02
+ircGreen=$'\x03'03
+ircRed=$'\x03'04
+ircMaroon=$'\x03'05
+ircPurple=$'\x03'06
+ircOlive=$'\x03'07
+ircYellow=$'\x03'08
+ircLightGreen=$'\x03'09
+ircTeal=$'\x03'10
+ircCyan=$'\x03'11
+ircRoyalblue=$'\x03'12
+ircMagenta=$'\x03'13
+ircGray=$'\x03'14
+ircLightGray=$'\x03'15
 
 Usage() { echo "Usage: $0 [-h|--help] [--dbroot </some/path>]" >&2; }
 
@@ -39,7 +66,7 @@ UpdateDB() {
 	lockfile $lockf || return 0
 
 	#Update distro list
-	for family in 9 8 7 6; do
+	for family in 9 8 7; do
 		distro-list.sh -f $family -t all
 	done > >(tee distro.list.tmp) 2>err.log
 	distro-list.sh -n fedora-% -t '' > >(tee -a distro.list.tmp) 2>>err.log
@@ -54,10 +81,12 @@ UpdateDB() {
 
 	#Update pkg list
 	newdistros=$(sed -n '/^+[^+]/{s/^+//; p}' distro.list.diff)
+	echo "$Prompt update new distros:"
 	for distro in $newdistros "$@"; do
 		distrotrees_file=$rpmdb/${distro// /_}.distrotrees.gz
 		cachefile=$rpmdb/${distro// /_}.json.gz
 
+		echo "$Prompt update distro: $distro ..."
 		distrotrees=
 		while [[ -z "$distrotrees" ]]; do
 			distrotrees=$(bkr distro-trees-list --limit=0 --name "$distro")
@@ -98,16 +127,53 @@ UpdateDB() {
 
 	# update distrotrees of latest distro
 	# sometimes beaker requires a few days to sync distro to difference lab
+	echo "$Prompt update recently distros:"
 	while read fpath; do
+		syncedFlagOrig=2
+		syncedFlagNow=0
+
+		distrotreesl=$(zcat $fpath) ||
+			echo "$Prompt zcat $fpath fail: '$distrotreesl'" >&2
+		if [[ -n "$distrotreesl" ]]; then
+			if echo "$distrotreesl"|grep -q '\.pek2.redhat.com'; then
+				syncedFlagOrig=1
+				continue
+			else
+				syncedFlagOrig=0
+			fi
+		else
+			syncedFlagOrig=2
+		fi
+
 		file=${fpath##*/}
 		distro=${file%.distrotrees.gz}
 		distro_name=${distro//_/ }
 		distrotrees=$(bkr distro-trees-list --limit=0 --name "$distro_name")
-		echo "$distrotrees" > >(gzip >/tmp/$file.$$)
-		tmpfile=/tmp/$file.$$
-		cmp -s ${fpath} $tmpfile || \cp -f $tmpfile ${fpath}
-		\rm -f $tmpfile
-	done < <(find $rpmdb -mtime -5 -mtime +1 -type f -name '*.distrotrees.gz')
+		if [[ -n "$distrotrees" ]]; then
+			tmpfile=/tmp/$file.$$
+			echo "$distrotrees" > >(gzip >$tmpfile)
+			cmp -s ${fpath} $tmpfile || {
+				echo "$Prompt copy $tmpfile to $fpath ..."
+				\cp -f $tmpfile ${fpath}
+			}
+			\rm -f $tmpfile
+		else
+			echo "$Prompt $distro_name has been removed, remove $fpath ..."
+			\rm -f $fpath
+			continue
+		fi
+
+		if echo "$distrotrees"|grep -q '\.pek2.redhat.com'; then
+			syncedFlagNow=1
+		fi
+		[[ "$syncedFlagOrig" = 0 && "$syncedFlagNow" = 1 ]] && {
+			for chan in $chanList; do
+				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
+				-C "$chan" "${ircBold}${ircLightGreen}{Notice}${ircPlain} distro: ${distro_name} synced to pek2 lab done"
+				sleep 1
+			done
+		}
+	done < <(find $rpmdb -mtime -5 -type f -name '*.distrotrees.gz')
 	rm -f $lockf
 }
 
