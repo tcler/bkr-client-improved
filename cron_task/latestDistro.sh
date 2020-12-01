@@ -91,16 +91,18 @@ for V in $DVLIST; do
 	while read line; do
 		[[ -z "$line" ]] && continue
 
+		labs=
 		read distro knvr pkglist <<< "$line"
+		labs=$(distro-compose -d $distro -trees | awk -F'[ .]+' '/^ *lab/ {print $5}' | sort -u | paste -sd ,)
 		label=
 		[[ "$line" = *label?:* ]] && label="${line/*label?:/- with label:}"
 		for chan in $chanList; do
 			if test "$fschan" = "$chan"; then
 				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
-				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line #for detail: distro-compose -d ^$distro$ -l -p . | less -r"
+				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line #labs: $labs"
 			else
 				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
-				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: ${distro} ${knvr} ${label}"
+				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: ${distro} ${knvr} ${label} #labs: $labs"
 			fi
 			sleep 1
 		done
