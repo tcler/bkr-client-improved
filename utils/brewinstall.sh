@@ -153,7 +153,7 @@ for build in "${builds[@]}"; do
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		builds=($(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head))
 		for B in "${builds[@]}"; do
-			if brew buildinfo $B | grep -q '.*\.rpm$'; then
+			if brew buildinfo $B | egrep -q '/[^ ]+\.rpm( |$)'; then
 				build=$B
 				break
 			fi
@@ -164,7 +164,7 @@ for build in "${builds[@]}"; do
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		builds=($(brew search build kernel-$ver-${rel/*./*.}.dt* | sort -Vr | head))
 		for B in "${builds[@]}"; do
-			if brew buildinfo $B | grep -q '.*\.rpm$'; then
+			if brew buildinfo $B | egrep -q '/[^ ]+\.rpm( |$)'; then
 				build=$B
 				break
 			fi
