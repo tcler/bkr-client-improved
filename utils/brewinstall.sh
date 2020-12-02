@@ -232,6 +232,11 @@ for build in "${builds[@]}"; do
 			fi
 		done
 	else
+		if rpm -q $build 2>/dev/null; then
+			report_result "build($build) has been installed" PASS
+			exit 0
+		fi
+
 		run install_brew -
 		buildname=$build
 		for a in "${archList[@]}"; do
