@@ -93,7 +93,7 @@ for V in $DVLIST; do
 
 		labs=
 		read distro knvr pkglist <<< "$line"
-		labs=$(distro-compose -d $distro -trees | awk -F'[ .]+' '/^ *lab/ {print $5}' | sort -u | paste -sd ,)
+		labs=$(distro-compose -d $distro -trees | awk '/^ *lab/ {n=split($1,a,"."); print a[n-2]}' | sort -u | paste -sd ,)
 		label=
 		[[ "$line" = *label?:* ]] && label="${line/*label?:/- with label:}"
 		for chan in $chanList; do
