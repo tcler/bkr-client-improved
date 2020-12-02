@@ -236,6 +236,7 @@ for build in "${builds[@]}"; do
 		if rpm -q $build 2>/dev/null; then
 			report_result "build($build) has been installed" PASS
 			let buildcnt--
+			continue
 		fi
 
 		run install_brew -
