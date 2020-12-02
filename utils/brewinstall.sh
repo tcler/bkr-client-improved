@@ -134,6 +134,7 @@ wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A.${a}.rpm"; done)
 
 # Download packges
 depthLevel=${DEPTH_LEVEL:-2}
+buildcnt=${#builds[@]}
 for build in "${builds[@]}"; do
 	[[ "$build" = -* ]] && { continue; }
 
@@ -234,7 +235,7 @@ for build in "${builds[@]}"; do
 	else
 		if rpm -q $build 2>/dev/null; then
 			report_result "build($build) has been installed" PASS
-			exit 0
+			let buildcnt--
 		fi
 
 		run install_brew -
@@ -255,11 +256,15 @@ done
 
 # Install packages
 run "ls -lh"
-run "ls -lh *.rpm"
-[ $? != 0 ] && {
-	report_result download-rpms FAIL
-	exit 1
-}
+if [[ $buildcnt -gt 0 ]]; then
+	run "ls -lh *.rpm"
+	[ $? != 0 ] && {
+		report_result download-rpms FAIL
+		exit 1
+	}
+else
+	exit 0
+fi
 
 [[ "$ONLY_DOWNLOAD" = yes ]] && {
 	exit 0
