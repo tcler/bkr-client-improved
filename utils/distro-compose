@@ -19,6 +19,7 @@ Usage() {
 	    $P -d \$distro              #2 get package kernel's version on \$distro
 	    $P -p \$pkg                 #3 get package \$pkg's version on all available distros
 
+	    $P -d \$distro -labs        #4 get current labs info of distro
 	    $P -d \$distro -trees       #4 or --distrotrees, get detail info of distro
 	    $P -d \$distro -rpmsinfo    #5 show distro's package list in json format
 	    $P -d \$distro -composeinfo #6 show distro's compose info
@@ -40,6 +41,7 @@ _at=`getopt -o hnp:d:a:v:lD \
 	--long rpmsinfo \
 	--long composeinfo \
 	--long dbroot: \
+	--long labs \
 	--long distrotrees --long trees --long url \
 	--long distrolist --long dlist \
     -a -n "$0" -- "$@"`
@@ -54,6 +56,7 @@ while true; do
 	-v) Variant=$2; shift 2;;
 	-l) long=yes; shift 1;;
 	-D) debug=yes; shift 1;;
+	--labs) getlabs=yes; shift 1;;
 	--url|--trees|--distrotrees) getdistrotrees=yes; shift 1;;
 	--rpmsinfo) getrpmsinfo=yes; shift 1;;
 	--composeinfo) getcomposeinfo=yes; shift 1;;
@@ -89,6 +92,19 @@ Distro=${Distro#/}
 
 	[[ -n "$getrpmsinfo" ]] && {
 		curl -Lsf $cachefile | zcat 2>/dev/null
+		exit $?
+	}
+
+	[[ -n "$getlabs" ]] && {
+		if bkr whoami &>/dev/null; then
+			bkr distro-trees-list --limit=0 --name "$Distro"|
+				awk '/^ *lab/ {n=split($1,a,"."); print a[n-2]}' |
+				sort -u | paste -sd ,
+		else
+			curl -Lsf $distrotrees_file | zcat 2>/dev/null|
+				awk '/^ *lab/ {n=split($1,a,"."); print a[n-2]}' |
+				sort -u | paste -sd ,
+		fi
 		exit $?
 	}
 
