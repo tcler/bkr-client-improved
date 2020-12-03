@@ -904,7 +904,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 
 				if [info exist Opt(insert-task)] {
-					lappend insertTasks $Opt(insert-task)
+					lappend insertTasks {*}$Opt(insert-task)
 				}
 
 				foreach taskb $insertTasks {
@@ -964,7 +964,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 				set appendTasks [list]
 				if [info exist Opt(append-task)] {
-					lappend appendTasks $Opt(append-task)
+					lappend appendTasks {*}$Opt(append-task)
 				}
 
 				# --kcov --gcov task
