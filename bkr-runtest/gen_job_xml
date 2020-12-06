@@ -322,6 +322,7 @@ if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 	if {[info exist Opt(restraint-git)] && $Opt(restraint-git) != ""} {
 		set fetch_test_from_git yes
 		set restraint_git $Opt(restraint-git)
+		append recipe_ks_meta "redhat_ca_cert"
 	}
 }
 
