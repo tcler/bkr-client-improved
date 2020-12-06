@@ -914,9 +914,20 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
 					if {$_roleval ne ""} { set _role $_roleval}
 					task name=$taskname role=$_role ! {
+						if [info exist fetch_test_from_git] {
+							set trim/ 1
+							if [regexp {^/CoreOS/} $taskname] {
+								set trim/ 2
+							}
+							if [info exist Opt(restraint-case-trim/)] {
+								set trim/ $Opt(restraint-case-trim/)
+							}
+							doTag fetch url=[regsub {#+$} $restraint_git {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $taskname {}] -
+						}
 						params ! {
 							foreach taskparam $taskparams {
 								if [string match _task* $taskparam] {continue}
+
 								regexp {^([^=]+)=(.*)$} $taskparam _ _name _value
 								param name=$_name value=$_value -
 							}
@@ -1016,9 +1027,20 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
 					if {$_roleval ne ""} { set _role $_roleval}
 					task name=$taskname role=$_role ! {
+						if [info exist fetch_test_from_git] {
+							set trim/ 1
+							if [regexp {^/CoreOS/} $taskname] {
+								set trim/ 2
+							}
+							if [info exist Opt(restraint-case-trim/)] {
+								set trim/ $Opt(restraint-case-trim/)
+							}
+							doTag fetch url=[regsub {#+$} $restraint_git {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $taskname {}] -
+						}
 						params ! {
 							foreach taskparam $taskparams {
 								if [string match _task* $taskparam] {continue}
+
 								regexp {^([^=]+)=(.*)$} $taskparam _ _name _value
 								param name=$_name value=$_value -
 							}
