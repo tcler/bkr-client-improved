@@ -910,11 +910,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				foreach taskb $insertTasks {
 					set taskname [lindex $taskb 0]
 					set taskparams [lrange $taskb 1 end]
-					lassign [list $role ""] _role _roleval
+					lassign [list $role "" no] _role _roleval _fetch_from_git
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
+					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_git=*] _ _fetch_from_git
 					if {$_roleval ne ""} { set _role $_roleval}
 					task name=$taskname role=$_role ! {
-						if [info exist fetch_test_from_git] {
+						if {[info exist fetch_test_from_git] && $_fetch_from_git eq "enable"} {
 							set trim/ 1
 							if [regexp {^/CoreOS/} $taskname] {
 								set trim/ 2
@@ -1023,11 +1024,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				foreach taska $appendTasks {
 					set taskname [lindex $taska 0]
 					set taskparams [lrange $taska 1 end]
-					lassign [list $role ""] _role _roleval
+					lassign [list $role "" no] _role _roleval _fetch_from_git
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
+					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_git=*] _ _fetch_from_git
 					if {$_roleval ne ""} { set _role $_roleval}
 					task name=$taskname role=$_role ! {
-						if [info exist fetch_test_from_git] {
+						if {[info exist fetch_test_from_git] && $_fetch_from_git eq "enable"} {
 							set trim/ 1
 							if [regexp {^/CoreOS/} $taskname] {
 								set trim/ 2
