@@ -748,11 +748,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 				# distro install
 				lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
-				if {[regexp -- {Fedora} $DISTRO] != 1} {
-					lappend insertTasks "/distribution/Library/epel"
-				} else {
-					lappend insertTasks "/distribution/utils/dummy"
-				}
 
 				# command before kernelinstall
 				if [info exist Opt(cmdb)] {
