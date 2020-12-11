@@ -3,6 +3,7 @@
 test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf
 
 read type distro <<< $(awk -F/+ '/^baseurl/{ for (i=3;i<NF;i++) { if ($(i+1) ~ /RHEL-/) { print($i, $(i+1)); break }}}' /etc/yum.repos.d/beaker-BaseOS.repo)
+[[ "$type" = development ]] && type=nightly
 if [[ "$distro" = RHEL-8* ]]; then
 	[[ "$type" == rhel-8 ]] && type="rel-eng"
 	read prefix ver time <<< ${distro//-/ }
