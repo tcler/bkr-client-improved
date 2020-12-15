@@ -233,7 +233,7 @@ for build in "${builds[@]}"; do
 			fi
 		done
 	else
-		if rpm -q $build 2>/dev/null; then
+		if rpm -q $build 2>/dev/null && [[ "$FLAG" != debugkernel ]]; then
 			report_result "build($build) has been installed" PASS
 			let buildcnt--
 			continue
