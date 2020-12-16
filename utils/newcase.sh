@@ -136,7 +136,7 @@ include /usr/share/rhts/lib/rhts-make.include
 	@echo "License:         GPLv2" >> \$(METADATA)
 	@echo "Requires:	library(kernel/base)" >> \$(METADATA)
 	@echo "Requires:	nfs-utils autofs" >> \$(METADATA)
-	@echo "Requires:	wireshark tcpdump net-tools screen" >> \$(METADATA)
+	@echo "Requires:	wireshark tcpdump net-tools tmux" >> \$(METADATA)
 	@echo "Requires:	procmail sssd sssd-client" >> \$(METADATA)
 	@echo "RhtsRequires:	library(kernel/base)" >> \$(METADATA)
 	rhts-lint \$(METADATA)
