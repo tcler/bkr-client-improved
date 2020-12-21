@@ -6,7 +6,7 @@ dbRoot=/var/cache/distroInfoDB
 Prompt="[distro-compost-dbupdate]"
 rpmdb=rpmsdata
 lockf=/tmp/distroDB.w.lock
-trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
+trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT EXIT
 sigproc() {
 	rm -f $lockf
 	exit
@@ -63,7 +63,7 @@ UpdateDB() {
 	rm -f .[Cc]url* #remove old version db files
 
 	rpm -q procmail >/dev/null || yum install -y procmail &>/dev/null
-	lockfile $lockf || return 0
+	lockfile -1 -r 1 $lockf || return 0
 
 	#Update distro list
 	for family in 9 8 7; do

@@ -91,8 +91,44 @@ Distro=${Distro#/}
 	distrotrees_file=$dbpath/${Distro// /_}.distrotrees.gz
 
 	[[ -n "$getrpmsinfo" ]] && {
-		curl -Lsf $cachefile | zcat 2>/dev/null
-		exit $?
+		if curl --output /dev/null --silent --fail -r 0-0 "$cachefile"; then
+			curl -Lsf $cachefile | zcat 2>/dev/null
+			ret=$?
+		else
+			echo "{warn} ${Distro}'s info has not been synced to database, try bkr sub-command ..." >&2
+			if bkr whoami &>/dev/null; then
+				distrotrees=$(bkr distro-trees-list --limit=0 --name "$Distro")
+				urls=$(echo "$distrotrees" |
+					awk '/https?:/ {
+						if ($3 ~ "/compose/") {
+							sub("/compose/.*$", "/compose/metadata", $3)
+						} else if ($3 ~ "/released/rhel-4-5/") {
+							sub("([^/]+/){2}$", "metadata", $3)
+						} else if ($3 ~ "/released/") {
+							sub("([^/]+/){3}$", "metadata", $3)
+						} else {
+							rc=1
+						}
+						if (rc != 1) {print $3}
+					}' | sort -u)
+
+				for url in $urls; do
+					[[ "$url" =~ RHEL-?5 ]] && continue
+					if curl -sf -k -L -u: $url/rpms.json ||
+						curl -sf -k -L -u: $url/rpm-manifest.json; then
+						ret=0
+						break
+					else
+						echo "{warn} get rpm json file of '$Distro' fail: $url" >&2
+						ret=1
+					fi
+				done
+			else
+				echo "{warn} exec 'bkr whoami' fail ..." >&2
+				ret=1
+			fi
+		fi
+		exit $ret
 	}
 
 	[[ -n "$getlabs" ]] && {
@@ -109,8 +145,20 @@ Distro=${Distro#/}
 	}
 
 	[[ -n "$getdistrotrees" ]] && {
-		curl -Lsf $distrotrees_file | zcat 2>/dev/null
-		exit $?
+		if curl --output /dev/null --silent --fail -r 0-0 "$distrotrees_file"; then
+			curl -Lsf $distrotrees_file | zcat 2>/dev/null
+			ret=$?
+		else
+			echo "{warn} ${Distro}'s info has not been synced to database, try bkr distro-trees-list ..." >&2
+			if bkr whoami &>/dev/null; then
+				bkr distro-trees-list --limit=0 --name "$Distro"
+				ret=$?
+			else
+				echo "{warn} exec 'bkr whoami' fail ..." >&2
+				ret=1
+			fi
+		fi
+		exit $ret
 	}
 
 	[[ -n "$getcomposeinfo" ]] && {
