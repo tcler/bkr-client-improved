@@ -4,6 +4,7 @@
 progname=${0##*/}
 exitcode=0
 
+PCIID=".*"
 DRIVER=".*"
 MODEL=".*"
 MATCH=".*"
@@ -14,6 +15,7 @@ OUTPUT=hostname
 
 search_nic_info()
 {
+	echo "$PCIID"  | grep -qi "any" && PCIID=".*"
 	echo "$DRIVER"  | grep -qi "any" && DRIVER=".*"
 	echo "$MODEL"   | grep -qi "any" && MODEL=".*"
 	echo "$MATCH"	| grep -qi "any" && MATCH=".*"
@@ -25,8 +27,8 @@ search_nic_info()
 		40g|40G)	SPEED="40000" ;;
 	esac
 
-	awk 'BEGIN{IGNORECASE=1}; $0~/'"$MATCH"'/ &&
-	$4~/\<'"$DRIVER"'\>/ && $6~/'"$MODEL"'/ && $7~/'"${SPEED}Mb"'/ '
+	awk 'BEGIN{IGNORECASE=1}; $0 !~ /^ *#/ && $0~/'"$MATCH"'/ &&
+		$4~/\<'"$DRIVER"'\>/ && $6~/'"$MODEL"'/ && $7~/'"${SPEED}Mb"'/ && $(11)~/'"$PCIID"'/ '
 }
 
 filter_nic_match()
@@ -113,6 +115,7 @@ Usage()
 	  -v, --unmatch		customer pattern which does NOT match the regex (emulates "egrep -v")
 	  -s, --speed		NIC speed
 	  -c, --num		at least how many matched NICs that the machine have
+	  -P, --pciid		PCI id
 	  The results is the intersection of all specified conditions.
 
 	Output options:
@@ -135,13 +138,14 @@ Usage()
 	END
 }
 
-_at=`getopt -o d:s:m:p:v:c:h \
+_at=`getopt -o d:s:m:p:v:c:P:h \
 	--long driver: \
 	--long model: \
 	--long match: \
 	--long unmatch: \
 	--long speed: \
 	--long num: \
+	--long pciid: \
 	--long field: \
 	--long hostname \
 	--long raw \
@@ -158,6 +162,7 @@ while true; do
 	-v|--unmatch)	UNMATCH="$2"; shift 2;;
 	-s|--speed)	SPEED="$2"; shift 2;;
 	-c|--num)	NUM="$2"; shift 2;;
+	-P|--pciid)	PCIID="$2"; shift 2;;
 	--field)	OUTPUT=field; FIELD="$2"; shift 2;;
 	--hostname)	OUTPUT=hostname; shift 1;;
 	--raw)		OUTPUT=raw; shift 1;;

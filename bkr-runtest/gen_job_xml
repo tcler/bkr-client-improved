@@ -344,7 +344,7 @@ if {[info exist Opt(clients)] && $Opt(clients) != 0} { lappend ROLE_LIST {*}[lre
 if {[llength $ROLE_LIST] == 0} { set ROLE_LIST STANDALONE }
 
 # handle network-qe private NIC machines
-set netqe_nic_opts {driver model speed match unmatch num}
+set netqe_nic_opts {pciid driver model speed match unmatch num}
 foreach i $netqe_nic_opts {
 	if [info exist Opt(netqe-nic-$i)] {
 		set NETQE_NIC_OPTS_DICT($i) [split $Opt(netqe-nic-$i) ", "]
@@ -366,6 +366,7 @@ foreach role $ROLE_LIST {
 		}
 
 		# set default values for parse_netqe_nic_info.sh params
+		if {$pciid==""} {set pciid any}
 		if {$driver==""} {set driver any}
 		if {$model==""} {set model any}
 		if {$speed==""} {set speed any}
@@ -374,7 +375,7 @@ foreach role $ROLE_LIST {
 		if {$num==""} {set num 1}
 
 		# get ormachine_list for each role
-		set NETQE_NIC_MACHINE($role) [exec parse_netqe_nic_info.sh -d "$driver" -m "$model" -s "$speed" -p "$match" -v "$unmatch" -c "$num"]
+		set NETQE_NIC_MACHINE($role) [exec parse_netqe_nic_info.sh -P "$pciid" -d "$driver" -m "$model" -s "$speed" -p "$match" -v "$unmatch" -c "$num"]
 		incr M 1
 	} {
 		set NETQE_NIC_MACHINE($role) {}

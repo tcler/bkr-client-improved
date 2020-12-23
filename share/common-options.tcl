@@ -82,6 +82,7 @@ set CommonOptionList {
 	nay-nic-speed		{link netqe-nic-speed	hide y}
 	nay-nic-match		{link netqe-nic-match	hide y}
 	nay-nic-unmatch		{link netqe-nic-unmatch hide y}
+	netqe-nic-pciid		{arg o help ""}
 	netqe-nic-driver	{arg o help ""}
 	netqe-nic-num		{arg o help ""}
 	netqe-nic-model		{arg o help ""}
