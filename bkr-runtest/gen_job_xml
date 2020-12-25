@@ -953,36 +953,45 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					set iter 1
 					foreach task ${TaskList} {
 						set name [lindex $task 0]
-						set arglist [lrange $task 1 end]
-						lassign [list $role ""] _role _roleval
+						set taskparams [lrange $task 1 end]
+						set insert 1
+						lassign [list $role "" disable ""] _role _roleval _fetch_from_git _task_position
 						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
-						if {$_roleval ne ""} { set _role $_roleval}
-						task name=$name role=$_role ! {
-							if [info exist fetch_test_from_git] {
-								set trim/ 1
-								if [regexp {^/CoreOS/} $name] {
-									set trim/ 2
-								}
-								if [info exist Opt(restraint-case-trim/)] {
-									set trim/ $Opt(restraint-case-trim/)
-								}
-								doTag fetch url=[regsub {#+$} $restraint_git {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $name {}] -
-							}
-							params ! {
-								foreach arg $arglist {
-									if [string match _task* $taskparam] {continue}
-									lassign [regsub {(^[^=]*)=(.*)} $arg {\1 {\2}}] pname pvalue
-									# use "mh-" prefix to set different value for multihost
-									if [regexp {^mh-} $pname] {
-										set pname [string range $pname 3 end]
-										set pvalue_list [split $pvalue ,]
-										param name=$pname value=[lindex $pvalue_list $R] -
-									} else {
-										param name=$pname value=$pvalue -
+						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_git=*] _ _fetch_from_git
+						if {$_roleval ne ""} { set _role $_roleval }
+						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_position=*] _ _task_position
+						if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
+
+						if {$insert in {1 y yes}} {
+							task name=$name role=$_role ! {
+								if [info exist fetch_test_from_git] {
+									set trim/ 1
+									if [regexp {^/CoreOS/} $name] {
+										set trim/ 2
 									}
+									if [info exist Opt(restraint-case-trim/)] {
+										set trim/ $Opt(restraint-case-trim/)
+									}
+									doTag fetch url=[regsub {#+$} $restraint_git {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $name {}] -
 								}
-								param name=DISTRO_BUILD value=$distroBuild -
+								params ! {
+									foreach taskparam $taskparams {
+										if [string match _task* $taskparam] {continue}
+										lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
+										# use "mh-" prefix to set different value for multihost
+										if [regexp {^mh-} $pname] {
+											set pname [string range $pname 3 end]
+											set pvalue_list [split $pvalue ,]
+											param name=$pname value=[lindex $pvalue_list $R] -
+										} else {
+											param name=$pname value=$pvalue -
+										}
+									}
+									param name=DISTRO_BUILD value=$distroBuild -
+								}
 							}
+						} else {
+							task name=/distribution/utils/dummy role=$_role -
 						}
 
 						if {[info exist Opt(reboot)] && $iter < $llen} {
