@@ -135,7 +135,7 @@ include /usr/share/rhts/lib/rhts-make.include
 	@echo "Priority:        Normal" >> \$(METADATA)
 	@echo "License:         GPLv2" >> \$(METADATA)
 	@echo "Requires:	library(kernel/base)" >> \$(METADATA)
-	@echo "Requires:	nfs-utils autofs" >> \$(METADATA)
+	@echo "Requires:	cifs-utils nfs-utils autofs" >> \$(METADATA)
 	@echo "Requires:	wireshark tcpdump net-tools tmux" >> \$(METADATA)
 	@echo "Requires:	procmail sssd sssd-client" >> \$(METADATA)
 	@echo "RhtsRequires:	library(kernel/base)" >> \$(METADATA)
@@ -194,32 +194,35 @@ envinfo
 #Specify the exit code if you need
 trap "cleanup; exit" EXIT
 cleanup() {  #fix me: add more cleanup action
-	rlFileRestore   #restore changed file/dir
-	rm -rf \$expdir \$nfsmp   #remove added dir/file
+	#rlFileRestore   #restore changed file/dir
+	: #rm -rf \$expdir \$nfsmp   #remove added dir/file
 }
 
-#param
-#REMOTE_SHARE
-#MOUNT_OPTIONS
-#NFS_VERS
-
 #global var define
-$(if [ -n "$multihost" ]; then
-    echo 'BZ=bugid  #suffix to show distinction with other cases'
-  else
-    echo 'BZ=bugid-$RANDOM  #suffix to show distinction with other cases'
-  fi
-)
-expdir=/exportdir-\$BZ #fix me:
-nfsmp=/mnt/nfsmp-\$BZ  #fix me:
+$(
+if [ -n "$multihost" ]; then
+	echo 'BZ=bugid  #suffix to show distinction with other cases'
+else
+	echo 'BZ=bugid-$RANDOM  #suffix to show distinction with other cases
 
-mntSrc=\${REMOTE_SHARE:-\$HOSTNAME:\$expdir}
+#standard env variable from env_file
+#MOUNT_TARGET
+#MOUNT_OPTS
+#VERS_LIST
+if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
+	source "$ENV_FILE"
+else
+	MOUNT_TARGET=${MOUNT_TARGET:-$HOSTNAME:$expdir}
+fi'
+
+fi
+)
 
 $(if test -z "$multihost"; then
   echo 'rlJournalStart
 rlPhaseStartSetup do-Setup-
-	rlFileBackup /etc/exports /etc/sysconfig/nfs /etc/nfs.conf
-	rlFileBackup /etc/auto.master /etc/sysconfig/autofs
+	expdir=/exportdir-$BZ #fix me:
+	nfsmp=/mnt/nfsmp-$BZ  #fix me:
 	run "mkdir -p $expdir $nfsmp"
 	run '"'echo \"\$expdir *(rw,no_root_squash)\" >/etc/exports'"'
 	run '"'service_nfs restart'"'
@@ -227,9 +230,9 @@ rlPhaseStartSetup do-Setup-
 	[ -z "$nfsvers" ] && nfsvers=$(ls_nfsvers)
 rlPhaseEnd
 
-for V in $nfsvers; do
+for V in ${VERS_LIST:-$nfsvers}; do
 rlPhaseStartTest do-Test-
-	run '"'mount \$MOUNT_OPTIONS -overs=\$V \$mntSrc \$nfsmp'"'
+	run '"'mount \$MOUNT_OPTS -overs=\$V \$MOUNT_TARGET \$nfsmp'"'
 rlPhaseEnd
 done
 
@@ -237,15 +240,16 @@ rlPhaseStartCleanup do-Cleanup-
 	rlFileRestore
 rlPhaseEnd
 rlJournalEnd'
+
 else
+
   sflist=$(for i in $(seq 1 $ServNum); do [[ $i = 1 ]] && i=;echo Server$i; done)
   cflist=$(for i in $(seq 1 $ClntNum); do [[ $i = 1 ]] && i=;echo Client$i; done)
   for f in $sflist; do
     #[[ "$f" =~ (Server|Client)$ ]] && continue
     echo "$f() {"
     echo 'rlPhaseStartSetup do-$role-Setup-
-	rlFileBackup /etc/exports /etc/sysconfig/nfs
-	rlFileBackup /etc/auto.master /etc/sysconfig/autofs
+	expdir=/exportdir-$BZ #fix me:
 	run "mkdir -p $expdir"
 	run '"'echo \"\$expdir *(rw,no_root_squash)\" >/etc/exports'"'
 	run '"'service_nfs restart'"'
@@ -266,7 +270,7 @@ rlPhaseEnd'
     #[[ "$f" =~ (Server|Client)$ ]] && continue
     echo "$f() {"
     echo 'rlPhaseStartSetup do-$role-Setup-
-	rlFileBackup /etc/auto.master /etc/sysconfig/autofs
+	nfsmp=/mnt/nfsmp-$BZ  #fix me:
 	run "mkdir -p $nfsmp"
 	nfsvers=$NFS_VERS
 	[[ -n "$SERVER" ]] && {
@@ -274,11 +278,12 @@ rlPhaseEnd'
 		nfsvers=$(ls_nfsvers $SERVER)
 	}
 	run "test -n '"'\$nfsvers'"'"
+	MOUNT_TARGET=$SERVER:$expdir
 rlPhaseEnd
 
-for V in $nfsvers; do
+for V in ${VERS_LIST:-$nfsvers}; do
 rlPhaseStartTest do-$role-Test-
-	run '"'mount \$MOUNT_OPTIONS -overs=\$V \$mntSrc \$nfsmp'"'
+	run '"'mount \$MOUNT_OPTS -overs=\$V \$MOUNT_TARGET \$nfsmp'"'
 rlPhaseEnd
 done
 
@@ -299,6 +304,7 @@ rlPhaseEnd'
   done
   echo '	*) :;; esac'
   echo 'rlJournalEnd'
+
 fi
 )
 #rlJournalPrintText
