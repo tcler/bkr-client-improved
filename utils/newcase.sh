@@ -205,7 +205,7 @@ if [ -n "$multihost" ]; then
 else
 	echo 'BZ=bugid-$RANDOM  #suffix to show distinction with other cases
 
-#standard env variable from env_file
+#standard env variable from $ENV_FILE or case parameters
 #MOUNT_TARGET
 #MOUNT_OPTS
 #VERS_LIST
