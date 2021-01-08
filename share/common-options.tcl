@@ -96,9 +96,12 @@ set CommonOptionList {
   }
 
   "\n  Options for setting tasks:" {
-	task			{arg m	help {Include named task in job, can use multiple times}}
-	insert-task		{arg m	help {Insert named task before task list, can use multiple times}}
-	append-task		{arg m	help {Append named task after task list, can use multiple times}}
+	task			{arg m	help {Include named task in job, can use multiple times:
+				e.g: --task /path/to/case1 --task "/path/to/case2 param1=val1 {param2=val2 with space}"}}
+	insert-task		{arg m	help {Insert named task before task list, can use multiple times:
+				e.g: --insert-task /path/to/caseA --insert-task "/path/to/caseB param1=val1 {param2=val2 with space}"}}
+	append-task		{arg m	help {Append named task after task list, can use multiple times:
+				e.g: --append-task /path/to/caseX --append-task "/path/to/caseY param1=val1 {param2=val2 with space}"}}
 	taskn			{arg y	help {repeat task 'N' times}}
 	reboot			{arg y	help {add reboot after each task}}
 	{param taskparam}	{arg m	help {Set task params, can use multiple times.
