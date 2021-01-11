@@ -87,7 +87,8 @@ for V in $DVLIST; do
 	# print lines of file "${f}.tmp" for which the first column
 	# (distro name) has not been seen in file "$f"
 	awk 'NR==FNR{c[$1]++;next};c[$1] == 0' $f ${f}.tmp | tac > $patchf
-	[[ -s "$patchf" ]] || continue
+	[[ $(wc -c < "$patchf") -lt 16 ]] || continue
+	[[ $(wc -l < "$patchf") -gt 8 ]] || continue
 
 	while read line; do
 		[[ -z "$line" ]] && continue
