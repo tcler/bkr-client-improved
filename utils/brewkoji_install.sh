@@ -42,7 +42,7 @@ installBrew2() {
 		9)
 			yum install -y python-requests
 			_url=https://download.devel.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-8/compose/BaseOS/x86_64/os/Packages
-			_rpm=$(curl -s -L $_url/sed -nre  '/.*href="(brewkoji-[0-9][^"]*el8.noarch.rpm)".*/{s//\1/; p}')
+			_rpm=$(curl -s -L $_url|sed -nre  '/.*href="(brewkoji-[0-9][^"]*el8.noarch.rpm)".*/{s//\1/; p}')
 			rpm -ivh --force --nodeps \
 				https://kojipkgs.fedoraproject.org//packages/koji/1.23.0/2.fc33/noarch/koji-1.23.0-2.fc33.noarch.rpm \
 				https://kojipkgs.fedoraproject.org//packages/koji/1.23.0/2.fc33/noarch/python3-koji-1.23.0-2.fc33.noarch.rpm \
