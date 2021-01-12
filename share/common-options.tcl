@@ -43,6 +43,8 @@ set CommonOptionList {
 	{servers s}		{arg y	help {Include NUMBER server hosts for multi-host test}}
 	{clients c}		{arg y	help {Include NUMBER client hosts for multi-host test}}
 	{hr hostrequire}	{arg m	help {Additional <hostRequires><and/> for job, example:
+				--hr group=fs-qe
+				--hr pool=fs-qe
 				--hr cpu_count>=4
 				--hr memory>=4096
 				--hr labcontroller=lab-01.rhts.eng.pek2.redhat.com
