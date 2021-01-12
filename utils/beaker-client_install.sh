@@ -65,37 +65,44 @@ echo "{INFO} create /etc/beaker/client.conf"
 
 echo "{INFO} create /etc/krb5.conf"
 cp -v /etc/krb5.conf /etc/krb5.conf.orig
-cat <<-EOF >/etc/krb5.conf
+cat <<-'EOF' >/etc/krb5.conf
+# Configuration snippets may be placed in this directory as well
 includedir /etc/krb5.conf.d/
 
-[logging]
- default = FILE:/var/log/krb5libs.log
- kdc = FILE:/var/log/krb5kdc.log
- admin_server = FILE:/var/log/kadmind.log
-
 [libdefaults]
- dns_lookup_realm = false
- ticket_lifetime = 24h
- renew_lifetime = 7d
- forwardable = true
- rdns = false
- default_realm = REDHAT.COM
- default_ccache_name = KEYRING:persistent:%{uid}
+  default_realm = REDHAT.COM
+  dns_lookup_realm = true
+  dns_lookup_kdc = true
+  rdns = false
+  dns_canonicalize_hostname = true
+  ticket_lifetime = 24h
+  forwardable = true
+  udp_preference_limit = 0
+  default_ccache_name = KEYRING:persistent:%{uid}
 
 [realms]
+
   REDHAT.COM = {
-   kdc = kerberos01.core.prod.int.phx2.redhat.com.:88
-   kdc = kerberos01.core.prod.int.ams2.redhat.com.:88
-   kdc = kerberos01.core.prod.int.sin2.redhat.com.:88
-   admin_server = kerberos.corp.redhat.com.:749
-   default_domain = redhat.com
+    default_domain = redhat.com
+    dns_lookup_kdc = true
+    master_kdc = kerberos.corp.redhat.com
+    admin_server = kerberos.corp.redhat.com
   }
 
-[domain_realm]
-# .example.com = EXAMPLE.COM
-# example.com = EXAMPLE.COM
- .redhat.com = REDHAT.COM
- redhat.com = REDHAT.COM
+  #make sure to save the IPA CA cert
+  #mkdir /etc/ipa && curl -o /etc/ipa/ca.crt https://password.corp.redhat.com/ipa.crt
+  IPA.REDHAT.COM = {
+    pkinit_anchors = FILE:/etc/ipa/ca.crt
+    pkinit_pool = FILE:/etc/ipa/ca.crt
+    default_domain = ipa.redhat.com
+    dns_lookup_kdc = true
+    # Trust tickets issued by legacy realm on this host
+    auth_to_local = RULE:[1:$1@$0](.*@REDHAT\.COM)s/@.*//
+    auth_to_local = DEFAULT
+  }
+
+#DO NOT ADD A [domain_realms] section
+#https://mojo.redhat.com/docs/DOC-1166841
 EOF
 
 yum install -y krb5-workstation
