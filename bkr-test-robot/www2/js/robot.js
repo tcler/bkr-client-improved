@@ -104,7 +104,7 @@
 				var testobj = chkItem[i].id.split(" ");
 				testid = testobj[0];
 				j = testobj[1];
-				testlist += testid + ' ' + distroArrayx[j] + ';';
+				testlist += testid + ' ' + distroArrayx[j] + "\n";
 			}
 		}
 		//var r = confirm(path2+"\nAre you sure resubmit these test?\n"+testlist);
