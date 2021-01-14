@@ -87,8 +87,9 @@ for V in $DVLIST; do
 	# print lines of file "${f}.tmp" for which the first column
 	# (distro name) has not been seen in file "$f"
 	awk 'NR==FNR{c[$1]++;next};c[$1] == 0' $f ${f}.tmp | tac > $patchf
-	[[ $(wc -c < "$patchf") -lt 16 ]] || continue
-	[[ $(wc -l < "$patchf") -gt 8 ]] || continue
+	wc $patchf
+	[[ $(wc -c < "$patchf") -lt 16 ]] && continue
+	[[ $(wc -l < "$patchf") -gt 8 ]] && continue
 
 	while read line; do
 		[[ -z "$line" ]] && continue
@@ -148,7 +149,7 @@ for V in $DVLIST; do
 	done <$patchf
 
 	#get stable version
-	stbVersion=$(grep '^+[^+]' ${p} | awk '$(NF-1) ~ ".label.:"{print $1}' | head -n1)
+	stbVersion=$(grep '^+[^+]' ${patchf} | awk '$(NF-1) ~ ".label.:"{print $1}' | head -n1)
 
 
 	# print kernel changelog
