@@ -1,16 +1,18 @@
 %post --log=/root/my-ks-post.log
 
-test -f /etc/dnf/dnf.conf && echo strict=0 >>/etc/dnf/dnf.conf
-
 verx=$(rpm -E %rhel)
 case $verx in
 8|9)
 	[[ "$verx" = 8 ]] && R8=-RHEL-8
 	read dtype distro <<< $(awk -F/+ '/^baseurl/ {
-		for (i=3;i<NF;i++) { if ($(i+1) ~ /RHEL-/) {
-			d=$(i+1)
-			if (d ~ /RHEL-[0-9]$/) d=$(i+2)
-			print($i, d); break }
+		for (i=3;i<NF;i++) {
+			if ($(i+1) ~ /RHEL-/) {
+				d=$(i+1)
+				if (d ~ /RHEL-[0-9]$/)
+					d=$(i+2)
+				print($i, d)
+				break
+			}
 		}
 	}' /etc/yum.repos.d/beaker-BaseOS.repo)
 	dtype=nightly
@@ -27,11 +29,8 @@ case $verx in
 	;;
 esac
 
-yum install -y git patch gcc wget bzip2 screen bc redhat-lsb-core sg3_utils sg3_utils-libs sg3_utils-devel rsyslog python2
-yum install -y libnsl2 libtirpc-devel python2-lxml python3-lxml
-
-#alternatives --set python /usr/bin/python2
-#alternatives --set python /usr/bin/python3
+yum install --setopt=strict=0 -y git patch gcc wget bzip2 screen bc redhat-lsb-core sg3_utils sg3_utils-libs sg3_utils-devel rsyslog python2
+yum install --setopt=strict=0 -y libnsl2 libtirpc-devel python2-lxml python3-lxml
 
 #yum update -y pkg1 pkg2 --nogpgcheck --repofrompath=abc,http://x.y.z/path/to/repo
 %end
