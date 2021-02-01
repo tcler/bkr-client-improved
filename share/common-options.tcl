@@ -149,6 +149,7 @@ set CommonOptionList {
 	reserve			{arg o	help {Reserve system at the end of the recipe}}
 	fips                    {arg o  help {enable fips}}
 	abrt                    {arg n  help {enable abrt(insert /distribution/crashes/enable-abrt)}}
+	watchdog-panic          {arg y  help {set <watchdog panic="{reboot|ignore|None}"/>}}
 	ignore-panic            {arg n  help {Do not abort job if panic message appears on serial console}}
   }
 

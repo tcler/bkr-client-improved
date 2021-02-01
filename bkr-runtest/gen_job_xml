@@ -262,6 +262,9 @@ foreach T $TestList {
 	}
 }
 
+if {[info exist Opt(watchdog-panic)]} { set WATCHDOG_PANIC $Opt(watchdog-panic) }
+if {[info exist Opt(ignore-panic)]} { set WATCHDOG_PANIC "ignore" }
+
 set METHOD "nfs"
 if [info exist Opt(method)] {
 	set METHOD $Opt(method)
@@ -736,8 +739,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 				}
 
-				if {[info exist Opt(reserve-if-fail)] || [info exist Opt(ignore-panic)]} {
-					watchdog panic=ignore -
+				if {[info exist Opt(reserve-if-fail)]} { set WATCHDOG_PANIC ignore }
+				if {[info exist Opt(WATCHDOG_PANIC)]} {
+					watchdog panic=$WATCHDOG_PANIC -
 				}
 
 				# tasks nodes
