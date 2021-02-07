@@ -103,12 +103,7 @@ for arg; do
 	-h)              Usage; exit;;
 	-*)              echo "{WARN} unkown option '${arg}'";;
 	*)
-		curknvr=kernel-$(uname -r)
-		if [[ "$arg" = ${curknvr%.*} && "$*" != *-debug* ]]; then
-			report_result ${arg}--has-been-installed--kernel-$(uname -r) PASS
-		else
 			builds+=($arg)
-		fi
 		;;
 	esac
 done
@@ -233,10 +228,19 @@ for build in "${builds[@]}"; do
 			fi
 		done
 	else
-		if rpm -q $build 2>/dev/null && [[ "$FLAG" != debugkernel ]]; then
-			report_result "build($build) has been installed" PASS
-			let buildcnt--
-			continue
+		if [[ "$ONLY_DOWNLOAD" != yes ]]; then
+			curknvr=kernel-$(uname -r)
+			if [[ "$build" = ${curknvr%.*} && "$FLAG" != debugkernel ]]; then
+				report_result "kernel($build) has been installed" PASS
+				let buildcnt--
+				continue
+			fi
+
+			if rpm -q $build 2>/dev/null && [[ "$FLAG" != debugkernel ]]; then
+				report_result "build($build) has been installed" PASS
+				let buildcnt--
+				continue
+			fi
 		fi
 
 		run install_brew -
