@@ -166,6 +166,18 @@ for build in "${builds[@]}"; do
 			fi
 		done
 	}
+	[[ "$build" = latest-* ]] && {
+		pkg=${build#latest-}
+		run install_brew -
+		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
+		builds=($(brew search build $pkg-*-${rel/*./*.} | sort -Vr | head))
+		for B in "${builds[@]}"; do
+			if brew buildinfo $B | egrep -q '/[^ ]+\.rpm([[:space:]]|$)'; then
+				build=$B
+				break
+			fi
+		done
+	}
 
 	if [[ "$build" =~ ^[0-9]+$ ]]; then
 		run install_brew -
