@@ -83,14 +83,19 @@ UpdateDB() {
 	newdistros=$(sed -n '/^+[^+]/{s/^+//; p}' distro.list.diff)
 	echo "$Prompt update new distros:"
 	for distro in $newdistros "$@"; do
+		[[ -z "${distro// /}" ]] && continue
 		distrotrees_file=$rpmdb/${distro// /_}.distrotrees.gz
 		cachefile=$rpmdb/${distro// /_}.json.gz
 
 		echo "$Prompt update distro: $distro ..."
 		distrotrees=
-		while [[ -z "$distrotrees" ]]; do
-			distrotrees=$(bkr distro-trees-list --limit=0 --name "$distro")
+		for ((i=0; i<3; i++)); do
+			distrotrees=$(bkr distro-trees-list --limit=0 --name "$distro") && break
 		done
+		if [[ -z "$distrotrees" ]]; then
+			echo "$Prompt get $distro trees list fail ..."
+			continue
+		fi
 
 		[[ -s $distrotrees_file ]] || {
 			echo "$distrotrees" > >(gzip >$distrotrees_file)
