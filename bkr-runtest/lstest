@@ -198,22 +198,23 @@ _caseInfo() {
 	popd >/dev/null
 }
 
-_casesInfo() {
-	[ $# -lt 1 ] && {
-		echo "Usage: func <case_path [case_path...]>" >&2
-		return 1
-	}
-	for p in "$@"; do _caseInfo "$p"; done
-}
-
 _getTestList() {
 	local paths= info=
 
-	paths=$(find "$@" -name runtest.sh|sed -e 's;^.//*;;' -e 's;/runtest.sh$;;' -e 's/^runtest.sh$/./')
-	for d in $paths; do
+	paths=$(find "$@" \( -name runtest.sh -o -name _test_case_link \) |
+		sed -r -e 's;^.//*;;' -e 's;/(runtest.sh|_test_case_link)$;;' -e 's/^(runtest.sh|_test_case_link)$/./')
+	for _d in $paths; do
+		d=$_d
+		if [ -L $_d/_test_case_link ]; then
+			cp $_d/subtest.yml $_d/_test_case_link/.
+			d=$(cd $_d/_test_case_link/; pwd)
+		fi
 		[ -f ${d}/Makefile ] || continue
 
 		info=$(_caseInfo ${d})
+		if [ -L $_d/_test_case_link ]; then
+			rm -f $d/subtest.yml
+		fi
 		[ -z "$info" ] && continue
 
 		echo "$info"
