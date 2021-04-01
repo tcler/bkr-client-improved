@@ -8,6 +8,8 @@
 # Config
 PROXY_SERVER="host.that.are.running.ircproxy"
 PROXY_PORT=6667
+ProxySession=
+UserPasswd=
 
 NICK="testbot"
 #CHANNEL="#fs-fs"
@@ -15,7 +17,11 @@ CHANNEL=
 
 qe_assistant=/usr/local/bin/qe_assistant
 
-[[ -f ~/.ircmsg/ircmsg.rc ]] && source ~/.ircmsg/ircmsg.rc
+if [[ -f ~/.ircmsg/ircmsg.rc ]]; then
+	mkdir -p ~/.config
+	mv ~/.ircmsg ~/.config/ircmsg
+fi
+[[ -f ~/.config/ircmsg/ircmsg.rc ]] && source ~/.config/ircmsg/ircmsg.rc
 ##########################################################
 # Main
 export LANG=C
@@ -27,35 +33,43 @@ fix=$RANDOM
 P=${0##*/}
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [-hdinc] [-C channel] [-s proxyserv -p proxyport] msg"
+	echo "Usage: $P [-hqdiI] [-s serv -p port -S session] {-n <nick> [-C channel [-c <nick>]]} msg"
 	echo "  Options:"
 	echo "    -n <nick>  used \$nick as nick name to JOIN channel"
+	echo "    -C <chan>  used to join into \$chan"
 	echo "    -c <nick>  used to send private msg to \$nick"
+	echo "    -s <proxyserv> proxy server addr, or set 'PROXY_SERVER=' in ~/.config/ircmsg/ircmsg.rc"
+	echo "    -p <proxyserv> proxy server port, or set 'PROXY_PORT=' in ~/.config/ircmsg/ircmsg.rc"
+	echo "    -S <name:irc_serv_addr> proxy session, or set 'ProxySession=' in ~/.config/ircmsg/ircmsg.rc"
+	echo "    -U <user:passwd> proxy login user and passwd, or set 'UserPasswd=' in ~/.config/ircmsg/ircmsg.rc"
+	echo "    -q         quit or quit after send message"
+	echo "    -d         open debug mode"
 	echo "    -i         run as a deamon robot"
 	echo "    -I         work in interactive mode as a simple irc client"
-	echo "    -d         open debug mode"
-	echo "    -q         quit after send message"
-	echo "    -L <user:passwd> proxy login user and passwd"
-	echo "    -P <session_name:irc_serv_addr> proxy session"
+	echo
+	echo "Example:"
+	echo "  $P [-s serv -p port -S session] -n testbot -C #chan msg  #channel msg"
+	echo "  $P [-s serv -p port -S session] -n testbot -C #chan -c mike msg  #private msg"
+	echo "  $P [-s serv -p port -S session] -n testbot -C #chan -q  #quit from #chan"
 }
-_at=`getopt -o hdC:c:Iin:s:p:qP:L: --long create-session \
+_at=`getopt -o hdqn:C:c:s:p:S:P:U:L:iI --long create-session \
 -n 'ircmsg' -- "$@"`
 eval set -- "$_at"
 while true; do
 	case "$1" in
 	-h) Usage; shift 1; exit 0;;
 	-d) DEBUG=1; shift 1;;
-	-i) I=1; shift 1;;
-	-I) I=2; shift 1;;
+	-n) NICK=$2; shift 2;;
 	-C) CHANNEL=$2; shift 2;;
 	-c) Chan=$2; shift 2;;
-	-n) NICK=$2; shift 2;;
 	-s) PROXY_SERVER=$2; shift 2;;
 	-p) PROXY_PORT=$2; shift 2;;
-	-q) QUIT=1; shift 1;;
-	-P) ProxySession=$2; shift 2;;
-	-L) UserPasswd=$2; shift 2;;
+	-S|-P) ProxySession=$2; shift 2;;
+	-U|-L) UserPasswd=$2; shift 2;;
 	--create-session) CreateSession=1; shift 1;;
+	-q) QUIT=1; shift 1;;
+	-i) I=1; shift 1;;
+	-I) I=2; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -108,9 +122,9 @@ while read line <&100; do
 done
 
 if [[ $I = 0 ]]; then
-	while read l; do
-		[ -z "$l" ] && continue
-		echo "$Head PRIVMSG ${Chan} :$l" >&100
+	while read line; do
+		[ -z "$line" ] && continue
+		echo "$Head PRIVMSG ${Chan} :$line" >&100
 	done <<<"$msg"
 
 	test -n "$QUIT" && echo "$Head QUIT" >&100
@@ -118,7 +132,7 @@ if [[ $I = 0 ]]; then
 	exit $?
 fi
 
-configdir=~/.ircmsg
+configdir=~/.config/ircmsg
 recorddir=$configdir/record/
 mkdir -p $recorddir
 
@@ -146,7 +160,7 @@ while read line <&100; do
 		}
 		if [[ -x "$qe_assistant" ]]; then
 			$qe_assistant "$_msg" |
-			while read l; do [[ -z "$l" ]] && continue; echo "$Head PRIVMSG ${_chan} :$l"; done >&100
+			while read line; do [[ -z "$line" ]] && continue; echo "$Head PRIVMSG ${_chan} :$line"; done >&100
 		fi
 	fi
 
