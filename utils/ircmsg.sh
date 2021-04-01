@@ -127,7 +127,15 @@ if [[ $I = 0 ]]; then
 		echo "$Head PRIVMSG ${Chan} :$line" >&100
 	done <<<"$msg"
 
-	test -n "$QUIT" && echo "$Head QUIT" >&100
+	if test -n "$QUIT"; then
+		if test -n "${CHANNEL}"; then
+			#leaving from chan
+			echo -e "$Head PART ${Chan} I-am-leaving" >&100
+			echo -e "$Head /PART ${Chan} leaving" >&100
+		else
+			echo "$Head QUIT" >&100
+		fi
+	fi
 	test -z "$ProxySession" && echo "$Head QUIT" >&100
 	exit $?
 fi
