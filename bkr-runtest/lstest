@@ -45,13 +45,14 @@ ymllist() {
 
 _caseInfo() {
 	[ $# -lt 1 ] && {
-		echo "Usage: func <case path>" >&2
+		echo "Usage: func <case path> [subtest file]" >&2
 		return 1
 	}
 
 	local f=runtest.sh
 	local infofile=testinfo.desc
 	local casepath=$1
+	local subtestf=$2
 	local name=
 
 	declare -A Attr
@@ -137,7 +138,11 @@ _caseInfo() {
 
 	subtests_generator="gen_subtest.sh"
 	[ -x $subtests_generator ] && sh $subtests_generator
-	subtests_yml=$(egrep -h '^[[:space:]]*(attr|param|setup):' subtest.yml 2>/dev/null)
+
+	subtestf=${subtestf:-subtest.yml}
+	if [[ -f "$subtestf" ]]; then
+		subtests_yml=$(egrep -h '^[[:space:]]*(attr|param|setup):' "$subtestf" 2>/dev/null)
+	fi
 
 	if [[ "$FORMAT" = raw ]] || [[ -z "$subtests_yml" ]]; then
 		_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
@@ -200,21 +205,20 @@ _caseInfo() {
 
 _getTestList() {
 	local paths= info=
+	local d= _d= _subtestf=
 
 	paths=$(find "$@" \( -name runtest.sh -o -name _test_case_link \) |
 		sed -r -e 's;^.//*;;' -e 's;/(runtest.sh|_test_case_link)$;;' -e 's/^(runtest.sh|_test_case_link)$/./')
 	for _d in $paths; do
+		_subtestf=
 		d=$_d
 		if [ -L $_d/_test_case_link ]; then
-			cp $_d/subtest.yml $_d/_test_case_link/.
+			_subtestf=$(readlink -f $_d/subtest.yml)
 			d=$(cd $_d/_test_case_link/; pwd)
 		fi
 		[ -f ${d}/Makefile ] || continue
 
-		info=$(_caseInfo ${d})
-		if [ -L $_d/_test_case_link ]; then
-			rm -f $d/subtest.yml
-		fi
+		info=$(_caseInfo ${d} $_subtestf)
 		[ -z "$info" ] && continue
 
 		echo "$info"
