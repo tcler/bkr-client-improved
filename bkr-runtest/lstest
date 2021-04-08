@@ -214,7 +214,7 @@ _getTestList() {
 		d=$_d
 		if [ -L $_d/_test_case_link ]; then
 			_subtestf=$(readlink -f $_d/subtest.yml)
-			d=$(cd $_d/_test_case_link/; pwd)
+			d=$(readlink -f $_d/_test_case_link/)
 		fi
 		[ -f ${d}/Makefile ] || continue
 
