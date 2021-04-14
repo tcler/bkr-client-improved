@@ -147,7 +147,7 @@ for build in "${builds[@]}"; do
 	[[ "$build" = lstk ]] && {
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		builds=($(brew search build kernel-$ver-${rel/*./*.} | sort -Vr | head))
+		builds=($(brew search build kernel-${ver/.*/.*}-${rel/*./*.} | sort -Vr | head))
 		for B in "${builds[@]}"; do
 			if brew buildinfo $B | egrep -q '/[^ ]+\.rpm([[:space:]]|$)'; then
 				build=$B
