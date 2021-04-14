@@ -20,3 +20,35 @@ do
 done
 echo
 
+_ansi()       { read FB E <<<"${1/,/ }"; echo -e "${FB:-_} ${E:-_}: \e[${FB}m${*:2}\e[${E}m"; }
+ansi()        { _ansi '' "$@"; }
+ans0()        { _ansi 0 "$@"; }
+bold()        { _ansi 1 "$@"; }
+dimn()        { _ansi 2 "$@"; }
+italic()      { _ansi 3 "$@"; }
+underline()   { _ansi 4 "$@"; }
+strikethr()   { _ansi 9 "$@"; }
+red()         { _ansi 31 "$@"; }
+green()       { _ansi 32 "$@"; }
+yellow()      { _ansi 33 "$@"; }
+blue()        { _ansi 34 "$@"; }
+hred()        { _ansi "1;31" "$@"; }
+hgreen()      { _ansi "1;32" "$@"; }
+hyellow()     { _ansi "1;33" "$@"; }
+hblue()       { _ansi "1;34" "$@"; }
+
+ansi ansi {a..z} {1..9}
+ans0 ans0 {a..z} {1..9}
+bold bold {a..z} {1..9}
+dimn dimn {a..z} {1..9}
+italic italic {a..z} {1..9}
+underline underline {a..z} {1..9}
+strikethr strikethr {a..z} {1..9}
+red red {a..z} {1..9}
+green green {a..z} {1..9}
+yellow yellow {a..z} {1..9}
+blue blue {a..z} {1..9}
+hred hred {a..z} {1..9}
+hgreen hgreen {a..z} {1..9}
+hyellow hyellow {a..z} {1..9}
+hblue hblue {a..z} {1..9}
