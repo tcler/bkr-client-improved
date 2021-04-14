@@ -87,6 +87,9 @@ Distro=${Distro:-$2}
 Distro=${Distro#/}
 
 [[ -n "$Distro" ]] && {
+	if [[ "$Distro" = *[%*]* ]]; then
+		Distro=$(bkr distros-list --limit=0 --name "$Distro" | awk '$1 == "Name:" {print $2}' | sort -Vr | head -1)
+	fi
 	cachefile=$dbpath/${Distro// /_}.json.gz
 	distrotrees_file=$dbpath/${Distro// /_}.distrotrees.gz
 
