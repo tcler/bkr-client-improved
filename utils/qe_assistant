@@ -1,0 +1,36 @@
+#!/bin/bash
+
+nick=testBot
+line=${*/$'\r'/}
+grep -i -q $nick <<<"$line" || exit
+
+[[ "${line,,}" =~ help ]] && {
+	echo "
+usage0: (bz|bug )\$bugid or bug url  cc $nick   # get bug info
+usage1: <\$distro_list>  cc $nick   # get kernel versions of \$distro_list
+usage2: pkg <pkg_name_pattern> <distro_name_pattern>  cc $nick # check default package version in specified distro"
+	exit 0
+}
+
+[[ "${line,,}" =~ thx|thank ]] && {
+	echo 'you are welcome!'
+	exit 0
+}
+
+[[ "${line,,}" =~ pkg ]] && {
+	read pkgname distroname _ <<<"${line/*pkg/}"
+	distro-compose -n -p $pkgname -d $distroname | head -n1
+	exit 0
+}
+
+distros=$(egrep -i -o '(RHEL-[0-9]|Fedora-)[^[:space:]]*' <<<"$line")
+for distro in $distros; do
+	distro-compose -n -p ^kernel-[0-9]+ -d $distro | head -n1
+done
+
+bugs=$(egrep -i -o '(bug *|bz|bugzilla.redhat.com.*id=)[0-9]+\>' <<<"$line"|sed -r 's/(bug *|bz|bugzilla.redhat.com.*id=)//I')
+while read bug; do
+	[[ -z "$bug" ]] && continue
+	bugzilla query -b ${bug}
+done <<<"$bugs"
+exit 0

@@ -15,7 +15,9 @@ NICK="testbot"
 #CHANNEL="#fs-fs"
 CHANNEL=
 
-qe_assistant=/usr/local/bin/qe_assistant
+qe_assistantx=/usr/local/bin/qe_assistant
+configdir=~/.config/ircmsg
+recorddir=$configdir/record/
 
 if [[ -f ~/.ircmsg/ircmsg.rc ]]; then
 	mkdir -p ~/.config
@@ -45,7 +47,7 @@ Usage() {
 	echo "    -q         quit or quit after send message"
 	echo "    -d         open debug mode"
 	echo "    -i         run as a deamon robot"
-	echo "    -I         work in interactive mode as a simple irc client"
+	echo "    -I         work in interactive mode as a simple irc client, not finish"
 	echo
 	echo "Example:"
 	echo "  $P [-s serv -p port -S session] -n testbot -C #chan msg  #channel msg"
@@ -121,12 +123,12 @@ while read line <&100; do
 	[[ $line =~ .*No\ such\ channel|JOIN\ :Not\ enough\ parameters ]] && break
 done
 
-if [[ $I = 0 ]]; then
-	while read line; do
-		[ -z "$line" ] && continue
-		echo "$Head PRIVMSG ${Chan} :$line" >&100
-	done <<<"$msg"
+while read line; do
+	[ -z "$line" ] && continue
+	echo "$Head PRIVMSG ${Chan} :$line" >&100
+done <<<"$msg"
 
+if [[ $I = 0 ]]; then
 	if test -n "$QUIT"; then
 		if test -n "${CHANNEL}"; then
 			#leaving from chan
@@ -138,105 +140,107 @@ if [[ $I = 0 ]]; then
 	fi
 	test -z "$ProxySession" && echo "$Head QUIT" >&100
 	exit $?
-fi
+elif [[ $I = 1 ]]; then
+	bgnick=$NICK
+	mkdir -p $recorddir
 
-configdir=~/.config/ircmsg
-recorddir=$configdir/record/
-mkdir -p $recorddir
-
-#Fix me
-while read line <&100; do
-	line=${line/$'\r'/}
-	if [[ "$line" =~ PING ]]; then
-		echo "$Head ${line/PING/PONG}" >&100
-	else
-		chanfile=$Chan
-		read _head _cmd _chan _msg <<<"$line"
-		[[ $_cmd = MODE || $_cmd =~ [0-9]+ ]] && {
-			echo -e "${_head%!*}! ${_cmd} ${_chan} $_msg" >>$recorddir/$chanfile
-			continue
-		}
-		[[ $_cmd = PRIVMSG ]] && {
-			peernick=$(awk -F'[:!]' '{print $2}' <<<"${_head}")
-			chanfile=${_chan}
-			[[ ${_chan:0:1} = "#" ]] || chanfile=$peernick
-		}
-		echo -e "${_head%\!*}! ${_cmd} ${_chan} $_msg" >>$recorddir/$chanfile
-		[[ "$_chan" = qe_assistant ]] && {
-			_chan=$peernick
-			_msg="qe_assistant $_msg"
-		}
-		if [[ -x "$qe_assistant" ]]; then
-			$qe_assistant "$_msg" |
-			while read line; do [[ -z "$line" ]] && continue; echo "$Head PRIVMSG ${_chan} :$line"; done >&100
+	while read line <&100; do
+		line=${line/$'\r'/}
+		if [[ "$line" =~ PING ]]; then
+			echo "$Head ${line/PING/PONG}" >&100
+		else
+			chanfile=$Chan
+			read _head _cmd _chan _msg <<<"$line"
+			[[ $_cmd = MODE || $_cmd =~ [0-9]+ ]] && {
+				echo -e "${_head%!*}! ${_cmd} ${_chan} $_msg" >>$recorddir/$chanfile
+				continue
+			}
+			[[ $_cmd = PRIVMSG ]] && {
+				peernick=$(awk -F'[:!]' '{print $2}' <<<"${_head}")
+				chanfile=${_chan}
+				[[ ${_chan:0:1} = "#" ]] || chanfile=$peernick
+			}
+			echo -e "${_head%\!*}! ${_cmd} ${_chan} $_msg" >>$recorddir/$chanfile
+			[[ "$_chan" = $bgnick ]] && {
+				_chan=$peernick
+				_msg="$bgnick $_msg"
+			}
+			if [[ -x "$qe_assistantx" ]]; then
+				$qe_assistantx "$_msg" |
+				while read line; do [[ -z "$line" ]] && continue; echo "$Head PRIVMSG ${_chan} :$line"; done >&100
+			fi
 		fi
-	fi
+	done
 
-done &
-pid=$!
-echo $pid
+#fixme not finish
+else
+	trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
+	sigproc() {
+		kill $pid
+		exit
+	}
 
-[[ $I -le 1 ]] && exit 0
+	help() {
+		echo "/quit;
+	/nick <new nick name>;
+	/join <Channel|nick name>;
+	/names [Channel];
+	/help"
+	}
 
-trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
-sigproc() {
-	kill $pid
-	exit
-}
+	export NCURSES_NO_UTF8_ACS=1
+	curchan=$configdir/curchan
+	echo -n $Chan >$curchan
+	while :; do
+		chan=$(< $curchan)
+		touch $recorddir/$chan
+		dialog --backtitle "irc $_chan:$chan" --no-shadow \
+			--begin 2 0 --title "irc $chan" --tailboxbg $recorddir/$chan 27 120 --and-widget \
+			--begin 30 0 --title "irc $chan" --inputbox "" 5 120  2>$configdir/msg.txt
+		retval=$?
+		msg=$(< $configdir/msg.txt)
 
-help() {
-	echo "/quit;
-/nick <new nick name>;
-/join <Channel|nick name>;
-/names [Channel];
-/help"
-}
-
-export NCURSES_NO_UTF8_ACS=1
-curchan=$configdir/curchan
-echo -n $Chan >$curchan
-while :; do
-	chan=$(< $curchan)
-	touch $recorddir/$chan
-	dialog --backtitle "irc $_chan" --no-shadow \
-		--begin 2 0 --title "irc $chan" --tailboxbg $recorddir/$chan 27 120 --and-widget \
-		--begin 30 0 --title "irc $chan" --inputbox "" 5 120  2>$configdir/msg.txt
-	retval=$?
-	msg=$(< $configdir/msg.txt)
-
-	[[ $msg =~ ^\ *$ ]] && continue
-	case "$msg" in
-	/nick*)
-		read ignore _nick
-		[ -n $_nick ] && NICK=$_nick
-		echo "$Head NICK ${NICK}" >&100
-		;;
-	/join\ *)
-		read ignore _chan <<<"$msg"
-		Chan=$_chan
-		[[ ${Chan:0:1} = '#' ]] && echo "JOIN ${Chan}" >&100
-		echo -n $Chan >$curchan
-		;;
-	/names|/names\ *)
-		read ignore _chan <<<"$msg"
-		echo "NAMES ${_chan:-$chan}" >&100
-		;;
-	/raw\ *)
-		read ignore rawdata <<<"$msg"
-		echo "$rawdata" >&100
-		;;
-	/msg\ *)
-		read ignore tonick _msg <<<"$msg"
-		echo "PRIVMSG $tonick :$_msg" >&100
-		echo "PRIVMSG $tonick :$_msg" >>$recorddir/$chan
-		;;
-	/help)
-		help >>$recorddir/$chan;;
-	/disconnect)
-		kill $pid $$; exit 0;;
-	/quit)	echo "$Head QUIT" >&100; kill $pid $$; exit 0;;
-	*)	echo "${Head} PRIVMSG ${chan} :$msg" >&100
-		echo "${Head} PRIVMSG ${chan} :$msg" >>$recorddir/$chan
-		;;
-	esac
-done
+		[[ $msg =~ ^\ *$ ]] && continue
+		case "$msg" in
+		/nick*)
+			read ignore _nick
+			[ -n $_nick ] && NICK=$_nick
+			echo "$Head NICK ${NICK}" >&100
+			;;
+		/join\ *)
+			read ignore _chan <<<"$msg"
+			Chan=$_chan
+			[[ ${Chan:0:1} = '#' ]] && echo "JOIN ${Chan}" >&100
+			echo -n $Chan >$curchan
+			;;
+		/names|/names\ *)
+			read ignore _chan <<<"$msg"
+			echo "NAMES ${_chan:-$chan}" >&100
+			;;
+		/raw\ *)
+			read ignore rawdata <<<"$msg"
+			echo "$rawdata" >&100
+			;;
+		/msg\ *)
+			read ignore tonick _msg <<<"$msg"
+			echo "PRIVMSG $tonick :$_msg" >&100
+			echo "PRIVMSG $tonick :$_msg" >>$recorddir/$chan
+			;;
+		/help)
+			help >>$recorddir/$chan;;
+		/disconnect)
+			kill $pid $$; exit 0;;
+		/exit)
+			kill $pid $$; exit 0;;
+		/quit)
+			echo -e "$Head PART ${chan} I-am-leaving" >&100
+			echo -e "$Head /PART ${chan} leaving" >&100
+			kill $pid $$
+			exit 0
+			;;
+		*)	echo "${Head} PRIVMSG ${chan} :$msg" >&100
+			echo "${Head} PRIVMSG ${chan} :$msg" >>$recorddir/$chan
+			;;
+		esac
+	done
+fi
