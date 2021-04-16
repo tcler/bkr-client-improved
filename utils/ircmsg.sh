@@ -166,7 +166,7 @@ elif [[ $I = 1 ]]; then
 				_msg="$bgnick $_msg"
 			}
 			if [[ -x "$qe_assistantx" ]]; then
-				$qe_assistantx "$_msg" |
+				$qe_assistantx "$_msg" | tee -a $recorddir/$chanfile |
 				while read line; do [[ -z "$line" ]] && continue; echo "$Head PRIVMSG ${_chan} :$line"; done >&100
 			fi
 		fi
@@ -194,9 +194,9 @@ else
 	while :; do
 		chan=$(< $curchan)
 		touch $recorddir/$chan
-		dialog --backtitle "irc $_chan:$chan" --no-shadow \
-			--begin 2 0 --title "irc $chan" --tailboxbg $recorddir/$chan 27 120 --and-widget \
-			--begin 30 0 --title "irc $chan" --inputbox "" 5 120  2>$configdir/msg.txt
+		dialog --backtitle "irc $NICK($chan); proxy.user(${UserPasswd%:*})" --no-shadow \
+			--begin 2 0 --title "$NICK($chan)" --tailboxbg $recorddir/$chan 27 120 --and-widget \
+			--begin 30 0 --title "$NICK($chan)" --inputbox "" 5 120  2>$configdir/msg.txt
 		retval=$?
 		msg=$(< $configdir/msg.txt)
 
