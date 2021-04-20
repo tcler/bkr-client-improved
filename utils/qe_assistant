@@ -2,6 +2,9 @@
 
 nick=testBot
 line=${*/$'\r'/}
+grep -i -q "Sorry, .*#from:\^lamp\^" <<<"$line" && {
+	line=${line/^lamp^/$nick}
+}
 grep -i -q $nick <<<"$line" || exit
 
 [[ "${line,,}" =~ help ]] && {
@@ -18,7 +21,7 @@ usage2: pkg <pkg_name_pattern> <distro_name_pattern>  cc $nick # check default p
 }
 
 [[ "${line,,}" =~ pkg ]] && {
-	read pkgname distroname _ <<<"${line/*pkg/}"
+	read pkgname distroname _ <<<"${line/*[Pp][Kk][Gg]/}"
 	distro-compose -n -p $pkgname -d $distroname | head -n1
 	exit 0
 }

@@ -6,6 +6,7 @@
 
 ##########################################################
 # Config
+P=$(readlink -f $0)
 PROXY_SERVER="host.that.are.running.ircproxy"
 PROXY_PORT=6667
 ProxySession=
@@ -27,10 +28,9 @@ fi
 ##########################################################
 # Main
 export LANG=C
-I=0
+Interactive=no
 msg=
 namelist=
-fix=$RANDOM
  
 P=${0##*/}
 #-------------------------------------------------------------------------------
@@ -46,8 +46,8 @@ Usage() {
 	echo "    -U <user:passwd> proxy login user and passwd, or set 'UserPasswd=' in ~/.config/ircmsg/ircmsg.rc"
 	echo "    -q         quit or quit after send message"
 	echo "    -d         open debug mode"
-	echo "    -i         run as a deamon robot"
 	echo "    -I         work in interactive mode as a simple irc client, not finish"
+	echo "    -i         run as a deamon robot"
 	echo
 	echo "Example:"
 	echo "  $P [-s serv -p port -S session] -n testbot -C #chan msg  #channel msg"
@@ -55,7 +55,7 @@ Usage() {
 	echo "  $P [-s serv -p port -S session] -n testbot -C #chan -q  #quit from #chan"
 }
 _at=`getopt -o hdqn:C:c:s:p:S:P:U:L:iI --long create-session \
--n 'ircmsg' -- "$@"`
+	-n 'ircmsg' -- "$@"`
 eval set -- "$_at"
 while true; do
 	case "$1" in
@@ -70,8 +70,8 @@ while true; do
 	-U|-L) UserPasswd=$2; shift 2;;
 	--create-session) CreateSession=1; shift 1;;
 	-q) QUIT=1; shift 1;;
-	-i) I=1; shift 1;;
-	-I) I=2; shift 1;;
+	-I) Interactive=yes; shift 1;;
+	-i) Interactive=deamon; shift 1;;
 	--) shift; break;;
 	esac
 done
@@ -128,7 +128,7 @@ while read line; do
 	echo "$Head PRIVMSG ${Chan} :$line" >&100
 done <<<"$msg"
 
-if [[ $I = 0 ]]; then
+if [[ $Interactive = no ]]; then
 	if test -n "$QUIT"; then
 		if test -n "${CHANNEL}"; then
 			#leaving from chan
@@ -140,7 +140,13 @@ if [[ $I = 0 ]]; then
 	fi
 	test -z "$ProxySession" && echo "$Head QUIT" >&100
 	exit $?
-elif [[ $I = 1 ]]; then
+elif [[ $Interactive = deamon ]]; then
+	if [[ -z "$TMUX" ]]; then
+		echo "have to run $P with -i option in tmux:"
+		echo "    tmux new -s ircmsg0 -d \"$P ${_at[@]}\""
+		exit 0
+	fi
+
 	bgnick=$NICK
 	mkdir -p $recorddir
 
@@ -166,7 +172,7 @@ elif [[ $I = 1 ]]; then
 				_msg="$bgnick $_msg"
 			}
 			if [[ -x "$qe_assistantx" ]]; then
-				$qe_assistantx "$_msg" | tee -a $recorddir/$chanfile |
+				$qe_assistantx "$_msg  from:${_chan}" | tee -a $recorddir/$chanfile |
 				while read line; do [[ -z "$line" ]] && continue; echo "$Head PRIVMSG ${_chan} :$line"; done >&100
 			fi
 		fi
@@ -174,14 +180,22 @@ elif [[ $I = 1 ]]; then
 
 #fixme not finish
 else
+	if ! grep ^ircmsg0: < <(tmux ls); then
+		echo "tmux session ircmsg0 is required, please try run bellow cmd line first:"
+		echo "    tmux new -s ircmsg0 -d \"$P ${_at[*]/-I/-i}\""
+		exit 0
+	fi
+
 	trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
 	sigproc() {
-		kill $pid
+		kill $pid 2>/dev/null
 		exit
 	}
 
 	help() {
-		echo "/quit;
+		echo "
+	/quit;
+	/part;
 	/nick <new nick name>;
 	/join <Channel|nick name>;
 	/names [Channel];
@@ -228,11 +242,9 @@ else
 			;;
 		/help)
 			help >>$recorddir/$chan;;
-		/disconnect)
+		/exit|/quit)
 			kill $pid $$; exit 0;;
-		/exit)
-			kill $pid $$; exit 0;;
-		/quit)
+		/part)
 			echo -e "$Head PART ${chan} I-am-leaving" >&100
 			echo -e "$Head /PART ${chan} leaving" >&100
 			kill $pid $$
