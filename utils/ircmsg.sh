@@ -152,7 +152,7 @@ elif [[ $I = 1 ]]; then
 			chanfile=$Chan
 			read _head _cmd _chan _msg <<<"$line"
 			[[ $_cmd = MODE || $_cmd =~ [0-9]+ ]] && {
-				echo -e "${_head%!*}! ${_cmd} ${_chan} $_msg" >>$recorddir/$chanfile
+				echo -e "${_head%\!*}! ${_cmd} ${_chan} $_msg" >>$recorddir/$chanfile
 				continue
 			}
 			[[ $_cmd = PRIVMSG ]] && {
