@@ -104,6 +104,7 @@ for V in $DVLIST; do
 				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
 				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line #labs: $labs"
 			else
+				_distro=${distro/-/-${ircRoyalblue}}${ircPlain}
 				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
 				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: ${_distro} ${ircRed}${knvr}${ircPlain} ${ircBold}${label}${ircPlain} #labs: $labs"
 			fi
