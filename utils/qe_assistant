@@ -57,7 +57,7 @@ usage2: pkg <pkg_name_pattern> <distro_name_pattern>  cc $nick # check default p
 	exit 0
 }
 
-distros=$(egrep -i -o "(RHEL-[0-9]|Fedora-)[a-zA-Z0-9._-]*" <<<"$line")
+distros=$(egrep -i -o "(RHEL[-%][0-9]|Fedora[-%])[%a-zA-Z0-9._-]*" <<<"$line")
 for distro in $distros; do
 	if [[ "$color" = color* ]]; then
 		distro-compose -n -p "^kernel-[0-9]+" -d "$distro" --oneline | head -n2 |
