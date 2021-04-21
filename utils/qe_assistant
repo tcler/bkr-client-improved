@@ -45,9 +45,12 @@ usage2: pkg <pkg_name_pattern> <distro_name_pattern>  cc $nick # check default p
 	exit 0
 }
 
+line=$(echo "$line"|sed -r -e 's/^://' -e "s/\<${nick} *[,:.]?//g")
+
 [[ "${line,,}" =~ pkg ]] && {
-	read pkgname distro _ <<<"${line/*[Pp][Kk][Gg]/}"
-	[[ "${distro,,}" =~ (rhel|fedora)%* ]] && { distro=${distro/\%/-}; avoidc=%; }
+	line=$(echo "$line"|sed -r -e "s/\<pkg\>//gI")
+	read pkgname distro _ <<<"${line}"
+	[[ "${distro,,}" =~ (rhel|fedora)%* ]] && { distro=${distro/\%/-}; }
 	if [[ "$color" = color* ]]; then
 		distro-compose -n -p "$pkgname" -d "$distro" -as390x --oneline | head -n2 |
 			sed -r -e "s/-/${avoidc:--}/" -e "s/${pkgname//[\^$]/}/${ircRed}&${ircPlain}/g"
@@ -60,7 +63,7 @@ usage2: pkg <pkg_name_pattern> <distro_name_pattern>  cc $nick # check default p
 
 distros=$(egrep -i -o "(RHEL[-%][0-9]|Fedora[-%])[%a-zA-Z0-9._-]*" <<<"$line")
 for distro in $distros; do
-	[[ "${distro,,}" =~ (rhel|fedora)%* ]] && { distro=${distro/\%/-}; avoidc=%; }
+	[[ "${distro,,}" =~ (rhel|fedora)%* ]] && { distro=${distro/\%/-}; }
 	if [[ "$color" = color* ]]; then
 		distro-compose -n -p "^kernel-[0-9]+" -d "$distro" --oneline | head -n2 |
 			sed -r -e "s/-/${avoidc:--}/" -e "s/kernel-[a-zA-Z0-9._-]*/${ircRed}&${ircPlain}/g"
