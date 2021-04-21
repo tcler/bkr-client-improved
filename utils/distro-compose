@@ -38,7 +38,7 @@ Debug() {
 
 _at=`getopt -o hnp:d:a:v:lD \
 	--long help \
-	--long oneline \
+	--long oneline:: \
 	--long rpmsinfo \
 	--long composeinfo \
 	--long dbroot: \
@@ -50,7 +50,7 @@ eval set -- "$_at"
 while true; do
 	case "$1" in
 	-h|--help) Usage; shift 1; exit 0;;
-	--oneline) oneline=yes; shift 1;;
+	--oneline) oneline=yes; maxperline=${2:-7}; shift 2;;
 	-n) nocolor=yes; shift 1;;
 	-p) Pkg=$2; shift 2;;
 	-d) Distro=$2; shift 2;;
@@ -233,7 +233,7 @@ while read distro; do
 		fi
 
 		if [[ "$oneline" = yes ]]; then
-			echo "$result" | head -n 7 | xargs
+			echo "$result" | head -n $maxperline | xargs
 		else
 			echo "$result"
 		fi
