@@ -172,7 +172,7 @@ elif [[ $Interactive = deamon ]]; then
 				_msg="$bgnick $_msg"
 			}
 			if [[ -x "$qe_assistantx" ]]; then
-				$qe_assistantx "$_msg  from:${_chan}" | tee -a $recorddir/$chanfile |
+				$qe_assistantx "$_msg  from:${_chan}" color | tee -a $recorddir/$chanfile |
 				while read line; do [[ -z "$line" ]] && continue; echo "$Head PRIVMSG ${_chan} :$line"; done >&100
 			fi
 		fi
