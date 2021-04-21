@@ -38,6 +38,7 @@ Debug() {
 
 _at=`getopt -o hnp:d:a:v:lD \
 	--long help \
+	--long oneline \
 	--long rpmsinfo \
 	--long composeinfo \
 	--long dbroot: \
@@ -48,7 +49,8 @@ _at=`getopt -o hnp:d:a:v:lD \
 eval set -- "$_at"
 while true; do
 	case "$1" in
-	-h|--help)      Usage; shift 1; exit 0;;
+	-h|--help) Usage; shift 1; exit 0;;
+	--oneline) oneline=yes; shift 1;;
 	-n) nocolor=yes; shift 1;;
 	-p) Pkg=$2; shift 2;;
 	-d) Distro=$2; shift 2;;
@@ -80,9 +82,8 @@ Debug "using data source: $dbpath"
 Pkg=${Pkg:-$1}
 RawPkg=$Pkg
 Pkg=${Pkg:-^kernel-[0-9]}
-Pkg="[^/]*${Pkg}[^/]*"
-[[ ${Pkg:0:6} = '[^/]*^' ]] && Pkg="${Pkg:6}"
-[[ ${Pkg: -6} = '$[^/]*' ]] && Pkg="${Pkg:0:-6}"
+[[ ${Pkg} != ^* ]] && Pkg="[^/]*${Pkg}" || Pkg=${Pkg:1}
+[[ ${Pkg} != *$ ]] && Pkg="${Pkg}[^/]*" || Pkg=${Pkg:0:-1}
 Distro=${Distro:-$2}
 Distro=${Distro#/}
 
@@ -210,7 +211,7 @@ while read distro; do
 	[[ $distro = [Ff]edora* ]] && variant=Everything
 
 	Debug "distro:($distro) pkg:($Pkg) arch:($Arch) variant:($variant) @$cachefile"
-	#result=$(curl -Lsf $cachefile | zcat 2>/dev/null |
+	#_result=$(curl -Lsf $cachefile | zcat 2>/dev/null |
 	#	jq -r '.payload | with_entries(if .key == "manifest" then .key = "rpms" else . end)|.rpms|'".${variant:-[]}|.$Arch|.[]|.[].path" |
 	#	grep -v source/tree |
 	#	egrep "$Pkg")
@@ -218,17 +219,23 @@ while read distro; do
 		distrotrees_file=$dbpath/${distro// /_}.distrotrees.gz
 		read _ _ url _ < <(curl -Lsf $distrotrees_file | zcat 2>/dev/null | egrep https?://.*bos)
 		Debug "egrep -o \">${RawPkg}-[0-9a-z\\._-]+\\.rpm<\" < <(curl -Lsf $url/Server)"
-		result=$(egrep -o ">${RawPkg}-[0-9a-z\._-]+\.rpm<" < <(curl -Lsf $url/Server) | sed -e 's/^>//' -e 's/<$//')
+		_result=$(egrep -o ">${RawPkg}-[0-9a-z\._-]+\.rpm<" < <(curl -Lsf $url/Server) | sed -e 's/^>//' -e 's/<$//')
 	else
 		Debug "egrep -o -i \"${variant:-[^\\\"]+}/($Arch)/os/(Packages|$variant)/([a-z]/)?(${Pkg})\.[0-9a-z_-]+\.rpm\" < <(curl -Lsf $cachefile|zcat 2>/dev/null)"
-		result=$(egrep -o -i "${variant:-[^\"]+}/($Arch)/os/(Packages|$variant)/([a-z]/)?(${Pkg})\.[0-9a-z_-]+\.rpm" < <(curl -Lsf $cachefile|zcat 2>/dev/null))
+		_result=$(egrep -o -i "${variant:-[^\"]+}/($Arch)/os/(Packages|$variant)/([a-z]/)?(${Pkg})\.[0-9a-z_-]+\.rpm" < <(curl -Lsf $cachefile|zcat 2>/dev/null))
 	fi
-	[[ -n "$result" ]] && {
+	[[ -n "$_result" ]] && {
 		[[ -z "$nocolor" ]] && echo -e "=> \033[1;34m$distro\033[0m" || echo -n "$distro -> "
 		if [[ $long = yes ]]; then
-			echo "$result"|sed -e 's/^/    /'
+			result=$(echo "$_result"|sed -r -e 's/^/    /' -e 's/\.[^.]+\.rpm//')
 		else
-			echo "$result"|sed -e 's;.*/;;'
+			result=$(echo "$_result"|sed -r -e 's;.*/;;' -e 's/\.[^.]+\.rpm//')
+		fi
+
+		if [[ "$oneline" = yes ]]; then
+			echo "$result" | head -n 7 | xargs
+		else
+			echo "$result"
 		fi
 	}
 done <<<"$mylist"
