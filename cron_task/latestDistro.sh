@@ -105,7 +105,7 @@ for V in $DVLIST; do
 				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line #labs: $labs"
 			else
 				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
-				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: ${distro} ${knvr} ${label} #labs: $labs"
+				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: ${_distro} ${ircRed}${knvr}${ircPlain} ${ircBold}${label}${ircPlain} #labs: $labs"
 			fi
 			sleep 1
 		done
@@ -151,6 +151,8 @@ for V in $DVLIST; do
 	#get stable version
 	stbVersion=$(grep '^+[^+]' ${patchf} | awk '$(NF-1) ~ ".label.:"{print $1}' | head -n1)
 
+
+	[[ $(wc -l < "$patchf") -lt 1 ]] && continue
 
 	# print kernel changelog
 	cat $patchf >$mailf
