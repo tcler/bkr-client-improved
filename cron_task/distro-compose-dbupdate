@@ -173,8 +173,9 @@ UpdateDB() {
 		fi
 		[[ "$syncedFlagOrig" = 0 && "$syncedFlagNow" = 1 ]] && {
 			for chan in $chanList; do
+				_distro=${distroname/-/-${ircRoyalblue}}${ircPlain}
 				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
-				-C "$chan" "${ircBold}${ircLightGreen}{Notice}${ircPlain} distro: ${distro_name} synced to ${ircBold}pek2${ircPlain} lab done"
+				-C "$chan" "${ircBold}${ircLightGreen}{Notice}${ircPlain} distro: ${_distro} synced to ${ircBold}pek2${ircPlain} lab done"
 				sleep 1
 			done
 		}
