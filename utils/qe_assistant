@@ -28,7 +28,6 @@ ircMagenta=$'\x03'13
 ircGray=$'\x03'14
 ircLightGray=$'\x03'15
 
-grep -i -q "from:#network-q" <<<"$line" && { avoidc=%; }
 grep -i -q "Sorry, I can't find distro" <<<"$line" && { line="${line} $nick"; }
 grep -i -q $nick <<<"$line" || exit
 
@@ -53,10 +52,10 @@ line=$(echo "$line"|sed -r -e 's/^://' -e "s/\<${nick} *[,:.]?//g")
 	[[ "${distro,,}" =~ (rhel|fedora)%* ]] && { distro=${distro/\%/-}; }
 	if [[ "$color" = color* ]]; then
 		distro-compose -n -p "$pkgname" -d "$distro" -as390x --oneline | head -n2 |
-			sed -r -e "s/-/${avoidc:--}/" -e "s/${pkgname//[\^$]/}/${ircRed}&${ircPlain}/g"
+			sed -r -e "s/-[^ ]+/${ircBold}&${ircPlain}/" -e "s/${pkgname//[\^$]/}/${ircRed}&${ircPlain}/g"
 	else
 		distro-compose -n -p "$pkgname" -d "$distro" -as390x --oneline | head -n2 |
-			sed -r -e "s/-/${avoidc:--}/"
+			sed -r -e "s/-[^ ]+/${ircBold}&${ircPlain}/"
 	fi
 	exit 0
 }
@@ -66,10 +65,10 @@ for distro in $distros; do
 	[[ "${distro,,}" =~ (rhel|fedora)%* ]] && { distro=${distro/\%/-}; }
 	if [[ "$color" = color* ]]; then
 		distro-compose -n -p "^kernel-[0-9]+" -d "$distro" --oneline | head -n2 |
-			sed -r -e "s/-/${avoidc:--}/" -e "s/kernel-[a-zA-Z0-9._-]*/${ircRed}&${ircPlain}/g"
+			sed -r -e "s/-[^ ]+/${ircBold}&${ircPlain}/" -e "s/kernel-[a-zA-Z0-9._-]*/${ircRed}&${ircPlain}/g"
 	else
 		distro-compose -n -p "^kernel-[0-9]+" -d "$distro" --oneline | head -n2 |
-			sed -r -e "s/-/${avoidc:--}/"
+			sed -r -e "s/-[^ ]+/${ircBold}&${ircPlain}/"
 	fi
 done
 
