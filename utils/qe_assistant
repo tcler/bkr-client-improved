@@ -2,8 +2,8 @@
 
 nick=testBot
 line=${*/$'\r'/}
-grep -i -q "Sorry, .*#from:\^lamp\^" <<<"$line" && {
-	line=${line/^lamp^/$nick}
+grep -i -q "Sorry, I can't find distro" <<<"$line" && {
+	line="${line} $nick"
 }
 grep -i -q $nick <<<"$line" || exit
 
@@ -22,13 +22,13 @@ usage2: pkg <pkg_name_pattern> <distro_name_pattern>  cc $nick # check default p
 
 [[ "${line,,}" =~ pkg ]] && {
 	read pkgname distroname _ <<<"${line/*[Pp][Kk][Gg]/}"
-	distro-compose -n -p $pkgname -d $distroname | head -n1
+	distro-compose -n -p "$pkgname" -d "$distroname" -as390x --oneline
 	exit 0
 }
 
-distros=$(egrep -i -o '(RHEL-[0-9]|Fedora-)[^[:space:]]*' <<<"$line")
+distros=$(egrep -i -o "(RHEL-[0-9]|Fedora-)[a-zA-Z0-9._-]*" <<<"$line")
 for distro in $distros; do
-	distro-compose -n -p ^kernel-[0-9]+ -d $distro | head -n1
+	distro-compose -n -p "^kernel-[0-9]+" -d "$distro" --oneline
 done
 
 bugs=$(egrep -i -o '(bug *|bz|bugzilla.redhat.com.*id=)[0-9]+\>' <<<"$line"|sed -r 's/(bug *|bz|bugzilla.redhat.com.*id=)//I')
