@@ -86,7 +86,7 @@ test -c /dev/tcp || {
 }
 
 msg="$*"
-[[ -n "${CHANNEL}" && ${CHANNEL:0:1} != # ]] && CHANNEL=${CHANNEL/#/#}
+[[ -n "${CHANNEL}" && ${CHANNEL:0:1} != '#' ]] && CHANNEL=${CHANNEL/#/#}
 Chan=${Chan:-$CHANNEL}
 Chan=${Chan:-NULL}
 echo "Connecting to ${PROXY_SERVER}:${PROXY_PORT} ..."
