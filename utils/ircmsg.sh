@@ -167,13 +167,15 @@ elif [[ $Interactive = deamon ]]; then
 				chanfile=${_chan}
 				[[ ${_chan:0:1} = "#" ]] || chanfile=$peernick
 			}
-			echo -e "${_head%\!*}! ${_cmd} ${_chan} $_msg" >>$recorddir/$chanfile
+
+			head=${_head%\!*}!
+			echo -e "${head}! ${_cmd} ${_chan} $_msg" >>$recorddir/$chanfile
 			[[ "$_chan" = $bgnick ]] && {
 				_chan=$peernick
 				_msg="$bgnick $_msg"
 			}
 			if [[ -x "$qe_assistantx" ]]; then
-				$qe_assistantx "$_msg  from:${_chan}" color | tee -a $recorddir/$chanfile |
+				$qe_assistantx "$_msg  from:${_chan}(${head:1:-1})" color | tee -a $recorddir/$chanfile |
 				while read line; do [[ -z "$line" ]] && continue; echo "$Head PRIVMSG ${_chan} :$line"; done >&100
 			fi
 		fi
