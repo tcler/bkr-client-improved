@@ -44,32 +44,28 @@ usage2: pkg <pkg_name_pattern> <distro_name_pattern>  cc $nick # check default p
 	exit 0
 }
 
-line=$(echo "$line"|sed -r -e 's/^://' -e "s/\<${nick} *[,:.]?//g")
+for word in ${line//,/ }; do
+	case ${word,,} in
+	cc|${nick,,}*) :;;
+	[^a-zA-Z0-9^]*) :;;
+	pkg)        PKG=yes;;
+	rhel[-%]*)  distros+=(RHEL-${word:5});;
+	fedora-*)   distros+=(Fedora-${word:7});;
+	*) [[ ${#word} -ge 2 ]] && pkgs+=($word);;
+	esac
+done
 
-[[ "${line,,}" =~ pkg ]] && {
-	line=$(echo "$line"|sed -r -e "s/\<pkg\>//gI")
-	read pkgname distro _ <<<"${line}"
-	[[ "${distro,,}" =~ (rhel|fedora)%* ]] && { distro=${distro/\%/-}; }
-	if [[ "$color" = color* ]]; then
-		distro-compose -n -p "$pkgname" -d "$distro" -as390x --oneline | head -n2 |
-			sed -r -e "s/-[^ ]+/${ircBold}&${ircPlain}/" -e "s/${pkgname//[\^$]/}/${ircRed}&${ircPlain}/g"
-	else
-		distro-compose -n -p "$pkgname" -d "$distro" -as390x --oneline | head -n2 |
-			sed -r -e "s/-[^ ]+/${ircBold}&${ircPlain}/"
-	fi
-	exit 0
-}
-
-distros=$(egrep -i -o "(RHEL[-%][0-9]|Fedora[-%])[%a-zA-Z0-9._-]*" <<<"$line")
-for distro in $distros; do
-	[[ "${distro,,}" =~ (rhel|fedora)%* ]] && { distro=${distro/\%/-}; }
-	if [[ "$color" = color* ]]; then
-		distro-compose -n -p "^kernel-[0-9]+" -d "$distro" --oneline | head -n2 |
-			sed -r -e "s/-[^ ]+/${ircBold}&${ircPlain}/" -e "s/kernel-[a-zA-Z0-9._-]*/${ircRed}&${ircPlain}/g"
-	else
-		distro-compose -n -p "^kernel-[0-9]+" -d "$distro" --oneline | head -n2 |
-			sed -r -e "s/-[^ ]+/${ircBold}&${ircPlain}/"
-	fi
+[[ x"$PKG" != xyes ]] && pkgs=("^kernel-(rt-)?[0-9]")
+for distro in ${distros[@]}; do
+	for pkgn in ${pkgs[@]}; do
+		if [[ "$color" = color* ]]; then
+			distro-compose -n -p "$pkgn" -d "$distro" -as390x --oneline | head -n2 |
+				sed -r -e "s/-[^ ]+/${ircBold}&${ircPlain}/" -e "s/${pkgn//[\^$]/}/${ircRed}&${ircPlain}/g"
+		else
+			distro-compose -n -p "$pkgn" -d "$distro" -as390x --oneline | head -n2 |
+				sed -r -e "s/-[^ ]+/${ircBold}&${ircPlain}/"
+		fi
+	done
 done
 
 bugs=$(egrep -i -o '(bug *|bz|bugzilla.redhat.com.*id=)[0-9]+\>' <<<"$line"|sed -r 's/(bug *|bz|bugzilla.redhat.com.*id=)//I')
