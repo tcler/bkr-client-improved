@@ -124,9 +124,10 @@ while read line <&100; do
 	[[ $line =~ .*No\ such\ channel|JOIN\ :Not\ enough\ parameters ]] && break
 done
 
+mkdir -p $recorddir
 while read line; do
 	[ -z "$line" ] && continue
-	echo "$Head PRIVMSG ${Chan} :$line" >&100
+	echo "$Head PRIVMSG ${Chan} :$line" | tee -a >&100  $recorddir/${Chan}
 done <<<"$msg"
 
 if [[ $Interactive = no ]]; then
@@ -149,7 +150,6 @@ elif [[ $Interactive = deamon ]]; then
 	fi
 
 	bgnick=$NICK
-	mkdir -p $recorddir
 
 	while read line <&100; do
 		line=${line/$'\r'/}
