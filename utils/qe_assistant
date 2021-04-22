@@ -33,9 +33,9 @@ grep -i -q $nick <<<"$line" || exit
 
 [[ "${line,,}" =~ help ]] && {
 	echo "
-usage0: (bz|bug )\$bugid or bug url  cc $nick   # get bug info
-usage1: <\$distro_list>  cc $nick   # get kernel versions of \$distro_list
-usage2: pkg <pkg_name_pattern> <distro_name_pattern>  cc $nick # check default package version in specified distro"
+usage0: (bz|bug )\$bugid or bug url  $nick   # get bug info
+usage1: <\$distro_list>   $nick   # get kernel versions of \$distro_list
+usage2: pkg <pkg_name_list> <distro_name_list>   $nick # check default package version in specified distro"
 	exit 0
 }
 
