@@ -12,13 +12,16 @@ prefix=${2}
 	Example:
 	  $0 ~/ws/testcase/kernel
 	  $0 ~/ws/testcase/nfs-utils.git /nfs-utils/
+	  $0 ~/ws/testcase/libtirpc /CoreOS/libtirpc/
 	EOF
 	exit 0
 }
 
 ## find non-existent test cases
 while read _case; do
-	[[ "$_case" != ${prefix}* ]] && continue
+	if [[ "$_case" != ${prefix}* ]]; then
+		continue
+	fi
 
 	case=${_case/#$prefix/}
 	[[ -f $repodir/$case/Makefile && -f $repodir/$case/runtest.sh ]] || {
