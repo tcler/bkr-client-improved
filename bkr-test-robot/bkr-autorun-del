@@ -25,13 +25,20 @@ set OptionList {
 	{a aborted}  {arg n	help {only delete the "(aborted)" jobs}}
 	{n nil}      {arg n	help {only delete the "(nil)" jobs}}
 	delpkg       {arg n	help {delete all tests that along the pkg and all related run info}}
+	delcase      {arg y	help {delete test cases in database}}
   }
 }
 set deltype run
 
 proc Usage {progname} {
-	puts "Usage: $progname <pkgname> <autotest name> \[options\]"
-	puts "Usage: $progname <pkgname> -delpkg"
+	puts "\
+Usage:
+  $progname <pkgname> <autotest name> \[options\]
+  $progname <pkgname> -delpkg
+  $progname -delcase <testcase>
+Example:
+  $progname -delcase %/nfs/regression/bz1007039,%/nfs/regression/bz1010038
+"
 
 	getUsage $::OptionList
 	puts "Info: You can use bkr-autorun-stat --lsrun to list all autotest name"
@@ -39,26 +46,28 @@ proc Usage {progname} {
 
 # _parse_ argument
 getOptions $OptionList $::argv Opt InvalidOpt Args
-puts "Debug: Args{$Args}"
-parray InvalidOpt
-parray Opt
-
 if [info exist Opt(help)] {
 	Usage $argv0
 	exit 0
 }
 
-if {[llength $Args] < 1} {
-	Usage $argv0
-	exit 1
-}
+puts "Debug: Args{$Args}"
+parray InvalidOpt
+parray Opt
 
 set pkgName {}
 if [info exist Opt(delpkg)] {
 	set deltype pkg
 }
+if [info exist Opt(delcase)] {
+	set deltype case
+}
 
 if {$deltype == "run" && [llength $Args] < 2} {
+	Usage $argv0
+	exit 1
+}
+if {$deltype == "pkg" && [llength $Args] < 1} {
 	Usage $argv0
 	exit 1
 }
@@ -78,7 +87,11 @@ if [info exists Opt(n)] {
 if [info exists Opt(y)] {
 	set ans {y}
 } else {
-	puts "Will Delete *${toDel}* Jobs of {${Distro_Gset}}/$pkgName"
+	if {$deltype == "case"} {
+		puts "Will Delete all tests related the test cases"
+	} else {
+		puts "Will Delete *${toDel}* Jobs of {${Distro_Gset}}/$pkgName"
+	}
 	puts -nonewline "***(Are you sure)\[y/n\] "
 	flush stdout
 	gets stdin ans
@@ -135,6 +148,22 @@ if {[string match -nocase y* $ans]} {
 			db eval "DELETE FROM testinfo
 				WHERE pkgName = '$pkgName'
 			"
+		}
+	}
+	if {$deltype == "case"} {
+		set testList [split $Opt(delcase) ", "]
+		db transaction {
+			foreach testcasename $testList {
+				puts "delete case ${testcasename}%"
+				if {$testcasename == ""} continue
+				db eval "DELETE FROM testrun
+					WHERE testid in (
+						select testid
+						from testinfo
+						where testrun.testid = testinfo.testid and testinfo.test LIKE '${testcasename}%'
+					)
+				"
+			}
 		}
 	}
 }
