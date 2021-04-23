@@ -44,7 +44,7 @@ install install_runtest: _isroot install_kiss_vm_ns
 
 install_kiss_vm_ns:
 	@rm -rf kiss-vm-ns
-	@git clone https://github.com/tcler/kiss-vm-ns
+	@export https_proxy=squid.redhat.com:8080; git clone https://github.com/tcler/kiss-vm-ns
 	@make -C kiss-vm-ns
 	@rm -rf kiss-vm-ns
 
