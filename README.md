@@ -79,8 +79,6 @@ Notes:
 	- `getLatestRHEL`: get the latest distro name which can install in beaker
 	- `searchBrewBuild/brewinstall.sh`: search/download&install package build from brew
 	- `parse_netqe_nic_info.sh`: Get network-qe special machines by NIC driver/model/num/...
-	- `vm`: create/list/login/exec/delete/edit qemu-kvm virtual machine
-	- `ns`: create/list/exec/delete systemd-nspawn container
 
       (Check utils dir to get more)
 

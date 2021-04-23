@@ -193,4 +193,8 @@ mkdir -p $dbRoot/$rpmdb
 UpdateDB "$@"
 
 # rsync to public server
-# su luser bash -c "rsync -av --update $dbRoot/$rpmdb/ <kuser>@file.<path>.redhat.com:/export/engineering_qa/rhts/lookaside/distro-rpmsdata"
+#_path=/export/engineering_qa/rhts/lookaside
+#_downhost="shell.lab.bos.fedora hat.com"; downhost=${_downhost/fedora /red}
+#su yjh bash -c "rsync -av --update $dbRoot/$rpmdb/ jiyin@${downhost}:${_path}/distro-rpmsdata"
+#su yjh bash -c "ssh jiyin@${downhost} 'cd ${_path}/kiss-vm-ns/; git pull --rebase'"
+#su yjh bash -c "ssh jiyin@${downhost} 'cd ${_path}/bkr-client-improved/; git pull --rebase'"
