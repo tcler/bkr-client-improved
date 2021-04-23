@@ -163,6 +163,9 @@ if {[string match -nocase y* $ans]} {
 						where testrun.testid = testinfo.testid and testinfo.test LIKE '${testcasename}%'
 					)
 				"
+				db eval "DELETE FROM testinfo
+					WHERE test LIKE '${testcasename}%'
+				"
 			}
 		}
 	}
