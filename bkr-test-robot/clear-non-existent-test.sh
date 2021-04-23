@@ -18,6 +18,8 @@ prefix=${2}
 
 ## find non-existent test cases
 while read _case; do
+	[[ "$_case" != ${prefix}* ]] && continue
+
 	case=${_case/#$prefix/}
 	[[ -f $repodir/$case/Makefile && -f $repodir/$case/runtest.sh ]] || {
 		echo "non-exist: $case"
