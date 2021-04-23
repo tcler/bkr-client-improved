@@ -23,6 +23,7 @@ set OptionList {
 	{help h}   {arg n	help {Print this usage}}
 	{lsjob j}  {arg n	help {list the job}}
 	{lsrun r}  {arg n	help {list the run}}
+	{lstest t} {arg n	help {list the test}}
 	{lsprogress p s} {}
 	{lsres}    {arg n	help {list test res, for diff}}
 	{db}       {arg y	help {db file}}
@@ -53,6 +54,15 @@ if {[info exist Opt(db)] && $Opt(db) != ""} {
 
 sqlite3 db $dbfile
 db timeout 6000
+#===============================================================================
+if [info exist Opt(lstest)] {
+	set testQ "select DISTINCT ti.test from testinfo ti"
+	foreach test [db eval $testQ] {
+		puts $test
+	}
+	exit 0
+}
+
 #===============================================================================
 set pkgQ "select DISTINCT ti.pkgName from testinfo ti"
 set pkgList [db eval $pkgQ]
