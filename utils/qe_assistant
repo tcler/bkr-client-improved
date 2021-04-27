@@ -28,7 +28,11 @@ ircMagenta=$'\x03'13
 ircGray=$'\x03'14
 ircLightGray=$'\x03'15
 
-grep -i -q "Sorry, I can't find distro" <<<"$line" && { line="${line} $nick"; }
+grep -i -q "Sorry, I can't find distro '" <<<"$line" && {
+	line=$(echo "${line}"|sed -r -e "s/.*Sorry, I can't find distro '(.+)'.*/\1/")
+	[[ "$line" = [0-9]* ]] && line=RHEL-$line
+	line="${line} $nick";
+}
 grep -i -q $nick <<<"$line" || exit
 
 [[ "${line,,}" =~ help ]] && {
