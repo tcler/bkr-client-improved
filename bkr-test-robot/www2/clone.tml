@@ -60,7 +60,7 @@ if {$permission != yes} {
 					set info [clock format [clock second] -format %Y-%m-%d]
 				} else {
 					foreach pkg $pkglist {
-						append info "[exec bash -c "vershow -p ^$pkg-\[0-9] -d ^$distro$|sed -n 2p"],"
+						append info "[exec bash -c "distro-compose -p ^$pkg-\[0-9] -d ^$distro$|sed -n 2p"],"
 					}
 				}
 				lappend gset -info=$info
