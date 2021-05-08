@@ -92,7 +92,7 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 	}
 
 	lassign $testkey issched igset
-	regexp {pkg(=|: )?([^ ,]+)} $testList _ignore _op pkg 
+	regexp {pkg(=|: )?([^ ,{}]+)} $testList _ignore _op pkg 
 	if {![info exist pkg] || $pkg == ""} {set pkg ?}
 
 	# Gen gset string
