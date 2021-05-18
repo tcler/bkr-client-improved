@@ -11,7 +11,8 @@ Usage() {
 }
 
 port_available() {
-	nc $1 $2 </dev/null &>/dev/null
+	#nc $1 $2 </dev/null &>/dev/null
+	nc $(grep -q -- '-z\>' < <(nc -h 2>&1) && echo -z) $1 $2 </dev/null &>/dev/null
 }
 
 # parse options
