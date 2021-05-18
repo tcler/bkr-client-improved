@@ -7,12 +7,9 @@ _confdir=/etc/bkr-client-improved
 completion_path=/usr/share/bash-completion/completions
 
 install install_runtest: _isroot install_kiss_vm_ns
-	@rpm -q redhat-lsb >/dev/null || yum install -y redhat-lsb #package that in default RHEL repo
-	@if [[ $$(lsb_release -si) != Fedora ]]; then \
+	@if [[ $$(rpm -E %rhel) != "%rhel" ]]; then \
 	  if ! rpm -q epel-release; then \
-	    [[ $$(uname -r) =~ ^2\.6\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm; \
-	    [[ $$(uname -r) =~ ^3\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm; :; \
-	    [[ $$(uname -r) =~ ^4\. ]] && rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm; :; \
+	    rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-$$(rpm -E %rhel).noarch.rpm; :; \
 	  fi; \
 	fi
 	@rpm -q beaker-client || utils/beaker-client_install.sh
@@ -20,10 +17,6 @@ install install_runtest: _isroot install_kiss_vm_ns
 	@rpm -q rhts-devel || { cp repos/beaker-harness.repo /etc/yum.repos.d/.; yum install -y restraint-rhts; }
 	@rpm -q tcl >/dev/null || yum install -y tcl #package that in default RHEL repo
 	@yum install -y tcllib #epel
-	@ rpm -q tcllib || yum install -y rpms/tcllib-1.19-2.el8.noarch.rpm #workaround for missing tcllib on RHEL-8
-	@if [[ $$(lsb_release -si) != Fedora ]]; then \
-	  libpath=$$(rpm -ql tcllib|egrep 'tcl8../tcllib-[.0-9]+$$'); ln -sf $${libpath} /usr/lib/$${libpath##*/}; \
-	fi
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
 	mkdir -p $(_confdir) && cp -f conf/*.example $(_confdir)/.
 	test -f $(_confdir)/bkr-runtest.conf || cp $(_confdir)/bkr-runtest.conf{.example,}
