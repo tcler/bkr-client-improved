@@ -33,6 +33,7 @@ grep -i -q "Sorry, I can't find distro '" <<<"$line" && {
 	[[ "$line" = [0-9]* ]] && line=RHEL-$line
 	line="${line} $nick";
 }
+
 grep -i -q $nick <<<"$line" || exit
 
 [[ "${line,,}" =~ help ]] && {
@@ -49,11 +50,13 @@ usage2: pkg <pkg_name_list> <distro_name_list>   $nick # check default package v
 }
 
 for word in ${line//,/ }; do
+	[[ ${word,,} =~ ^:(rhel|fedora) ]] && word=${word#:}
+
 	case ${word,,} in
 	cc|${nick,,}*) :;;
 	[^a-zA-Z0-9^]*) :;;
 	pkg)        PKG=yes;;
-	rhel[-%]*)  distros+=(RHEL-${word:5});;
+	rhel-*)  distros+=(RHEL-${word:5});;
 	fedora-*)   distros+=(Fedora-${word:7});;
 	*) [[ ${#word} -ge 2 ]] && pkgs+=($word);;
 	esac
