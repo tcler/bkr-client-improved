@@ -16,12 +16,10 @@ installBrew2() {
 	"
 
 	yum install -y redhat-lsb-core &>/dev/null
-	local name=$(lsb_release -sir|awk '{print $1}')
-	local verx=$(lsb_release -sr|awk -F. '{print $1}')
+	local verx=$(rpm -E %rhel)
 
 	pushd /etc/yum.repos.d
-	case $name in
-	RedHatEnterprise*|CentOS*)
+	if [[ $(rpm -E %rhel) != %rhel ]]; then
 		case $verx in
 		[56])
 			for type in server client workstation; do
@@ -48,12 +46,10 @@ installBrew2() {
 				https://kojipkgs.fedoraproject.org//packages/koji/1.23.0/2.fc33/noarch/python3-koji-1.23.0-2.fc33.noarch.rpm \
 				$_url/$_rpm
 		esac
-		;;
-	Fedora*)
+	elif [[ $(rpm -E %fedora) != %fedora ]]; then
 		curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
 		yum install -y koji brewkoji || rm rcm-tools-*.repo
-		;;
-	esac
+	fi
 	popd
 
 	which brew &>/dev/null
