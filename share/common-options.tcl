@@ -126,6 +126,7 @@ set CommonOptionList {
 				e.g: --Brew=\$brew_build_name                    #install according brew build name
 				e.g: --Brew=nfs:\$nfsserver:/path/to/rpms/a.rpm  #install specified rpm from nfs
 				e.g: --Brew=nfs:\$nfsserver:/path/to/rpms/       #install all rpms in nfs share
+				e.g: --Brew=repo:\$reponame,baseurl              #install all rpms in yum repo \$reponame
 				e.g: --Brew=https://host/path/to/rpms/b.rpm      #install specified rpm from https/http/ftp
 				e.g: --Brew=https://host/path/to/rpms/           #install all rpms in web path https/http/ftp
 				e.g: --Brew=lstdtk             #install latest brew dt kernel
