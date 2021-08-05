@@ -311,13 +311,13 @@ rpms)
 	run "rpm -Uvh --force --nodeps *.rpm" -
 	;;
 yum)
-	run "yum install -y --nogpgcheck *.rpm" -
+	run "yum install -y --nogpgcheck --setopt=keepcache=1 *.rpm" -
 	;;
 rpm)
 	for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
 	;;
 *)
-	run "yum install -y --nogpgcheck *.rpm" - ||
+	run "yum install -y --nogpgcheck --setopt=keepcache=1 *.rpm" - ||
 		run "rpm -Uvh --force --nodeps *.rpm" -
 esac
 
