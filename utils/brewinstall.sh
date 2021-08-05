@@ -49,6 +49,7 @@ Usage() {
 	 $P kernel-4.18.0-147.8.el8    # brew build name
 	 $P [ftp|http]://url/xyz.rpm   # install xyz.rpm
 	 $P nfs:server/nfsshare        # install all rpms in nfsshare
+	 $P repo:rname,url             # install all rpms in repo rname
 	 $P lstk                       # install latest release kernel
 	 $P lstk -debuginfo            # install latest release kernel and it's -debuginfo package
 	 $P lstk -debugk               # install latest release debug kernel
@@ -229,6 +230,12 @@ for build in "${builds[@]}"; do
 				run "cp -f $nfsmp/$exportdir/*.${a}.rpm ."
 		done
 		run "umount $nfsmp" -
+	elif [[ "$build" =~ ^repo: ]]; then
+		repopath=${build#repo:}
+		read reponame url <<< "${repopath/,/ }"
+		rpms=$(yum  --disablerepo=* --repofrompath=$repopath  rq $reponame \* 2>/dev/null)
+		yum install -y perl python3 binutils iproute-tc nmap-ncat perf
+		yum --disablerepo=* --repofrompath=$repopath repo-pkgs $reponame install $rpms --downloadonly -y --nogpgcheck --destdir=.
 	elif [[ "$build" =~ ^(ftp|http|https):// ]]; then
 		for url in $build; do
 			if [[ $url = *.rpm ]]; then
