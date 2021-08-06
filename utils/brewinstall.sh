@@ -87,6 +87,31 @@ install_brew() {
 	}
 }
 
+download_pkgs_from_repo() {
+	local repopath=$1
+	local reponame=
+	local url=
+	local rpms=
+
+	if [[ "$repopath" =~ ^(ftp|http|https):// ]]; then
+		repopath=repo-$RANDOM,$repopath
+	fi
+
+	read reponame url <<< "${repopath/,/ }"
+
+	#get package list from repo
+	rpms=$(yum  --disablerepo=* --repofrompath=$repopath  rq $reponame \* 2>/dev/null)
+	if [[ -z "$rpms" ]]; then
+		return 1
+	fi
+
+	#install dependency
+	yum install -y perl python3 binutils iproute-tc nmap-ncat perf
+
+	#download package list
+	yum --disablerepo=* --repofrompath=$repopath repo-pkgs $reponame install $rpms --downloadonly -y --nogpgcheck --destdir=.
+}
+
 # parse options
 builds=()
 for arg; do
@@ -231,11 +256,7 @@ for build in "${builds[@]}"; do
 		done
 		run "umount $nfsmp" -
 	elif [[ "$build" =~ ^repo: ]]; then
-		repopath=${build#repo:}
-		read reponame url <<< "${repopath/,/ }"
-		rpms=$(yum  --disablerepo=* --repofrompath=$repopath  rq $reponame \* 2>/dev/null)
-		yum install -y perl python3 binutils iproute-tc nmap-ncat perf
-		yum --disablerepo=* --repofrompath=$repopath repo-pkgs $reponame install $rpms --downloadonly -y --nogpgcheck --destdir=.
+		download_pkgs_from_repo ${build#repo:}
 	elif [[ "$build" =~ ^(ftp|http|https):// ]]; then
 		for url in $build; do
 			if [[ $url = *.rpm ]]; then
