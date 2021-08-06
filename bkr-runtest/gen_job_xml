@@ -826,13 +826,13 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 				set brewBuildList ""
 				if {[info exist Opt(dbgk)] && $NVR in {"" "{}"}} {
-					lappend brewBuildList "-debugk"
+					append brewBuildList "-debugk "
 				}
 				if [info exist Opt(Brew)] {
-					foreach build $Opt(Brew) { lappend brewBuildList {*}$build }
+					foreach build $Opt(Brew) { append brewBuildList $build " " }
 				}
 				if [info exist Opt(brew)] {
-					lappend brewBuildList {*}[lindex $Opt(brew) $R]
+					append brewBuildList [lindex $Opt(brew) $R] " "
 				}
 				if {[llength $brewBuildList] > 0} {
 					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList}"
