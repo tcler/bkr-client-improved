@@ -109,7 +109,8 @@ download_pkgs_from_repo() {
 	yum install -y perl python3 binutils iproute-tc nmap-ncat perf
 
 	#download package list
-	yum --disablerepo=* --repofrompath=$repopath repo-pkgs $reponame install $rpms --downloadonly -y --nogpgcheck --destdir=.
+	yum --disablerepo=* --repofrompath=$repopath repo-pkgs $reponame install $rpms \
+		--downloadonly --skip-broken -y --nogpgcheck --destdir=.
 }
 
 # parse options
