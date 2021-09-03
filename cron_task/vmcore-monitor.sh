@@ -75,10 +75,11 @@ while read owner jobid_host; do
 		echo -e "\n\n:  vmcore files:"
 		for coref in $(find $dn -name vmcore -type f); do
 			access=$(stat -c  %A  $coref)
-			[[ ${access:7:1} != r ]] && chmod a+r $coref
+			[[ ${access:7:1} != r ]] && chmod a+r ${coref%/*}/*
 
-			echo -e ":      $urlroot/$coref"
-			[[ -f $coref-dmesg.txt ]] && echo -e ":      $urlroot/$coref-dmesg.txt"
+			urlpath=$(urlencode -m $coref)
+			echo -e ":      $urlroot/$urlpath"
+			[[ -f $coref-dmesg.txt ]] && echo -e ":      $urlroot/$urlpath-dmesg.txt"
 			echo
 		done
 	done
