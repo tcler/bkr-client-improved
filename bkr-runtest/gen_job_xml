@@ -116,7 +116,7 @@ if {[info exist Opt(opt-alias)] && $Opt(opt-alias) != ""} {
 	if [file isfile ${option-alias-path}] {
 		set aliasf ${option-alias-path}
 	} else {
-		exec bash -c "wget -q ${option-alias-path} -O ${aliasf}"
+		exec bash -c "wget -q --no-proxy ${option-alias-path} -O ${aliasf}"
 	}
 	source ${aliasf}
 	set idx [lindex [lsearch -all -regexp $ARGV {-(opt|hr)-alias(=.*)?$}] end]
