@@ -17,6 +17,9 @@ install install_runtest: _isroot install_kiss_vm_ns
 	@rpm -q rhts-devel || { cp repos/beaker-harness.repo /etc/yum.repos.d/.; yum install -y restraint-rhts; }
 	@rpm -q tcl >/dev/null || yum install -y tcl #package that in default RHEL repo
 	@yum install -y tcllib #epel
+	@-! tclsh <<<"lappend ::auto_path $(_lib) /usr/lib64; package require tdom" 2>&1|grep -q 'can.t find' || \
+{ yum install -y tdom; \
+rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
 	mkdir -p $(_confdir) && cp -f conf/*.example $(_confdir)/.
 	test -f $(_confdir)/bkr-runtest.conf || cp $(_confdir)/bkr-runtest.conf{.example,}
@@ -37,6 +40,7 @@ install install_runtest: _isroot install_kiss_vm_ns
 
 install_kiss_vm_ns:
 	@rm -rf kiss-vm-ns
+	@command -v git || yum install -y git
 	@export https_proxy=squid.redhat.com:8080; git clone https://github.com/tcler/kiss-vm-ns
 	@make -C kiss-vm-ns
 	@rm -rf kiss-vm-ns
@@ -47,7 +51,7 @@ install_robot: _isroot install_runtest _install_require
 	#install test robot
 	cd bkr-test-robot; for f in *; do [ -d $$f ] && continue; cp -fd $$f $(_bin)/$$f; done
 
-_install_web: _isroot _install_tclsh8.6
+_install_web: _isroot
 	#install webfront
 	[ -d /opt/wub2 ] || { \
 	yum install -y svn nmap-ncat &>/dev/null; \
@@ -60,21 +64,16 @@ _install_web: _isroot _install_tclsh8.6
 	@chmod o+w /opt/wub2/CA
 	@chmod u+s /usr/local/bin/trms-service.sh
 
-_install_tclsh8.6: _isroot
-	@which tclsh8.6 || { ./utils/tcl8.6_install.sh; }
-
 _install_require: _isroot
 	@sed -i '/^Defaults *secure_path/{/.usr.local.bin/! {s; *$$;:$(_bin);}}' /etc/sudoers
 	@rpm -q tcl-devel >/dev/null || yum install -y tcl-devel #package that in default RHEL repo
 	@rpm -q sqlite >/dev/null || yum install -y sqlite #package that in default RHEL repo
 	@rpm -q sqlite-tcl >/dev/null || { yum install -y sqlite-tcl; exit 0; } #package that in default RHEL repo
-	@-! tclsh <<<"lappend ::auto_path $(_lib) /usr/lib64; package require tdom" 2>&1|grep -q 'can.t find' || \
-{ yum install -y tdom; \
-rpm -q tdom &>/dev/null || yum install -y rpms/tdom-0.8.2-27.el8.x86_64.rpm; \
-rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
 
 _isroot:
 	@test `id -u` = 0 || { echo "[Warn] need root permission" >&2; exit 1; }
+	@test `rpm -E %fedora` = [0-9]* || test `rpm -E %rhel` -ge 8 || \
+		{ echo "[Warn] only support Fedora and RHEL-8+" >&2; exit 1; }
 
 rpm: _isroot
 	./build_rpm.sh
