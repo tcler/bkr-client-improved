@@ -15,6 +15,10 @@ is_intranet && {
 
 # install brew
 which brew &>/dev/null || {
+	if [[ $(id -u) != 0 ]]; then
+		echo "{WARN} command brew is required, please exec 'sudo brewkoji_install.sh' at first" >&2
+		exit 1
+	fi
 	which brewkoji_install.sh || {
 		_url=$baseDownloadUrl/utils/brewkoji_install.sh
 		mkdir -p ~/bin && wget -O ~/bin/brewkoji_install.sh -N -q $_url
