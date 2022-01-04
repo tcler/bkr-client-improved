@@ -99,9 +99,27 @@ download_pkgs_from_repo() {
 
 	read reponame url <<< "${repopath/,/ }"
 
+	verx=$(rpm -E %rhel)
+	if [[ "$verx" -le 7 ]]; then
+		yum install -y yum-utils &>/dev/null
+		cat <<-REPO >/etc/yum.repos.d/${reponame}.repo
+		[$reponame]
+		name=$reponame
+		baseurl=$url
+		enabled=1
+		gpgcheck=0
+		skip_if_unavailable=1
+		REPO
+	fi
+
 	#get package list from repo
-	rpms=$(yum  --disablerepo=* --repofrompath=$repopath  rq $reponame \* 2>/dev/null)
+	if [[ "$verx" -le 7 ]]; then
+		rpms=$(repoquery --repoid=$reponame -a)
+	else
+		rpms=$(yum  --disablerepo=* --repofrompath=$repopath  rq $reponame \* 2>/dev/null)
+	fi
 	if [[ -z "$rpms" ]]; then
+		echo "{WARN} get rpms from repo($reponame) fail" >&2
 		return 1
 	fi
 
@@ -109,8 +127,25 @@ download_pkgs_from_repo() {
 	yum install -y perl python3 binutils iproute-tc nmap-ncat perf
 
 	#download package list
-	yum --disablerepo=* --repofrompath=$repopath repo-pkgs $reponame install $rpms \
-		--downloadonly --skip-broken -y --nogpgcheck --destdir=.
+	: <<-COMM
+	if [[ "$verx" -le 7 ]]; then
+		yum --disablerepo=* repo-pkgs $reponame install $rpms \
+			--downloadonly --skip-broken -y --nogpgcheck --downloaddir=.
+	else
+		yum --disablerepo=* --repofrompath=$repopath repo-pkgs $reponame install $rpms \
+			--downloadonly --skip-broken -y --nogpgcheck --destdir=.
+	fi
+	COMM
+
+	if [[ "$verx" -le 7 ]]; then
+		urls=$(yumdownloader --url --disablerepo=* --enablerepo=$reponame \*)
+	else
+		urls=$(yum download --url --disablerepo=* --repofrompath=$repopath \*)
+	fi
+
+	for url in $urls; do
+		wget $url 2>/dev/null
+	done
 }
 
 # parse options
