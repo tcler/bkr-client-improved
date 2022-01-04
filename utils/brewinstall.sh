@@ -112,6 +112,10 @@ download_pkgs_from_repo() {
 		REPO
 	fi
 
+	: <<-COMM
+	#install dependency
+	yum install -y perl python3 binutils iproute-tc nmap-ncat perf
+
 	#get package list from repo
 	if [[ "$verx" -le 7 ]]; then
 		rpms=$(repoquery --repoid=$reponame -a)
@@ -123,11 +127,7 @@ download_pkgs_from_repo() {
 		return 1
 	fi
 
-	#install dependency
-	yum install -y perl python3 binutils iproute-tc nmap-ncat perf
-
 	#download package list
-	: <<-COMM
 	if [[ "$verx" -le 7 ]]; then
 		yum --disablerepo=* repo-pkgs $reponame install $rpms \
 			--downloadonly --skip-broken -y --nogpgcheck --downloaddir=.
