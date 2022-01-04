@@ -709,7 +709,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							puts {%post}
 							set i 0
 							foreach url $Opt(repo-post) {
-								puts "cat <<-EOF >/etc/yum.repos.d/beaker-kernel$i.repo
+								puts "cat <<-'EOF' >/etc/yum.repos.d/beaker-kernel$i.repo
 								\[beaker-kernel$i\]
 								name=beaker-kernel$i
 								baseurl=$url
