@@ -8,11 +8,12 @@ rpm -q beaker-client && {
 #__main__
 kuser=$1
 
-if grep -q NAME=Fedora /etc/os-release; then
+if egrep -q ^NAME=.?Fedora /etc/os-release; then
 	cat <<-'EOF' >/etc/yum.repos.d/beaker-client.repo
 	[beaker-client]
 	name=Beaker Client - Fedora$releasever
 	baseurl=http://download.lab.bos.redhat.com/beakerrepos/client/Fedora$releasever/
+	baseurl=http://download.devel.redhat.com/beakerrepos/client/Fedora$releasever
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
