@@ -72,7 +72,7 @@ _install_require: _isroot
 
 _isroot:
 	@test `id -u` = 0 || { echo "[Warn] need root permission" >&2; exit 1; }
-	@test `rpm -E %fedora` = [0-9]* || test `rpm -E %rhel` -ge 8 || \
+	@test `rpm -E %fedora` != %fedora || test `rpm -E '%rhel'` -ge 8 || \
 		{ echo "[Warn] only support Fedora and RHEL-8+" >&2; exit 1; }
 
 rpm: _isroot
