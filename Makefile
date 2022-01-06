@@ -51,7 +51,7 @@ install_robot: _isroot install_runtest _install_require
 	#install test robot
 	cd bkr-test-robot; for f in *; do [ -d $$f ] && continue; cp -fd $$f $(_bin)/$$f; done
 
-_install_web: _isroot
+_install_web: _isroot _web_require
 	#install webfront
 	[ -d /opt/wub2 ] || { \
 	yum install -y svn nmap-ncat &>/dev/null; \
@@ -72,6 +72,8 @@ _install_require: _isroot
 
 _isroot:
 	@test `id -u` = 0 || { echo "[Warn] need root permission" >&2; exit 1; }
+
+_web_require:
 	@test `rpm -E %fedora` != %fedora || test `rpm -E '%rhel'` -ge 8 || \
 		{ echo "[Warn] only support Fedora and RHEL-8+" >&2; exit 1; }
 
