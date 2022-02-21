@@ -104,6 +104,7 @@ includedir /etc/krb5.conf.d/
 
 #DO NOT ADD A [domain_realms] section
 #https://mojo.redhat.com/docs/DOC-1166841
+#https://source.redhat.com/groups/public/identity-access-management/identity__access_management_wiki/how_to_kerberos_realm_referrals
 EOF
 
 yum install -y krb5-workstation
