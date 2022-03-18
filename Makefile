@@ -15,7 +15,7 @@ install install_runtest: _isroot install_kiss_vm_ns
 	@rpm -q beaker-client || utils/beaker-client_install.sh
 	@yum install -y rhts-devel
 	@rpm -q rhts-devel || { cp repos/beaker-harness.repo /etc/yum.repos.d/.; yum install -y restraint-rhts; }
-	@rpm -q tcl >/dev/null || yum install -y tcl #package that in default RHEL repo
+	@rpm -q expect >/dev/null || yum install -y expect #package that in default RHEL repo
 	@yum install -y tcllib #epel
 	@-! tclsh <<<"lappend ::auto_path $(_lib) /usr/lib64; package require tdom" 2>&1|grep -q 'can.t find' || \
 { yum install -y tdom; \
