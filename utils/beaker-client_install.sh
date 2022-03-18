@@ -71,7 +71,7 @@ cat <<-'EOF' >/etc/krb5.conf
 includedir /etc/krb5.conf.d/
 
 [libdefaults]
-  default_realm = REDHAT.COM
+  default_realm = IPA.REDHAT.COM
   dns_lookup_realm = true
   dns_lookup_kdc = true
   rdns = false
