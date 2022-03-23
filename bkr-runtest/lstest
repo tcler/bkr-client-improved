@@ -68,12 +68,12 @@ _caseInfo() {
 	pushd $casepath >/dev/null;
 	subtestf=${subtestf:-subtest.yml}
 	if [[ "$CONV" = yes ]]; then
-		if [[ -f "$subtestf" ]]; then
+		if test -f "$subtestf" && ! yq_linux_amd64 "$subtestf" &>/dev/null; then
 			local newfmt=$(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- {/; s/$/}/}' "$subtestf"|
 				yq_linux_amd64 -P)
 			[[ -n "$newfmt" ]] && echo "$newfmt" >"$subtestf"
-			return
 		fi
+		return
 	fi
 
 	unlink $infofile 2>/dev/null
