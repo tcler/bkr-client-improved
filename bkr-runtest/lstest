@@ -70,7 +70,7 @@ _caseInfo() {
 	if [[ "$CONV" = yes ]]; then
 		if [[ -f "$subtestf" ]]; then
 			local newfmt=$(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- {/; s/$/}/}' "$subtestf"|
-				yq -P)
+				yq_linux_amd64 -P)
 			[[ -n "$newfmt" ]] && echo "$newfmt" >"$subtestf"
 			return
 		fi
@@ -152,7 +152,7 @@ _caseInfo() {
 
 	if [[ -f "$subtestf" ]]; then
 		if egrep -q '^- \{?(attr|param|setup):' "$subtestf"; then
-			subtests_yml=$(yq '.[] style="flow"' "$subtestf"|sed -rn '/- \{/{s///; s/\}$//; p}')
+			subtests_yml=$(yq_linux_amd64 '.[] style="flow"' "$subtestf"|sed -rn '/- \{/{s///; s/\}$//; p}')
 		else
 			subtests_yml=$(egrep -h '^[[:space:]]*(attr|param|setup):' "$subtestf" 2>/dev/null)
 		fi
