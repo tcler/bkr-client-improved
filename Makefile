@@ -6,7 +6,7 @@ _share=/usr/share/bkr-client-improved
 _confdir=/etc/bkr-client-improved
 completion_path=/usr/share/bash-completion/completions
 
-install install_runtest: _isroot install_kiss_vm_ns
+install install_runtest: _isroot yqinstall
 	@if [[ $$(rpm -E %rhel) != "%rhel" ]]; then \
 	  if ! rpm -q epel-release; then \
 	    rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-$$(rpm -E %rhel).noarch.rpm; :; \
@@ -37,6 +37,14 @@ rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
 	cp -fd bash-completion/* ${completion_path}/.||cp -fd bash-completion/* $${completion_path/\/*/}/.
 	@rm -f /usr/lib/python2.7/site-packages/bkr/client/commands/cmd_recipes_list.py $(_bin)/distro-pkg #remove old file
 	@rm -f $(_bin)/{distro-to-vm.sh,downloadBrewBuild,installBrewPkg} #remove old file
+
+yqinstall: _isroot
+	mkdir -p yq
+	wget -q https://github.com/mikefarah/yq/releases/download/v4.23.1/yq_linux_amd64.tar.gz -O yq/yq.tgz
+	tar -C yq -zxf yq/yq.tgz
+	cp yq/yq_linux_amd64 /usr/bin/.
+	cp yq/yq.1 /usr/share/man/man1/.
+	rm -rf yq
 
 install_kiss_vm_ns:
 	@rm -rf kiss-vm-ns

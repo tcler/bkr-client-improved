@@ -66,6 +66,15 @@ _caseInfo() {
 	[ -d "$casepath" ] || { echo "{warn} dir [$casepath] not exist." >&2; return; }
 
 	pushd $casepath >/dev/null;
+	subtestf=${subtestf:-subtest.yml}
+	if [[ "$CONV" = yes ]]; then
+		if [[ -f "$subtestf" ]]; then
+			local newfmt=$(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- {/; s/$/}/}' "$subtestf"|
+				yq -P)
+			[[ -n "$newfmt" ]] && echo "$newfmt" >"$subtestf"
+			return
+		fi
+	fi
 
 	unlink $infofile 2>/dev/null
 	make $infofile &>/dev/null
@@ -141,9 +150,12 @@ _caseInfo() {
 	subtests_generator="gen_subtest.sh"
 	[ -x $subtests_generator ] && sh $subtests_generator
 
-	subtestf=${subtestf:-subtest.yml}
 	if [[ -f "$subtestf" ]]; then
-		subtests_yml=$(egrep -h '^[[:space:]]*(attr|param|setup):' "$subtestf" 2>/dev/null)
+		if egrep -q '^- \{?(attr|param|setup):' "$subtestf"; then
+			subtests_yml=$(yq '.[] style="flow"' "$subtestf"|sed -rn '/- \{/{s///; s/\}$//; p}')
+		else
+			subtests_yml=$(egrep -h '^[[:space:]]*(attr|param|setup):' "$subtestf" 2>/dev/null)
+		fi
 	fi
 
 	if [[ "$FORMAT" = raw ]] || [[ -z "$subtests_yml" ]]; then
@@ -240,6 +252,7 @@ _at=`getopt -o hrt:e:: \
 	--long help \
 	--long raw \
 	--long fmt: \
+	--long conv \
     -a -n "$P" -- "$@"`
 eval set -- "$_at"
 
@@ -250,6 +263,7 @@ while true; do
 	--fmt)          FORMAT=$2; shift 2;;
 	-t)		maxtime=$2; shift 2;;
 	-e)		E=yes; setupConf=$2; shift 2;;
+	--conv)		CONV=yes; shift 1;;
 	--) shift; break;;
 	esac
 done
