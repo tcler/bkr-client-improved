@@ -12,7 +12,7 @@ install_bkr_client_improved() {
 
 _confdir=/etc/bkr-client-improved
 tmpf=$(mktemp)
-wget -qO- http://api.github.com/repos/tcler/kiss-vm-ns/commits/master -O $tmpf
+wget -qO- http://api.github.com/repos/tcler/bkr-client-improved/commits/master -O $tmpf
 if cmp $tmpf $_confdir/version 2>/dev/null; then
 	echo "[Info] you are using the latest version"
 else
