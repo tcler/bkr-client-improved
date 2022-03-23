@@ -68,9 +68,22 @@ _caseInfo() {
 	pushd $casepath >/dev/null;
 	subtestf=${subtestf:-subtest.yml}
 	if [[ "$CONV" = yes ]]; then
+		local newfmt=
 		if test -f "$subtestf" && ! yq_linux_amd64 "$subtestf" &>/dev/null; then
-			local newfmt=$(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- {/; s/$/}/}' "$subtestf"|
-				yq_linux_amd64 -P)
+			#[[ $(wc -L <"$subtestf") -gt 188 ]] &&
+			#	newfmt=$(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- {/; s/$/}/}' "$subtestf" | yq_linux_amd64 -P | sed 's/^-/\n&/')
+			newfmt=$(while read line; do
+				if [[ "${#line}" -eq 0 || "${line}" =~ [\ ]*#.* ]]; then
+					echo "${line}"
+				elif [[ "${#line}" -lt 144 ]]; then
+					echo "${line}"
+				elif [[ "${#line}" -lt 216 ]]; then
+					yq_linux_amd64 -P <<<"$line"|yq_linux_amd64 '.[].* style="flow"';
+				else
+					yq_linux_amd64 -P <<<"$line";
+				fi
+			done < <(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- \{/; s/$/\}/}' "$subtestf")
+			)
 			[[ -n "$newfmt" ]] && echo "$newfmt" >"$subtestf"
 		fi
 		return
