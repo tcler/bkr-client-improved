@@ -28,18 +28,20 @@ parse_subtest() {
 
 ymlhash() {
 	local k=$1 v=$2
+	local pat='[:, ]|\[|\]'
 	[[ -z "$k" ]] && return
 	v=${v:-?}
 
-	[[ $k =~ [:,[] ]] && k="'$k'"
-	[[ $v =~ [:,[] ]] && v="'$v'"
+	[[ $k =~ $pat ]] && k=\""${k}"\"
+	[[ $v =~ $pat ]] && v=\""${v}"\"
 	echo -n "${k}: $v, "
 }
 ymllist() {
 	local e=$1
+	local pat='[:, ]|\[|\]'
 	[[ -z "$e" ]] && return
 
-	[[ $e =~ [:,] ]] && e="'$e'"
+	[[ $e =~ $pat ]] && e=\""${e}"\"
 	echo -n "$e, "
 }
 
