@@ -38,7 +38,7 @@ rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
 	@yum install -y bash-completion
 	cp -fd bash-completion/* ${completion_path}/.||cp -fd bash-completion/* $${completion_path/\/*/}/.
 	@rm -f /usr/lib/python2.7/site-packages/bkr/client/commands/cmd_recipes_list.py $(_bin)/distro-pkg #remove old file
-	@rm -f $(_bin)/{distro-to-vm.sh,downloadBrewBuild,installBrewPkg} #remove old file
+	@rm -f $(_bin)/{distro-to-vm.sh,downloadBrewBuild,installBrewPkg,yaml2dict} #remove old file
 
 yqinstall: _isroot
 	@command -v yq_linux_amd64 || { \

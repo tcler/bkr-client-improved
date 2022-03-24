@@ -51,7 +51,6 @@ chmod u+s /usr/local/bin/trms-service.sh
 /etc/bkr-client-improved/bkr-runtest.conf
 /etc/bkr-client-improved/default-ks.cfg
 /usr/share/bkr-client-improved/common-options.tcl
-/usr/local/bin/args
 /usr/local/bin/availableHost.sh
 /usr/local/bin/bkr-hosts.sh
 /usr/local/bin/bkr-job-edit.sh
