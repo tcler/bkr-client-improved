@@ -100,7 +100,6 @@ chmod u+s /usr/local/bin/trms-service.sh
 /usr/local/bin/vershow
 /usr/local/bin/work-stat
 /usr/local/bin/xmlrpc-client.sh
-/usr/local/bin/yaml2dict
 /usr/local/bin/bkr-autorun-create
 /usr/local/bin/bkr-autorun-del
 /usr/local/bin/bkr-autorun-diff.sh

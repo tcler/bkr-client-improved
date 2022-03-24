@@ -5,27 +5,6 @@
 #
 # Author: jiyin@redhat.com
 
-parse_subtest() {
-	local ys="$*"
-	echo "$ys" | awk 'BEGIN {FS=""; P=0; S=0}
-	{
-		for(n=1;n<=NF;n++) {
-			if ($n==" " && $(n-1)==" " && P==0 && S==0)
-				continue
-			if ($n=="," && P==0 && S==0) {
-				print gensub("^ ", "", 1, s); s=""
-			} else {
-				s=s$n;
-				if(S==0 && $n=="\"" && $(n-1)!="\\")
-					P=(P+1)%2;
-				if(P==0 && $n=="'"'"'")
-					S=(S+1)%2
-			}
-		}
-	}
-	END {print gensub("^ ", "", 1, s)}'
-}
-
 ymlhash() {
 	local k=$1 v=$2
 	local pat='[:, ]|\[|\]'
@@ -165,9 +144,9 @@ _caseInfo() {
 
 	if [[ -f "$subtestf" ]]; then
 		if egrep -q '^- \{?(attr|param|setup):' "$subtestf"; then
-			subtests_yml=$(yq_linux_amd64 '.[] style="flow"' "$subtestf"|sed -rn '/- \{/{s///; s/\}$//; p}')
+			subtests_yml=$(yq_linux_amd64 '.[] style="flow"|... comments=""' "$subtestf")
 		else
-			subtests_yml=$(egrep -h '^[[:space:]]*(attr|param|setup):' "$subtestf" 2>/dev/null)
+			subtests_yml=$(sed -nr '/^[[:space:]]*(attr|param|setup):/ {s/^/- \{/; s/$/\}/; p}' "$subtestf")
 		fi
 	fi
 
@@ -183,47 +162,37 @@ _caseInfo() {
 		while read l; do
 			[[ -z "$l" ]] && continue
 
-			unset Attr2 Setup2
-			declare -A Attr2
-			Setup2=()
-
 			#update attr
 			for key in "${!Attr[@]}"; do
-				Attr2[$key]=${Attr[$key]}
+				oval=${Attr[$key]}
+				val=$(yq_linux_amd64 ".[0].attr.$key" <<<"$l")
+				if [[ $val = null ]]; then
+					l=$(yq_linux_amd64 ".[0].attr.$key=\"${oval}\"" <<<"$l")
+				fi
 			done
-			while read k; do
-				v=$(yaml2dict "$l" attr $k)
-				[[ $k = distroin && $v = "" ]] && v=NULL
-				[[ $k = disable && ($v = yes || $v = 1) ]] && continue 2
-				Attr2[$k]=$v
-			done < <(yaml2dict "$l" -keys attr)
-
-			_attr= _param= _setup=
-			# output as yaml format
-			_attr=$(echo -n "attr: {"; for e in "${!Attr2[@]}"; do ymlhash "$e" "${Attr2[$e]}"; done; echo -n "}")
-			_attr=${_attr//, \}/\}}
-
-			#get the param list
-			_param=$(echo "$l" | sed -rn '/param: /{s/.*(param: \[[^]]+]).*/\1/;p}')
-			[[ -n "$_param" ]] && _param=", "$_param
 
 			#get the setup list
-			[[ -n "${Setup[*]}" ]] && Setup2=("${Setup[@]}")
-			while read s; do
-				if [[ "$s" =~ topo= && "${Setup[*]}" =~ topo= ]]; then
-					for i in ${!Setup2[@]}; do
-						[[ "${Setup2[$i]}" =~ topo= ]] && Setup2[$i]=$s
+			if [[ ${#Setup[@]} -gt 0 ]]; then
+				local i j setupcnt okey
+				local setuplist=$(yq_linux_amd64 ".[0].setup.[]" <<<"$l")
+				setupcnt=$(wc -l <<<"$setuplist")
+				if [[ $setupcnt -eq 0 ]]; then
+					for i in ${!Setup[@]}; do
+						l=$(yq_linux_amd64 ".[0].setup.[$i]=\"${Setup[$i]}\"" <<<"$l")
 					done
 				else
-					Setup2+=("$s")
+					let j=setupcnt
+					for i in ${!Setup[@]}; do
+						okey=${Setup[$i]%%[= ]*}
+						if grep -q -- "$okey" <<<"$setuoList"; then
+							l=$(yq_linux_amd64 ".[0].setup.[$j]=\"${Setup[$i]}\"" <<<"$l")
+							let j++
+						fi
+					done
 				fi
-			done < <(yaml2dict "$l" setup)
-			[[ ${#Setup2[@]} > 0 ]] && {
-				_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do ymllist "$e"; done; echo -n "]")
-				_setup=${_setup/, ]/]}
-			}
+			fi
 
-			echo "- ${name}: {${_attr}${_param}${_setup}}"
+			echo "${l/-/- ${name}:}"
 		done <<<"$subtests_yml"
 	fi
 
