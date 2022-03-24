@@ -45,6 +45,7 @@ _caseInfo() {
 	[ -d "$casepath" ] || { echo "{warn} dir [$casepath] not exist." >&2; return; }
 
 	pushd $casepath >/dev/null;
+	[[ "$DEBUG" = yes ]] && echo $casepath >&2
 	subtestf=${subtestf:-subtest.yml}
 	if [[ "$CONV" = yes ]]; then
 		local newfmt=
@@ -230,7 +231,7 @@ FORMAT=std
 Usage() {
 	echo "Usage: $P [--raw | -e[expand_file] | -t <maxtime>] [\$dir ...]"
 }
-_at=`getopt -o hrt:e:: \
+_at=`getopt -o hdrt:e:: \
 	--long help \
 	--long raw \
 	--long fmt: \
@@ -243,6 +244,7 @@ while true; do
 	-h|--help)      Usage; shift 1; exit 0;;
 	-r|--raw)       FORMAT=raw; shift 1;;
 	--fmt)          FORMAT=$2; shift 2;;
+	-d)		DEBUG=yes; shift 1;;
 	-t)		maxtime=$2; shift 2;;
 	-e)		E=yes; setupConf=$2; shift 2;;
 	--conv)		CONV=yes; shift 1;;
