@@ -8,7 +8,6 @@ exec tclsh "$0" ${1+"$@"}
 # gen_job_xml --help for detail
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
-package require yaml
 package require json
 package require xmlgen
 package require getOpt 3.0
@@ -251,12 +250,11 @@ foreach T $TestList {
 	if {$test == "" || $test == "./"} continue
 	regsub -line {^-  *} $test {} test
 
-	set tdict [::yaml::yaml2dict $T]
-	set tname [lindex $tdict 0]
-	set tdict [lindex $tdict 1]
+	set tname [exec yq {.[0]|keys|.[0]} << $T]
+	set param [split [exec yq {.[].[].param.[]} << $T] "\n"]
 
-	if [dict exist $tdict param] {
-		lappend TaskList [concat $tname [dict get $tdict param] $GlobalParam]
+	if {$param != "null"} {
+		lappend TaskList [concat $tname $param $GlobalParam]
 	} else {
 		lappend TaskList [concat $tname $GlobalParam]
 	}

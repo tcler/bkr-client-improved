@@ -44,6 +44,7 @@ yqinstall: _isroot
 	@command -v yq_linux_amd64 || { \
 	mkdir -p yq; wget -q $(YQ_URL) && tar -C yq -zxf yq/yq.tgz; \
 	cp yq/yq_linux_amd64 /usr/bin/.; \
+	ln -f /usr/bin/yq_linux_amd64 /usr/bin/yq; \
 	cp yq/yq.1 /usr/share/man/man1/.; \
 	rm -rf yq; }
 

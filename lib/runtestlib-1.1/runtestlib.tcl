@@ -115,6 +115,7 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 	set testSummPrefix {}
 	foreach t $testList {
 		set tname [lindex $t 0]
+		if {$tname == "-"} {set tname [lindex $t 1]}
 		append tnameList " $tname"
 	}
 	set testSummPrefix [common_prefix $tnameList]

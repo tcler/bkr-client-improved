@@ -8,7 +8,6 @@ exec tclsh "$0" ${1+"$@"}
 #   call gen_job_xml generate xml files and submit them to beaker server.
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
-package require yaml
 package require getOpt 3.0
 package require runtestlib 1.1
 namespace import ::getOpt::* ::runtestlib::*
@@ -173,21 +172,12 @@ if {[llength $TestArgList]==0 && $_TestList == {}} {
 # test filters
 foreach test $_TestList {
 	#filter: skip unexpected stuff
-	set test [string trim $test]
-	if {[regexp -- {^#} $test] == 1} continue
-	if {$test == "" || $test == "./"} continue
-	regsub -line {^-  *} $test {} test
-
-	set tdict [lindex [::yaml::yaml2dict $test] 1]
-
-	if [dict exist $tdict attr disable] {
-		if {[dict get $tdict attr disable] ni {no 0}} continue
-	}
+	if {[exec yq {.[].[].attr.disable} << $test] ni {no 0 null}} continue
 
 	#filter: check distro blacklist
-	if [dict exist $tdict attr distronotin] {
+	set blacklist [exec yq {.[].[].attr.distronotin} << $test]
+	if {$blacklist != "null"} {
 		set match_black 0
-		set blacklist [dict get $tdict attr distronotin]
 		foreach pattern {*}$blacklist {
 			if [regexp $pattern [string map {family "RHEL-"} $Distro]] {
 				set match_black 1
@@ -201,9 +191,9 @@ foreach test $_TestList {
 	}
 
 	#filter: check distro whitelist
-	if [dict exist $tdict attr distroin] {
+	set whitelist [exec yq {.[].[].attr.distroin} << $test]
+	if {$whitelist != "null"} {
 		set match_white 0
-		set whitelist [dict get $tdict attr distroin]
 		foreach pattern {*}$whitelist {
 			if [regexp $pattern [string map {family "RHEL-"} $Distro]] {
 				set match_white 1
@@ -217,17 +207,14 @@ foreach test $_TestList {
 
 	#filter: check arch blacklist and whitelist
 	set _arch x86_64
-	if {[dict exist $tdict setup] || $SubcmdOpt != ""} {
-		set _setup {}
-		if [dict exist $tdict setup] {
-			set _setup [dict get $tdict setup]
-		}
+	set _setup [split [exec yq {.[].[].setup.[]} << $test] "\n"]
+	if {$_setup != "" || $SubcmdOpt != ""} {
 		regexp {.*arch=([^ ]+)} "$_setup $SubcmdOpt" _ignore _arch
 	}
 
 	set blacklist {}
-	if [dict exist $tdict attr archnotin] {set blacklist [dict get $tdict attr archnotin]}
-	if [dict exist $tdict attr noarch] {lappend blacklist [dict get $tdict attr noarch]}
+	set arch_blacklist [string map {"null" "" "\n" " "} [exec yq {.[].[].attr|(.archnotin,.noarch)} << $test]]
+	if {[string trim $arch_blacklist] != ""} {set blacklist [list {*}$arch_blacklist]}
 	if {$blacklist != ""} {
 		set match_black 0
 		foreach pattern {*}$blacklist {
@@ -243,8 +230,8 @@ foreach test $_TestList {
 	}
 
 	set whitelist {}
-	if [dict exist $tdict attr archin] {set whitelist [dict get $tdict attr archin]}
-	if [dict exist $tdict attr arch] {lappend whitelist [dict get $tdict attr arch]}
+	set arch_whitelist [string map {"null" "" "\n" " "} [exec yq {.[].[].attr|(.archin,.arch)} << $test]]
+	if {[string trim $arch_whitelist] != ""} {set whitelist [list {*}$arch_whitelist]}
 	if {$whitelist != ""} {
 		set match_white 0
 		foreach pattern {*}$whitelist {
@@ -270,14 +257,9 @@ if [info exist Opt(f)] {
 # Group the test list
 set sschedCnt 0
 foreach test $TestList {
-	set tdict [lindex [::yaml::yaml2dict $test] 1]
-
 	# get ssched
-	set _ssched no
-	if [dict exist $tdict attr ssched] {
-		set _ssched [dict get $tdict attr ssched]
-	}
-	if {$_ssched ni {no 0 ""}} {
+	set _ssched [exec yq {.[].[].attr.ssched} << $test]
+	if {$_ssched ni {"null" no 0 ""}} {
 		set _ssched "yes"
 	} else {
 		set _ssched "no"
@@ -285,11 +267,7 @@ foreach test $TestList {
 	set ssched "ssched=$_ssched"
 
 	# get setup
-	set setup {}
-	if [dict exist $tdict setup] {
-		set setup [dict get $tdict setup]
-	}
-
+	set setup [split [exec yq {.[].[].setup.[]} << $test] "\n"]
 	set key [list $ssched $setup]
 
 	if [info exist Opt(alone)] {regsub {ssched=no} $ssched {ssched=yes} ssched}
@@ -359,9 +337,9 @@ foreach {tkey tvalue} [array get TestGroup] {
 	set WB [genWhiteboard $Distro "$testGset $SubcmdOpt" $testList "$wbFormat" $wbComment]
 	if {[llength $testList] == 1} {
 		set test [lindex $testList 0]
-		set tdict [lindex [::yaml::yaml2dict $test] 1]
-		if [dict exist $tdict param] {
-			append WB "[dict get $tdict param]"
+		set _param [split [exec yq {.[].[].param.[]} << $test] "\n"]
+		if {$_param != ""} {
+			append WB "$_param"
 		}
 	}
 	if {[string length $SubcmdOpt]>0} {
