@@ -250,8 +250,8 @@ foreach T $TestList {
 	if {$test == "" || $test == "./"} continue
 	regsub -line {^-  *} $test {} test
 
-	set tname [exec yq {.[0]|keys|.[0]} << $T]
-	set param [split [exec yq {.[].[].param.[]} << $T] "\n"]
+	set tname [exec yq {keys|.[0]} << $test]
+	set param [split [exec yq {.[].param.[]} << $test] "\n"]
 
 	if {$param != "null"} {
 		lappend TaskList [concat $tname $param $GlobalParam]

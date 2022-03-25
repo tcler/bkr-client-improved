@@ -171,11 +171,12 @@ if {[llength $TestArgList]==0 && $_TestList == {}} {
 
 # test filters
 foreach test $_TestList {
-	#filter: skip unexpected stuff
-	if {[exec yq {.[].[].attr.disable} << $test] ni {no 0 null}} continue
+	regsub -line {^-  *} $test {} test
+
+	if {[exec yq {.[].attr.disable} << $test] ni {no 0 null}} continue
 
 	#filter: check distro blacklist
-	set blacklist [exec yq {.[].[].attr.distronotin} << $test]
+	set blacklist [exec yq {.[].attr.distronotin} << $test]
 	if {$blacklist != "null"} {
 		set match_black 0
 		foreach pattern {*}$blacklist {
@@ -191,7 +192,7 @@ foreach test $_TestList {
 	}
 
 	#filter: check distro whitelist
-	set whitelist [exec yq {.[].[].attr.distroin} << $test]
+	set whitelist [exec yq {.[].attr.distroin} << $test]
 	if {$whitelist != "null"} {
 		set match_white 0
 		foreach pattern {*}$whitelist {
@@ -207,13 +208,13 @@ foreach test $_TestList {
 
 	#filter: check arch blacklist and whitelist
 	set _arch x86_64
-	set _setup [split [exec yq {.[].[].setup.[]} << $test] "\n"]
+	set _setup [split [exec yq {.[].setup.[]} << $test] "\n"]
 	if {$_setup != "" || $SubcmdOpt != ""} {
 		regexp {.*arch=([^ ]+)} "$_setup $SubcmdOpt" _ignore _arch
 	}
 
 	set blacklist {}
-	set arch_blacklist [string map {"null" "" "\n" " "} [exec yq {.[].[].attr|(.archnotin,.noarch)} << $test]]
+	set arch_blacklist [string map {"null" "" "\n" " "} [exec yq {.[].attr|(.archnotin,.noarch)} << $test]]
 	if {[string trim $arch_blacklist] != ""} {set blacklist [list {*}$arch_blacklist]}
 	if {$blacklist != ""} {
 		set match_black 0
@@ -230,7 +231,7 @@ foreach test $_TestList {
 	}
 
 	set whitelist {}
-	set arch_whitelist [string map {"null" "" "\n" " "} [exec yq {.[].[].attr|(.archin,.arch)} << $test]]
+	set arch_whitelist [string map {"null" "" "\n" " "} [exec yq {.[].attr|(.archin,.arch)} << $test]]
 	if {[string trim $arch_whitelist] != ""} {set whitelist [list {*}$arch_whitelist]}
 	if {$whitelist != ""} {
 		set match_white 0
@@ -258,7 +259,7 @@ if [info exist Opt(f)] {
 set sschedCnt 0
 foreach test $TestList {
 	# get ssched
-	set _ssched [exec yq {.[].[].attr.ssched} << $test]
+	set _ssched [exec yq {.[].attr.ssched} << $test]
 	if {$_ssched ni {"null" no 0 ""}} {
 		set _ssched "yes"
 	} else {
@@ -267,7 +268,7 @@ foreach test $TestList {
 	set ssched "ssched=$_ssched"
 
 	# get setup
-	set setup [split [exec yq {.[].[].setup.[]} << $test] "\n"]
+	set setup [split [exec yq {.[].setup.[]} << $test] "\n"]
 	set key [list $ssched $setup]
 
 	if [info exist Opt(alone)] {regsub {ssched=no} $ssched {ssched=yes} ssched}
@@ -337,7 +338,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 	set WB [genWhiteboard $Distro "$testGset $SubcmdOpt" $testList "$wbFormat" $wbComment]
 	if {[llength $testList] == 1} {
 		set test [lindex $testList 0]
-		set _param [split [exec yq {.[].[].param.[]} << $test] "\n"]
+		set _param [split [exec yq {.[].param.[]} << $test] "\n"]
 		if {$_param != ""} {
 			append WB "$_param"
 		}
