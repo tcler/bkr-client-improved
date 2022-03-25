@@ -62,7 +62,7 @@ _caseInfo() {
 				else
 					yq_linux_amd64 -P <<<"$line";
 				fi
-			done < <(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- \{/; s/$/\}/}' "$subtestf")
+			done < <(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- \{/; s/(}|])( +#.*)?$/\1\}\2/}' "$subtestf")
 			)
 			[[ -n "$newfmt" ]] && echo "$newfmt" >"$subtestf"
 		fi
