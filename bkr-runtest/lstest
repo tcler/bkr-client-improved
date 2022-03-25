@@ -192,7 +192,8 @@ _caseInfo() {
 					done
 				fi
 			fi
-			l=$(yq_linux_amd64 "sort_keys(.[0])" <<<"$l")
+			#l=$(yq_linux_amd64 "sort_keys(.[])" <<<"$l")
+			l=$(yq_linux_amd64 "sort_keys(.[])|sort_keys(.[].attr)" <<<"$l")
 
 			echo "${l/-/- ${name}:}"
 		done <<<"$subtests_yml"
