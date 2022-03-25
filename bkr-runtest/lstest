@@ -94,7 +94,7 @@ _caseInfo() {
 	eval "$(egrep '^[[:space:]]*(export *)?PACKAGE(_NAME)?=[^ #]' -h * .* 2>/dev/null|sed 's;export;;')"
 	_pkg=${PACKAGE_NAME}
 	test -z "${_pkg}" && _pkg=${PACKAGE}
-	test -z "${_pkg}" && _pkg=Function
+	test -z "${_pkg}" && read _pkg _ <<<"${name//\// }"
 	Attr[pkg]=$_pkg
 
 	#get test attr: sepatate scheduling?
@@ -147,7 +147,7 @@ _caseInfo() {
 		if egrep -q '^- \{?(attr|param|setup):' "$subtestf"; then
 			subtests_yml=$(yq_linux_amd64 '.[] style="flow"|... comments=""' "$subtestf")
 		else
-			subtests_yml=$(sed -nr '/^[[:space:]]*(attr|param|setup):/ {s/^/- \{/; s/$/\}/; p}' "$subtestf")
+			subtests_yml=$(sed -nr '/^[[:space:]]*(attr|param|setup):/ {s/(}|]) +#.*$/\1/; s/^/- \{/; s/$/\}/; p}' "$subtestf")
 		fi
 	fi
 
@@ -192,6 +192,7 @@ _caseInfo() {
 					done
 				fi
 			fi
+			l=$(yq_linux_amd64 "sort_keys(.[0])" <<<"$l")
 
 			echo "${l/-/- ${name}:}"
 		done <<<"$subtests_yml"
