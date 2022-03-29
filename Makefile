@@ -7,7 +7,7 @@ _confdir=/etc/bkr-client-improved
 completion_path=/usr/share/bash-completion/completions
 YQ_URL=https://github.com/mikefarah/yq/releases/download/v4.23.1/yq_linux_amd64.tar.gz -O yq/yq.tgz
 
-install install_runtest: _isroot yqinstall
+install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	@if [[ $$(rpm -E %rhel) != "%rhel" ]]; then \
 	  if ! rpm -q epel-release; then \
 	    rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-$$(rpm -E %rhel).noarch.rpm; :; \
@@ -48,12 +48,12 @@ yqinstall: _isroot
 	cp yq/yq.1 /usr/share/man/man1/.; \
 	rm -rf yq; }
 
-install_kiss_vm_ns:
-	@rm -rf kiss-vm-ns
-	@command -v git || yum install -y git
-	@export https_proxy=squid.redhat.com:8080; git clone https://github.com/tcler/kiss-vm-ns
-	@make -C kiss-vm-ns
-	@rm -rf kiss-vm-ns
+install_kiss_vm_ns: _isroot
+	@command -v kiss-update.sh && kiss-update.sh || { \
+	rm -rf kiss-vm-ns; command -v git || yum install -y git; \
+	export https_proxy=squid.redhat.com:8080; git clone https://github.com/tcler/kiss-vm-ns; \
+	make -C kiss-vm-ns; \
+	rm -rf kiss-vm-ns; }
 
 install_all: install_robot _install_web
 
