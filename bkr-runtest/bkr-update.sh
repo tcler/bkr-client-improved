@@ -2,17 +2,18 @@
 
 test $(id -u) = 0 || { echo "[Warn] need root permission" >&2; exit 1; }
 
+_repon=bkr-client-improved
+_confdir=/etc/$_repon
 install_bkr_client_improved() {
-	local url=https://github.com/tcler/bkr-client-improved
+	local url=https://github.com/tcler/$_repon
 	local clonedir=$(mktemp -d)
 	git clone $url $clonedir
 	make -C $clonedir
 	rm -rf $clonedir
 }
 
-_confdir=/etc/bkr-client-improved
 tmpf=$(mktemp)
-wget -qO- http://api.github.com/repos/tcler/bkr-client-improved/commits/master -O $tmpf
+wget -qO- http://api.github.com/repos/tcler/$_repon/commits/master -O $tmpf
 if cmp $tmpf $_confdir/version 2>/dev/null; then
 	echo "[Info] you are using the latest version"
 else
