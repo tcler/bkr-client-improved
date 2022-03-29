@@ -89,3 +89,8 @@ _web_require:
 
 rpm: _isroot
 	./build_rpm.sh
+
+p pu pull u up update:
+	git pull --rebase || :
+	@echo
+
