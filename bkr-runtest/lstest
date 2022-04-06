@@ -185,7 +185,7 @@ _caseInfo() {
 					let j=setupcnt-1
 					for i in ${!Setup[@]}; do
 						okey=${Setup[$i]%%[= ]*}
-						if ! grep -q -- "$okey" <<<"$setupList"; then
+						if ! grep -q -- "$okey" <<<"$setuplist"; then
 							l=$(yq_linux_amd64 ".[0].setup.[$j]=\"${Setup[$i]}\"" <<<"$l")
 							let j++
 						fi
