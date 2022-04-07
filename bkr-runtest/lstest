@@ -177,12 +177,13 @@ _caseInfo() {
 				local i j setupcnt okey
 				local setuplist=$(yq_linux_amd64 ".[0].setup.[]" <<<"$l")
 				setupcnt=$(wc -l <<<"$setuplist")
+				[[ -z "$setuplist" ]] && { setupcnt=0; }
 				if [[ $setupcnt -eq 0 ]]; then
 					for i in ${!Setup[@]}; do
 						l=$(yq_linux_amd64 ".[0].setup.[$i]=\"${Setup[$i]}\"" <<<"$l")
 					done
 				else
-					let j=setupcnt-1
+					let j=setupcnt
 					for i in ${!Setup[@]}; do
 						okey=${Setup[$i]%%[= ]*}
 						if ! grep -q -- "$okey" <<<"$setuplist"; then
