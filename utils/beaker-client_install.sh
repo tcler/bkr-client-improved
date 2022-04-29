@@ -7,6 +7,7 @@ rpm -q beaker-client && {
 
 #__main__
 kuser=$1
+verx=$(rpm -E %rhel)
 
 if egrep -q ^NAME=.?Fedora /etc/os-release; then
 	cat <<-'EOF' >/etc/yum.repos.d/beaker-client.repo
@@ -37,10 +38,10 @@ else
 	skip_if_unavailable=1
 	EOF
 
-	cat <<-'EOF' >/etc/yum.repos.d/beaker-harness.repo
+	cat <<-EOF >/etc/yum.repos.d/beaker-harness.repo
 	[beaker-harness]
-	name=Beaker harness - RedHatEnterpriseLinux$releasever
-	baseurl=https://download.devel.redhat.com/beakerrepos/harness/RedHatEnterpriseLinux$releasever/
+	name=Beaker harness - RedHatEnterpriseLinux$verx
+	baseurl=https://download.devel.redhat.com/beakerrepos/harness/RedHatEnterpriseLinux$verx/
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
