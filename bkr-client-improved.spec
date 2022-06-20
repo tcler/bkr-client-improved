@@ -96,7 +96,6 @@ chmod u+s /usr/local/bin/trms-service.sh
 /usr/local/bin/stateBrewBuild
 /usr/local/bin/tdom_install.sh
 /usr/local/bin/vercmp
-/usr/local/bin/vershow
 /usr/local/bin/work-stat
 /usr/local/bin/xmlrpc-client.sh
 /usr/local/bin/bkr-autorun-create
