@@ -57,7 +57,11 @@ update-ca-trust
 
 # install koji & brew
 which brew &>/dev/null ||
-	yum --setopt=strict=0 install -y koji python-koji python-pycurl brewkoji
+	OSV=$(rpm -E %rhel)
+	if ! egrep -q '^!?epel' < <(yum repolist 2>/dev/null); then
+		[[ "$OSV" != "%rhel" ]] && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-${OSV}.noarch.rpm 2>/dev/null
+	fi
+	yum --setopt=strict=0 install -y koji python3-koji python3-pycurl brewkoji
 which brew &>/dev/null || installBrew2
 yum install -y bash-completion-brew
 
