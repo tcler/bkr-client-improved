@@ -33,18 +33,10 @@ installBrew2() {
 				yum install -y koji brewkoji && break || rm rcm-tools-*.repo
 			done
 			;;
-		8)
-			curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-8-baseos.repo
+		8|9)
+			curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-${verx}-baseos.repo
 			yum install -y koji brewkoji python3-koji python3-pycurl || rm rcm-tools-*.repo
 			;;
-		9)
-			yum install -y python-requests
-			_url=https://download.devel.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-8/compose/BaseOS/x86_64/os/Packages
-			_rpm=$(curl -k -s -L $_url|sed -nre  '/.*href="(brewkoji-[0-9][^"]*el8.noarch.rpm)".*/{s//\1/; p}')
-			rpm -ivh --force --nodeps \
-				https://kojipkgs.fedoraproject.org//packages/koji/1.23.0/2.fc33/noarch/koji-1.23.0-2.fc33.noarch.rpm \
-				https://kojipkgs.fedoraproject.org//packages/koji/1.23.0/2.fc33/noarch/python3-koji-1.23.0-2.fc33.noarch.rpm \
-				$_url/$_rpm
 		esac
 	elif [[ $(rpm -E %fedora) != %fedora ]]; then
 		curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo

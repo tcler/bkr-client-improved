@@ -197,23 +197,23 @@ for build in "${builds[@]}"; do
 
 	[[ "$build" = upk ]] && {
 		run install_brew -
-		build=(koji list-builds --pattern=kernel-[0=9]*eln* --state=COMPLETE --quiet | sort -Vr | awk '{print $1; exit}')
+		build=$(koji list-builds --pattern=kernel-[0=9]*eln* --state=COMPLETE --quiet | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = lstk ]] && {
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		build=(brew list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+		build=$(brew list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = lstdtk ]] && {
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		build=(brew list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}.dt* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+		build=$(brew list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}.dt* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = latest-* ]] && {
 		pkg=${build#latest-}
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		build=(brew list-builds --pattern=$pkg-*-${rel/*./*.} --state=COMPLETE --after=$(date -d"now-1024 days" +%F)  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+		build=$(brew list-builds --pattern=$pkg-*-${rel/*./*.} --state=COMPLETE --after=$(date -d"now-1024 days" +%F)  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 
 	if [[ "$build" =~ ^[0-9]+$ ]]; then
