@@ -197,7 +197,7 @@ for build in "${builds[@]}"; do
 
 	[[ "$build" = upk ]] && {
 		run install_brew -
-		build=$(koji list-builds --pattern=kernel-[0=9]*eln* --state=COMPLETE --quiet | sort -Vr | awk '{print $1; exit}')
+		build=$(koji list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = lstk ]] && {
 		run install_brew -
