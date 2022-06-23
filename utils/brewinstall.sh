@@ -197,48 +197,23 @@ for build in "${builds[@]}"; do
 
 	[[ "$build" = upk ]] && {
 		run install_brew -
-		builds=($(koji search build -r '^kernel-[0-9].*eln' | sort -V -r | head))
-		for B in "${builds[@]}"; do
-			RPMS=$(koji buildinfo $B|awk "\$1 ~ /($archPattern).rpm/ {print \$1}"|sed 's;.*/;;')
-			if [[ -n "$RPMS" ]]; then
-				build=$B
-				break
-			fi
-		done
+		build=(koji list-builds --pattern=kernel-[0=9]*eln* --state=COMPLETE --quiet | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = lstk ]] && {
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		builds=($(brew search build kernel-${ver/.*/.*}-${rel/*./*.} | sort -Vr | head))
-		for B in "${builds[@]}"; do
-			if brew buildinfo $B | egrep -q '/[^ ]+\.rpm([[:space:]]|$)'; then
-				build=$B
-				break
-			fi
-		done
+		build=(brew list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = lstdtk ]] && {
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		builds=($(brew search build kernel-$ver-${rel/*./*.}.dt* | sort -Vr | head))
-		for B in "${builds[@]}"; do
-			if brew buildinfo $B | egrep -q '/[^ ]+\.rpm([[:space:]]|$)'; then
-				build=$B
-				break
-			fi
-		done
+		build=(brew list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}.dt* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = latest-* ]] && {
 		pkg=${build#latest-}
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		builds=($(brew search build $pkg-*-${rel/*./*.} | sort -Vr | head))
-		for B in "${builds[@]}"; do
-			if brew buildinfo $B | egrep -q '/[^ ]+\.rpm([[:space:]]|$)'; then
-				build=$B
-				break
-			fi
-		done
+		build=(brew list-builds --pattern=$pkg-*-${rel/*./*.} --state=COMPLETE --after=$(date -d"now-1024 days" +%F)  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 
 	if [[ "$build" =~ ^[0-9]+$ ]]; then
