@@ -17,7 +17,11 @@ installBrew2() {
 
 	yum install -y redhat-lsb-core &>/dev/null
 	local verx=$(rpm -E %rhel)
-
+	if grep "sslverify" /etc/yum.conf ; then
+       sed -i  "s/sslverify=.*/sslverfy=0/" /etc/yum.conf
+	else
+	   echo "sslverfy=0" >> /etc/yum.conf
+	fi
 	pushd /etc/yum.repos.d
 	if [[ $(rpm -E %rhel) != %rhel ]]; then
 		case $verx in
