@@ -15,7 +15,6 @@ installBrew2() {
 	curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
 	"
 
-	yum install -y redhat-lsb-core &>/dev/null
 	local verx=$(rpm -E %rhel)
 
 	pushd /etc/yum.repos.d
@@ -35,7 +34,7 @@ installBrew2() {
 			;;
 		8|9)
 			curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-${verx}-baseos.repo
-			yum install -y brewkoji python3-pycurl || rm rcm-tools-*.repo
+			yum install --setopt=sslverify=0 -y brewkoji python3-pycurl || rm rcm-tools-*.repo
 			rpm -ivh --force --nodeps \
 				https://kojipkgs.fedoraproject.org/packages/koji/1.29.0/1.el${verx}/noarch/koji-1.29.0-1.el${verx}.noarch.rpm \
 				https://kojipkgs.fedoraproject.org/packages/koji/1.29.0/1.el${verx}/noarch/python3-koji-1.29.0-1.el${verx}.noarch.rpm
