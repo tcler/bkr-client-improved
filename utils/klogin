@@ -7,12 +7,16 @@ read -s -p "Password: " password
 echo
 
 _kinit() {
-	echo $password | kinit $username >/dev/null
+	#for macOS
+	if kinit -h 2>&1 | grep -q password-file=; then
+		kinit_opt=--password-file=STDIN
+	fi
+	echo $password | kinit $kinit_opt $username >/dev/null
 }
 
 forever_kinit() {
 	while : ; do
-		sleep 8h
+		sleep $((60 * 60 * 8))
 		_kinit || exit 1
 	done
 }

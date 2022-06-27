@@ -1,7 +1,10 @@
 #!/bin/bash
 # bugzilla credential will never be expired
 
-read -p "Username: " username
+username=$1
+if [[ -z "$username" ]]; then
+	read -p "Username: " username
+fi
 read -s -p "Password: " password
 echo
 

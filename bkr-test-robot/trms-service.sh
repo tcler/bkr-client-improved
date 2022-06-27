@@ -43,7 +43,7 @@ start() {
 		return 1
 	}
 	ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep tclsh.*Wub.tcl && exit 0
-	nohup tclsh8.6 Wub.tcl site-trms.config 2>/dev/null &
+	nohup tclsh Wub.tcl site-trms.config 2>/dev/null &
 	rm -f nohup.out
 
 	local ip=$(getDefaultIp|tail -1)
@@ -54,7 +54,7 @@ start() {
 }
 stop() {
 	echo "Stoping Wub/TRMS server"
-	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh8.6.*Wub.tcl'|awk '{print $1}')
+	kill $(ps -U $LOGNAME -u $LOGNAME -o pid,user:20,cmd|grep -v grep|grep 'tclsh.*Wub.tcl'|awk '{print $1}')
 	sleep 1
 }
 

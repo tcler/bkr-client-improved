@@ -7,7 +7,6 @@ exec tclsh "$0" ${1+"$@"}
 # This is a test run creater.
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
-package require yaml
 package require getOpt 3.0
 package require runtestlib 1.1
 package require tdom
@@ -157,18 +156,14 @@ foreach test $_TestList {
 	if {$test == "" || $test == "./"} continue
 	regsub -line {^-  *} $test {} test
 
-	set tdict [lindex [::yaml::yaml2dict $test] 1]
-
-	if [dict exist $tdict attr disable] {
-		if {[dict get $tdict attr disable] ni {no 0}} continue
-	}
+	if {[exec yq {.[].attr.disable} << $test] ni {no 0 null}} continue
 
 	#filter: check distro blacklist
-	if [dict exist $tdict attr distronotin] {
+	set blacklist [exec yq {.[].attr.distronotin} << $test]
+	if {$blacklist != "null"} {
 		set match_black 0
-		set blacklist [dict get $tdict attr distronotin]
 		foreach pattern {*}$blacklist {
-			if [regexp $pattern $Distro] {
+			if [regexp $pattern [string map {family "RHEL-"} $Distro]] {
 				set match_black 1
 				break
 			}
@@ -180,11 +175,11 @@ foreach test $_TestList {
 	}
 
 	#filter: check distro whitelist
-	if [dict exist $tdict attr distroin] {
+	set whitelist [exec yq {.[].attr.distroin} << $test]
+	if {$whitelist != "null"} {
 		set match_white 0
-		set whitelist [dict get $tdict attr distroin]
 		foreach pattern {*}$whitelist {
-			if [regexp $pattern $Distro] {
+			if [regexp $pattern [string map {family "RHEL-"} $Distro]] {
 				set match_white 1
 			}
 		}
@@ -194,19 +189,16 @@ foreach test $_TestList {
 		}
 	}
 
-	#filter: check arch whitelist and blacklist
+	#filter: check arch blacklist and whitelist
 	set _arch x86_64
-	if {[dict exist $tdict setup] || $SubcmdOpt != ""} {
-		set _setup {}
-		if [dict exist $tdict setup] {
-			set _setup [dict get $tdict setup]
-		}
+	set _setup [split [exec yq {.[].setup.[]} << $test] "\n"]
+	if {$_setup != "" || $SubcmdOpt != ""} {
 		regexp {.*arch=([^ ]+)} "$_setup $SubcmdOpt" _ignore _arch
 	}
 
 	set blacklist {}
-	if [dict exist $tdict attr archnotin] {set blacklist [dict get $tdict attr archnotin]}
-	if [dict exist $tdict attr noarch] {lappend blacklist [dict get $tdict attr noarch]}
+	set arch_blacklist [string map {"null" "" "\n" " "} [exec yq {.[].attr|(.archnotin,.noarch)} << $test]]
+	if {[string trim $arch_blacklist] != ""} {set blacklist [list {*}$arch_blacklist]}
 	if {$blacklist != ""} {
 		set match_black 0
 		foreach pattern {*}$blacklist {
@@ -220,10 +212,11 @@ foreach test $_TestList {
 			continue
 		}
 	}
+	#filter: check arch whitelist and blacklist
 
 	set whitelist {}
-	if [dict exist $tdict attr archin] {set whitelist [dict get $tdict attr archin]}
-	if [dict exist $tdict attr arch] {lappend whitelist [dict get $tdict attr arch]}
+	set arch_whitelist [string map {"null" "" "\n" " "} [exec yq {.[].attr|(.archin,.arch)} << $test]]
+	if {[string trim $arch_whitelist] != ""} {set whitelist [list {*}$arch_whitelist]}
 	if {$whitelist != ""} {
 		set match_white 0
 		foreach pattern {*}$whitelist {
@@ -300,22 +293,10 @@ if {"testplanName" in [db eval {PRAGMA table_info(testinfo)}]} {
 # insert transaction
 db transaction {
 	foreach test $TestList {
-		set tdict [::yaml::yaml2dict $test]
-		set tname [lindex $tdict 0]
-		set tdict [lindex $tdict 1]
+		set tname [exec yq {keys|.[0]} << $test]
+		set param [split [exec yq {.[].param.[]} << $test] "\n"]
+		set setup [split [exec yq {.[].setup.[]} << $test] "\n"]
 
-		set tier tier1
-		if [dict exist $tdict attr tier] {
-			set tier [dict exist $tdict attr tier]
-		}
-		set param {}
-		if [dict exist $tdict param] {
-			set param [dict get $tdict param]
-		}
-		set setup {}
-		if [dict exist $tdict setup] {
-			set setup [dict get $tdict setup]
-		}
 		set key "$tname $param $setup"
 		set testid [::md5::md5 -hex [string trim $key]]
 
@@ -324,6 +305,9 @@ db transaction {
 		if {[info exist arch] && [regexp {RHEL-7} $Distro_] && [regexp {i386} $arch]} {
 			continue
 		}
+
+		set tier [exec yq {.[].attr.level} << $test]
+		if {$tier == "null"} {set tier tier1}
 
 		set testInsert {INSERT OR REPLACE INTO testinfo (testid, test, tier, pkgName) VALUES($testid, $test, $tier, $pkgName)}
 		db eval $testInsert

@@ -8,7 +8,6 @@ exec tclsh "$0" ${1+"$@"}
 # gen_job_xml --help for detail
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
-package require yaml
 package require json
 package require xmlgen
 package require getOpt 3.0
@@ -93,7 +92,7 @@ proc getDefaultNVR {_distro} {
 		regsub {RHEL-([0-9]+\.[0-9]+)} $reg {RHEL-./\1} reg
 	}
 
-	set _NVR [exec distro-compose -p {^kernel-[0-9]+[-.0-9]+\.} -d $reg]
+	set _NVR [exec bash -c "distro-compose -p '^kernel-\[0-9]+\[-.0-9]+\.' -d $reg || :"]
 	if [regsub {.*(kernel-[2-6]+[-.0-9]+\.[^.]+).*} $_NVR {\1} _defaultNVR] {
 		return $_defaultNVR
 	} else {
@@ -116,7 +115,7 @@ if {[info exist Opt(opt-alias)] && $Opt(opt-alias) != ""} {
 	if [file isfile ${option-alias-path}] {
 		set aliasf ${option-alias-path}
 	} else {
-		exec bash -c "wget -q ${option-alias-path} -O ${aliasf}"
+		exec bash -c "wget -q --no-proxy ${option-alias-path} -O ${aliasf}"
 	}
 	source ${aliasf}
 	set idx [lindex [lsearch -all -regexp $ARGV {-(opt|hr)-alias(=.*)?$}] end]
@@ -251,12 +250,11 @@ foreach T $TestList {
 	if {$test == "" || $test == "./"} continue
 	regsub -line {^-  *} $test {} test
 
-	set tdict [::yaml::yaml2dict $T]
-	set tname [lindex $tdict 0]
-	set tdict [lindex $tdict 1]
+	set tname [exec yq {keys|.[0]} << $test]
+	set param [split [exec yq {.[].param.[]} << $test] "\n"]
 
-	if [dict exist $tdict param] {
-		lappend TaskList [concat $tname [dict get $tdict param] $GlobalParam]
+	if {$param != "null"} {
+		lappend TaskList [concat $tname $param $GlobalParam]
 	} else {
 		lappend TaskList [concat $tname $GlobalParam]
 	}
@@ -318,14 +316,14 @@ if [info exist Opt(fips)] {
 set recipe_ks_meta {}
 set harness restraint
 if [info exist Opt(harness)] { set harness $Opt(harness) }
-if [info exist Opt(restraint-git)] { set harness restraint }
+if [info exist Opt(fetch-url)] { set harness restraint }
 
 if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 	set recipe_ks_meta "harness='restraint-rhts beakerlib'"
-	if {[info exist Opt(restraint-git)] && $Opt(restraint-git) != ""} {
-		set fetch_test_from_git yes
-		set restraint_git $Opt(restraint-git)
-		if {$restraint_git == "default"} {set restraint_git "https://gitlab.cee.redhat.com/kernel-qe/kernel.git"}
+	if {[info exist Opt(fetch-url)] && $Opt(fetch-url) != ""} {
+		set fetch_test_from_url yes
+		set fetch_url $Opt(fetch-url)
+		if {$fetch_url == "default"} {set fetch_url "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"}
 		append recipe_ks_meta " redhat_ca_cert"
 	}
 }
@@ -709,7 +707,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							puts {%post}
 							set i 0
 							foreach url $Opt(repo-post) {
-								puts "cat <<-EOF >/etc/yum.repos.d/beaker-kernel$i.repo
+								puts "cat <<-'EOF' >/etc/yum.repos.d/beaker-kernel$i.repo
 								\[beaker-kernel$i\]
 								name=beaker-kernel$i
 								baseurl=$url
@@ -924,16 +922,16 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					set taskname [lindex $taskb 0]
 					set taskparams [lrange $taskb 1 end]
 					set insert 1
-					lassign [list $role "" disable ""] _role _roleval _fetch_from_git _task_position
+					lassign [list $role "" disable ""] _role _roleval _fetch_from_url _task_position
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
-					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_git=*] _ _fetch_from_git
+					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_from_url
 					if {$_roleval ne ""} { set _role $_roleval }
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_position=*] _ _task_position
 					if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 					if {$insert in {1 y yes}} {
 						task name=$taskname role=$_role ! {
-							if {[info exist fetch_test_from_git] && $_fetch_from_git eq "enable"} {
+							if {[info exist fetch_test_from_url] && $_fetch_from_url eq "enable"} {
 								set trim/ 1
 								if [regexp {^/CoreOS/} $taskname] {
 									set trim/ 2
@@ -941,7 +939,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								if [info exist Opt(restraint-case-trim/)] {
 									set trim/ $Opt(restraint-case-trim/)
 								}
-								doTag fetch url=[regsub {#+$} $restraint_git {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $taskname {}] -
+								doTag fetch url=[regsub {#+$} $fetch_url {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $taskname {}] -
 							}
 							params ! {
 								foreach taskparam $taskparams {
@@ -966,16 +964,16 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						set name [lindex $task 0]
 						set taskparams [lrange $task 1 end]
 						set insert 1
-						lassign [list $role "" disable ""] _role _roleval _fetch_from_git _task_position
+						lassign [list $role "" disable ""] _role _roleval _fetch_from_url _task_position
 						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
-						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_git=*] _ _fetch_from_git
+						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_from_url
 						if {$_roleval ne ""} { set _role $_roleval }
 						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_position=*] _ _task_position
 						if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 						if {$insert in {1 y yes}} {
 							task name=$name role=$_role ! {
-								if [info exist fetch_test_from_git] {
+								if [info exist fetch_test_from_url] {
 									set trim/ 1
 									if [regexp {^/CoreOS/} $name] {
 										set trim/ 2
@@ -983,7 +981,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 									if [info exist Opt(restraint-case-trim/)] {
 										set trim/ $Opt(restraint-case-trim/)
 									}
-									doTag fetch url=[regsub {#+$} $restraint_git {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $name {}] -
+									doTag fetch url=[regsub {#+$} $fetch_url {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $name {}] -
 								}
 								params ! {
 									foreach taskparam $taskparams {
@@ -1055,16 +1053,16 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					set taskname [lindex $taska 0]
 					set taskparams [lrange $taska 1 end]
 					set insert 1
-					lassign [list $role "" disable ""] _role _roleval _fetch_from_git _task_position
+					lassign [list $role "" disable ""] _role _roleval _fetch_from_url _task_position
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
-					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_git=*] _ _fetch_from_git
+					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_from_url
 					if {$_roleval ne ""} { set _role $_roleval }
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_position=*] _ _task_position
 					if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 					if {$insert in {1 y yes}} {
 						task name=$taskname role=$_role ! {
-							if {[info exist fetch_test_from_git] && $_fetch_from_git eq "enable"} {
+							if {[info exist fetch_test_from_url] && $_fetch_from_url eq "enable"} {
 								set trim/ 1
 								if [regexp {^/CoreOS/} $taskname] {
 									set trim/ 2
@@ -1072,7 +1070,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								if [info exist Opt(restraint-case-trim/)] {
 									set trim/ $Opt(restraint-case-trim/)
 								}
-								doTag fetch url=[regsub {#+$} $restraint_git {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $taskname {}] -
+								doTag fetch url=[regsub {#+$} $fetch_url {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $taskname {}] -
 							}
 							params ! {
 								foreach taskparam $taskparams {

@@ -5,41 +5,22 @@
 #
 # Author: jiyin@redhat.com
 
-parse_subtest() {
-	local ys="$*"
-	echo "$ys" | awk 'BEGIN {FS=""; P=0; S=0}
-	{
-		for(n=1;n<=NF;n++) {
-			if ($n==" " && $(n-1)==" " && P==0 && S==0)
-				continue
-			if ($n=="," && P==0 && S==0) {
-				print gensub("^ ", "", 1, s); s=""
-			} else {
-				s=s$n;
-				if(S==0 && $n=="\"" && $(n-1)!="\\")
-					P=(P+1)%2;
-				if(P==0 && $n=="'"'"'")
-					S=(S+1)%2
-			}
-		}
-	}
-	END {print gensub("^ ", "", 1, s)}'
-}
-
 ymlhash() {
 	local k=$1 v=$2
+	local pat='[:, ]|\[|\]'
 	[[ -z "$k" ]] && return
 	v=${v:-?}
 
-	[[ $k =~ [:,[] ]] && k="'$k'"
-	[[ $v =~ [:,[] ]] && v="'$v'"
+	[[ $k =~ $pat ]] && k=\""${k}"\"
+	[[ $v =~ $pat ]] && v=\""${v}"\"
 	echo -n "${k}: $v, "
 }
 ymllist() {
 	local e=$1
+	local pat='[:, ]|\[|\]'
 	[[ -z "$e" ]] && return
 
-	[[ $e =~ [:,] ]] && e="'$e'"
+	[[ $e =~ $pat ]] && e=\""${e}"\"
 	echo -n "$e, "
 }
 
@@ -64,6 +45,29 @@ _caseInfo() {
 	[ -d "$casepath" ] || { echo "{warn} dir [$casepath] not exist." >&2; return; }
 
 	pushd $casepath >/dev/null;
+	[[ "$DEBUG" = yes ]] && echo $casepath >&2
+	subtestf=${subtestf:-subtest.yml}
+	if [[ "$CONV" = yes ]]; then
+		local newfmt=
+		if test -f "$subtestf" && ! yq_linux_amd64 "$subtestf" &>/dev/null; then
+			#[[ $(wc -L <"$subtestf") -gt 188 ]] &&
+			#	newfmt=$(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- {/; s/$/}/}' "$subtestf" | yq_linux_amd64 -P | sed 's/^-/\n&/')
+			newfmt=$(while read line; do
+				if [[ "${#line}" -eq 0 || "${line}" =~ [\ ]*#.* ]]; then
+					echo "${line}"
+				elif [[ "${#line}" -lt 144 ]]; then
+					echo "${line}"
+				elif [[ "${#line}" -lt 216 ]]; then
+					yq_linux_amd64 -P <<<"$line"|yq_linux_amd64 '.[].* style="flow"';
+				else
+					yq_linux_amd64 -P <<<"$line";
+				fi
+			done < <(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- \{/; s/(}|])( +#.*)?$/\1\}\2/}' "$subtestf")
+			)
+			[[ -n "$newfmt" ]] && echo "$newfmt" >"$subtestf"
+		fi
+		return
+	fi
 
 	unlink $infofile 2>/dev/null
 	make $infofile &>/dev/null
@@ -90,7 +94,7 @@ _caseInfo() {
 	eval "$(egrep '^[[:space:]]*(export *)?PACKAGE(_NAME)?=[^ #]' -h * .* 2>/dev/null|sed 's;export;;')"
 	_pkg=${PACKAGE_NAME}
 	test -z "${_pkg}" && _pkg=${PACKAGE}
-	test -z "${_pkg}" && _pkg=Function
+	test -z "${_pkg}" && read _pkg _ <<<"${name//\// }"
 	Attr[pkg]=$_pkg
 
 	#get test attr: sepatate scheduling?
@@ -139,9 +143,12 @@ _caseInfo() {
 	subtests_generator="gen_subtest.sh"
 	[ -x $subtests_generator ] && sh $subtests_generator
 
-	subtestf=${subtestf:-subtest.yml}
 	if [[ -f "$subtestf" ]]; then
-		subtests_yml=$(egrep -h '^[[:space:]]*(attr|param|setup):' "$subtestf" 2>/dev/null)
+		if egrep -q '^- \{?(attr|param|setup):' "$subtestf"; then
+			subtests_yml=$(yq_linux_amd64 '.[] style="flow"|... comments=""' "$subtestf")
+		else
+			subtests_yml=$(sed -nr '/^[[:space:]]*(attr|param|setup):/ {s/(}|]) +#.*$/\1/; s/^/- \{/; s/$/\}/; p}' "$subtestf")
+		fi
 	fi
 
 	if [[ "$FORMAT" = raw ]] || [[ -z "$subtests_yml" ]]; then
@@ -156,47 +163,40 @@ _caseInfo() {
 		while read l; do
 			[[ -z "$l" ]] && continue
 
-			unset Attr2 Setup2
-			declare -A Attr2
-			Setup2=()
-
 			#update attr
 			for key in "${!Attr[@]}"; do
-				Attr2[$key]=${Attr[$key]}
+				oval=${Attr[$key]}
+				val=$(yq_linux_amd64 ".[0].attr.$key" <<<"$l")
+				if [[ $val = null ]]; then
+					l=$(yq_linux_amd64 ".[0].attr.$key=\"${oval}\"" <<<"$l")
+				fi
 			done
-			while read k; do
-				v=$(yaml2dict "$l" attr $k)
-				[[ $k = distroin && $v = "" ]] && v=NULL
-				[[ $k = disable && ($v = yes || $v = 1) ]] && continue 2
-				Attr2[$k]=$v
-			done < <(yaml2dict "$l" -keys attr)
-
-			_attr= _param= _setup=
-			# output as yaml format
-			_attr=$(echo -n "attr: {"; for e in "${!Attr2[@]}"; do ymlhash "$e" "${Attr2[$e]}"; done; echo -n "}")
-			_attr=${_attr//, \}/\}}
-
-			#get the param list
-			_param=$(echo "$l" | sed -rn '/param: /{s/.*(param: \[[^]]+]).*/\1/;p}')
-			[[ -n "$_param" ]] && _param=", "$_param
 
 			#get the setup list
-			[[ -n "${Setup[*]}" ]] && Setup2=("${Setup[@]}")
-			while read s; do
-				if [[ "$s" =~ topo= && "${Setup[*]}" =~ topo= ]]; then
-					for i in ${!Setup2[@]}; do
-						[[ "${Setup2[$i]}" =~ topo= ]] && Setup2[$i]=$s
+			if [[ ${#Setup[@]} -gt 0 ]]; then
+				local i j setupcnt okey
+				local setuplist=$(yq_linux_amd64 ".[0].setup.[]" <<<"$l")
+				setupcnt=$(wc -l <<<"$setuplist")
+				[[ -z "$setuplist" ]] && { setupcnt=0; }
+				if [[ $setupcnt -eq 0 ]]; then
+					for i in ${!Setup[@]}; do
+						l=$(yq_linux_amd64 ".[0].setup.[$i]=\"${Setup[$i]}\"" <<<"$l")
 					done
 				else
-					Setup2+=("$s")
+					let j=setupcnt
+					for i in ${!Setup[@]}; do
+						okey=${Setup[$i]%%[= ]*}
+						if ! grep -q -- "$okey" <<<"$setuplist"; then
+							l=$(yq_linux_amd64 ".[0].setup.[$j]=\"${Setup[$i]}\"" <<<"$l")
+							let j++
+						fi
+					done
 				fi
-			done < <(yaml2dict "$l" setup)
-			[[ ${#Setup2[@]} > 0 ]] && {
-				_setup=", "$(echo -n "setup: ["; for e in "${Setup2[@]}"; do ymllist "$e"; done; echo -n "]")
-				_setup=${_setup/, ]/]}
-			}
+			fi
+			#l=$(yq_linux_amd64 "sort_keys(.[])" <<<"$l")
+			l=$(yq_linux_amd64 "sort_keys(.[])|sort_keys(.[].attr)" <<<"$l")
 
-			echo "- ${name}: {${_attr}${_param}${_setup}}"
+			echo "${l/-/- ${name}:}"
 		done <<<"$subtests_yml"
 	fi
 
@@ -234,10 +234,11 @@ FORMAT=std
 Usage() {
 	echo "Usage: $P [--raw | -e[expand_file] | -t <maxtime>] [\$dir ...]"
 }
-_at=`getopt -o hrt:e:: \
+_at=`getopt -o hdrt:e:: \
 	--long help \
 	--long raw \
 	--long fmt: \
+	--long conv \
     -a -n "$P" -- "$@"`
 eval set -- "$_at"
 
@@ -246,8 +247,10 @@ while true; do
 	-h|--help)      Usage; shift 1; exit 0;;
 	-r|--raw)       FORMAT=raw; shift 1;;
 	--fmt)          FORMAT=$2; shift 2;;
+	-d)		DEBUG=yes; shift 1;;
 	-t)		maxtime=$2; shift 2;;
 	-e)		E=yes; setupConf=$2; shift 2;;
+	--conv)		CONV=yes; shift 1;;
 	--) shift; break;;
 	esac
 done

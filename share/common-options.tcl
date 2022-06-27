@@ -3,9 +3,12 @@ set CommonOptionList {
 
   "\n  Options for job configuration:" {
 	harness			{arg y	help {specify alternative harness, available value: beah|restraint; default: restraint}}
-	restraint-git		{arg y	help {specify restraint git repo}}
-	{restraint-case-trim/ p}	{arg y  help {specify how many level should be removed from beaker task name}}
 	restraint		{arg o	help {deprecated} hide y}
+	{fetch-url restraint-git}	{arg y	help {specify restraint fetch url. e.g:
+				--fetch-url https://github.com/my-beaker-tests/archive/master.zip
+				--fetch-url git://freetest.org/linux-nfs/public_git/tests.git?master
+				}}
+	{restraint-case-trim/ p}	{arg y  help {specify how many level should be removed from beaker task name}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
 	job-owner		{arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
 	{wb whiteboard}		{arg y	help {Set the whiteboard for this job}}

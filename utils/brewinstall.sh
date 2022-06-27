@@ -99,18 +99,53 @@ download_pkgs_from_repo() {
 
 	read reponame url <<< "${repopath/,/ }"
 
-	#get package list from repo
-	rpms=$(yum  --disablerepo=* --repofrompath=$repopath  rq $reponame \* 2>/dev/null)
-	if [[ -z "$rpms" ]]; then
-		return 1
+	verx=$(rpm -E %rhel)
+	if [[ "$verx" -le 7 ]]; then
+		yum install -y yum-utils &>/dev/null
+		cat <<-REPO >/etc/yum.repos.d/${reponame}.repo
+		[$reponame]
+		name=$reponame
+		baseurl=$url
+		enabled=1
+		gpgcheck=0
+		skip_if_unavailable=1
+		REPO
 	fi
 
+	: <<-COMM
 	#install dependency
 	yum install -y perl python3 binutils iproute-tc nmap-ncat perf
 
+	#get package list from repo
+	if [[ "$verx" -le 7 ]]; then
+		rpms=$(repoquery --repoid=$reponame -a)
+	else
+		rpms=$(yum  --disablerepo=* --repofrompath=$repopath  rq $reponame \* 2>/dev/null)
+	fi
+	if [[ -z "$rpms" ]]; then
+		echo "{WARN} get rpms from repo($reponame) fail" >&2
+		return 1
+	fi
+
 	#download package list
-	yum --disablerepo=* --repofrompath=$repopath repo-pkgs $reponame install $rpms \
-		--downloadonly --skip-broken -y --nogpgcheck --destdir=.
+	if [[ "$verx" -le 7 ]]; then
+		yum --disablerepo=* repo-pkgs $reponame install $rpms \
+			--downloadonly --skip-broken -y --nogpgcheck --downloaddir=.
+	else
+		yum --disablerepo=* --repofrompath=$repopath repo-pkgs $reponame install $rpms \
+			--downloadonly --skip-broken -y --nogpgcheck --destdir=.
+	fi
+	COMM
+
+	if [[ "$verx" -le 7 ]]; then
+		urls=$(yumdownloader --url --disablerepo=* --enablerepo=$reponame \*)
+	else
+		urls=$(yum download --url --disablerepo=* --repofrompath=$repopath \*)
+	fi
+
+	for url in $urls; do
+		wget $url 2>/dev/null
+	done
 }
 
 # parse options
@@ -162,48 +197,23 @@ for build in "${builds[@]}"; do
 
 	[[ "$build" = upk ]] && {
 		run install_brew -
-		builds=($(koji search build -r '^kernel-[0-9].*eln' | sort -V -r | head))
-		for B in "${builds[@]}"; do
-			RPMS=$(koji buildinfo $B|awk "\$1 ~ /($archPattern).rpm/ {print \$1}"|sed 's;.*/;;')
-			if [[ -n "$RPMS" ]]; then
-				build=$B
-				break
-			fi
-		done
+		build=$(koji list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = lstk ]] && {
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		builds=($(brew search build kernel-${ver/.*/.*}-${rel/*./*.} | sort -Vr | head))
-		for B in "${builds[@]}"; do
-			if brew buildinfo $B | egrep -q '/[^ ]+\.rpm([[:space:]]|$)'; then
-				build=$B
-				break
-			fi
-		done
+		build=$(brew list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = lstdtk ]] && {
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		builds=($(brew search build kernel-$ver-${rel/*./*.}.dt* | sort -Vr | head))
-		for B in "${builds[@]}"; do
-			if brew buildinfo $B | egrep -q '/[^ ]+\.rpm([[:space:]]|$)'; then
-				build=$B
-				break
-			fi
-		done
+		build=$(brew list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}.dt* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = latest-* ]] && {
 		pkg=${build#latest-}
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		builds=($(brew search build $pkg-*-${rel/*./*.} | sort -Vr | head))
-		for B in "${builds[@]}"; do
-			if brew buildinfo $B | egrep -q '/[^ ]+\.rpm([[:space:]]|$)'; then
-				build=$B
-				break
-			fi
-		done
+		build=$(brew list-builds --pattern=$pkg-*-${rel/*./*.} --state=COMPLETE --after=$(date -d"now-1024 days" +%F)  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 
 	if [[ "$build" =~ ^[0-9]+$ ]]; then
@@ -256,7 +266,7 @@ for build in "${builds[@]}"; do
 				run "cp -f $nfsmp/$exportdir/*.${a}.rpm ."
 		done
 		run "umount $nfsmp" -
-	elif [[ "$build" =~ ^repo: ]]; then
+	elif [[ "$build" =~ ^repo: || "$build" = *//s3.upshift.redhat.com/* ]]; then
 		download_pkgs_from_repo ${build#repo:}
 	elif [[ "$build" =~ ^(ftp|http|https):// ]]; then
 		for url in $build; do

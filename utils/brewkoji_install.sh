@@ -33,18 +33,13 @@ installBrew2() {
 				yum install -y koji brewkoji && break || rm rcm-tools-*.repo
 			done
 			;;
-		8)
-			curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-8-baseos.repo
-			yum install -y koji brewkoji python3-koji python3-pycurl || rm rcm-tools-*.repo
-			;;
-		9)
-			yum install -y python-requests
-			_url=https://download.devel.redhat.com/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-8/compose/BaseOS/x86_64/os/Packages
-			_rpm=$(curl -k -s -L $_url|sed -nre  '/.*href="(brewkoji-[0-9][^"]*el8.noarch.rpm)".*/{s//\1/; p}')
+		8|9)
+			curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-${verx}-baseos.repo
+			yum install -y brewkoji python3-pycurl || rm rcm-tools-*.repo
 			rpm -ivh --force --nodeps \
-				https://kojipkgs.fedoraproject.org//packages/koji/1.23.0/2.fc33/noarch/koji-1.23.0-2.fc33.noarch.rpm \
-				https://kojipkgs.fedoraproject.org//packages/koji/1.23.0/2.fc33/noarch/python3-koji-1.23.0-2.fc33.noarch.rpm \
-				$_url/$_rpm
+				https://kojipkgs.fedoraproject.org/packages/koji/1.29.0/1.el${verx}/noarch/koji-1.29.0-1.el${verx}.noarch.rpm \
+				https://kojipkgs.fedoraproject.org/packages/koji/1.29.0/1.el${verx}/noarch/python3-koji-1.29.0-1.el${verx}.noarch.rpm
+			;;
 		esac
 	elif [[ $(rpm -E %fedora) != %fedora ]]; then
 		curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
@@ -62,7 +57,11 @@ update-ca-trust
 
 # install koji & brew
 which brew &>/dev/null ||
-	yum --setopt=strict=0 install -y koji python-koji python-pycurl brewkoji
+	OSV=$(rpm -E %rhel)
+	if ! egrep -q '^!?epel' < <(yum repolist 2>/dev/null); then
+		[[ "$OSV" != "%rhel" ]] && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-${OSV}.noarch.rpm 2>/dev/null
+	fi
+	yum --setopt=strict=0 install -y koji python3-koji python3-pycurl brewkoji
 which brew &>/dev/null || installBrew2
 yum install -y bash-completion-brew
 

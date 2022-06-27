@@ -159,7 +159,7 @@ for V in $DVLIST; do
 	cat $patchf >$mailf
 	echo >>$mailf
 	echo "#-------------------------------------------------------------------------------" >>$mailf
-	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V.html
+	url=http://fs-qe.usersys.redhat.com/ftp/pub/kernel-changelog/changeLog-$V.html
 	echo "# $url" >>$mailf
 	tagr=$(awk '$1 ~ /^RHEL-/ && $2 ~ /kernel-/ {print $2}' $mailf | tail -n1 | sed s/$/.el${V}/)
 	(echo -e "{Info} ${tagr} change log:"

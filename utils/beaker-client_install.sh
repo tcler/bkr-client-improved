@@ -7,12 +7,14 @@ rpm -q beaker-client && {
 
 #__main__
 kuser=$1
+verx=$(rpm -E %rhel)
 
-if grep -q NAME=Fedora /etc/os-release; then
+if egrep -q ^NAME=.?Fedora /etc/os-release; then
 	cat <<-'EOF' >/etc/yum.repos.d/beaker-client.repo
 	[beaker-client]
 	name=Beaker Client - Fedora$releasever
 	baseurl=http://download.lab.bos.redhat.com/beakerrepos/client/Fedora$releasever/
+	baseurl=http://download.devel.redhat.com/beakerrepos/client/Fedora$releasever
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
@@ -36,10 +38,10 @@ else
 	skip_if_unavailable=1
 	EOF
 
-	cat <<-'EOF' >/etc/yum.repos.d/beaker-harness.repo
+	cat <<-EOF >/etc/yum.repos.d/beaker-harness.repo
 	[beaker-harness]
-	name=Beaker harness - RedHatEnterpriseLinux$releasever
-	baseurl=https://download.devel.redhat.com/beakerrepos/harness/RedHatEnterpriseLinux$releasever/
+	name=Beaker harness - RedHatEnterpriseLinux$verx
+	baseurl=https://download.devel.redhat.com/beakerrepos/harness/RedHatEnterpriseLinux$verx/
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
@@ -70,7 +72,7 @@ cat <<-'EOF' >/etc/krb5.conf
 includedir /etc/krb5.conf.d/
 
 [libdefaults]
-  default_realm = REDHAT.COM
+  default_realm = IPA.REDHAT.COM
   dns_lookup_realm = true
   dns_lookup_kdc = true
   rdns = false
@@ -103,6 +105,7 @@ includedir /etc/krb5.conf.d/
 
 #DO NOT ADD A [domain_realms] section
 #https://mojo.redhat.com/docs/DOC-1166841
+#https://source.redhat.com/groups/public/identity-access-management/identity__access_management_wiki/how_to_kerberos_realm_referrals
 EOF
 
 yum install -y krb5-workstation

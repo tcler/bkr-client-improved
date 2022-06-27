@@ -82,7 +82,7 @@ for f in $kfList; do
 	newkernel=$(tac ${patch} | sed 's/^+//')
 
 	#url=http://patchwork.lab.bos.redhat.com/status/rhel${V}/changelog.html
-	url=ftp://fs-qe.usersys.redhat.com/pub/kernel-changelog/changeLog-$V.html
+	url=http://fs-qe.usersys.redhat.com/ftp/pub/kernel-changelog/changeLog-$V.html
 
 	# send email
 	echo >>$patch

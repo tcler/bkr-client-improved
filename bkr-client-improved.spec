@@ -36,12 +36,6 @@ A improved beaker client tools:
 %post
 tar zxf /var/cache/distroInfoDB.tar.gz -C /var/cache
 tar zxf /opt/wub.tar.gz -C /opt
-which tclsh8.6 >/dev/null || {
-	yum install -y gcc tcl tcl-devel
-	/usr/local/bin/tcl8.6_install.sh
-	/usr/local/bin/tcllib_install.sh
-	/usr/local/bin/tdom_install.sh
-}
 chmod u+s /usr/local/bin/trms-service.sh
 
 %postun
@@ -57,7 +51,6 @@ chmod u+s /usr/local/bin/trms-service.sh
 /etc/bkr-client-improved/bkr-runtest.conf
 /etc/bkr-client-improved/default-ks.cfg
 /usr/share/bkr-client-improved/common-options.tcl
-/usr/local/bin/args
 /usr/local/bin/availableHost.sh
 /usr/local/bin/bkr-hosts.sh
 /usr/local/bin/bkr-job-edit.sh
@@ -101,13 +94,10 @@ chmod u+s /usr/local/bin/trms-service.sh
 /usr/local/bin/srcrpmbuild.sh
 /usr/local/bin/sshbkr
 /usr/local/bin/stateBrewBuild
-/usr/local/bin/tcl8.6_install.sh
 /usr/local/bin/tdom_install.sh
 /usr/local/bin/vercmp
-/usr/local/bin/vershow
 /usr/local/bin/work-stat
 /usr/local/bin/xmlrpc-client.sh
-/usr/local/bin/yaml2dict
 /usr/local/bin/bkr-autorun-create
 /usr/local/bin/bkr-autorun-del
 /usr/local/bin/bkr-autorun-diff.sh

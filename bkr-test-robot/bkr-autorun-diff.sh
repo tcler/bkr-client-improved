@@ -156,7 +156,7 @@ else
 		done
 		taskurl=$(grep $id ${resf1} ${resf2} -A2|sed -n -e 's/^\.[a-z0-9-]*__//' -e '/http/{s/_.[0-9]*.[12].res-/\n  /;p}')
 		if ! cmp -s ${resf1%.res}/$id ${resf2%.res}/$id; then
-			if egrep -q '^  (F|W|A)' ${resf2%.res}/$id; then
+			if egrep -q '^  (F|W|A|P)' ${resf2%.res}/$id; then
 				diffres=$(diff -pNur ${resf1%.res}/$id ${resf2%.res}/$id)
 				# ignore avc failures
 				if [[ "$noavc" == "yes" ]]; then
@@ -180,7 +180,7 @@ else
 					fi
 				fi
 			fi
-		elif egrep -q '^  (F|W|A)' ${resf1%.res}/$id; then
+		elif egrep -q '^  (F|W|A|P)' ${resf1%.res}/$id; then
 			if [[ "$short" != "yes" ]]; then
 				echo -e "\n#Test result same, but Fail:"
 				sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id

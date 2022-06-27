@@ -204,11 +204,14 @@ while read distro; do
 	cachefile=$dbpath/${distro// /_}.json.gz
 
 	variant=$Variant
-	read _ VX _ <<< "${distro//[-.]/ }"
-	[[ $VX -ge 8 ]] && {
-		case $variant in Workstation|Client|Server|ComputeNode) variant=;; esac
-	}
-	[[ $distro = [Ff]edora* ]] && variant=Everything
+	if [[ $distro = [Ff]edora* ]]; then
+		variant=Everything
+	else
+		read _ VX _ <<< "${distro//[-.]/ }"
+		[[ $VX -ge 8 ]] && {
+			case $variant in Workstation|Client|Server|ComputeNode) variant=;; esac
+		}
+	fi
 
 	Debug "distro:($distro) pkg:($Pkg) arch:($Arch) variant:($variant) @$cachefile"
 	#_result=$(curl -Lsf $cachefile | zcat 2>/dev/null |
