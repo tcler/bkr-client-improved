@@ -236,7 +236,7 @@ for build in "${builds[@]}"; do
 		}
 		COMM
 
-		urllist=$(sed '/mnt.redhat..*rpm$/s; */mnt/redhat/;;' buildArch.txt)
+		urllist=$(sed -r '/\/?mnt.redhat.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
 		for url in $urllist; do
 			run "curl -O -L http://download.devel.redhat.com/$url" 0  "download-${url##*/}"
 		done
