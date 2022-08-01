@@ -1,5 +1,5 @@
 #!/bin/bash
-# Description: to install brew scratch build or 3rd party pkgs
+# Description: to install brew/koji scratch build or 3rd party pkgs
 # Author: Jianhong Yin <jiyin@redhat.com>
 
 LANG=C
@@ -17,11 +17,12 @@ is_intranet() {
 [[ function = "$(type -t report_result)" ]] || report_result() {  echo "$@"; }
 
 P=${0##*/}
+KOJI=brew
 KREBOOT=yes
 INSTALL_TYPE=undefine
 
 retcode=0
-prompt="[brew-install]"
+prompt="[${KOJI}-install]"
 run() {
 	local cmdline=$1
 	local expect_ret=${2:-0}
@@ -42,11 +43,11 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $P <[brew_scratch_build_id] | [lstk|lstdtk|upk|brew_build_name] | [url]>  [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch]
+	 $P <[brew_scratch_build_id] | [lstk|lstdtk|upk|brew_build_name] | [url]> [-koji] [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch]
 
 	Example:
-	 $P 23822847  # brew scratch build id
-	 $P kernel-4.18.0-147.8.el8    # brew build name
+	 $P 23822847  # brew/koji scratch build id
+	 $P kernel-4.18.0-147.8.el8    # brew/koji build name
 	 $P [ftp|http]://url/xyz.rpm   # install xyz.rpm
 	 $P nfs:server/nfsshare        # install all rpms in nfsshare
 	 $P repo:rname,url             # install all rpms in repo rname
@@ -152,6 +153,7 @@ download_pkgs_from_repo() {
 builds=()
 for arg; do
 	case "$arg" in
+	-koji)           KOJI=koji;;
 	-debuginfo)      DEBUG_INFO_OPT=--debuginfo;;
 	-onlydebuginfo)  DEBUG_INFO_OPT=--debuginfo; ONLY_DEBUG_INFO=yes; KREBOOT=no;;
 	-onlydownload)   ONLY_DOWNLOAD=yes;;
@@ -202,49 +204,56 @@ for build in "${builds[@]}"; do
 	[[ "$build" = lstk ]] && {
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		build=$(brew list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+		build=$($KOJI list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = lstdtk ]] && {
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		build=$(brew list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}.dt* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+		build=$($KOJI list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}.dt* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 	[[ "$build" = latest-* ]] && {
 		pkg=${build#latest-}
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		build=$(brew list-builds --pattern=$pkg-*-${rel/*./*.} --state=COMPLETE --after=$(date -d"now-1024 days" +%F)  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+		build=$($KOJI list-builds --pattern=$pkg-*-${rel/*./*.} --state=COMPLETE --after=$(date -d"now-1024 days" +%F)  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 	}
 
 	if [[ "$build" =~ ^[0-9]+$ ]]; then
 		run install_brew -
+		downloadBaseUrl=http://download.devel.redhat.com
+		if [[ "$KOJI" = koji ]]; then
+			downloadBaseUrl=https://kojipkgs.fedoraproject.org
+		fi
 		taskid=${build}
 		#wait the scratch build finish
-		while brew taskinfo $taskid|grep -q '^State: open'; do echo "[$(date +%T) Info] build hasn't finished, wait"; sleep 5m; done
+		while $KOJI taskinfo $taskid|grep -q '^State: open'; do echo "[$(date +%T) Info] build hasn't finished, wait"; sleep 5m; done
 
-		run "brew taskinfo -r $taskid > >(tee brew_taskinfo.txt)"
-		run "awk '/\\<($archPattern)\\.rpm/{print}' brew_taskinfo.txt >buildArch.txt"
+		run "$KOJI taskinfo -r $taskid > >(tee ${KOJI}_taskinfo.txt)"
+		run "awk '/\\<($archPattern)\\.rpm/{print}' ${KOJI}_taskinfo.txt >buildArch.txt"
 		run "cat buildArch.txt"
 
 		: <<-'COMM'
 		[ -z "$(< buildArch.txt)" ] && {
 			echo "$prompt [Warn] rpm not found, treat the [$taskid] as build ID."
 			buildid=$taskid
-			run "brew buildinfo $buildid > >(tee brew_buildinfo.txt)"
-			run "awk '/\\<($archPattern)\\.rpm/{print}' brew_buildinfo.txt >buildArch.txt"
+			run "$KOJI buildinfo $buildid > >(tee ${KOJI}_buildinfo.txt)"
+			run "awk '/\\<($archPattern)\\.rpm/{print}' ${KOJI}_buildinfo.txt >buildArch.txt"
 			run "cat buildArch.txt"
 		}
 		COMM
 
 		urllist=$(sed -r '/\/?mnt.redhat.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
+		if [[ "$KOJI" = koji ]]; then
+			urllist=$(sed -r '/\/?mnt.koji.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
+		fi
 		for url in $urllist; do
-			run "curl -O -L http://download.devel.redhat.com/$url" 0  "download-${url##*/}"
+			run "curl -O -L $downloadBaseUrl/$url" 0  "download-${url##*/}"
 		done
 
 		#try download rpms from brew download server
-		[[ -z "$urllist" ]] && {
-			owner=$(awk '/^Owner:/{print $2}' brew_taskinfo.txt)
-			downloadServerUrl=http://download.devel.redhat.com/brewroot/scratch/$owner/task_$taskid
+		[[ -z "$urllist" && "$KOJI" = brew ]] && {
+			owner=$(awk '/^Owner:/{print $2}' ${KOJI}_taskinfo.txt)
+			downloadServerUrl=$downloadBaseUrl/brewroot/scratch/$owner/task_$taskid
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
 				which wget &>/dev/null || yum install -y wget
@@ -297,13 +306,13 @@ for build in "${builds[@]}"; do
 		run install_brew -
 		buildname=$build
 		for a in "${archList[@]}"; do
-			run "brew download-build $DEBUG_INFO_OPT $buildname --arch=${a}" - ||
+			run "$KOJI download-build $DEBUG_INFO_OPT $buildname --arch=${a}" - ||
 				run "koji download-build $DEBUG_INFO_OPT $buildname --arch=${a}" -
 		done
 
 		for rpmf in $RPMS; do
 			if ! test -f $rpmf; then
-				run "brew download-build --rpm $rpmf" - ||
+				run "$KOJI download-build --rpm $rpmf" - ||
 					run "koji download-build --rpm $rpmf" -
 			fi
 		done
@@ -350,7 +359,8 @@ rpm)
 	;;
 *)
 	run "yum install -y --nogpgcheck --setopt=keepcache=1 *.rpm" - ||
-		run "rpm -Uvh --force --nodeps *.rpm" -
+		run "rpm -Uvh --force --nodeps *.rpm" - ||
+		for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
 esac
 
 # if include debug in FLAG
