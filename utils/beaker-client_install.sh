@@ -69,7 +69,7 @@ echo "{INFO} create /etc/krb5.conf"
 cp -v /etc/krb5.conf /etc/krb5.conf.orig
 cat <<-'EOF' >/etc/krb5.conf
 # Configuration snippets may be placed in this directory as well
-includedir /etc/krb5.conf.d/
+#includedir /etc/krb5.conf.d/
 
 [libdefaults]
   default_realm = IPA.REDHAT.COM
