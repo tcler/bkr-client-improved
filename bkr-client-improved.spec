@@ -79,9 +79,7 @@ chmod u+s /usr/local/bin/trms-service.sh
 /usr/local/bin/install-docker-ce.sh
 /usr/local/bin/ircmsg.sh
 /usr/local/bin/klogin
-/usr/local/bin/lscolor.sh
 /usr/local/bin/ls_nfsvers
-/usr/local/bin/mntbind.sh
 /usr/local/bin/newcase.sh
 /usr/local/bin/nolimit.sh
 /usr/local/bin/packInstalledRpm.sh
