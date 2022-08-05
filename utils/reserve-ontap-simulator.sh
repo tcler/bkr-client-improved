@@ -26,7 +26,7 @@ ImageUrl=http://download.devel.redhat.com/qa/rhts/lookaside/Netapp-Simulator/$Im
 LicenseUrl=http://download.devel.redhat.com/qa/rhts/lookaside/Netapp-Simulator/$LicenseFile
 script=ontap-simulator-two-node.sh
 [[ -n "$1" ]] && script=ontap-simulator-single-node.sh
-submitlog=$(runtest --random ${HostDistro} "--cmd=git clone $KissVMUrl; sudo make -C kiss-vm-ns; sudo vm prepare; wget $ImageUrl; git clone https://github.com/tcler/ontap-simulator-in-kvm; bash ontap-simulator-in-kvm/$script --image=$ImageFile --license-file=$LicenseFile" -hr=memory\>=16384 --hr=kv-DISKSPACE\>=500000)
+submitlog=$(runtest --random ${HostDistro} "--cmd=git clone $KissVMUrl; sudo make -C kiss-vm-ns; sudo vm prepare; wget $ImageUrl; wget $LicenseUrl; git clone https://github.com/tcler/ontap-simulator-in-kvm; bash ontap-simulator-in-kvm/$script --image=$ImageFile --license-file=$LicenseFile" -hr=memory\>=16384 --hr=kv-DISKSPACE\>=500000)
 
 echo "$submitlog"
 job=$(egrep -o J:[0-9]+ <<<"$submitlog")
@@ -51,9 +51,8 @@ host=$(bkr job-results $job --prettyxml | sed -r -n '/.*system="([^"]*)".*/{s//\
 	exit 1
 }
 
-echo -e "\nInfo: waiting host OS install done ..."
-#while ! nc -z $host 22; do sleep 10; echo -n .; done
-while ! nc $host 22 </dev/null &>/dev/null; do sleep 10; echo -n .; done
+echo -e "\nInfo: waiting host OS install done on machine($host) ..."
+while ! nc -z $host 22; do sleep 10; echo -n .; done
 
 echo -e "\nInfo: waiting ontap simulator install done ..."
 while ! grep -q /distribution/command.*status=.Completed < <(bkr job-results $job --prettyxml); do sleep 10; echo -n .; done
