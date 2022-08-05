@@ -18,13 +18,15 @@ while true; do
 	esac
 done
 
-HostDistro=${HostDistro:-8}
+HostDistro=${HostDistro:-RHEL-8.6.0}
 KissVMUrl=https://github.com/tcler/kiss-vm-ns
-ImageUrl=ftp://fs-qe.usersys.redhat.com/pub/Netapp-Simulator/vsim-netapp-DOT9.7-cm_nodar.ova
-ImageUrl=http://download.devel.redhat.com/qa/rhts/lookaside/Netapp-Simulator/vsim-netapp-DOT9.7-cm_nodar.ova
-script=ontap-simulator-9.7-two-node.sh
-[[ -n "$1" ]] && script=ontap-simulator-9.7-single-node.sh
-submitlog=$(runtest --random ${HostDistro} '--cmd=git clone '"$KissVMUrl"'; sudo make -C kiss-vm-ns; sudo vm prepare; wget '"$ImageUrl"'; tar vxf vsim-netapp-DOT9.7-cm_nodar.ova; for i in {1..4}; do qemu-img convert -f vmdk -O qcow2 vsim-NetAppDOT-simulate-disk${i}.vmdk vsim-NetAppDOT-simulate-disk${i}.qcow2; done; git clone https://github.com/tcler/ontap-simulator-in-kvm; bash ontap-simulator-in-kvm/'$script -hr=memory\>=16384 --hr=kv-DISKSPACE\>=500000)
+ImageFile=vsim-netapp-DOT9.9.1-cm_nodar.ova
+LicenseFile=CMode_licenses_9.9.1.txt
+ImageUrl=http://download.devel.redhat.com/qa/rhts/lookaside/Netapp-Simulator/$ImageFile
+LicenseUrl=http://download.devel.redhat.com/qa/rhts/lookaside/Netapp-Simulator/$LicenseFile
+script=ontap-simulator-two-node.sh
+[[ -n "$1" ]] && script=ontap-simulator-single-node.sh
+submitlog=$(runtest --random ${HostDistro} "--cmd=git clone $KissVMUrl; sudo make -C kiss-vm-ns; sudo vm prepare; wget $ImageUrl; git clone https://github.com/tcler/ontap-simulator-in-kvm; bash ontap-simulator-in-kvm/$script --image=$ImageFile --license-file=$LicenseFile" -hr=memory\>=16384 --hr=kv-DISKSPACE\>=500000)
 
 echo "$submitlog"
 job=$(egrep -o J:[0-9]+ <<<"$submitlog")
