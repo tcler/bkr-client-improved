@@ -69,7 +69,6 @@ chmod u+s /usr/local/bin/trms-service.sh
 /usr/local/bin/errata2distro_and_pkg
 /usr/local/bin/errataInfo
 /usr/local/bin/fix_nfsvers
-/usr/local/bin/fperf.sh
 /usr/local/bin/getDefaultIp
 /usr/local/bin/getDefaultNic
 /usr/local/bin/getIp
