@@ -6,10 +6,9 @@ P=${0##*/}
 Usage() {
 	echo "Usage: $P [-b] [-d <distro>] [--kdc] [win10|2012|2016|2019]"
 }
-_at=`getopt -a -o hbd: \
+_at=`getopt -a -o hd: \
 	--long help \
 	--long kdc \
-	--long bridge \
 	--long distro: \
 	--long wim-index:: \
     -a -n "$P" -- "$@"`
@@ -18,7 +17,6 @@ eval set -- "$_at"
 while true; do
 	case "$1" in
 	-h|--help)    Usage; shift 1; exit 0;;
-	-b|--bridge)  BRIDGE=-b; shift 1;;
 	-d|--distro)  DISTRO=$2; shift 2;;
 	--kdc)        KDC=--enable-kdc; shift 1;;
 	--wim-index)  WIM_IMAGE_INDEX=$2; shift 2;;
@@ -39,7 +37,7 @@ which vncviewer &>/dev/null || dep+=\ tigervnc
 
 echo -e "\nInfo: submit request to beaker ..."
 baseUrl=https://gitlab.cee.redhat.com/kernel-qe/kernel/raw/master
-submitlog=$(runtest --random ${DISTRO:-RHEL-7.9} "--cmd=wget --no-check-certificate $baseUrl/Library/base/tools/build_win_vm.sh -O /win.sh; bash /win.sh --winver=$winVer -- $BRIDGE $KDC --vm-name win-$winVer --disk-size 50 answerfiles-cifs-nfs/* --wim-index=${WIM_IMAGE_INDEX} --xdisk;" --hr-alias=vmhost)
+submitlog=$(runtest --random ${DISTRO:-RHEL-7.9} "--cmd=wget --no-check-certificate $baseUrl/Library/base/tools/build_win_vm.sh -O /win.sh; bash /win.sh --winver=$winVer -- $KDC --vm-name win-$winVer --disk-size 50 AnswerFileTemplates/cifs-nfs/* --wim-index=${WIM_IMAGE_INDEX} --xdisk;" --hr-alias=vmhost)
 echo "$submitlog"
 job=$(egrep -o J:[0-9]+ <<<"$submitlog")
 [[ -z $job ]] && {
