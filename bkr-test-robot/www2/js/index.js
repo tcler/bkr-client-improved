@@ -5,16 +5,16 @@ $(document).ready(function() {
         scrollCollapse: true,
         paging:         false,
         columnDefs: [
-	  {
+          {
             sortable: false,
             "class": "index",
             targets: 0
-	  }
-	],
+          }
+        ],
         order: [[ 1, 'asc' ]],
-        fixedColumns:   0 /* {
-            leftColumns: 2
-        } */
+        fixedColumns: {
+            leftColumns: 2,
+        }
     } );
 
     table.on( 'order.dt search.dt', function () {
