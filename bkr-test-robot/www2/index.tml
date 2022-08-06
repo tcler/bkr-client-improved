@@ -146,6 +146,7 @@ puts ""
     -->
     <link href="./css/index.css" rel="stylesheet">
     <link rel="stylesheet" type="text/css" href="./css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" type="text/css" href="./css/fixedColumns.dataTables.min.css" />
 
     <!-- Load JavaScript -->
     <script src="./js/jquery.min.js"></script>
