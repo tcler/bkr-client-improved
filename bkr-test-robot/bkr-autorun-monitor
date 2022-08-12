@@ -227,7 +227,7 @@ foreach {jobID taskList} [array get runningTest] {
 							set _res [string map {( {} ) {}} [$taskResNode text]]
 						}
 						set _path [$taskResNode @path]
-						if ![string match */avc $_path] {
+						if ![string match *_avc_check $_path] {
 							if {$_res == "Fail"} {
 								set resdetailHead "Fail:"
 							} elseif {$_res == "Warn" && $resdetailHead == "Pass-:"} {
