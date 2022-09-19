@@ -32,13 +32,13 @@ installBrew2() {
 		[56])
 			for type in server client workstation; do
 				curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rhel-${verx}/rcm-tools-rhel-${verx}-${type}.repo
-				yum install -y koji brewkoji && break || rm rcm-tools-*.repo
+				yum install --setopt=sslverify=0 -y koji brewkoji && break || rm rcm-tools-*.repo
 			done
 			;;
 		7)
 			for type in server client workstation; do
 				curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-${verx}-${type}.repo
-				yum install -y koji brewkoji && break || rm rcm-tools-*.repo
+				yum install --setopt=sslverify=0 -y koji brewkoji && break || rm rcm-tools-*.repo
 			done
 			;;
 		8|9)
@@ -51,7 +51,7 @@ installBrew2() {
 		esac
 	elif [[ $(rpm -E %fedora) != %fedora ]]; then
 		curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
-		yum install -y koji brewkoji || rm rcm-tools-*.repo
+		yum install --setopt=sslverify=0 -y koji brewkoji || rm rcm-tools-*.repo
 	fi
 	popd
 
@@ -69,8 +69,9 @@ which brew &>/dev/null ||
 	if ! egrep -q '^!?epel' < <(yum repolist 2>/dev/null); then
 		[[ "$OSV" != "%rhel" ]] && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-${OSV}.noarch.rpm 2>/dev/null
 	fi
-	yum --setopt=strict=0 install -y koji python3-koji python3-pycurl brewkoji
+	yum --setopt=strict=0 --setopt=sslverify=0 install -y koji python3-koji python3-pycurl brewkoji
 which brew &>/dev/null || installBrew2
-yum install -y bash-completion-brew
+yum install --setopt=sslverify=0 -y bash-completion-brew
 
 which brew
+rm -rf /etc/yum.repos.d/rcm-tools-*.repo
