@@ -373,7 +373,7 @@ rpm)
 esac
 
 #install grub2-efi-* package
-[[ -f /boot/grub2/grubenv ]] || InstallPackages /boot/grub2/grubenv
+[[ -f /boot/grub2/grubenv ]] || dnf install -y /boot/grub2/grubenv grubby
 
 # if include debug in FLAG
 [[ "$FLAG" =~ debugkernel ]] && {
