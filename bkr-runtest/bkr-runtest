@@ -141,11 +141,20 @@ set TestListFile {}
 if {[llength $TestArgList]==0 && ![istty stdin]} {lappend TestArgList -}
 if {[llength $TestArgList]==0 && $_TestList == {}} {
 	if {$prog != "bkr-reservesys"} {
-		puts "\[$prog\]: *Remind*: No test specified, will reserve host($Distro) for you" }
-	lappend _TestList "/distribution/reservesys: {attr: {pkg: distrbution, time: 12h, ssched: no, type: Functioal}}"
+		puts "\[$prog\]: *Remind*: No test specified, will reserve host($Distro) for you"
+	}
+	if ![regexp -- {--reserve} $ForwardOpt] {
+		lappend _TestList "/distribution/reservesys: {attr: {pkg: distribution, time: 12h, ssched: no, type: Functioal}}"
+	} else {
+		lappend _TestList "/distribution/utils/dummy: {attr: {pkg: distribution}}"
+	}
 } else {
 	if {$prog == "bkr-reservesys"} {
-		lappend _TestList "/distribution/reservesys: {attr: {pkg: distrbution, time: 12h, ssched: no, type: Functioal}}"
+		if ![regexp -- {--reserve} $ForwardOpt] {
+			lappend _TestList "/distribution/reservesys: {attr: {pkg: distrbution, time: 12h, ssched: no, type: Functioal}}"
+		} else {
+			lappend _TestList "/distribution/utils/dummy: {attr: {pkg: distribution}}"
+		}
 	} else {
 		foreach f $TestArgList {
 			if {$f in "-"} {
