@@ -372,8 +372,8 @@ rpm)
 		for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
 esac
 
-#install grub2-efi-* package
-[[ -f /boot/grub2/grubenv ]] || dnf install -y /boot/grub2/grubenv grubby
+#mount /boot if not yet
+mountpoint /boot || mount /boot
 
 # if include debug in FLAG
 [[ "$FLAG" =~ debugkernel ]] && {
