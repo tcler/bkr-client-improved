@@ -128,7 +128,14 @@ sigproc() {
 }
 
 eval bkr-autorun-stat --db=$dbfile1 --lsres ${run1}  >${resf1}
+if [ ! -s "$resf1" ]; then
+	echo "{Warn} No result found for the testrun $run1"
+fi
+
 eval bkr-autorun-stat --db=$dbfile2 --lsres ${run2}  >${resf2}
+if [ ! -s "$resf2" ]; then
+	echo "{Warn} No result found for the testrun $run2"
+fi
 
 if [[ -z "$diffv" ]]; then
 	diff1=${resf1}-
