@@ -110,7 +110,8 @@ download_pkgs_from_repo() {
 	read reponame url <<< "${repopath/,/ }"
 
 	verx=$(rpm -E %rhel)
-	: <<-COMM
+	[[ "$verx" -le 7 ]] && yum install -y yum-utils &>/dev/null
+	: <<-'COMM'
 	#install dependency
 	yum install -y perl python3 binutils iproute-tc nmap-ncat perf
 
@@ -136,6 +137,14 @@ download_pkgs_from_repo() {
 	COMM
 
 	if [[ "$verx" -le 7 ]]; then
+		cat <<-REPO >/etc/yum.repos.d/${reponame}.repo
+		[$reponame]
+		name=$reponame
+		baseurl=$url
+		enabled=1
+		gpgcheck=0
+		skip_if_unavailable=1
+		REPO
 		urls=$(yumdownloader --url --disablerepo=* --enablerepo=$reponame \*)
 	else
 		urls=$(yum download --url --disablerepo=* --repofrompath=$repopath \*)
