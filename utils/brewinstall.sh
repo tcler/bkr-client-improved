@@ -95,6 +95,7 @@ install_brew() {
 			exit 1
 		}
 	}
+	which brew
 }
 
 download_pkgs_from_repo() {
