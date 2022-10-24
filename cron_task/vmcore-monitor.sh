@@ -43,7 +43,7 @@ while read owner jobid_host; do
 	if [[ -n "$urlroot" ]]; then
 		echo " - via link of $urlroot/$owner"
 		[[ "$nfsserv" == "fs-qe.usersys.redhat.com" ]] && \
-		    echo " - you can also ssh $nfsserv and find all your vmcores under /var/ftp/nfs-kdump/$owner"
+		    echo " - you can also ssh $nfsserv and find all your vmcores under /var/ftp/vmcore/$owner"
 	fi
 
 	for corepath in $jobid_host; do
