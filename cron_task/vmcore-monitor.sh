@@ -60,7 +60,7 @@ while read owner jobid_host; do
 		# output whiteboard info
 		WB=$(grep '<whiteboard>' res$$.xml | sed -e 's/^[ \t]*//' -e 's/<.\?whiteboard>//g')
 		ignorePanic=
-		[[ "$WB" = *-ignore-panic* ]] && ignorePanic="(ignore panic)"
+		[[ "$WB" = *-ignore-panic* ]] && ignorePanic="(ignore panic)" && continue
 		echo -n "Whiteboard$ignorePanic -> "
 		echo "$WB"
 
