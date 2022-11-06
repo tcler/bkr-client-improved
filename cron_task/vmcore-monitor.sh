@@ -75,8 +75,7 @@ while read owner jobid_host; do
 		{ which urlencode || yum install -y /usr/bin/urlencode; } &>/dev/null
 		echo -e "\n\n:  vmcore files:"
 		for coref in $(find $dn -name vmcore -type f); do
-			access=$(stat -c  %A  $coref)
-			[[ ${access:7:1} != r ]] && chmod a+r ${coref%/*}/*
+			chmod a+r ${coref%/*}/*
 
 			urlpath=$(urlencode -m "$coref")
 			echo -e ":      $urlroot/$urlpath"
