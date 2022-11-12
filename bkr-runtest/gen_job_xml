@@ -316,14 +316,21 @@ if [info exist Opt(fips)] {
 set recipe_ks_meta {}
 set harness restraint
 if [info exist Opt(harness)] { set harness $Opt(harness) }
-if [info exist Opt(fetch-url)] { set harness restraint }
+
+set defaultFetchUrl "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
+if [info exist fetchUrl] { set fetch_url $fetchUrl }
+if [info exist Opt(fetch-url)] { set fetch_url $Opt(fetch-url) }
+if [info exist fetch_url] {
+	set fetch_test_from_url yes
+	set harness restraint
+	if {$fetch_url in {"" "default"}} {
+		set fetch_url $defaultFetchUrl
+	}
+}
 
 if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 	set recipe_ks_meta "harness='restraint-rhts beakerlib'"
-	if {[info exist Opt(fetch-url)] && $Opt(fetch-url) != ""} {
-		set fetch_test_from_url yes
-		set fetch_url $Opt(fetch-url)
-		if {$fetch_url == "default"} {set fetch_url "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"}
+	if {$fetch_test_from_url == "yes"} {
 		append recipe_ks_meta " redhat_ca_cert"
 	}
 }

@@ -25,3 +25,6 @@ set WB_FORMAT {[%T] [%P@%D %H:%N] %C%S/%s %G%O}
 #set Harness beah # or restraint
 
 set OSInstaller /distribution/check-install
+
+#set fetchUrl "https://gitlab.abc.xyz.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
+set fetchUrl default
