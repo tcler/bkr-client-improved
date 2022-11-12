@@ -769,12 +769,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 
 				# distro install
-				lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
+				lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild _task_fetch_from_git=disable"
 
 				# command before kernelinstall
 				if [info exist Opt(cmdb)] {
 					foreach cmd $Opt(cmdb) {
-						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
+						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd} _task_fetch_from_git=disable"
 					}
 				}
 
@@ -796,7 +796,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						set KVR [regsub {^[a-z-]*} $NVR {}]
 						set params [list]
 						lappend params KERNELARGNAME=$KN KERNELARGVERSION=$KVR KERNELARGVARIANT=$KVARIANT NoDeps=--nodeps
-						lappend insertTasks "/distribution/kernelinstall $params"
+						lappend insertTasks "/distribution/kernelinstall $params _task_fetch_from_git=disable"
 					} else {
 						set UP [regsub {^upstream} $NVR {}]
 						set UP [regsub {^[:=]} $UP {}]
@@ -840,7 +840,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					append brewBuildList [lindex $Opt(brew) $R] " "
 				}
 				if {[llength $brewBuildList] > 0} {
-					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList}"
+					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList} _task_fetch_from_git=disable"
 				}
 
 				# --kdump task
@@ -870,33 +870,33 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						set FIPS_L [lrange $FIPS_L 1 end]
 					}
 					if {$FIPS ni {"0"}} {
-						lappend insertTasks "/distribution/fips/setup-fips-enabled"
+						lappend insertTasks "/distribution/fips/setup-fips-enabled _task_fetch_from_git=disable"
 					} else {
-						lappend insertTasks "/distribution/fips/setup-fips-disabled"
+						lappend insertTasks "/distribution/fips/setup-fips-disabled _task_fetch_from_git=disable"
 					}
 				}
 
 				# enable abrt
 				if [info exist Opt(abrt)] {
-					lappend insertTasks "/distribution/crashes/enable-abrt"
+					lappend insertTasks "/distribution/crashes/enable-abrt _task_fetch_from_git=disable"
 				}
 
 				# command after kernelinstall
 				if [info exist Opt(cmd)] {
 					foreach cmd $Opt(cmd) {
-						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
+						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd} _task_fetch_from_git=disable"
 					}
 				}
 				if [info exist Opt(cmd-and-reboot)] {
 					foreach cmd $Opt(cmd-and-reboot) {
-						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
+						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd} _task_fetch_from_git=disable"
 					}
-					lappend insertTasks "/distribution/utils/reboot"
+					lappend insertTasks "/distribution/utils/reboot _task_fetch_from_git=disable"
 				}
 				# pkg install
 				if [info exist Opt(install)] {
 					foreach pkg $Opt(install) {
-						lappend insertTasks "/distribution/pkginstall PKGARGNAME=$pkg VERLOCK=yes"
+						lappend insertTasks "/distribution/pkginstall PKGARGNAME=$pkg VERLOCK=yes _task_fetch_from_git=disable"
 					}
 				}
 				# --kcov --gcov task
@@ -929,7 +929,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					set taskname [lindex $taskb 0]
 					set taskparams [lrange $taskb 1 end]
 					set insert 1
-					lassign [list $role "" disable ""] _role _roleval _fetch_from_url _task_position
+					lassign [list $role "" enable ""] _role _roleval _fetch_from_url _task_position
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_from_url
 					if {$_roleval ne ""} { set _role $_roleval }
@@ -938,7 +938,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 					if {$insert in {1 y yes}} {
 						task name=$taskname role=$_role ! {
-							if {[info exist fetch_test_from_url] && $_fetch_from_url eq "enable"} {
+							if {[info exist fetch_test_from_url] && $_fetch_from_url ne "disable"} {
 								set trim/ 1
 								if [regexp {^/CoreOS/} $taskname] {
 									set trim/ 2
@@ -971,7 +971,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						set name [lindex $task 0]
 						set taskparams [lrange $task 1 end]
 						set insert 1
-						lassign [list $role "" disable ""] _role _roleval _fetch_from_url _task_position
+						lassign [list $role "" ""] _role _roleval _task_position
 						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
 						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_from_url
 						if {$_roleval ne ""} { set _role $_roleval }
@@ -980,7 +980,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 						if {$insert in {1 y yes}} {
 							task name=$name role=$_role ! {
-								if [info exist fetch_test_from_url] {
+								if {[info exist fetch_test_from_url] && $_fetch_from_url ne "disable"} {
 									set trim/ 1
 									if [regexp {^/CoreOS/} $name] {
 										set trim/ 2
@@ -1035,7 +1035,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				# command in the end of the recipe
 				if [info exist Opt(cmd-end)] {
 					foreach cmd $Opt(cmd-end) {
-						lappend appendTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
+						lappend appendTasks "/distribution/command {CMDS_TO_RUN=$cmd} _task_fetch_from_git=disable"
 					}
 				}
 
@@ -1045,7 +1045,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {[string length $Opt(reserve-if-fail)] > 0} {
 						set ReserveTime $Opt(reserve-if-fail)
 					}
-					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime} RESERVE_IF_FAIL=1"
+					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime} RESERVE_IF_FAIL=1 _task_fetch_from_git=disable"
 				}
 				# --reserve
 				if [info exist Opt(reserve)] {
@@ -1053,14 +1053,14 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {[string length $Opt(reserve)] > 0} {
 						set ReserveTime $Opt(reserve)
 					}
-					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime}"
+					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime} _task_fetch_from_git=disable"
 				}
 
 				foreach taska $appendTasks {
 					set taskname [lindex $taska 0]
 					set taskparams [lrange $taska 1 end]
 					set insert 1
-					lassign [list $role "" disable ""] _role _roleval _fetch_from_url _task_position
+					lassign [list $role "" enable ""] _role _roleval _fetch_from_url _task_position
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_from_url
 					if {$_roleval ne ""} { set _role $_roleval }
@@ -1069,7 +1069,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 					if {$insert in {1 y yes}} {
 						task name=$taskname role=$_role ! {
-							if {[info exist fetch_test_from_url] && $_fetch_from_url eq "enable"} {
+							if {[info exist fetch_test_from_url] && $_fetch_from_url ne "disable"} {
 								set trim/ 1
 								if [regexp {^/CoreOS/} $taskname] {
 									set trim/ 2
