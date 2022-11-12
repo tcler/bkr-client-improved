@@ -330,7 +330,7 @@ if [info exist fetch_url] {
 
 if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 	set recipe_ks_meta "harness='restraint-rhts beakerlib'"
-	if {$fetch_test_from_url == "yes"} {
+	if [info exist fetch_test_from_url] {
 		append recipe_ks_meta " redhat_ca_cert"
 	}
 }
