@@ -324,9 +324,9 @@ if [info exist Opt(fetch-url)] {
 		set fetchUrl(kernel) $defaultKernelFetchUrl
 	}
 	foreach _url $Opt(fetch-url) {
-		lassign pkg url kernel ${_url}
+		lassign "kernel ${_url}" pkg url
 		if [regexp -- {,} ${_url}] {
-			lassign pkg url [split ${_url} ","]
+			lassign [split ${_url} ","] pkg url
 		}
 		set fetchUrl($pkg) $url
 	}
