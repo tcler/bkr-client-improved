@@ -26,5 +26,5 @@ set WB_FORMAT {[%T] [%P@%D %H:%N] %C%S/%s %G%O}
 
 set OSInstaller /distribution/check-install
 
-#set fetchUrl "https://gitlab.abc.xyz.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
-set fetchUrl default
+set fetchUrl(kernel) "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
+#set fetchUrl(pkgname) "http://git.free.org/..."

@@ -317,15 +317,36 @@ set recipe_ks_meta {}
 set harness restraint
 if [info exist Opt(harness)] { set harness $Opt(harness) }
 
-set defaultFetchUrl "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
-if [info exist fetchUrl] { set fetch_url $fetchUrl }
-if [info exist Opt(fetch-url)] { set fetch_url $Opt(fetch-url) }
-if [info exist fetch_url] {
+set defaultKernelFetchUrl "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
+set defaultPkgFetchUrl "https://pkgs.devel.redhat.com/cgit/tests/__pkg__/"
+if [info exist Opt(fetch-url)] {
+	if ![info exist fetchUrl(kernel)] {
+		set fetchUrl(kernel) $defaultKernelFetchUrl
+	}
+	foreach _url $Opt(fetch-url) {
+		lassign pkg url kernel ${_url}
+		if [regexp -- {,} ${_url}] {
+			lassign pkg url [split ${_url} ","]
+		}
+		set fetchUrl($pkg) $url
+	}
+}
+
+if [array exist fetchUrl] {
 	set fetch_test_from_url yes
 	set harness restraint
-	if {$fetch_url in {"" "default"}} {
-		set fetch_url $defaultFetchUrl
+	if {$fetchUrl(kernel) in {"" "default"}} {
+		set fetchUrl(kernel) $defaultKernelFetchUrl
 	}
+}
+
+proc fetchtag {taskname fetchurl} {
+	upvar 1 $fetchurl fetchUrlArray
+	lassign [regsub "^/(\[^/]+)/(.*$)" $taskname {\1 \2}] pkg casepath
+	if ![info exist fetchUrlArray($pkg)] {
+		set fetchUrlArray($pkg) [string map "__pkg__ $pkg" $::defaultPkgFetchUrl]
+	}
+	doTag fetch url=[regsub {#+$} $fetchUrlArray($pkg) {}]#$casepath -
 }
 
 if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
@@ -939,14 +960,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {$insert in {1 y yes}} {
 						task name=$taskname role=$_role ! {
 							if {[info exist fetch_test_from_url] && $_fetch_from_url ne "disable"} {
-								set trim/ 1
-								if [regexp {^/CoreOS/} $taskname] {
-									set trim/ 2
-								}
-								if [info exist Opt(restraint-case-trim/)] {
-									set trim/ $Opt(restraint-case-trim/)
-								}
-								doTag fetch url=[regsub {#+$} $fetch_url {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $taskname {}] -
+								fetchtag $taskname fetchUrl
 							}
 							params ! {
 								foreach taskparam $taskparams {
@@ -981,14 +995,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						if {$insert in {1 y yes}} {
 							task name=$name role=$_role ! {
 								if {[info exist fetch_test_from_url] && $_fetch_from_url ne "disable"} {
-									set trim/ 1
-									if [regexp {^/CoreOS/} $name] {
-										set trim/ 2
-									}
-									if [info exist Opt(restraint-case-trim/)] {
-										set trim/ $Opt(restraint-case-trim/)
-									}
-									doTag fetch url=[regsub {#+$} $fetch_url {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $name {}] -
+									fetchtag $name fetchUrl
 								}
 								params ! {
 									foreach taskparam $taskparams {
@@ -1070,14 +1077,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {$insert in {1 y yes}} {
 						task name=$taskname role=$_role ! {
 							if {[info exist fetch_test_from_url] && $_fetch_from_url ne "disable"} {
-								set trim/ 1
-								if [regexp {^/CoreOS/} $taskname] {
-									set trim/ 2
-								}
-								if [info exist Opt(restraint-case-trim/)] {
-									set trim/ $Opt(restraint-case-trim/)
-								}
-								doTag fetch url=[regsub {#+$} $fetch_url {}]#[regsub "^(/+\[^/]+){0,${trim/}}/?" $taskname {}] -
+								fetchtag $taskname fetchUrl
 							}
 							params ! {
 								foreach taskparam $taskparams {
