@@ -318,7 +318,7 @@ set harness restraint
 if [info exist Opt(harness)] { set harness $Opt(harness) }
 
 set defaultKernelFetchUrl "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
-set defaultPkgFetchUrl "https://pkgs.devel.redhat.com/cgit/tests/__pkg__/"
+set defaultPkgFetchUrl "git://pkgs.devel.redhat.com/tests/__pkg__?master"
 if [info exist Opt(fetch-url)] {
 	if ![info exist fetchUrl(kernel)] {
 		set fetchUrl(kernel) $defaultKernelFetchUrl
