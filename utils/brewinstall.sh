@@ -152,6 +152,7 @@ download_pkgs_from_repo() {
 	fi
 
 	for url in $urls; do
+		[[ "$FLAG" != debugkernel && "$url" = *debuginfo* ]] && continue
 		wget $url 2>/dev/null
 	done
 }
@@ -254,6 +255,7 @@ for build in "${builds[@]}"; do
 			urllist=$(sed -r '/\/?mnt.koji.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
 		fi
 		for url in $urllist; do
+			[[ "$FLAG" != debugkernel && "$url" = *debuginfo* ]] && continue
 			run "curl -O -L $downloadBaseUrl/$url" 0  "download-${url##*/}"
 		done
 
