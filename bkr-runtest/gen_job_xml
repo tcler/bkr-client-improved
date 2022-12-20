@@ -985,7 +985,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						set name [lindex $task 0]
 						set taskparams [lrange $task 1 end]
 						set insert 1
-						lassign [list $role "" ""] _role _roleval _task_position
+						lassign [list $role "" enable ""] _role _roleval _fetch_from_url _task_position
 						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
 						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_from_url
 						if {$_roleval ne ""} { set _role $_roleval }
