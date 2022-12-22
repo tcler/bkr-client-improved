@@ -154,6 +154,7 @@ download_pkgs_from_repo() {
 	for url in $urls; do
 		[[ "$FLAG" != debugkernel && "$url" = *debuginfo* ]] && continue
 		[[ "$url" != *.rpm ]] && continue
+		echo "{Info} wget $url"
 		wget $url 2>/dev/null
 	done
 }
