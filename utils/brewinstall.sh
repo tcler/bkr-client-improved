@@ -146,16 +146,18 @@ download_pkgs_from_repo() {
 		gpgcheck=0
 		skip_if_unavailable=1
 		REPO
-		urls=$(yumdownloader --url --disablerepo=* --enablerepo=$reponame \*)
+		urls=$(yumdownloader --url --disablerepo=* --enablerepo=$reponame \*|grep '\.rpm$')
 	else
-		urls=$(yum download --url --disablerepo=* --repofrompath=$repopath \*)
+		urls=$(yum download --url --disablerepo=* --repofrompath=$repopath \*|grep '\.rpm$')
 	fi
 
+	local i=1
+	local cnt=$(echo -n "$urls"|wc -l)
 	for url in $urls; do
-		[[ "$FLAG" != debugkernel && "$url" = *debuginfo* ]] && continue
-		[[ "$url" != *.rpm ]] && continue
-		echo "{Info} wget $url"
+		[[ "$FLAG" != debugkernel && "$url" = *debuginfo* ]] && { let i++; continue; }
+		echo "{Info} [$i/$cnt] download $url"
 		wget $url 2>/dev/null
+		let i++;
 	done
 }
 
