@@ -154,7 +154,10 @@ download_pkgs_from_repo() {
 	local i=1
 	local cnt=$(echo -n "$urls"|wc -l)
 	for url in $urls; do
-		[[ "$FLAG" != debugkernel && "$url" = *debuginfo* ]] && { let i++; continue; }
+		[[ "$FLAG" != debugkernel && "$url" = *debuginfo* ]] && {
+			echo "{Info} [$i/$cnt] skip debuginfo pkg $url"
+			let i++; continue
+		}
 		echo "{Info} [$i/$cnt] download $url"
 		wget $url 2>/dev/null
 		let i++;
