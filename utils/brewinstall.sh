@@ -9,7 +9,7 @@ switchroot() {
 		exec sudo $P "$@"
 	}
 }
-switchroot
+switchroot "$@"
 
 LANG=C
 baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
