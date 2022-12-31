@@ -14,12 +14,14 @@ _confdir=/etc/$_repon
 install_bkr_client_improved() {
 	local url=https://github.com/tcler/$_repon
 	local clonedir=$(mktemp -d)
-	git clone $url $clonedir
+	for ((i=0;i<8;i++)); do git clone $url $clonedir && break || sleep 2; done
 	make -C $clonedir
 	rm -rf $clonedir
 }
 
 tmpf=$(mktemp)
+cleanup() { rm -rf $tmp; }
+trap cleanup SIGINT SIGQUIT SIGTERM
 wget -qO- http://api.github.com/repos/tcler/$_repon/commits/master -O $tmpf
 if cmp $tmpf $_confdir/version 2>/dev/null; then
 	echo "[Info] you are using the latest version"
