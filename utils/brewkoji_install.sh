@@ -8,7 +8,7 @@ switchroot() {
 		exec sudo $P "$@"
 	}
 }
-switchroot
+switchroot "$@"
 
 installBrew2() {
 	#https://mojo.redhat.com/docs/DOC-1024827

@@ -7,7 +7,7 @@ switchroot() {
 		exec sudo $P "$@"
 	}
 }
-switchroot
+switchroot "$@"
 
 _repon=bkr-client-improved
 _confdir=/etc/$_repon
