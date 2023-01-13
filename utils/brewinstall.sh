@@ -394,6 +394,6 @@ mountpoint /boot || mount /boot
 	fi
 }
 
-if ls *.$(arch).rpm|egrep '^kernel-(rt-)?[0-9]'; then
+if ls *.$(arch).rpm|egrep '^kernel-(rt-)?(debug-)?[0-9]'; then
 	[[ "$KREBOOT" = yes ]] && reboot
 fi
