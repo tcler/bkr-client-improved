@@ -5,7 +5,6 @@ _lib=/usr/local/lib
 _share=/usr/share/bkr-client-improved
 _confdir=/etc/bkr-client-improved
 completion_path=/usr/share/bash-completion/completions
-YQ_URL=https://github.com/mikefarah/yq/releases/download/v4.23.1/yq_linux_amd64.tar.gz -O yq/yq.tgz
 
 install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	@if [[ $$(rpm -E %rhel) != "%rhel" ]]; then \
@@ -41,12 +40,7 @@ rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
 	@rm -f $(_bin)/{distro-to-vm.sh,downloadBrewBuild,installBrewPkg,yaml2dict} #remove old file
 
 yqinstall: _isroot
-	@command -v yq_linux_amd64 || { \
-	mkdir -p yq; wget -q $(YQ_URL) && tar -C yq -zxf yq/yq.tgz; \
-	cp yq/yq_linux_amd64 /usr/bin/.; \
-	ln -f /usr/bin/yq_linux_amd64 /usr/bin/yq; \
-	cp yq/yq.1 /usr/share/man/man1/.; \
-	rm -rf yq; }
+	./utils/yq-install.sh
 
 install_kiss_vm_ns: _isroot
 	@command -v kiss-update.sh && kiss-update.sh || { \
