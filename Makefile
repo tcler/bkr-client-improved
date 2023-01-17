@@ -17,9 +17,9 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	@rpm -q rhts-devel || { cp repos/beaker-harness.repo /etc/yum.repos.d/.; yum install -y restraint-rhts; }
 	@rpm -q expect >/dev/null || yum install -y expect #package that in default RHEL repo
 	@yum install -y tcllib #epel
+	@yum install -y tdom || yum-install-from-fedora.sh tdom || :
 	@-! tclsh <<<"lappend ::auto_path $(_lib) /usr/lib64; package require tdom" 2>&1|grep -q 'can.t find' || \
-{ yum install -y tdom; \
-rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
+		{ rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
 	mkdir -p $(_confdir) && cp -f conf/*.example $(_confdir)/.
 	test -f $(_confdir)/bkr-runtest.conf || cp $(_confdir)/bkr-runtest.conf{.example,}
