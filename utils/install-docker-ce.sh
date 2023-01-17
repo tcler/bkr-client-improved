@@ -4,6 +4,13 @@
 # see: https://kubernetes.io/docs/setup/cri
 # test pass on RHEL-7.3+ RHEL-8.0
 
+if [[ "$(uname -m)" != x86_64 ]]; then
+	echo "{WARN} only x86_64 version is provided."
+	exit 1
+fi
+
+echo -e "{Note} docker-ce is deprecated on RHEL, please use 'podman' instead\n"
+
 ## Set up the repository
 ### Install required packages.
 yum install -y container-selinux
