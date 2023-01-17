@@ -20,5 +20,5 @@ rpmbuild -b${buildtype} ~/rpmbuild/SPECS/*.spec
 if [[ "$buildtype" = p ]]; then
 	mv -f ~/rpmbuild/BUILD/* ./.
 elif [[ "$buildtype" = b ]]; then
-	mv -f ~/rpmbuild/RPMS/x86_64/* ./.
+	mv -f ~/rpmbuild/RPMS/$(uname -m)/* ./.
 fi
