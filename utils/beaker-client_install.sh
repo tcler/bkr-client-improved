@@ -83,7 +83,6 @@ cat <<-'EOF' >/etc/krb5.conf
   default_ccache_name = KEYRING:persistent:%{uid}
 
 [realms]
-
   REDHAT.COM = {
     default_domain = redhat.com
     dns_lookup_kdc = true
@@ -92,7 +91,7 @@ cat <<-'EOF' >/etc/krb5.conf
   }
 
   #make sure to save the IPA CA cert
-  #mkdir /etc/ipa && curl -o /etc/ipa/ca.crt https://password.corp.redhat.com/ipa.crt
+  #mkdir -p /etc/ipa && curl -o /etc/ipa/ca.crt https://password.corp.redhat.com/ipa.crt
   IPA.REDHAT.COM = {
     pkinit_anchors = FILE:/etc/ipa/ca.crt
     pkinit_pool = FILE:/etc/ipa/ca.crt
@@ -107,6 +106,8 @@ cat <<-'EOF' >/etc/krb5.conf
 #https://mojo.redhat.com/docs/DOC-1166841
 #https://source.redhat.com/groups/public/identity-access-management/identity__access_management_wiki/how_to_kerberos_realm_referrals
 EOF
+
+mkdir /etc/ipa && curl -o /etc/ipa/ca.crt https://password.corp.redhat.com/ipa.crt
 
 yum install -y krb5-workstation
 
