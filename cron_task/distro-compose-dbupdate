@@ -195,6 +195,6 @@ UpdateDB "$@"
 # rsync to public server
 #_path=/export/engineering_qa/rhts/lookaside
 #_downhost="shell.lab.bos.fedora hat.com"; downhost=${_downhost/fedora /red}
-#su yjh bash -c "rsync -av --update $dbRoot/$rpmdb/ jiyin@${downhost}:${_path}/distro-rpmsdata"
+#su yjh bash -c "rsync -av --update --rsync-path=$_path/bin/rsync $dbRoot/$rpmdb/ jiyin@${downhost}:${_path}/distro-rpmsdata"
 #su yjh bash -c "ssh jiyin@${downhost} 'cd ${_path}/kiss-vm-ns/; git pull --rebase'"
 #su yjh bash -c "ssh jiyin@${downhost} 'cd ${_path}/bkr-client-improved/; git pull --rebase'"
