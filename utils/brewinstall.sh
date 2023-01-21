@@ -213,32 +213,27 @@ buildcnt=${#builds[@]}
 for build in "${builds[@]}"; do
 	[[ "$build" = -* ]] && { continue; }
 
-	[[ "$build" = rtk ]] && {
+	if [[ "$build" = rtk ]]; then
 		let buildcnt--
 		run "yum install @RT -y"
-	}
-	[[ "$build" = upk ]] && {
+	elif [[ "$build" = upk ]]; then
 		run install_brew -
 		build=$(koji list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet | sort -Vr | awk '{print $1; exit}')
-	}
-	[[ "$build" = lstk ]] && {
+	elif [[ "$build" = lstk ]]; then
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		build=$($KOJI list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
-	}
-	[[ "$build" = lstdtk ]] && {
+	elif [[ "$build" = lstdtk ]]; then
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		build=$($KOJI list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}.dt* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
-	}
-	[[ "$build" = latest-* ]] && {
+	elif [[ "$build" = latest-* ]]; then
 		pkg=${build#latest-}
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		build=$($KOJI list-builds --pattern=$pkg-*-${rel/*./*.} --state=COMPLETE --after=$(date -d"now-1024 days" +%F)  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
-	}
 
-	if [[ "$build" =~ ^[0-9]+$ ]]; then
+	elif [[ "$build" =~ ^[0-9]+$ ]]; then
 		run install_brew -
 		downloadBaseUrl=http://download.devel.redhat.com
 		if [[ "$KOJI" = koji ]]; then
