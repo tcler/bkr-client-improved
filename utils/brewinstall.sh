@@ -52,7 +52,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $P <[brew_scratch_build_id] | [lstk|lstdtk|upk|brew_build_name] | [url]> [-koji] [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch]
+	 $P <[brew_scratch_build_id] | [lstk|lstdtk|rtk|upk|brew_build_name] | [url]> [-koji] [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch]
 
 	Example:
 	 $P 23822847  # brew/koji scratch build id
@@ -65,6 +65,7 @@ Usage() {
 	 $P lstk -debugk               # install latest release debug kernel
 	 $P lstdtk                     # install latest dt(devel/test) kernel
 	 $P upk                        # install latest upstream kernel
+	 $P rtk                        # install rt kernel
 	 $P [ftp|http]://url/path/ [-depthLevel=N]  # install all rpms in url/path, default download depth level 2
 	 $P kernel-4.18.0-148.el8 -onlydebuginfo    # install -debuginfo pkg of kernel-4.18.0-148.el8
 	 $P -onlydownload [other option] <args>     # only download rpms and exit
@@ -212,6 +213,10 @@ buildcnt=${#builds[@]}
 for build in "${builds[@]}"; do
 	[[ "$build" = -* ]] && { continue; }
 
+	[[ "$build" = rtk ]] && {
+		let buildcnt--
+		run "yum install @RT -y"
+	}
 	[[ "$build" = upk ]] && {
 		run install_brew -
 		build=$(koji list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet | sort -Vr | awk '{print $1; exit}')
@@ -343,7 +348,7 @@ if [[ $buildcnt -gt 0 ]]; then
 		report_result download-rpms FAIL
 		exit 1
 	}
-else
+elif ! grep -w rtk <<<"${builds[*]}"; then
 	exit 0
 fi
 
@@ -395,5 +400,9 @@ mountpoint /boot || mount /boot
 }
 
 if ls *.$(arch).rpm|egrep '^kernel-(rt-)?(debug-)?[0-9]'; then
+	[[ "$KREBOOT" = yes ]] && reboot
+fi
+
+if grep -w rtk <<<"${builds[*]}"; then
 	[[ "$KREBOOT" = yes ]] && reboot
 fi
