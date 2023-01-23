@@ -216,6 +216,7 @@ for build in "${builds[@]}"; do
 	if [[ "$build" = rtk ]]; then
 		let buildcnt--
 		run "yum install @RT -y"
+		INSTALL_TYPE=command
 	elif [[ "$build" = upk ]]; then
 		run install_brew -
 		build=$(koji list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet | sort -Vr | awk '{print $1; exit}')
@@ -364,6 +365,9 @@ for rpm in *.rpm; do
 done
 
 case $INSTALL_TYPE in
+command)
+	:
+	;;
 rpms)
 	run "rpm -Uvh --force --nodeps *.rpm" -
 	;;
