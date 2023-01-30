@@ -155,7 +155,13 @@ download_pkgs_from_repo() {
 	local i=1
 	local cnt=$(echo -n "$urls"|wc -l)
 	for url in $urls; do
-		[[ "$FLAG" != debugkernel && "$url" = *debuginfo* ]] && {
+		file=${url##*/}
+		eval "case '$file' in
+		(${ExcludePattern:-.})
+			echo '{Info} [$i/$cnt] skip excluded pkg $url'
+			let i++; continue;;
+		esac"
+		[[ "$FLAG" != debugkernel && "$file" = *debuginfo* ]] && {
 			echo "{Info} [$i/$cnt] skip debuginfo pkg $url"
 			let i++; continue
 		}
@@ -175,6 +181,7 @@ for arg; do
 	-onlydownload)   ONLY_DOWNLOAD=yes;;
 	-debug|-debugk*) FLAG=debugkernel;;
 	-noreboot*)      KREBOOT=no;;
+	-x=*)            ExcludePattern=${arg/*=/};;
 	-depthLevel=*)   depthLevel=${arg/*=/};;
 	-rpms*)          INSTALL_TYPE=rpms;;
 	-yum*)           INSTALL_TYPE=yum;;
@@ -263,6 +270,8 @@ for build in "${builds[@]}"; do
 			urllist=$(sed -r '/\/?mnt.koji.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
 		fi
 		for url in $urllist; do
+			file=${url##*/}
+			eval "case '$file' in (${ExcludePattern:-.}) continue;; esac"
 			[[ "$FLAG" != debugkernel && "$url" = *debuginfo* ]] && continue
 			run "curl -O -L $downloadBaseUrl/$url" 0  "download-${url##*/}"
 		done
