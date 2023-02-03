@@ -223,7 +223,6 @@ for build in "${builds[@]}"; do
 	if [[ "$build" = rtk ]]; then
 		let buildcnt--
 		run "yum install @RT -y"
-		INSTALL_TYPE=command
 	elif [[ "$build" = upk ]]; then
 		run install_brew -
 		build=$(koji list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet | sort -Vr | awk '{print $1; exit}')
@@ -353,8 +352,11 @@ if [[ $buildcnt -gt 0 ]]; then
 		report_result download-rpms FAIL
 		exit 1
 	}
-elif ! grep -w rtk <<<"${builds[*]}"; then
-	exit 0
+else
+	INSTALL_TYPE=nothing
+	if ! grep -w rtk <<<"${builds[*]}"; then
+		exit 0
+	fi
 fi
 
 [[ "$ONLY_DOWNLOAD" = yes ]] && {
@@ -374,7 +376,7 @@ for rpm in *.rpm; do
 done
 
 case $INSTALL_TYPE in
-command)
+nothing)
 	:
 	;;
 rpms)
