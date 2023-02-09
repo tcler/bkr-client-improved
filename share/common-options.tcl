@@ -5,9 +5,10 @@ set CommonOptionList {
 	harness			{arg y	help {specify alternative harness, available value: beah|restraint; default: restraint}}
 	restraint		{arg o	help {deprecated} hide y}
 	{fetch-url restraint-git}	{arg m	help {specify restraint fetch url. e.g:
-				--fetch-url kernel,https://github.com/my-beaker-tests/archive/master.zip
+				--fetch-url kernel,https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2
+				--fetch-url kernel,https://github.com/User/Repo/archive/refs/heads/master.tar.gz
 				--fetch-url kernel,git://freetest.org/linux-nfs/public_git/tests.git?master
-				--fetch-url nfs-utils,https://pkgs.dev.rh.com/cgit/tests/nfs-utils/?master
+				--fetch-url nfs-utils,https://pkgs.devel.rh.com/cgit/tests/nfs-utils/?master
 				}}
 	{restraint-case-trim/ p}	{arg y  help {specify how many level should be removed from beaker task name}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
