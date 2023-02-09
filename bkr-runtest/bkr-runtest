@@ -181,6 +181,7 @@ if {[llength $TestArgList]==0 && $_TestList == {}} {
 # test filters
 foreach test $_TestList {
 	regsub -line {^-  *} $test {} test
+	if [regexp {^/[^: ]+$} $test] { set test "${test}: {}" }
 
 	if {[exec yq {.[].attr.disable} << $test] ni {no 0 null}} continue
 
