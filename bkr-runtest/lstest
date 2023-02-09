@@ -49,18 +49,18 @@ _caseInfo() {
 	subtestf=${subtestf:-subtest.yml}
 	if [[ "$CONV" = yes ]]; then
 		local newfmt=
-		if test -f "$subtestf" && ! yq_linux_amd64 "$subtestf" &>/dev/null; then
+		if test -f "$subtestf" && ! yq "$subtestf" &>/dev/null; then
 			#[[ $(wc -L <"$subtestf") -gt 188 ]] &&
-			#	newfmt=$(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- {/; s/$/}/}' "$subtestf" | yq_linux_amd64 -P | sed 's/^-/\n&/')
+			#	newfmt=$(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- {/; s/$/}/}' "$subtestf" | yq -P | sed 's/^-/\n&/')
 			newfmt=$(while read line; do
 				if [[ "${#line}" -eq 0 || "${line}" =~ [\ ]*#.* ]]; then
 					echo "${line}"
 				elif [[ "${#line}" -lt 144 ]]; then
 					echo "${line}"
 				elif [[ "${#line}" -lt 216 ]]; then
-					yq_linux_amd64 -P <<<"$line"|yq_linux_amd64 '.[].* style="flow"';
+					yq -P <<<"$line"|yq '.[].* style="flow"';
 				else
-					yq_linux_amd64 -P <<<"$line";
+					yq -P <<<"$line";
 				fi
 			done < <(sed -r '/^[[:space:]]*(attr|param|setup):/ {s/^/- \{/; s/(}|])( +#.*)?$/\1\}\2/}' "$subtestf")
 			)
@@ -145,7 +145,7 @@ _caseInfo() {
 
 	if [[ -f "$subtestf" ]]; then
 		if egrep -q '^- \{?(attr|param|setup):' "$subtestf"; then
-			subtests_yml=$(yq_linux_amd64 '.[] style="flow"|... comments=""' "$subtestf")
+			subtests_yml=$(yq '.[] style="flow"|... comments=""' "$subtestf")
 		else
 			subtests_yml=$(sed -nr '/^[[:space:]]*(attr|param|setup):/ {s/(}|]) +#.*$/\1/; s/^/- \{/; s/$/\}/; p}' "$subtestf")
 		fi
@@ -166,35 +166,35 @@ _caseInfo() {
 			#update attr
 			for key in "${!Attr[@]}"; do
 				oval=${Attr[$key]}
-				val=$(yq_linux_amd64 ".[0].attr.$key" <<<"$l")
+				val=$(yq ".[0].attr.$key" <<<"$l")
 				if [[ $val = null ]]; then
-					l=$(yq_linux_amd64 ".[0].attr.$key=\"${oval}\"" <<<"$l")
+					l=$(yq ".[0].attr.$key=\"${oval}\"" <<<"$l")
 				fi
 			done
 
 			#get the setup list
 			if [[ ${#Setup[@]} -gt 0 ]]; then
 				local i j setupcnt okey
-				local setuplist=$(yq_linux_amd64 ".[0].setup.[]" <<<"$l")
+				local setuplist=$(yq ".[0].setup.[]" <<<"$l")
 				setupcnt=$(wc -l <<<"$setuplist")
 				[[ -z "$setuplist" ]] && { setupcnt=0; }
 				if [[ $setupcnt -eq 0 ]]; then
 					for i in ${!Setup[@]}; do
-						l=$(yq_linux_amd64 ".[0].setup.[$i]=\"${Setup[$i]}\"" <<<"$l")
+						l=$(yq ".[0].setup.[$i]=\"${Setup[$i]}\"" <<<"$l")
 					done
 				else
 					let j=setupcnt
 					for i in ${!Setup[@]}; do
 						okey=${Setup[$i]%%[= ]*}
 						if ! grep -q -- "$okey" <<<"$setuplist"; then
-							l=$(yq_linux_amd64 ".[0].setup.[$j]=\"${Setup[$i]}\"" <<<"$l")
+							l=$(yq ".[0].setup.[$j]=\"${Setup[$i]}\"" <<<"$l")
 							let j++
 						fi
 					done
 				fi
 			fi
-			#l=$(yq_linux_amd64 "sort_keys(.[])" <<<"$l")
-			l=$(yq_linux_amd64 "sort_keys(.[])|sort_keys(.[].attr)" <<<"$l")
+			#l=$(yq "sort_keys(.[])" <<<"$l")
+			l=$(yq "sort_keys(.[])|sort_keys(.[].attr)" <<<"$l")
 
 			echo "${l/-/- ${name}:}"
 		done <<<"$subtests_yml"
