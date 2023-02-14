@@ -585,9 +585,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							if {$verx >= 8} {set VARIANT BaseOS}
 							if {$FamilyY != ""} {
 								if {$FamilyZ == ""} {
-									set DistroPattern %${FamilyX}.${FamilyY}%
+									set DistroPattern RHEL-${FamilyX}.${FamilyY}.%
 								} else {
-									set DistroPattern %${FamilyX}.${FamilyY}.${FamilyZ}%
+									set DistroPattern RHEL-${FamilyX}.${FamilyY}.${FamilyZ}-%
 								}
 								lappend drs distro_name~${DistroPattern}
 							}
