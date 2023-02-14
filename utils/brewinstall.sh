@@ -239,8 +239,9 @@ for build in "${builds[@]}"; do
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		build=$($KOJI list-builds --pattern=$pkg-*-${rel/*./*.} --state=COMPLETE --after=$(date -d"now-1024 days" +%F)  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+	fi
 
-	elif [[ "$build" =~ ^[0-9]+$ ]]; then
+	if [[ "$build" =~ ^[0-9]+$ ]]; then
 		run install_brew -
 		downloadBaseUrl=http://download.devel.redhat.com
 		if [[ "$KOJI" = koji ]]; then
