@@ -166,7 +166,7 @@ download_pkgs_from_repo() {
 			let i++; continue
 		}
 		echo "{Info} [$i/$cnt] download $url"
-		wget $url 2>/dev/null
+		wget --no-check-certificate $url 2>/dev/null
 		let i++;
 	done
 }
@@ -283,7 +283,7 @@ for build in "${builds[@]}"; do
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
 				which wget &>/dev/null || yum install -y wget
-				run "wget -r -l$depthLevel --no-parent $wgetOpts --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
+				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
 		}
@@ -309,7 +309,7 @@ for build in "${builds[@]}"; do
 				run "curl -O -L $url" 0  "download-${url##*/}"
 			else
 				which wget &>/dev/null || yum install -y wget
-				run "wget -r -l$depthLevel --no-parent $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
+				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
