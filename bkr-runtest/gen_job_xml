@@ -875,7 +875,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						set NFSSERVER "fs-qe.usersys.redhat.com"
 						set VMCOREPATH "/workspace/vmcore"
 					}
-					set nfsDumpTask "/kernel/kdump/setup-nfsdump NFSSERVER=${NFSSERVER} VMCOREPATH=${VMCOREPATH} NO_COMPRESS=1"
+					set nfsDumpTask [list /kernel/kdump/setup-nfsdump NFSSERVER=${NFSSERVER} VMCOREPATH=${VMCOREPATH} NO_COMPRESS=1]
 					if {[info exist Opt(crashsize)]} {
 						set kdumpCrashsize $Opt(crashsize)
 						append nfsDumpTask " CRASHSIZE=${kdumpCrashsize}"
