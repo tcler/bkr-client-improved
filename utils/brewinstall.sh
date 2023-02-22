@@ -301,7 +301,7 @@ for build in "${builds[@]}"; do
 				run "cp -f $nfsmp/$exportdir/*.${a}.rpm ."
 		done
 		run "umount $nfsmp" -
-	elif [[ "$build" =~ ^repo: || "$build" = *//s3.upshift.redhat.com/* ]]; then
+	elif [[ "$build" =~ ^repo: || "$build" = *s3.upshift.redhat.com/DH-PROD-CKI/internal/*/basearch ]]; then
 		download_pkgs_from_repo ${build#repo:}
 	elif [[ "$build" =~ ^(ftp|http|https):// ]]; then
 		for url in $build; do
