@@ -398,6 +398,14 @@ esac
 #mount /boot if not yet
 mountpoint /boot || mount /boot
 
+yum install -y grubby
+run "grubby --default-kernel"
+if [[ /boot/vmlinuz-$(uname -r) = $(grubby --default-kernel) ]]; then
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1|head -1)
+	run "echo $kernelpath"
+	grubby --set-default=$kernelpath
+fi
+
 # if include debug in FLAG
 [[ "$FLAG" =~ debugkernel ]] && {
 	if [ -x /sbin/grubby -o -x /usr/sbin/grubby ]; then
