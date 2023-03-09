@@ -15,9 +15,18 @@ _kinit() {
 }
 
 forever_kinit() {
+	local cycle=2
 	while : ; do
 		sleep $((60 * 60 * 8))
-		_kinit || exit 1
+		for ((i=0; i<512; i++)); do
+			_kinit
+			if [[ $? = 0 ]]; then
+				break
+			else
+				echo "[$(date)] kinit fail, try again $cycle seconds later"
+				sleep $cycle
+			fi
+		done
 	done
 }
 
