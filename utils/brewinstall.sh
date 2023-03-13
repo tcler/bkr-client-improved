@@ -223,6 +223,9 @@ for build in "${builds[@]}"; do
 	if [[ "$build" = rtk ]]; then
 		let buildcnt--
 		run "yum install @RT -y"
+	elif [[ "$build" = 64k ]]; then
+		let buildcnt--
+		run "yum install kernel-64k -y"
 	elif [[ "$build" = upk ]]; then
 		run install_brew -
 		build=$(koji list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet | sort -Vr | awk '{print $1; exit}')
@@ -355,7 +358,7 @@ if [[ $buildcnt -gt 0 ]]; then
 	}
 else
 	INSTALL_TYPE=nothing
-	if ! grep -w rtk <<<"${builds[*]}"; then
+	if ! grep -E -w 'rtk|64k' <<<"${builds[*]}"; then
 		exit 0
 	fi
 fi
@@ -401,7 +404,7 @@ mountpoint /boot || mount /boot
 yum install -y grubby
 run "grubby --default-kernel"
 if [[ /boot/vmlinuz-$(uname -r) = $(grubby --default-kernel) ]]; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1|head -1)
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|head -1)
 	run "echo $kernelpath"
 	grubby --set-default=$kernelpath
 fi
@@ -422,6 +425,6 @@ if ls *.$(arch).rpm|egrep '^kernel-(rt-)?(debug-)?[0-9]'; then
 	[[ "$KREBOOT" = yes ]] && reboot
 fi
 
-if grep -w rtk <<<"${builds[*]}"; then
+if grep -E -w 'rtk|64k' <<<"${builds[*]}"; then
 	[[ "$KREBOOT" = yes ]] && reboot
 fi
