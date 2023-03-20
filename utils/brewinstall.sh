@@ -222,7 +222,7 @@ for build in "${builds[@]}"; do
 
 	if [[ "$build" = rtk ]]; then
 		let buildcnt--
-		run "yum install @RT -y"
+		run "yum --setopt=strict=0 install @RT @NFV -y"
 	elif [[ "$build" = 64k ]]; then
 		let buildcnt--
 		run "yum install kernel-64k -y"
@@ -369,7 +369,7 @@ fi
 
 #install possible dependencies
 ls -1 *.rpm | grep -q ^kernel-rt && {
-	run "yum install -y @RT" -
+	run "yum --setopt=strict=0 install -y @RT @NFV" -
 }
 
 for rpm in *.rpm; do
