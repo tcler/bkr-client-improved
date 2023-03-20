@@ -182,6 +182,7 @@ if {[llength $TestArgList]==0 && $_TestList == {}} {
 foreach test $_TestList {
 	regsub -line {^-  *} $test {} test
 	if [regexp {^/[^: ]+$} $test] { set test "${test}: {}" }
+	if {$test in {dummy dumy dum}} { set test "/distribution/utils/dummy: {}" }
 
 	if {[exec yq {.[].attr.disable} << $test] ni {no 0 null}} continue
 
