@@ -161,7 +161,7 @@ download_pkgs_from_repo() {
 			echo '{Info} [$i/$cnt] skip excluded pkg $url'
 			let i++; continue;;
 		esac"
-		[[ "$FLAG" != debugkernel && "$file" = *debuginfo* ]] && {
+		[[ "$FLAG" != debugkernel ]] && [[ "$file" = *debuginfo* || "$file" = *-debug-* ]] && {
 			echo "{Info} [$i/$cnt] skip debuginfo pkg $url"
 			let i++; continue
 		}
@@ -275,7 +275,7 @@ for build in "${builds[@]}"; do
 		for url in $urllist; do
 			file=${url##*/}
 			eval "case '$file' in (${ExcludePattern:-.}) continue;; esac"
-			[[ "$FLAG" != debugkernel && "$url" = *debuginfo* ]] && continue
+			[[ "$FLAG" != debugkernel ]] && [[ "$file" = *debuginfo* || "$file" = *-debug-* ]] && continue
 			run "curl -O -L $downloadBaseUrl/$url" 0  "download-${url##*/}"
 		done
 
