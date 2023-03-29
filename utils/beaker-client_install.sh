@@ -9,6 +9,10 @@ rpm -q beaker-client && {
 kuser=$1
 verx=$(rpm -E %rhel)
 
+if [[ -f conf/rh-nm-openvpn-config.tgz ]]; then
+	(cd /; tar zxf $OLDPWD/conf/rh-nm-openvpn-config.tgz)
+fi
+
 if egrep -q ^NAME=.?Fedora /etc/os-release; then
 	cat <<-'EOF' >/etc/yum.repos.d/beaker-client.repo
 	[beaker-client]
