@@ -173,7 +173,7 @@ download_pkgs_from_repo() {
 				wget --no-check-certificate $url 2>/dev/null
 			else
 				pkg=${url##*/}
-				yum install --downloadonly ${pkg%.rpm} --downloaddir=.
+				yum download ${pkg%.rpm} --repofrompath=$repopath --downloaddir=.
 			fi
 		}
 		let i++;
