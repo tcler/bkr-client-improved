@@ -166,7 +166,11 @@ download_pkgs_from_repo() {
 			let i++; continue
 		}
 		echo "{Info} [$i/$cnt] download $url"
-		wget --no-check-certificate $url 2>/dev/null
+		wget --no-check-certificate $url 2>/dev/null || {
+			ourl=$url
+			url=$(curl -Ls -o /dev/null -w %{url_effective} $ourl)
+			wget --no-check-certificate $url 2>/dev/null
+		}
 		let i++;
 	done
 }
