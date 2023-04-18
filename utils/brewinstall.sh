@@ -326,6 +326,11 @@ for build in "${builds[@]}"; do
 			fi
 		done
 	else
+		nbuild=$($KOJI list-builds --pattern=${build} --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+		if [[ -z "$nbuild" ]]; then
+			nbuild=$($KOJI list-builds --pattern=${build}* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+			[[ -n "$nbuild" ]] && build=$nbuild
+		fi
 		if [[ "$ONLY_DOWNLOAD" != yes ]]; then
 			curknvr=kernel-$(uname -r)
 			if [[ "$build" = ${curknvr%.*} && "$FLAG" != debugkernel ]]; then
