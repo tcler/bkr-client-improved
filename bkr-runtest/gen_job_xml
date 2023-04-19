@@ -445,6 +445,7 @@ proc makeTag {taginfo} {
 		set t [string range $taginfo 3 end]
 		lassign [regsub (.*?)(=|!=|>|>=|<|<=|~)(.*$) $t {key=\1 op=\2 {value=\3}}] k op v
 		if {$op == "op=~"} {set op "op=like"}
+		if [string match {*%*} $v] {set op "op=like"}
 		doTag key_value $k $op $v -
 	} else {
 		set _tag [split $taginfo ,]
@@ -454,6 +455,7 @@ proc makeTag {taginfo} {
 
 		lassign [regsub (.*?)(:|=|!=|>|>=|<|<=|~)(.*$) $_tag0 {\1 op=\2 {value=\3}}] t op v
 		if {$op == "op=~"} {set op "op=like"}
+		if [string match {*%*} $v] {set op "op=like"}
 		if {$op == "op=:"} {
 			set _attrs [linsert $_attrs 0 [string range $v 6 end]]
 		} else {
