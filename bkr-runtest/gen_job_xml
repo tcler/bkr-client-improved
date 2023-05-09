@@ -350,10 +350,7 @@ proc fetchtag {taskname fetchurl} {
 }
 
 if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
-	set recipe_ks_meta "harness='restraint-rhts beakerlib'"
-	if [info exist fetch_test_from_url] {
-		append recipe_ks_meta " redhat_ca_cert"
-	}
+	set recipe_ks_meta "harness='restraint-rhts beakerlib' redhat_ca_cert"
 }
 
 if [info exist Opt(ks-meta)] { append recipe_ks_meta " " {*}$Opt(ks-meta) }
