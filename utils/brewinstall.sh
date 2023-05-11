@@ -417,11 +417,17 @@ mountpoint /boot || mount /boot
 
 yum install -y grubby
 run "grubby --default-kernel"
-if [[ /boot/vmlinuz-$(uname -r) = $(grubby --default-kernel) ]]; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|head -1)
-	run "echo $kernelpath"
-	grubby --set-default=$kernelpath
+if grep -E -w 'rtk' <<<"${builds[*]}"; then
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E '\+rt$|^kernel-rt'|head -1)
+elif grep -E -w '64k' <<<"${builds[*]}"; then
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E '\+64k$'|head -1)
+else
+	if [[ /boot/vmlinuz-$(uname -r) = $(grubby --default-kernel) ]]; then
+		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|head -1)
+	fi
 fi
+[[ -n "$kernelpath" ]] &&
+	run "grubby --set-default=$kernelpath"
 
 # if include debug in FLAG
 [[ "$FLAG" =~ debugkernel ]] && {
