@@ -67,7 +67,7 @@ while read owner jobid_host; do
 		# output recipe info
 		echo -n "Recipe ->"
 		grep system=.$host. res$$.xml |
-			egrep -o '(arch|distro|status|whiteboard)="[^"]+"'| awk '{printf(" %s", $0)}'
+			grep -E -o '(arch|distro|status|whiteboard)="[^"]+"'| awk '{printf(" %s", $0)}'
 
 		rm res$$.xml
 

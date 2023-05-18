@@ -14,11 +14,11 @@ __brew()
     local opts=$( _parse_help "$1" )
 
     if [[ $narg -gt 2 ]]; then
-        args=$( $prog ${words[1]} -h | grep '^  *' | egrep -o -- '--*[a-zA-Z0-9]+' )
+        args=$( $prog ${words[1]} -h | grep '^  *' | grep -E -o -- '--*[a-zA-Z0-9]+' )
         COMPREPLY=( $( compgen -W "$args" -- "$cur" ) )
     else
         if [[ "$prev" = ${words[1]} ]]; then
-            args=$( $prog ${words[1]} -h | grep '^  *' | egrep -o -- '--*[a-zA-Z0-9]+' )
+            args=$( $prog ${words[1]} -h | grep '^  *' | grep -E -o -- '--*[a-zA-Z0-9]+' )
             COMPREPLY=( $( compgen -W "$args" -- "$cur" ) )
         else
             local subcmd=$( $prog help | awk '/     */{print $1}' )

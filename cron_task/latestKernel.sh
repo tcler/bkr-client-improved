@@ -41,7 +41,7 @@ debug=$1
 searchBrewBuild '^kernel-[.0-9]+-[0-9]+.el'"[${VLIST// /}]"'$' >.kernelList
 test -n "`cat .kernelList`" &&
 	for V in ${VLIST}; do
-	    L=$(egrep 'kernel-[-.0-9]+el'$V .kernelList | head -n4)
+	    L=$(grep -E 'kernel-[-.0-9]+el'$V .kernelList | head -n4)
 	    echo "$L" > ${latestKernelF}-$V.tmp
 	done
 

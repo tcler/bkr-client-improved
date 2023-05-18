@@ -39,7 +39,7 @@ filter_nic_match()
 		matched_hostname=$(awk 'BEGIN{IGNORECASE=1}; $0 ~/'"$UNMATCH"'/ {printf "%s|", $3}' <<< "$search_result")
 		matched_hostname_pattern="${matched_hostname%|}"
 		if [ -n "$matched_hostname_pattern" ]; then
-			search_result=$(egrep -v "$matched_hostname_pattern" <<< "$search_result")
+			search_result=$(grep -E -v "$matched_hostname_pattern" <<< "$search_result")
 		fi
 	fi
 	echo "$search_result"
@@ -53,7 +53,7 @@ filter_nic_num()
 	matched_hostname=$(awk '{print $3}' <<< "$search_result" | uniq -c | awk '{if ($1 >= '"$NUM"') printf "%s|", $2; }')
 	matched_hostname_pattern="${matched_hostname%|}"
 	[ ${#matched_hostname_pattern} -ne 0 ] && {
-		egrep "$matched_hostname_pattern" <<< "$search_result"
+		grep -E "$matched_hostname_pattern" <<< "$search_result"
 	} || {
 		>&2 echo "Error: no matched machine have $NUM required NIC(s)"
 		let exitcode++
@@ -111,8 +111,8 @@ Usage()
 	Search options:
 	  -d, --driver		NIC driver
 	  -m, --model		NIC model
-	  -p, --match		customer pattern which match the regex (emulates "egrep")
-	  -v, --unmatch		customer pattern which does NOT match the regex (emulates "egrep -v")
+	  -p, --match		customer pattern which match the regex (emulates "grep -E")
+	  -v, --unmatch		customer pattern which does NOT match the regex (emulates "grep -E -v")
 	  -s, --speed		NIC speed
 	  -c, --num		at least how many matched NICs that the machine have
 	  -P, --pciid		PCI id

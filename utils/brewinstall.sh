@@ -441,7 +441,7 @@ fi
 	fi
 }
 
-if ls *.$(arch).rpm|egrep '^kernel-(redhat|rt-)?(debug-)?[0-9]'; then
+if ls *.$(arch).rpm|grep -E '^kernel-(redhat|rt-)?(debug-)?[0-9]'; then
 	[[ "$KREBOOT" = yes ]] && reboot
 fi
 

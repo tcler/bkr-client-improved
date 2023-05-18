@@ -40,7 +40,7 @@ DVLIST="7 8 9"
 prefix=.latest.distro
 debug=$1
 
-distro-list.sh --tag all | sort -r | egrep '^RHEL-'"[${DVLIST// /}]" >.distroListr
+distro-list.sh --tag all | sort -r | grep -E '^RHEL-'"[${DVLIST// /}]" >.distroListr
 
 \cp .distroList .distroList.orig
 while read d; do
@@ -51,7 +51,7 @@ while read d; do
 			grep -v ^= | sed -r 's/\.(x86_64|i686|noarch|ppc64le)\.rpm//g' |
 			sort --unique | xargs | sed -r 's/(.*)(\<kernel-[^ ]* )(.*)/\2\1\3/')
 		# Append the compose label if NOT a nightly distro
-		if [ -n "$pkgList" ] && ! echo $d | egrep -q 'RHEL[-.[:digit:]]+n[.[:digit:]]+'; then
+		if [ -n "$pkgList" ] && ! echo $d | grep -E -q 'RHEL[-.[:digit:]]+n[.[:digit:]]+'; then
 			pkgList="$pkgList  $(distro-compose -d $d --composeinfo 2>/dev/null | grep -o '"label": "[^"]*"')"
 		fi
 	}
@@ -62,7 +62,7 @@ done <.distroListr >.distroList
 
 test -n "`cat .distroList`" &&
 	for V in $DVLIST; do
-	    egrep -a -i "^RHEL-${V}.[0-9]+" .distroList >${prefix}$V.tmp
+	    grep -E -a -i "^RHEL-${V}.[0-9]+" .distroList >${prefix}$V.tmp
 	done
 
 for V in $DVLIST; do
@@ -112,13 +112,13 @@ for V in $DVLIST; do
 		done
 
 		# Highlight the packages whose version is increasing
-		if echo $distro | egrep -q 'RHEL[-.[:digit:]]+n[.[:digit:]]+$'; then
+		if echo $distro | grep -E -q 'RHEL[-.[:digit:]]+n[.[:digit:]]+$'; then
 			# nightly
 			dtype="n"
-		elif echo $distro | egrep -q 'RHEL[-.[:digit:]]+d[.[:digit:]]+$'; then
+		elif echo $distro | grep -E -q 'RHEL[-.[:digit:]]+d[.[:digit:]]+$'; then
 			# development
 			dtype="d"
-		elif echo $distro | egrep -q 'RHEL-[.[:digit:]]+-[.[:digit:]]+$'; then
+		elif echo $distro | grep -E -q 'RHEL-[.[:digit:]]+-[.[:digit:]]+$'; then
 			# rtt
 			dtype="r"
 		else

@@ -29,7 +29,7 @@ script=ontap-simulator-two-node.sh
 submitlog=$(runtest --random ${HostDistro} "--cmd=git clone $KissVMUrl; sudo make -C kiss-vm-ns; sudo vm prepare; wget $ImageUrl; wget $LicenseUrl; git clone https://github.com/tcler/ontap-simulator-in-kvm; bash ontap-simulator-in-kvm/$script --image=$ImageFile --license-file=$LicenseFile" -hr=memory\>=16384 --hr=kv-DISKSPACE\>=500000)
 
 echo "$submitlog"
-job=$(egrep -o J:[0-9]+ <<<"$submitlog")
+job=$(grep -E -o J:[0-9]+ <<<"$submitlog")
 [[ -z $job ]] && {
 	echo "Error: didn't get beaker job ID" >&2
 	exit 1
@@ -60,5 +60,5 @@ grep /distribution/command.*status=.Completed < <(bkr job-results $job --prettyx
 
 echo -e "\nInfo: getting ontap lif's info ..."
 task=$(bkr job-results $job --prettyxml | sed -rn '/name=.\/distribution\/command/{s;^.*id="([0-9]+)".*$;\1;; p}')
-logurl=$(bkr job-logs $job|egrep "/$task/.*(taskout.log|TESTOUT.log)")
+logurl=$(bkr job-logs $job|grep -E "/$task/.*(taskout.log|TESTOUT.log)")
 curl -s -L $logurl| tac | sed -nr '/^[ \t]+lif/ {:loop /\nfsqe-[s2]nc1/!{N; b loop}; p;q}'|tac

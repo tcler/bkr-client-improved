@@ -85,25 +85,25 @@ _caseInfo() {
 
 	#get test attr: max run time
 	_time=$(awk -F'[: =\t]+' '/^TestTime:/{print $2}' $infofile)
-	echo $_time | egrep -q '[0-9]+h' && _time=$((${_time/h/}*60))m
-	echo $_time | egrep -q '[0-9]+d' && _time=$((${_time/d/}*24*60))m
+	echo $_time | grep -E -q '[0-9]+h' && _time=$((${_time/h/}*60))m
+	echo $_time | grep -E -q '[0-9]+d' && _time=$((${_time/d/}*24*60))m
 	Attr[time]=$_time
 
 	#get test attr: pkg name belong to
 	unset PACKAGE_NAME PACKAGE
-	eval "$(egrep '^[[:space:]]*(export *)?PACKAGE(_NAME)?=[^ #]' -h * .* 2>/dev/null|sed 's;export;;')"
+	eval "$(grep -E '^[[:space:]]*(export *)?PACKAGE(_NAME)?=[^ #]' -h * .* 2>/dev/null|sed 's;export;;')"
 	_pkg=${PACKAGE_NAME}
 	test -z "${_pkg}" && _pkg=${PACKAGE}
 	test -z "${_pkg}" && read _pkg _ <<<"${name//\// }"
 	Attr[pkg]=$_pkg
 
 	#get test attr: sepatate scheduling?
-	egrep -q -i ' *DANGEROU?S=yes' -r . && _ssched="yes.dangerous"
-	egrep -q -i ' *STRESS=yes' -r . && _ssched="yes.stress"
+	grep -E -q -i ' *DANGEROU?S=yes' -r . && _ssched="yes.dangerous"
+	grep -E -q -i ' *STRESS=yes' -r . && _ssched="yes.stress"
 	#
 	## if cost so many time separate schedule too
-	echo $maxtime | egrep -q '[0-9]+h' && maxtime=$((${maxtime/h/}*60))
-	echo $maxtime | egrep -q '[0-9]+d' && maxtime=$((${maxtime/d/}*24*60))
+	echo $maxtime | grep -E -q '[0-9]+h' && maxtime=$((${maxtime/h/}*60))
+	echo $maxtime | grep -E -q '[0-9]+d' && maxtime=$((${maxtime/d/}*24*60))
 	maxtime=${maxtime//[^0-9]/}
 	[ "$_ssched" = "no" -a "${_time/m/}" -gt "${maxtime:-120}" ] && _ssched="yes.longtime"
 	Attr[ssched]=$_ssched
@@ -131,8 +131,8 @@ _caseInfo() {
 	test -n "$ServerNeed" -o -n "$ClientNeed" &&
 	topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
 	##if specify the machine acount in runtest.sh
-	egrep -q '^[[:space:]]*(Client|Server)Need=' $f && {
-		eval "$(egrep '^[[:space:]]*(Client|Server)Need=' $f)"
+	grep -E -q '^[[:space:]]*(Client|Server)Need=' $f && {
+		eval "$(grep -E '^[[:space:]]*(Client|Server)Need=' $f)"
 		topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
 	}
 	[[ -n "$topo" ]] && Setup+=(--topo=$topo)
@@ -144,7 +144,7 @@ _caseInfo() {
 	[ -x $subtests_generator ] && sh $subtests_generator
 
 	if [[ -f "$subtestf" ]]; then
-		if egrep -q '^- \{?(attr|param|setup):' "$subtestf"; then
+		if grep -E -q '^- \{?(attr|param|setup):' "$subtestf"; then
 			subtests_yml=$(yq '.[] style="flow"|... comments=""' "$subtestf")
 		else
 			subtests_yml=$(sed -nr '/^[[:space:]]*(attr|param|setup):/ {s/(}|]) +#.*$/\1/; s/^/- \{/; s/$/\}/; p}' "$subtestf")
@@ -272,7 +272,7 @@ else
 		echo "[Warn] can not read '$setupConf'" >&2
 		exit 1
 	}
-	setupList=$(egrep -v '^ *#|^$' $setupConf)
+	setupList=$(grep -E -v '^ *#|^$' $setupConf)
 	setupyList=$(while read setup; do echo $(eval set -- $setup; for a; do ymllist "--$a"; done); done <<<"$setupList")
 
 	while read setup; do

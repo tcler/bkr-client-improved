@@ -44,7 +44,7 @@ ping -c 4 $krbServ || {
 	exit 1
 }
 rpm -q telnet || yum -y install telnet
-echo -e "\[" | telnet $krbServ 88 2>&1 | egrep 'Escape character is' || {
+echo -e "\[" | telnet $krbServ 88 2>&1 | grep -E 'Escape character is' || {
 	echo "{WARN} krb port $krbServ:88 can not connect. please check the firewall of both point"
 	exit 1
 }

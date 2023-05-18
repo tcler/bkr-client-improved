@@ -13,7 +13,7 @@ sortV() {
 	if echo | sort -V &>/dev/null; then
 		cat - | sort -V "$@"
 	else
-		if ! echo "$@" | egrep -q '( |^)-r( |$)'; then
+		if ! echo "$@" | grep -E -q '( |^)-r( |$)'; then
 			cat - | sed -r -e 's/^/k-/' -e "s/-([0-9]+\.)/.\1/" -e "s/-([0-9]+\.)/-.\1/" |
 			sort -t . -k1,1 -k2,2n -k3,3n -k4,4n -k5,5n -k6,6n |
 			sed -r -e "s/\./-/" -e "s/-\./-/" -e 's/^k.//'
@@ -44,7 +44,7 @@ vercmp() {
 	\<|lt) [ "$eq" != 1 -a "$vr" = "$vmax" ] && res=0;;
 	\>=|ge) [ "$vl" = "$vmax" ] && res=0;;
 	\<=|le) [ "$vr" = "$vmax" ] && res=0;;
-	*) echo "$vl" | egrep -q "$vr"; res=$?;;
+	*) echo "$vl" | grep -E -q "$vr"; res=$?;;
 	esac
 
 	return $res

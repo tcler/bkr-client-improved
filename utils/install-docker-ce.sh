@@ -16,15 +16,15 @@ echo -e "{Note} docker-ce is deprecated on RHEL, please use 'podman' instead\n"
 yum install -y container-selinux
 rpm -q container-selinux || {
 	url=http://mirror.centos.org/centos/7/extras/x86_64/Packages
-	pkg=$(curl -s -L $url | egrep '\<container-selinux-[-_.0-9a-z]+' -o | head -n1)
+	pkg=$(curl -s -L $url | grep -E '\<container-selinux-[-_.0-9a-z]+' -o | head -n1)
 	yum install -y $url/$pkg
 }
 rpm -q container-selinux || {
 	yum install -y redhat-lsb-core >/dev/null
 	url=http://vault.centos.org
-	ver=$(curl -s -L $url | egrep -o "\<$(lsb_release -sr)\.[0-9]+" | tail -n1)
+	ver=$(curl -s -L $url | grep -E -o "\<$(lsb_release -sr)\.[0-9]+" | tail -n1)
 	url=http://vault.centos.org/$ver/extras/x86_64/Packages
-	pkg=$(curl -s -L $url | egrep '\<container-selinux-[-_.0-9a-z]+' -o | head -n1)
+	pkg=$(curl -s -L $url | grep -E '\<container-selinux-[-_.0-9a-z]+' -o | head -n1)
 	yum install -y $url/$pkg
 }
 

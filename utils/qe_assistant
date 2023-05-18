@@ -75,7 +75,7 @@ for distro in ${distros[@]}; do
 	done
 done
 
-bugs=$(egrep -i -o '(bug *|bz|bugzilla.redhat.com.*id=)[0-9]+\>' <<<"$line"|sed -r 's/(bug *|bz|bugzilla.redhat.com.*id=)//I')
+bugs=$(grep -E -i -o '(bug *|bz|bugzilla.redhat.com.*id=)[0-9]+\>' <<<"$line"|sed -r 's/(bug *|bz|bugzilla.redhat.com.*id=)//I')
 while read bug; do
 	[[ -z "$bug" ]] && continue
 	bugzilla query -b ${bug}

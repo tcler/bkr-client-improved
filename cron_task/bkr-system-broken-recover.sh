@@ -32,7 +32,7 @@ for h in $brokenList; do
 		echo "[$(date +%F-%T)] $hinfo" >>$logf
 
 		#skip if there is Broken flag in Notes
-		egrep -qi '" *(Ticket|Broken):' <<<"$hinfo" && continue
+		grep -E -qi '" *(Ticket|Broken):' <<<"$hinfo" && continue
 
 		#try reboot and change condition back to Automated
 		echo $'`-> reboot and return to Automated\n' >>$logf

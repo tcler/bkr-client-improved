@@ -361,7 +361,7 @@ foreach {distro_arch_rgset testList} [array get waitSubmitedTest] {
 	if {$N < 0} {set N 0}
 	set HostUsed($_arch) [expr $HostUsed($_arch) + $N]
 
-	set JobList [list {*}[exec bash -c {egrep -o J:[0-9]+ jobsubmit.log; :}]]
+	set JobList [list {*}[exec bash -c {grep -E -o J:[0-9]+ jobsubmit.log; :}]]
 	set distro_rgset $distro
 	if {$rgset != ""} { append distro_rgset " $rgset" }
 	db transaction {
