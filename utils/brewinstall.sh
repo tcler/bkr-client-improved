@@ -395,7 +395,15 @@ done
 
 case $INSTALL_TYPE in
 nothing)
-	:
+	if grep -E -w 'rtk' <<<"${builds[*]}"; then
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 kernel-rt*.rpm" - ||
+			run "rpm -Uvh --force --nodeps kernel-rt*.rpm" - ||
+			for rpm in kernel-rt*.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
+	elif grep -E -w '64kk' <<<"${builds[*]}"; then
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 kernel-64k*.rpm" - ||
+			run "rpm -Uvh --force --nodeps kernel-64k*.rpm" - ||
+			for rpm in kernel-64k*.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
+	fi
 	;;
 rpms)
 	run "rpm -Uvh --force --nodeps *.rpm" -
