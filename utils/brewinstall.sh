@@ -363,6 +363,7 @@ for build in "${builds[@]}"; do
 done
 
 # Install packages
+run "echo build_count: $buildcnt"
 run "ls -lh"
 if [[ $buildcnt -gt 0 ]]; then
 	run "ls -lh *.rpm"
