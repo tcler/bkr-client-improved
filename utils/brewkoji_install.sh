@@ -27,28 +27,33 @@ installBrew2() {
 	local verx=$(rpm -E %rhel)
 
 	pushd /etc/yum.repos.d
+	baseUrl=http://download.devel.redhat.com/rhel-$verx
+	curl -L $baseUrl -s | grep -q 404 &&
+		baseUrl=http://download.eng.pek2.redhat.com/rhel-$verx
 	if [[ $(rpm -E %rhel) != %rhel ]]; then
 		case $verx in
-		[56])
-			for type in server client workstation; do
-				curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rhel-${verx}/rcm-tools-rhel-${verx}-${type}.repo
-				yum install --setopt=sslverify=0 -y koji brewkoji && break || rm rcm-tools-*.repo
-			done
-			;;
-		7)
-			for type in server client workstation; do
-				curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-${verx}-${type}.repo
-				yum install --setopt=sslverify=0 -y koji brewkoji && break || rm rcm-tools-*.repo
-			done
+		[567])
+			type=workstation
+			pkglist='koji brewkoji'
 			;;
 		8|9)
-			curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-${verx}-baseos.repo
-			yum install --setopt=sslverify=0 -y brewkoji python3-pycurl || rm rcm-tools-*.repo
-			rpm -ivh --force --nodeps \
-				https://kojipkgs.fedoraproject.org/packages/koji/1.29.0/1.el${verx}/noarch/koji-1.29.0-1.el${verx}.noarch.rpm \
-				https://kojipkgs.fedoraproject.org/packages/koji/1.29.0/1.el${verx}/noarch/python3-koji-1.29.0-1.el${verx}.noarch.rpm
+			type=BaseOS
+			pkglist='brewkoji python3-pycurl'
 			;;
 		esac
+		repourl=$baseUrl/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-$verx/compose/$type/$(uname -m)/os
+		cat <<-EOF >/etc/yum.repos.d/rcm-tools-2.repo
+		[rcm-tools]
+		name=RCM TOOLS 2
+		baseurl=$repourl
+		enabled=1
+		gpgcheck=0
+		EOF
+		yum install --setopt=sslverify=0 -y $pkglist || rm rcm-tools-*.repo
+		[[ $verx -ge 8 ]] && { rpm -ivh --force --nodeps \
+		    https://kojipkgs.fedoraproject.org/packages/koji/1.29.0/1.el${verx}/noarch/koji-1.29.0-1.el${verx}.noarch.rpm \
+		    https://kojipkgs.fedoraproject.org/packages/koji/1.29.0/1.el${verx}/noarch/python3-koji-1.29.0-1.el${verx}.noarch.rpm
+		}
 	elif [[ $(rpm -E %fedora) != %fedora ]]; then
 		curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
 		yum install --setopt=sslverify=0 -y koji brewkoji || rm rcm-tools-*.repo
