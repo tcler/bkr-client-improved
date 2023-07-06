@@ -353,6 +353,14 @@ for build in "${builds[@]}"; do
 				run "koji download-build $DEBUG_INFO_OPT $buildname --arch=${a}" -
 		done
 
+		for file in *.rpm; do
+			eval "case '$file' in
+			(${ExcludePattern:-.})
+				echo '{Info} rm excluded file $file'
+				rm -f '$file';;
+			esac"
+		done
+
 		for rpmf in $RPMS; do
 			if ! test -f $rpmf; then
 				run "$KOJI download-build --rpm $rpmf" - ||
