@@ -325,6 +325,14 @@ for build in "${builds[@]}"; do
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
+
+		for file in *.rpm; do
+			eval "case '$file' in
+			(${ExcludePattern:-.})
+				echo '{Info} rm excluded file $file'
+				rm -f '$file';;
+			esac"
+		done
 	else
 		nbuild=$($KOJI list-builds --pattern=${build} --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 		if [[ -z "$nbuild" ]]; then
