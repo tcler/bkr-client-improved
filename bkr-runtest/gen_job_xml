@@ -319,6 +319,7 @@ if [info exist Opt(harness)] { set harness $Opt(harness) }
 
 set defaultKernelFetchUrl "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
 set defaultPkgFetchUrl "git://pkgs.devel.redhat.com/tests/__pkg__?master"
+array set taskFetchUrl {}
 if [info exist Opt(fetch-url)] {
 	if ![info exist fetchUrl(kernel)] {
 		set fetchUrl(kernel) $defaultKernelFetchUrl
@@ -329,6 +330,12 @@ if [info exist Opt(fetch-url)] {
 			lassign [split ${_url} ","] pkg url
 		}
 		set fetchUrl($pkg) $url
+	}
+}
+if [info exist Opt(task-fetch-url)] {
+	foreach _url $Opt(task-fetch-url) {
+		lassign [split ${_url} ","] taskname url
+		set taskFetchUrl($taskname) $url
 	}
 }
 
@@ -346,7 +353,13 @@ proc fetchtag {taskname fetchurl} {
 	if ![info exist fetchUrlArray($pkg)] {
 		set fetchUrlArray($pkg) [string map "__pkg__ $pkg" $::defaultPkgFetchUrl]
 	}
-	doTag fetch url=[regsub {#+$} $fetchUrlArray($pkg) {}]#$casepath -
+
+	if [info exist ::taskFetchUrl($taskname)] {
+		set _url $::taskFetchUrl($taskname)
+	} else {
+		set _url [regsub {#+$} $fetchUrlArray($pkg) {}]#$casepath
+	}
+	doTag fetch url=$_url -
 }
 
 if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {

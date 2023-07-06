@@ -11,6 +11,9 @@ set CommonOptionList {
 				--fetch-url nfs-utils,https://pkgs.devel.rh.com/cgit/tests/nfs-utils/?master
 				}}
 	{restraint-case-trim/ p}	{arg y  help {specify how many level should be removed from beaker task name}}
+	task-fetch-url		{arg m	help {accept a fetch url for a special task. e.g:
+				--task-fetch-url /distribution/kernelinstall,https://gitlab.com/redhat/centos-stream/tests/kernel/kernel-tests/-/archive/main/kernel-tests-main.tar.gz#distribution/kernelinstall
+				}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
 	job-owner		{arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
 	{wb whiteboard}		{arg y	help {Set the whiteboard for this job}}
