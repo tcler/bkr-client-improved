@@ -215,6 +215,9 @@ if [[ -z "$ExcludePattern" ]]; then
 		ExcludePattern='*-64k*.rpm'
 	fi
 fi
+if [[ "$FLAG" != debugkernel ]]; then
+	[[ -n "$ExcludePattern" ]] && ExcludePattern+='|*debug*.rpm' || ExcludePattern='*debug*.rpm'
+fi
 if [[ -n "$ExcludePattern" ]]; then
 	wgetROpts="-R ${ExcludePattern//|/ -R }"
 fi
