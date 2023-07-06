@@ -317,7 +317,7 @@ set recipe_ks_meta {}
 set harness restraint
 if [info exist Opt(harness)] { set harness $Opt(harness) }
 
-array set taskFetchUrl {}
+if ![array exist fetchUrl] { array set taskFetchUrl {} }
 set defaultKernelFetchUrl "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
 set defaultPkgFetchUrl "git://pkgs.devel.redhat.com/tests/__pkg__?master"
 set taskFetchUrl(/distribution/kernelinstall) "https://gitlab.com/redhat/centos-stream/tests/kernel/kernel-tests/-/archive/main/kernel-tests-main.tar.gz#distribution/kernelinstall"

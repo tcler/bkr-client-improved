@@ -28,3 +28,5 @@ set OSInstaller /distribution/check-install
 
 set fetchUrl(kernel) "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
 #set fetchUrl(pkgname) "http://git.free.org/..."
+
+set taskFetchUrl(/distribution/kernelinstall) "https://gitlab.com/redhat/centos-stream/tests/kernel/kernel-tests/-/archive/main/kernel-tests-main.tar.gz#distribution/kernelinstall"
