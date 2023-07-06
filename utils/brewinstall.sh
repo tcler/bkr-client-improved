@@ -190,7 +190,10 @@ for arg; do
 	-onlydownload)   ONLY_DOWNLOAD=yes;;
 	-debug|-debugk*) FLAG=debugkernel;;
 	-noreboot*)      KREBOOT=no;;
-	-x=*)            ExcludePattern=${arg/*=/};;
+	-x=*)
+		ExcludePattern=${arg/*=/}
+		wgetROpts="-R ${ExcludePattern//|/ -R }"
+		;;
 	-depthLevel=*)   depthLevel=${arg/*=/};;
 	-rpms*)          INSTALL_TYPE=rpms;;
 	-yum*)           INSTALL_TYPE=yum;;
@@ -295,7 +298,7 @@ for build in "${builds[@]}"; do
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
 				which wget &>/dev/null || yum install -y wget
-				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
+				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts $wgetROpts --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
 		}
@@ -321,7 +324,7 @@ for build in "${builds[@]}"; do
 				run "curl -O -L $url" 0  "download-${url##*/}"
 			else
 				which wget &>/dev/null || yum install -y wget
-				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
+				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts $wgetROpts --progress=dot:mega $url" 0  "download-${url##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
