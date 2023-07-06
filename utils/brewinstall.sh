@@ -192,7 +192,6 @@ for arg; do
 	-noreboot*)      KREBOOT=no;;
 	-x=*)
 		ExcludePattern=${arg/*=/}
-		wgetROpts="-R ${ExcludePattern//|/ -R }"
 		;;
 	-depthLevel=*)   depthLevel=${arg/*=/};;
 	-rpms*)          INSTALL_TYPE=rpms;;
@@ -206,6 +205,19 @@ for arg; do
 		;;
 	esac
 done
+
+if [[ -z "$ExcludePattern" ]]; then
+	if ! grep -E -w 'rtk|64k' <<<"${builds[*]}"; then
+		ExcludePattern='*-rt*.rpm|*-64k*.rpm'
+	elif ! grep -E -w 'rtk' <<<"${builds[*]}"; then
+		ExcludePattern='*-rt*.rpm'
+	elif ! grep -E -w '64k' <<<"${builds[*]}"; then
+		ExcludePattern='*-64k*.rpm'
+	fi
+fi
+if [[ -n "$ExcludePattern" ]]; then
+	wgetROpts="-R ${ExcludePattern//|/ -R }"
+fi
 
 # fix ssl certificate verify failed
 curl -s https://password.corp.redhat.com/RH-IT-Root-CA.crt -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt
