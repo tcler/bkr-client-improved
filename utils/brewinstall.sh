@@ -224,11 +224,11 @@ for arg; do
 done
 
 if [[ -z "$ExcludePattern" ]]; then
-	if ! grep -E -w 'rtk|64k' <<<"${builds[*]}"; then
+	if ! grep -E -w 'rtk|kernel-rt|64k|kernel-64k' <<<"${builds[*]}"; then
 		ExcludePattern='*-rt*.rpm|*-64k*.rpm'
-	elif ! grep -E -w 'rtk' <<<"${builds[*]}"; then
+	elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
 		ExcludePattern='*-rt*.rpm'
-	elif ! grep -E -w '64k' <<<"${builds[*]}"; then
+	elif ! grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
 		ExcludePattern='*-64k*.rpm'
 	fi
 fi
