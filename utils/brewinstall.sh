@@ -183,11 +183,13 @@ download_pkgs_from_repo() {
 
 buildname2url() {
 	local _build=$1
-	local _url=
+	local _url= _path=
 	local rc=1
-	_url=$(brew buildinfo $_build|grep -o "/brewroot/vol/.*/$(arch)/"|uniq)
-	if [[ -n "$url" ]]; then
-		_url=$(curl -Ls -o /dev/null -w %{url_effective} $downloadBaseUrl/$_url)
+	_path=$(brew buildinfo $_build|grep -o "/brewroot/vol/.*/$(arch)/"|uniq)
+	if [[ -n "$_path" ]]; then
+		echo "{debug} path: $_path" >&2
+		_url=$(curl -Ls -o /dev/null -w %{url_effective} $downloadBaseUrl/$_path)
+		echo "{debug} url: $_url" >&2
 		if is_available_url $_url; then
 			echo $_url
 			rc=0
