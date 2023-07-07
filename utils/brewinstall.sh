@@ -12,7 +12,8 @@ switchroot() {
 switchroot "$@"
 
 LANG=C
-baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
+bkrDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
+downloadBaseUrl=http://download.devel.redhat.com
 
 is_available_url() {
         local _url=$1
@@ -81,13 +82,13 @@ EOF
 
 is_intranet && {
 	Intranet=yes
-	baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
+	bkrDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
 }
 
 install_brew() {
 	which brew &>/dev/null || {
 		which brewkoji_install.sh &>/dev/null || {
-			_url=$baseDownloadUrl/utils/brewkoji_install.sh
+			_url=$bkrDownloadUrl/utils/brewkoji_install.sh
 			mkdir -p ~/bin && curl -o ~/bin/brewkoji_install.sh -s -L $_url
 			chmod +x ~/bin/brewkoji_install.sh
 		}
@@ -178,6 +179,22 @@ download_pkgs_from_repo() {
 		}
 		let i++;
 	done
+}
+
+buildname2url() {
+	local _build=$1
+	local _url=
+	local rc=1
+	_url=$downloadBaseUrl/$(brew buildinfo $_build|grep -o "/brewroot/vol/.*/$(arch)/"|uniq)
+	_url=$(curl -Ls -o /dev/null -w %{url_effective} $_url)
+	if is_available_url $_url; then
+		echo $_url
+		rc=0
+	else
+		rc=1
+	fi
+
+	return $rc
 }
 
 # parse options
@@ -273,7 +290,6 @@ for build in "${builds[@]}"; do
 
 	if [[ "$build" =~ ^[0-9]+$ ]]; then
 		run install_brew -
-		downloadBaseUrl=http://download.devel.redhat.com
 		if [[ "$KOJI" = koji ]]; then
 			downloadBaseUrl=https://kojipkgs.fedoraproject.org
 		fi
@@ -374,18 +390,25 @@ for build in "${builds[@]}"; do
 
 		run install_brew -
 		buildname=$build
-		for a in "${archList[@]}"; do
-			run "$KOJI download-build $DEBUG_INFO_OPT $buildname --arch=${a}" - ||
-				run "koji download-build $DEBUG_INFO_OPT $buildname --arch=${a}" -
-		done
+		url=$(buildname2url $buildname)
+		if [[ $? = 0 ]]; then
+			which wget &>/dev/null || yum install -y wget
+			run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts $wgetROpts --progress=dot:mega $url" 0  "download-${url##*/}"
+			find */ -name '*.rpm' | xargs -i mv {} ./
+		else
+			for a in "${archList[@]}"; do
+				run "$KOJI download-build $DEBUG_INFO_OPT $buildname --arch=${a}" - ||
+					run "koji download-build $DEBUG_INFO_OPT $buildname --arch=${a}" -
+			done
 
-		for file in *.rpm; do
-			eval "case '$file' in
-			(${ExcludePattern:-.})
-				echo '{Info} rm excluded file $file'
-				rm -f '$file';;
-			esac"
-		done
+			for file in *.rpm; do
+				eval "case '$file' in
+				(${ExcludePattern:-.})
+					echo '{Info} rm excluded file $file'
+					rm -f '$file';;
+				esac"
+			done
+		fi
 
 		for rpmf in $RPMS; do
 			if ! test -f $rpmf; then
