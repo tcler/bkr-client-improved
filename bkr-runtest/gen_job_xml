@@ -971,8 +971,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 					if {$insert in {1 y yes}} {
+						set _fetchurl "no"
+						if {[info exist fetch_test_from_url] || [info exist taskFetchUrl($taskname)]} {
+							set _fetchurl "yes"
+						}
 						task name=$taskname role=$_role ! {
-							if {[info exist fetch_test_from_url] && $_fetch_from_url ne "disable"} {
+							if {$_fetchurl == "yes" && $_fetch_from_url ne "disable"} {
 								fetchtag $taskname fetchUrl
 							}
 							params ! {
@@ -1007,7 +1011,11 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 						if {$insert in {1 y yes}} {
 							task name=$name role=$_role ! {
-								if {[info exist fetch_test_from_url] && $_fetch_from_url ne "disable"} {
+								set _fetchurl "no"
+								if {[info exist fetch_test_from_url] || [info exist taskFetchUrl($name)]} {
+									set _fetchurl "yes"
+								}
+								if {$_fetchurl == "yes" && $_fetch_from_url ne "disable"} {
 									fetchtag $name fetchUrl
 								}
 								params ! {
@@ -1089,7 +1097,11 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 					if {$insert in {1 y yes}} {
 						task name=$taskname role=$_role ! {
-							if {[info exist fetch_test_from_url] && $_fetch_from_url ne "disable"} {
+							set _fetchurl "no"
+							if {[info exist fetch_test_from_url] || [info exist taskFetchUrl($taskname)]} {
+								set _fetchurl "yes"
+							}
+							if {$_fetchurl == "yes" && $_fetch_from_url ne "disable"} {
 								fetchtag $taskname fetchUrl
 							}
 							params ! {
