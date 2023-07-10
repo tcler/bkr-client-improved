@@ -321,7 +321,7 @@ if ![array exist taskFetchUrl] { array set taskFetchUrl {} }
 set defaultKernelFetchUrl "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
 set defaultPkgFetchUrl "git://pkgs.devel.redhat.com/tests/__pkg__?master"
 
-if ![info exist taskFetchUrl(kernelinstall)] {
+if ![info exist taskFetchUrl(/distribution/kernelinstall)] {
 	set taskFetchUrl(/distribution/kernelinstall) "https://gitlab.com/redhat/centos-stream/tests/kernel/kernel-tests/-/archive/main/kernel-tests-main.tar.gz#distribution/kernelinstall"
 }
 
