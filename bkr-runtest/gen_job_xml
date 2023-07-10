@@ -92,7 +92,7 @@ proc getDefaultNVR {_distro} {
 		regsub {RHEL-([0-9]+\.[0-9]+)} $reg {RHEL-./\1} reg
 	}
 
-	set _NVR [exec bash -c "distro-compose -p '^kernel-\[0-9]+\[-.0-9]+\.' -d $reg || :"]
+	set _NVR [exec bash -c "distro-compose -p '^kernel-\[0-9]+\[-.0-9]+\.' -d ${reg}$ || :"]
 	if [regsub {.*(kernel-[2-6]+[-.0-9]+\.[^.]+).*} $_NVR {\1} _defaultNVR] {
 		return $_defaultNVR
 	} else {
