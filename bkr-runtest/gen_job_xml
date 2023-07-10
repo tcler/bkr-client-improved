@@ -807,7 +807,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 
 				# distro install
-				lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
+				lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild _task_fetch_from_url=disable"
 
 				# command before kernelinstall
 				if [info exist Opt(cmdb)] {
