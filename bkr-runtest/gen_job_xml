@@ -1077,7 +1077,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {[string length $Opt(reserve-if-fail)] > 0} {
 						set ReserveTime $Opt(reserve-if-fail)
 					}
-					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime} RESERVE_IF_FAIL=1"
+					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime} RESERVE_IF_FAIL=1 _task_fetch_from_url=disable"
 				}
 				# --reserve
 				if [info exist Opt(reserve)] {
@@ -1085,7 +1085,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {[string length $Opt(reserve)] > 0} {
 						set ReserveTime $Opt(reserve)
 					}
-					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime}"
+					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime} _task_fetch_from_url=disable"
 				}
 
 				foreach taska $appendTasks {
