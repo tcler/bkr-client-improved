@@ -807,12 +807,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				}
 
 				# distro install
-				lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild _task_fetch_from_git=disable"
+				lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
 
 				# command before kernelinstall
 				if [info exist Opt(cmdb)] {
 					foreach cmd $Opt(cmdb) {
-						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd} _task_fetch_from_git=disable"
+						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
 					}
 				}
 
@@ -878,7 +878,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					append brewBuildList [lindex $Opt(brew) $R] " "
 				}
 				if {[llength $brewBuildList] > 0} {
-					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList} _task_fetch_from_git=disable"
+					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList}"
 				}
 
 				# --kdump task
@@ -908,33 +908,33 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						set FIPS_L [lrange $FIPS_L 1 end]
 					}
 					if {$FIPS ni {"0"}} {
-						lappend insertTasks "/distribution/fips/setup-fips-enabled _task_fetch_from_git=disable"
+						lappend insertTasks "/distribution/fips/setup-fips-enabled"
 					} else {
-						lappend insertTasks "/distribution/fips/setup-fips-disabled _task_fetch_from_git=disable"
+						lappend insertTasks "/distribution/fips/setup-fips-disabled"
 					}
 				}
 
 				# enable abrt
 				if [info exist Opt(abrt)] {
-					lappend insertTasks "/distribution/crashes/enable-abrt _task_fetch_from_git=disable"
+					lappend insertTasks "/distribution/crashes/enable-abrt"
 				}
 
 				# command after kernelinstall
 				if [info exist Opt(cmd)] {
 					foreach cmd $Opt(cmd) {
-						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd} _task_fetch_from_git=disable"
+						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
 					}
 				}
 				if [info exist Opt(cmd-and-reboot)] {
 					foreach cmd $Opt(cmd-and-reboot) {
-						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd} _task_fetch_from_git=disable"
+						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
 					}
-					lappend insertTasks "/distribution/utils/reboot _task_fetch_from_git=disable"
+					lappend insertTasks "/distribution/utils/reboot"
 				}
 				# pkg install
 				if [info exist Opt(install)] {
 					foreach pkg $Opt(install) {
-						lappend insertTasks "/distribution/pkginstall PKGARGNAME=$pkg VERLOCK=yes _task_fetch_from_git=disable"
+						lappend insertTasks "/distribution/pkginstall PKGARGNAME=$pkg VERLOCK=yes"
 					}
 				}
 				# --kcov --gcov task
@@ -1067,7 +1067,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 				# command in the end of the recipe
 				if [info exist Opt(cmd-end)] {
 					foreach cmd $Opt(cmd-end) {
-						lappend appendTasks "/distribution/command {CMDS_TO_RUN=$cmd} _task_fetch_from_git=disable"
+						lappend appendTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
 					}
 				}
 
@@ -1077,7 +1077,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {[string length $Opt(reserve-if-fail)] > 0} {
 						set ReserveTime $Opt(reserve-if-fail)
 					}
-					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime} RESERVE_IF_FAIL=1 _task_fetch_from_git=disable"
+					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime} RESERVE_IF_FAIL=1"
 				}
 				# --reserve
 				if [info exist Opt(reserve)] {
@@ -1085,7 +1085,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {[string length $Opt(reserve)] > 0} {
 						set ReserveTime $Opt(reserve)
 					}
-					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime} _task_fetch_from_git=disable"
+					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime}"
 				}
 
 				foreach taska $appendTasks {
