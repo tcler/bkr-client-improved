@@ -26,7 +26,7 @@ get_recipe_console_log()
 		#echo $j
 		local tmpclog=$DIR/recipe-$id-console.log
 		if ! [ -s $tmpclog ] ; then
-			wget --no-check-certificate  --quiet -O $tmpclog $j || \
+			curl -k -Ls -o $tmpclog $j || \
 			echo Download console log failed
 		fi
 
@@ -125,7 +125,7 @@ get_task_output()
 			[[ "$tmp" =~ dmesg ]] && continue
 			local xtflog=$DIR/$id-$name-$rcparch-$tmp
 			if ! test -s $xtflog && grep -qw ${tmp}.out.bad.diff $full_log ; then
-				wget --no-check-certificate  --quiet -O $xtflog `grep -w ${tmp}.out.bad.diff $full_log` || \
+				curl -k -Ls -o $xtflog `grep -w ${tmp}.out.bad.diff $full_log` || \
 				echo Download $tmp bad diff log failed
 			fi
 			if [ -s $DIR/$id-tt-$tmp ] ; then
@@ -146,9 +146,9 @@ get_task_output()
 		if ! test -s $faillog && grep -q TESTOUT $full_log && \
 			( test $2 -eq 1 || test $lx -eq 0 || test $lx -eq 1 -a $2 -eq 1 ); then
 			# only download OUTPUT when 1) unfinished 2) non ltp/xfstests 3) ltp/xfstests unfinished
-			wget --no-check-certificate  --quiet -O $faillog `grep TESTOUT $full_log` || \
+			curl -k -Ls -o $faillog `grep TESTOUT $full_log` || \
 			echo Download TESTOUT log failed
-			sed -i -e '/.*%.*ETA/d' $faillog # remove wget process output
+			sed -i -e '/.*%.*ETA/d' $faillog # remove curl process output
 		fi
 		if test -s $faillog && grep -qiE FAIL\|error\|WARN $faillog && test $lx -eq 0 ; then
 			# only parse OUTPUT when non ltp/xfstests
@@ -176,7 +176,7 @@ get_task_output()
 
 	local dmesglog=$DIR/$id-$name-$rcparch-dmesglog
 	if ! test -s $dmesglog && grep -q test_log.*dmesg.log $full_log ; then
-		wget --no-check-certificate  --quiet -O $dmesglog `grep test_log.*dmesg.log $full_log` || \
+		curl -k -Ls -o $dmesglog `grep test_log.*dmesg.log $full_log` || \
 		echo Download $id dmesg log failed
 	fi
 	if test -s $dmesglog ; then
@@ -329,7 +329,7 @@ xmllint_task()
 					local dmesglog=$DIR/$taskid-${taskname////-}-$rcparch-${rs_path////-}.log
 					test -s $full_log || bkr job-logs T:$taskid > $full_log
 					if ! test -s $dmesglog && grep -q test_log-${rs_path////-}.log $full_log ; then
-						wget --no-check-certificate --quiet -O $dmesglog \
+						curl -k -Ls -o $dmesglog \
 							`grep test_log-${rs_path////-}.log $full_log` || \
 							echo "Download task $taskid $rs_path log failed"
 					fi

@@ -21,7 +21,7 @@ which brew &>/dev/null || {
 	fi
 	which brewkoji_install.sh || {
 		_url=$baseDownloadUrl/utils/brewkoji_install.sh
-		mkdir -p ~/bin && wget -O ~/bin/brewkoji_install.sh -N -q $_url
+		mkdir -p ~/bin && curl -o ~/bin/brewkoji_install.sh -k -Ls $_url
 		chmod +x ~/bin/brewkoji_install.sh
 	}
 	brewkoji_install.sh >/dev/null || {

@@ -167,11 +167,11 @@ download_pkgs_from_repo() {
 			let i++; continue
 		}
 		echo "{Info} [$i/$cnt] download $url"
-		wget --no-check-certificate $url 2>/dev/null || {
+		curl -L -k $url -o ${url##*/} 2>/dev/null || {
 			ourl=$url
 			url=$(curl -Ls -o /dev/null -w %{url_effective} $ourl)
 			if [[ "$url" != "$ourl" ]]; then
-				wget --no-check-certificate $url 2>/dev/null
+				curl -L -k $url -o ${url##*/} 2>/dev/null
 			else
 				pkg=${url##*/}
 				yum download ${pkg%.rpm} --repofrompath=$repopath --downloaddir=.

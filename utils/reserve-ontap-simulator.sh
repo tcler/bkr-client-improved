@@ -26,7 +26,7 @@ ImageUrl=http://download.devel.redhat.com/qa/rhts/lookaside/Netapp-Simulator/$Im
 LicenseUrl=http://download.devel.redhat.com/qa/rhts/lookaside/Netapp-Simulator/$LicenseFile
 script=ontap-simulator-two-node.sh
 [[ -n "$1" ]] && script=ontap-simulator-single-node.sh
-submitlog=$(runtest --random ${HostDistro} "--cmd=git clone $KissVMUrl; sudo make -C kiss-vm-ns; sudo vm prepare; wget $ImageUrl; wget $LicenseUrl; git clone https://github.com/tcler/ontap-simulator-in-kvm; bash ontap-simulator-in-kvm/$script --image=$ImageFile --license-file=$LicenseFile" -hr=memory\>=16384 --hr=kv-DISKSPACE\>=500000)
+submitlog=$(runtest --random ${HostDistro} "--cmd=git clone $KissVMUrl; sudo make -C kiss-vm-ns; sudo vm prepare; curl -o $ImageFile -L $ImageUrl; curl -o $LicenseFile -L $LicenseUrl; git clone https://github.com/tcler/ontap-simulator-in-kvm; bash ontap-simulator-in-kvm/$script --image=$ImageFile --license-file=$LicenseFile" -hr=memory\>=16384 --hr=kv-DISKSPACE\>=500000)
 
 echo "$submitlog"
 job=$(grep -E -o J:[0-9]+ <<<"$submitlog")

@@ -37,7 +37,7 @@ which vncviewer &>/dev/null || dep+=\ tigervnc
 
 echo -e "\nInfo: submit request to beaker ..."
 baseUrl=https://gitlab.cee.redhat.com/kernel-qe/kernel/raw/master
-submitlog=$(runtest --random ${DISTRO:-RHEL-7.9} "--cmd=wget --no-check-certificate $baseUrl/Library/base/tools/build_win_vm.sh -O /win.sh; bash /win.sh --winver=$winVer -- $KDC --vm-name win-$winVer --disk-size 50 AnswerFileTemplates/cifs-nfs/* --wim-index=${WIM_IMAGE_INDEX} --xdisk;" --hr-alias=vmhost)
+submitlog=$(runtest --random ${DISTRO:-RHEL-7.9} "--cmd=curl -k -L $baseUrl/Library/base/tools/build_win_vm.sh -o /win.sh; bash /win.sh --winver=$winVer -- $KDC --vm-name win-$winVer --disk-size 50 AnswerFileTemplates/cifs-nfs/* --wim-index=${WIM_IMAGE_INDEX} --xdisk;" --hr-alias=vmhost)
 echo "$submitlog"
 job=$(grep -E -o J:[0-9]+ <<<"$submitlog")
 [[ -z $job ]] && {

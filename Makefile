@@ -27,7 +27,7 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	test -f $(_confdir)/default-ks.cfg || cp $(_confdir)/default-ks.cfg{.example,}
 	sed -i -e 's/defaultHarness/Harness/g' -e 's/defaultOSInstaller/OSInstaller/g' $(_confdir)/bkr-runtest.conf
 	test -f /etc/beaker/default-ks.cfg || mv $(_confdir)/default-ks.cfg /etc/beaker/.
-	wget -qO- http://api.github.com/repos/tcler/bkr-client-improved/commits/master -O $(_confdir)/version || :
+	curl -Ls http://api.github.com/repos/tcler/bkr-client-improved/commits/master -o $(_confdir)/version || :
 	cd lib; for d in *; do rm -fr $(_lib)/$$d; done
 	cd utils; for f in *; do rm -fr $(_bin)/$$f; done
 	cd bkr-runtest; for f in *; do rm -fr $(_bin)/$$f; done
