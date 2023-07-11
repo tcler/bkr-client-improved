@@ -319,7 +319,8 @@ if [info exist Opt(harness)] { set harness $Opt(harness) }
 
 if ![array exist taskFetchUrl] { array set taskFetchUrl {} }
 set defaultKernelFetchUrl "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
-set defaultPkgFetchUrl "git://pkgs.devel.redhat.com/tests/__pkg__?master"
+#set defaultPkgFetchUrl "git://pkgs.devel.redhat.com/tests/__pkg__?master"
+set defaultPkgFetchUrl "https://pkgs.devel.redhat.com/git/tests/__pkg__/snapshot/__pkg__-master.tar.gz"
 
 if ![info exist taskFetchUrl(/distribution/kernelinstall)] {
 	set taskFetchUrl(/distribution/kernelinstall) "https://gitlab.com/redhat/centos-stream/tests/kernel/kernel-tests/-/archive/main/kernel-tests-main.tar.gz#distribution/kernelinstall"
