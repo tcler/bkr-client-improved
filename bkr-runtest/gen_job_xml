@@ -322,22 +322,16 @@ set defaultKernelFetchUrl "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/arch
 #set defaultPkgFetchUrl "git://pkgs.devel.redhat.com/tests/__pkg__?master"
 set defaultPkgFetchUrl "https://pkgs.devel.redhat.com/git/tests/__pkg__/snapshot/__pkg__-master.tar.gz"
 
-if ![info exist taskFetchUrl(/distribution/check-install)] {
-	set taskFetchUrl(/distribution/check-install) "https://github.com/beaker-project/beaker-core-tasks/archive/refs/heads/master.tar.gz#check-install"
-}
-if ![info exist taskFetchUrl(/distribution/reservesys)] {
-	set taskFetchUrl(/distribution/reservesys) "https://github.com/beaker-project/beaker-core-tasks/archive/refs/heads/master.tar.gz#reservesys"
-}
-if ![info exist taskFetchUrl(/distribution/kernelinstall)] {
-	set taskFetchUrl(/distribution/kernelinstall) "https://gitlab.com/redhat/centos-stream/tests/kernel/kernel-tests/-/archive/main/kernel-tests-main.tar.gz#distribution/kernelinstall"
-}
-
 set fetch_test_from_url yes
 if ![info exist fetchUrl(kernel)] {
 	set fetchUrl(kernel) $defaultKernelFetchUrl
 }
 if [info exist Opt(fetch-url)] {
 	foreach _url $Opt(fetch-url) {
+		if {${_url} == "no"} {
+			set fetch_test_from_url no
+			continue
+		}
 		lassign "kernel ${_url}" pkg url
 		if [regexp -- {,} ${_url}] {
 			lassign [split ${_url} ","] pkg url
@@ -345,6 +339,19 @@ if [info exist Opt(fetch-url)] {
 		set fetchUrl($pkg) $url
 	}
 }
+
+if ![info exist taskFetchUrl(/distribution/kernelinstall)] {
+	set taskFetchUrl(/distribution/kernelinstall) "https://gitlab.com/redhat/centos-stream/tests/kernel/kernel-tests/-/archive/main/kernel-tests-main.tar.gz#distribution/kernelinstall"
+}
+if {$fetch_test_from_url == "yes"} {
+	if ![info exist taskFetchUrl(/distribution/check-install)] {
+		set taskFetchUrl(/distribution/check-install) "https://github.com/beaker-project/beaker-core-tasks/archive/refs/heads/master.tar.gz#check-install"
+	}
+	if ![info exist taskFetchUrl(/distribution/reservesys)] {
+		set taskFetchUrl(/distribution/reservesys) "https://github.com/beaker-project/beaker-core-tasks/archive/refs/heads/master.tar.gz#reservesys"
+	}
+}
+
 if [info exist Opt(task-fetch-url)] {
 	foreach _url $Opt(task-fetch-url) {
 		lassign [split ${_url} ","] taskname url
@@ -975,9 +982,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 					if {$insert in {1 y yes}} {
-						set _fetchurl "no"
-						if {[info exist fetch_test_from_url] || [info exist taskFetchUrl($taskname)]} {
-							set _fetchurl "yes"
+						set _fetchurl "yes"
+						if {$fetch_test_from_url == "no" && ![info exist taskFetchUrl($taskname)]} {
+							set _fetchurl "no"
 						}
 						task name=$taskname role=$_role ! {
 							if {$_fetchurl == "yes" && $_fetch_from_url ne "disable"} {
@@ -1015,9 +1022,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 						if {$insert in {1 y yes}} {
 							task name=$name role=$_role ! {
-								set _fetchurl "no"
-								if {[info exist fetch_test_from_url] || [info exist taskFetchUrl($name)]} {
-									set _fetchurl "yes"
+								set _fetchurl "yes"
+								if {$fetch_test_from_url == "no" && ![info exist taskFetchUrl($name)]} {
+									set _fetchurl "no"
 								}
 								if {$_fetchurl == "yes" && $_fetch_from_url ne "disable"} {
 									fetchtag $name fetchUrl
@@ -1101,9 +1108,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 					if {$insert in {1 y yes}} {
 						task name=$taskname role=$_role ! {
-							set _fetchurl "no"
-							if {[info exist fetch_test_from_url] || [info exist taskFetchUrl($taskname)]} {
-								set _fetchurl "yes"
+							set _fetchurl "yes"
+							if {$fetch_test_from_url == "no" && ![info exist taskFetchUrl($taskname)]} {
+								set _fetchurl "no"
 							}
 							if {$_fetchurl == "yes" && $_fetch_from_url ne "disable"} {
 								fetchtag $taskname fetchUrl
