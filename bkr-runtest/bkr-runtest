@@ -144,14 +144,14 @@ if {[llength $TestArgList]==0 && $_TestList == {}} {
 		puts "\[$prog\]: *Remind*: No test specified, will reserve host($Distro) for you"
 	}
 	if ![regexp -- {--reserve} $ForwardOpt] {
-		lappend _TestList {/distribution/reservesys: {attr: {pkg: distribution, time: 12h, ssched: no, type: Functioal}, param: [_task_fetch_from_url=disable]}}
+		lappend _TestList {/distribution/reservesys: {attr: {pkg: distribution, time: 12h, ssched: no, type: Functioal}}}
 	} else {
 		lappend _TestList {/distribution/utils/dummy: {attr: {pkg: distribution}}}
 	}
 } else {
 	if {$prog == "bkr-reservesys"} {
 		if ![regexp -- {--reserve} $ForwardOpt] {
-			lappend _TestList {/distribution/reservesys: {attr: {pkg: distribution, time: 12h, ssched: no, type: Functioal}, param: [_task_fetch_from_url=disable]}}
+			lappend _TestList {/distribution/reservesys: {attr: {pkg: distribution, time: 12h, ssched: no, type: Functioal}}}
 		} else {
 			lappend _TestList {/distribution/utils/dummy: {attr: {pkg: distribution}}}
 		}
