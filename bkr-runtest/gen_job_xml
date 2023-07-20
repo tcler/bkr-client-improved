@@ -361,6 +361,7 @@ if [info exist Opt(task-fetch-url)] {
 
 proc fetchtag {taskname fetchurl} {
 	upvar 1 $fetchurl fetchUrlArray
+	set taskname [string map "/CoreOS {}" $taskname]
 	lassign [regsub "^/(\[^/]+)/(.*$)" $taskname {\1 \2}] pkg casepath
 	if ![info exist fetchUrlArray($pkg)] {
 		set fetchUrlArray($pkg) [string map "__pkg__ $pkg" $::defaultPkgFetchUrl]
