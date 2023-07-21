@@ -24,14 +24,105 @@ ymllist() {
 	echo -n "$e, "
 }
 
+get_taskname() {
+	local metaf=$1
+	if [[ "$metaf" = testinfo.desc ]]; then
+		awk -F'[: =\t]+' '/^Name:/{print $2}' $metaf
+	elif [[ "$metaf" = metadata ]]; then
+		awk -F'[ =]+' '$1 == "name" {print $2}' $metaf
+	fi
+}
+
+get_max_time() {
+	local metaf=$1 _type=
+	if [[ "$metaf" = testinfo.desc ]]; then
+		_time=$(awk -F'[: =\t]+' '/^TestTime:/{print $2}' $metaf)
+	elif [[ "$metaf" = metadata ]]; then
+		_time=$(awk -F'[ =]+' '$1 == "max_time" {print $2}' $metaf)
+	fi
+	[[ $_time =~ [0-9]+h ]] && _time=$((${_time/h/}*60))m
+	[[ $_time =~ [0-9]+d ]] && _time=$((${_time/d/}*24*60))m
+	echo -n ${_time:-30m}
+}
+
+get_test_type() {
+	local metaf=$1 _type=
+	if [[ "$metaf" = testinfo.desc ]]; then
+		_type=$(awk '{match($0,"Type:[ \t]*.*(.egression|.tress|.unction|.anity)",M); if(M[1]) print M[1]}' $metaf)
+	elif [[ "$metaf" = metadata ]]; then
+		_type=$(awk -F'[ =]+' '$1 == "type" {print $2}' $metaf)
+	fi
+	echo -n ${_type:-Function}
+}
+
+get_test_level() {
+	local metaf=$1 _level=
+	if [[ "$metaf" = testinfo.desc ]]; then
+		_level=$(awk '{match($0,"(Type):[ \t]*.*([Tt]ier[0-9]+)",M); if(M[2]) print M[2]}' $metaf)
+	elif [[ "$metaf" = metadata ]]; then
+		_level=$(awk -F'[ =]+' '$1 == "level" {print $2}' $metaf)
+	fi
+	echo -n ${_level:-Tier1}
+}
+
+get_test_ssched() {
+	local metaf=$1 _ssched=
+	if [[ "$metaf" = metadata ]]; then
+		_ssched=$(awk -F'[ =]+' '$1 == "ssched" {print $2}' $metaf)
+	fi
+	if [[ -z "$_ssched" ]]; then
+		grep -E -q -i ' *DANGEROU?S=yes' -r . && _ssched="yes.dangerous"
+		grep -E -q -i ' *STRESS=yes' -r . && _ssched="yes.stress"
+	fi
+	echo -n ${_ssched:-no}
+}
+
+get_test_topo() {
+	local metaf=$1 runf=runtest.sh _topo=
+	if [[ "$metaf" = testinfo.desc ]]; then
+		grep -q "Type:[[:space:]]*Multihost" $metaf &&
+			_topo=multiHost.1.1
+		##if specify the machine acount in testinfo.desc
+		nums=$(grep -i "Type:[[:space:]]*Multihost" $metaf | grep -o '[0-9]\+')
+		{ read ServerNeed; read ClientNeed; } <<< "$nums"
+		test -n "$ServerNeed" -o -n "$ClientNeed" &&
+			_topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
+	elif [[ "$metaf" = metadata ]]; then
+		_topo=$(awk -F'[ =]+' '$1 == "topo" {print $2}' $metaf)
+	fi
+
+	grep -q '\${\?CLIENTS}\?' $runf && grep -q '\${\?SERVERS}\?' $runf &&
+		_topo=multiHost.1.1
+	##if specify the machine acount in runtest.sh
+	grep -E -q '^[[:space:]]*(Client|Server)Need=' $runf && {
+		eval "$(grep -E '^[[:space:]]*(Client|Server)Need=' $runf)"
+		_topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
+	}
+
+	echo -n ${_topo}
+}
+
+get_test_component() {
+	local metaf=$1 _component=
+	if [[ "$metaf" = testinfo.desc ]]; then
+		unset PACKAGE_NAME PACKAGE
+		eval "$(grep -E '^[[:space:]]*(export *)?PACKAGE(_NAME)?=[^ #]' -h * .* 2>/dev/null|sed 's;export;;')"
+		_component=${PACKAGE_NAME:-${PACAKGE}}
+	elif [[ "$metaf" = metadata ]]; then
+		_component=$(awk -F'[ =]+' '$1 == "component" {print $2}' $metaf)
+	fi
+	[[ -z "$_component" ]] &&
+		_component=$(get_taskname $metaf|awk -F/ '{print $2}')
+	echo -n ${_component}
+}
+
 _caseInfo() {
 	[ $# -lt 1 ] && {
 		echo "Usage: func <case path> [subtest file]" >&2
 		return 1
 	}
 
-	local f=runtest.sh
-	local infofile=testinfo.desc
+	local metafile=testinfo.desc
 	local casepath=$1
 	local subtestf=$2
 	local name=
@@ -69,76 +160,53 @@ _caseInfo() {
 		return
 	fi
 
-	unlink $infofile 2>/dev/null
-	make $infofile &>/dev/null
-	[ -f $infofile ] || {
-		echo "{ERROR} [$casepath/] make $infofile fail, please fix the Makefile." >&2
-		popd >/dev/null; return 1
-	}
+	if [[ -f metadata ]]; then
+		metafile=metadata
+	else
+		unlink $metafile 2>/dev/null
+		make $metafile &>/dev/null
+		[ -f $metafile ] || {
+			echo "{ERROR} [$casepath/] make $metafile fail, please fix the Makefile." >&2
+			popd >/dev/null; return 1
+		}
+	fi
 
 	#get case name
-	name=$(awk -F'[: =\t]+' '/^Name:/{print $2}' $infofile)
+	name=$(get_taskname $metafile)
 	[ -z "$name" ] && {
 		echo "{ERROR} [$casepath/] casename NULL, maybe Makefile wrong." >&2
 		popd >/dev/null; return 1
 	}
 
 	#get test attr: max run time
-	_time=$(awk -F'[: =\t]+' '/^TestTime:/{print $2}' $infofile)
-	echo $_time | grep -E -q '[0-9]+h' && _time=$((${_time/h/}*60))m
-	echo $_time | grep -E -q '[0-9]+d' && _time=$((${_time/d/}*24*60))m
+	_time=$(get_max_time $metafile)
 	Attr[time]=$_time
 
 	#get test attr: pkg name belong to
-	unset PACKAGE_NAME PACKAGE
-	eval "$(grep -E '^[[:space:]]*(export *)?PACKAGE(_NAME)?=[^ #]' -h * .* 2>/dev/null|sed 's;export;;')"
-	_pkg=${PACKAGE_NAME}
-	test -z "${_pkg}" && _pkg=${PACKAGE}
-	test -z "${_pkg}" && read _pkg _ <<<"${name//\// }"
+	_pkg=$(get_test_component $metafile)
 	Attr[pkg]=$_pkg
 
 	#get test attr: sepatate scheduling?
-	grep -E -q -i ' *DANGEROU?S=yes' -r . && _ssched="yes.dangerous"
-	grep -E -q -i ' *STRESS=yes' -r . && _ssched="yes.stress"
-	#
+	_ssched=$(get_test_ssched $metafile)
 	## if cost so many time separate schedule too
-	echo $maxtime | grep -E -q '[0-9]+h' && maxtime=$((${maxtime/h/}*60))
-	echo $maxtime | grep -E -q '[0-9]+d' && maxtime=$((${maxtime/d/}*24*60))
-	maxtime=${maxtime//[^0-9]/}
+	[[ $maxtime =~ [0-9]+h ]] && maxtime=$((${maxtime/h/}*60))
+	[[ $maxtime =~ [0-9]+d ]] && maxtime=$((${maxtime/d/}*24*60)); maxtime=${maxtime//[^0-9]/}
 	[ "$_ssched" = "no" -a "${_time/m/}" -gt "${maxtime:-120}" ] && _ssched="yes.longtime"
 	Attr[ssched]=$_ssched
 
 	#get test attr: type info
-	_type=$(awk '{match($0,"Type:[ \t]*.*(.egression|.tress|.unction|.anity)",M); if(M[1]) print M[1]}' $infofile)
-	_type=${_type:-Function}
-	read _type nil <<<${_type}
+	_type=$(get_test_type $metafile)
 	Attr[type]=$_type
 
 	#get test attr: level info
-	_level=$(awk '{match($0,"(Type):[ \t]*.*([Tt]ier[0-9]+)",M); if(M[2]) print M[2]}' $infofile)
-	_level=${_level:-Tier1}
-	read _level nil <<<${_level}
+	_level=$(get_test_level $metafile)
 	Attr[level]=$_level
 
 	#get test setup: topologic if is multihost
-	grep -q "Type:[[:space:]]*Multihost" $infofile &&
-	topo=multiHost.1.1
-	grep -q '\${\?CLIENTS}\?' $f && grep -q '\${\?SERVERS}\?' $f &&
-	topo=multiHost.1.1
-	##if specify the machine acount in $infofile
-	nums=$(grep -i "Type:[[:space:]]*Multihost" $infofile | grep -o '[0-9]\+')
-	{ read ServerNeed; read ClientNeed; } <<< "$nums"
-	test -n "$ServerNeed" -o -n "$ClientNeed" &&
-	topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
-	##if specify the machine acount in runtest.sh
-	grep -E -q '^[[:space:]]*(Client|Server)Need=' $f && {
-		eval "$(grep -E '^[[:space:]]*(Client|Server)Need=' $f)"
-		topo=multiHost.${ServerNeed:-1}.${ClientNeed:-1}
-	}
+	topo=$(get_test_topo $metafile)
 	[[ -n "$topo" ]] && Setup+=(--topo=$topo)
 
-	# remove infofile
-	rm -rf $infofile
+	[[ $metafile = testinfo.desc ]] && rm -rf $metafile
 
 	subtests_generator="gen_subtest.sh"
 	[ -x $subtests_generator ] && sh $subtests_generator
@@ -248,7 +316,7 @@ while true; do
 	-r|--raw)       FORMAT=raw; shift 1;;
 	--fmt)          FORMAT=$2; shift 2;;
 	-d)		DEBUG=yes; shift 1;;
-	-t)		maxtime=$2; shift 2;;
+	-t)		maxtime=${2}; shift 2;;
 	-e)		E=yes; setupConf=$2; shift 2;;
 	--conv)		CONV=yes; shift 1;;
 	--) shift; break;;
