@@ -9,10 +9,11 @@ import io,os,sys,re
 usage = f"Usage: {sys.argv[0]} <taskname> [/path/to/config] [-h] [-d|-debug] [-repo=rname,url] [-skiprepo]"
 task = None
 conf = None
-defaultConf = "/etc/beaker/fetch-url.ini"
 debug = 0
 repodict = {}
 skiprepo = "no"
+defaultConf = "/etc/beaker/fetch-url.ini"
+confUrl = "http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/conf/fetch-url.ini"
 for arg in sys.argv[1:]:
     if (arg[0] != '-'):
         if (task == None):
@@ -34,9 +35,27 @@ for arg in sys.argv[1:]:
             skiprepo = "yes"
 if (conf == None):
     conf = defaultConf
+if re.match("^(ftp|https?)://", conf):
+    confUrl = conf
 
 config = configparser.ConfigParser()
-config.read(conf)
+if not os.path.isfile(conf):
+    import pycurl
+    from io import BytesIO
+    curl = pycurl.Curl()
+    bio = BytesIO()
+    curl.setopt(curl.URL, confUrl)
+    curl.setopt(pycurl.FOLLOWLOCATION, 1)
+    curl.setopt(curl.WRITEDATA, bio)
+    curl.perform()
+    curl.close()
+    conf_str = bio.getvalue().decode('utf8')
+    #buf = io.StringIO(conf_str)
+    #config.read_file(buf)
+    config.read_string(conf_str)
+else:
+    config.read(conf)
+
 if (debug > 0):
     print(f"[DEBUG] {config.sections()}")
 

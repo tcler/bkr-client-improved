@@ -345,7 +345,7 @@ proc fetchtag {taskname} {
 		set _url $::taskFetchUrl($taskname)
 	} else {
 		if {$::fetch_test_from_url == "no"} { append ::taskname2urlOpts "-skiprepo" }
-		set _url [exec bash -c "taskname2url.py $taskname $::taskname2urlOpts || :"]
+		set _url [exec bash -c "taskname2url.py $taskname $::taskname2urlOpts 2>/dev/null || :"]
 	}
 	if {$_url != ""} {
 		doTag fetch url=$_url -
