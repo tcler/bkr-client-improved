@@ -6,7 +6,7 @@
 import configparser
 import io,os,sys,re
 
-usage = f"Usage: {sys.argv[0]} <taskname> [/path/to/config] [-h] [-d|-debug] [-repo=rname,url] [-skiprepo]"
+usage = f"Usage: {sys.argv[0]} <taskname> [/path/to/config|url/to/config] [-h] [-d|-debug] [-repo=rname,url] [-skiprepo]"
 task = None
 conf = None
 debug = 0
