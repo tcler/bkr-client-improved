@@ -316,39 +316,20 @@ if [info exist Opt(fips)] {
 set recipe_ks_meta {}
 set harness restraint
 
-if ![array exist fetchUrl] { array set fetchUrl {} }
-if ![array exist taskFetchUrl] { array set taskFetchUrl {} }
-set defaultKernelFetchUrl "https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2"
-#set defaultPkgFetchUrl "git://pkgs.devel.redhat.com/tests/__pkg__?master"
-set defaultPkgFetchUrl "https://pkgs.devel.redhat.com/git/tests/__pkg__/snapshot/__pkg__-master.tar.gz"
-
 set fetch_test_from_url yes
-if ![info exist fetchUrl(kernel)] {
-	set fetchUrl(kernel) $defaultKernelFetchUrl
-}
+array set taskFetchUrl {}
+set taskname2urlOpts {}
 if [info exist Opt(fetch-url)] {
 	foreach _url $Opt(fetch-url) {
 		if {${_url} == "no"} {
 			set fetch_test_from_url no
 			continue
 		}
-		lassign "kernel ${_url}" pkg url
-		if [regexp -- {,} ${_url}] {
-			lassign [split ${_url} ","] pkg url
+		if ![regexp -- {,} ${_url}] {
+			continue
+		} else {
+			append taskname2urlOpts "-repo=$_url "
 		}
-		set fetchUrl($pkg) $url
-	}
-}
-
-if ![info exist taskFetchUrl(/distribution/kernelinstall)] {
-	set taskFetchUrl(/distribution/kernelinstall) "https://gitlab.com/redhat/centos-stream/tests/kernel/kernel-tests/-/archive/main/kernel-tests-main.tar.gz#distribution/kernelinstall"
-}
-if {$fetch_test_from_url == "yes"} {
-	if ![info exist taskFetchUrl(/distribution/check-install)] {
-		set taskFetchUrl(/distribution/check-install) "https://github.com/beaker-project/beaker-core-tasks/archive/refs/heads/master.tar.gz#check-install"
-	}
-	if ![info exist taskFetchUrl(/distribution/reservesys)] {
-		set taskFetchUrl(/distribution/reservesys) "https://github.com/beaker-project/beaker-core-tasks/archive/refs/heads/master.tar.gz#reservesys"
 	}
 }
 
@@ -359,20 +340,16 @@ if [info exist Opt(task-fetch-url)] {
 	}
 }
 
-proc fetchtag {taskname fetchurl} {
-	upvar 1 $fetchurl fetchUrlArray
-	set taskname [string map "/CoreOS {}" $taskname]
-	lassign [regsub "^/(\[^/]+)/(.*$)" $taskname {\1 \2}] pkg casepath
-	if ![info exist fetchUrlArray($pkg)] {
-		set fetchUrlArray($pkg) [string map "__pkg__ $pkg" $::defaultPkgFetchUrl]
-	}
-
+proc fetchtag {taskname} {
 	if [info exist ::taskFetchUrl($taskname)] {
 		set _url $::taskFetchUrl($taskname)
 	} else {
-		set _url [regsub {#+$} $fetchUrlArray($pkg) {}]#$casepath
+		if {$::fetch_test_from_url == "no"} { append ::taskname2urlOpts "-skiprepo" }
+		set _url [exec bash -c "taskname2url.py $taskname $::taskname2urlOpts || :"]
 	}
-	doTag fetch url=$_url -
+	if {$_url != ""} {
+		doTag fetch url=$_url -
+	}
 }
 
 if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
@@ -983,13 +960,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 					if {$insert in {1 y yes}} {
-						set _fetchurl "yes"
-						if {$fetch_test_from_url == "no" && ![info exist taskFetchUrl($taskname)]} {
-							set _fetchurl "no"
-						}
 						task name=$taskname role=$_role ! {
-							if {$_fetchurl == "yes" && $_fetch_from_url ne "disable"} {
-								fetchtag $taskname fetchUrl
+							if {$_fetch_from_url ne "disable"} {
+								fetchtag $taskname
 							}
 							params ! {
 								foreach taskparam $taskparams {
@@ -1023,12 +996,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 						if {$insert in {1 y yes}} {
 							task name=$name role=$_role ! {
-								set _fetchurl "yes"
-								if {$fetch_test_from_url == "no" && ![info exist taskFetchUrl($name)]} {
-									set _fetchurl "no"
-								}
-								if {$_fetchurl == "yes" && $_fetch_from_url ne "disable"} {
-									fetchtag $name fetchUrl
+								if {$_fetch_from_url ne "disable"} {
+									fetchtag $name
 								}
 								params ! {
 									foreach taskparam $taskparams {
@@ -1109,12 +1078,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 					if {$insert in {1 y yes}} {
 						task name=$taskname role=$_role ! {
-							set _fetchurl "yes"
-							if {$fetch_test_from_url == "no" && ![info exist taskFetchUrl($taskname)]} {
-								set _fetchurl "no"
-							}
-							if {$_fetchurl == "yes" && $_fetch_from_url ne "disable"} {
-								fetchtag $taskname fetchUrl
+							if {$_fetch_from_url ne "disable"} {
+								fetchtag $taskname
 							}
 							params ! {
 								foreach taskparam $taskparams {
