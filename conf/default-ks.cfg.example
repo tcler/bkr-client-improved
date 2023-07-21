@@ -39,27 +39,58 @@ cat <<-'EOF' >>/usr/bin/rhts-environment.sh
 		TESTPATH="$RSTRNT_TASKPATH" \
 		VARIANT="$RSTRNT_OSVARIANT"
 	fi
-
-	#if required kernel Library getting fail
-	kurl=https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2
-	kfile=${kurl##*/}
-	targetdir=/mnt/tests/kernel
-	casedirs=$(sed -nr '/^.*"RhtsRequires:\s+library\(kernel\/([^"]+)\)" .*$/{s@@Library/\1@;p}' Makefile | sort -u | xargs)
-	if [[ -n "$casedirs" ]]; then
-		mkdir -p $targetdir
-		for dir in $casedirs; do test -d $targetdir/$dir || dirs+="$dir "; done
-		if [[ -n "$dirs" ]]; then
-			echo "{debug} repo-requires fetch: ${kurl}"
-			curl -k -Ls ${kurl} -o ${kfile}
-			test -f ${kfile} && { tar -C $targetdir -jxf ${kfile} $(eval "echo ${kfile%%.*}/{${dirs[@]// /,}}") --strip-components=1; }
-		fi
-		for dir in $dirs; do
-			test -d $targetdir/$dir || { echo "{error} require $dir fetch fail"; continue; }
-			pkgs=$(sed -nr '/^.*"Requires:\s+([^"()]+)" .*$/{s//\1/;s/ +/\n/;p}' $targetdir/$dir/Makefile | sort -u | xargs)
-			[[ -n "$pkgs" ]] && yum install -y $pkgs
-		done
-	fi
-	unset kurl kfile targetdir casedirs dirs pkgs
 EOF
+
+[[ $verx = 7 ]] && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+pypkg="python3"
+pycurl=python3-pycurl; [[ $verx = 7 ]] && pycurl=python36-pycurl
+yum install -y $pypkg $pycurl
+
+cat << 'EOF' > /usr/share/restraint/plugins/task_run.d/27_task_require
+#!/bin/bash
+
+. /usr/share/restraint/plugins/helpers
+rstrnt_info "*** Running Plugin: $0 @$PWD"
+
+if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
+	#if install requires at different repo
+	_cmd=taskname2url.py
+	command -v $_cmd || {
+		_url=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/utils/taskname2url.py
+		curl -Ls -o /usr/bin/${_cmd} ${_url}
+		chmod +x /usr/bin/${_cmd}
+	}
+
+	targetdir=/mnt/tests
+	require_tasks=$({ sed -nr '/^.*"RhtsRequires:\s+library\(([^"]+)\)" .*$/{s@@\1@;s@/@/Library/@;p}' Makefile;
+			  awk -F'[=;]' '/^(task|repo)Requires/{for (i=2;i<=NF;i++){if($i ~ "^/") print substr($i,2)}}' metadata;
+			} 2>/dev/null | sort -u)
+	for task in $require_tasks; do
+		read repo _path <<<"${task/\// }"
+		uri=$(taskname2url.py /$task)
+		[[ -z "$uri" ]] && continue
+		read url rpath <<<"${uri/\#/ }"
+		repopath=$targetdir/$repo
+		fpath=$repopath/$rpath
+		[[ -d $fpath ]] && continue
+
+		file=${url##*/}
+		[[ "$url" != "$url_prev" ]] && curl -k -Ls ${url} -o ${file}
+		if test -f ${file}; then
+			url_prev=$url
+			mkdir -p $repopath
+			tar -C $repopath -jxf ${file} ${file%%.*}/$rpath --strip-components=1
+		else
+			continue
+		fi
+		pkgs=$({ sed -nr '/^.*"Requires:\s+([^"()]+)" .*$/{s//\1/;s/ +/\n/;p}' $fpath/Makefile;
+			} 2>/dev/null | sort -u)
+		[[ -n "$pkgs" ]] && yum install -y $pkgs
+	done
+fi
+
+exec "$@"
+EOF
+chmod a+x /usr/share/restraint/plugins/task_run.d/27_task_require
 
 %end
