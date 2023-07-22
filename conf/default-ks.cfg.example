@@ -53,6 +53,10 @@ cat << 'EOF' > /usr/share/restraint/plugins/task_run.d/27_task_require
 rstrnt_info "*** Running Plugin: $0 @$PWD"
 
 if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
+	echo "{debug} current dir: $PWD"
+	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS"
+	[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS"
+
 	#if install requires at different repo
 	_cmd=taskname2url.py
 	command -v $_cmd || {
@@ -61,25 +65,36 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 		chmod +x /usr/bin/${_cmd}
 	}
 
+	for taskuri in $TASK_URIS; do taskOpts+="-task=$taskuri "; done
+	for repourl in $REPO_URLS; do repoOpts+="-repo=$repourl "; done
 	targetdir=/mnt/tests
 	require_tasks=$({ sed -nr '/^.*"RhtsRequires:\s+library\(([^"]+)\)" .*$/{s@@\1@;s@/@/Library/@;p}' Makefile;
 			  awk -F'[=;]' '/^(task|repo)Requires/{for (i=2;i<=NF;i++){if($i ~ "^/") print substr($i,2)}}' metadata;
 			} 2>/dev/null | sort -u)
 	for task in $require_tasks; do
 		read repo _path <<<"${task/\// }"
-		uri=$(taskname2url.py /$task)
+		uri=$(taskname2url.py /$task $taskOpts $repoOpts)
 		[[ -z "$uri" ]] && continue
 		read url rpath <<<"${uri/\#/ }"
 		repopath=$targetdir/$repo
 		fpath=$repopath/$rpath
 		[[ -d $fpath ]] && continue
 
+		echo "{debug} task require install: $fpath"
 		file=${url##*/}
 		[[ "$url" != "$url_prev" ]] && curl -k -Ls ${url} -o ${file}
 		if test -f ${file}; then
 			url_prev=$url
 			mkdir -p $repopath
-			tar -C $repopath -jxf ${file} ${file%%.*}/$rpath --strip-components=1
+			filetype=$(file -b ${file})
+			case "$filetype" in
+				(gzip*) xtype=z;;
+				(bzip2*) xtype=j;;
+				(XY*) xtype=J;;
+				(*) xtype=a;;
+			esac
+			topdir=$(tar taf ${file} | head -1 | sed -e 's@/.*@@')
+			tar -C $repopath -${xtype}xf ${file} ${topdir}/$rpath --strip-components=1
 		else
 			continue
 		fi
