@@ -168,7 +168,7 @@ set CommonOptionList {
 	ks-meta			{arg m  help {Pass kickstart metadata OPTIONS when generating kickstart}}
 	ks-append		{arg m	help {Specify additional kickstart commands to add to the base kickstart file}}
 	ks			{link ks-append hide y}
-	ksf			{arg o	help {Similar to --ks-append, but pass the content of a specified file}}
+	ksf			{arg y	help {Similar to --ks-append, but pass the content of a specified file}}
 	{k-opts kernel-options}	{arg m	help {Pass OPTIONS to kernel during installation}}
 	{k-opts-post kernel-options-post}	{arg m	help {Pass OPTIONS to kernel after installation}}
   }
