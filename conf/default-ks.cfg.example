@@ -87,14 +87,19 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 			url_prev=$url
 			mkdir -p $repopath
 			filetype=$(file -b ${file})
-			case "$filetype" in
-				(gzip*) xtype=z;;
-				(bzip2*) xtype=j;;
-				(XY*) xtype=J;;
-				(*) xtype=a;;
-			esac
-			topdir=$(tar taf ${file} | head -1 | sed -e 's@/.*@@')
-			tar -C $repopath -${xtype}xf ${file} ${topdir}/$rpath --strip-components=1
+			if [[ "$filetype" = Zip* ]]; then
+				_fpath=$(unzip $file -d $targetdir | sed -n '/^ *creating: /{s///;p}')
+				mv $_fpath $fpath
+			else
+				case "$filetype" in
+					(gzip*) xtype=z;;
+					(bzip2*) xtype=j;;
+					(XY*) xtype=J;;
+					(*) xtype=a;;
+				esac
+				topdir=$(tar taf ${file} | head -1 | sed -e 's@/.*@@')
+				tar -C $repopath -${xtype}xf ${file} ${topdir}/$rpath --strip-components=1
+			fi
 		else
 			continue
 		fi
