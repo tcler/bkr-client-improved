@@ -6,11 +6,12 @@
 import configparser
 import io,os,sys,re
 
-usage = f"Usage: {sys.argv[0]} <taskname> [/path/to/config|url/to/config] [-h] [-d|-debug] [-repo=rname,url] [-skiprepo]"
+usage = f"Usage: {sys.argv[0]} <taskname> [/path/to/config|url] [-h] [-repo=rname,url] [-task=task,uri] [-skiprepo] [-d|-debug]"
 task = None
 conf = None
 debug = 0
 repodict = {}
+taskdict = {}
 skiprepo = "no"
 defaultConf = "/etc/beaker/fetch-url.ini"
 confUrl = "http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/conf/fetch-url.ini"
@@ -31,6 +32,9 @@ for arg in sys.argv[1:]:
         elif (arg[:6] == "-repo="):
             rname, url = arg[6:].split(",")
             repodict[rname] = url
+        elif (arg[:6] == "-task="):
+            tname, uri = arg[6:].split(",")
+            taskdict[tname] = uri
         elif (arg[:5] == "-skip"):
             skiprepo = "yes"
 if (conf == None):
@@ -66,7 +70,9 @@ else:
     print(f"[ERROR] 'repo-url' section not found, please check config file: {conf}")
     exit()
 
-if config.has_option('task-url', task):
+if task in taskdict.keys():
+    print(taskdict[task])
+elif config.has_option('task-url', task):
     print(config['task-url'][task])
 elif skiprepo == "yes":
     exit(0)
