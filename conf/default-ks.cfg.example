@@ -44,7 +44,7 @@ EOF
 [[ $verx = 7 ]] && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 pypkg="python3"
 pycurl=python3-pycurl; [[ $verx = 7 ]] && pycurl=python36-pycurl
-yum install -y $pypkg $pycurl
+yum install -y $pypkg $pycurl bzip2 gzip zip xz
 
 cat << 'EOF' > /usr/share/restraint/plugins/task_run.d/27_task_require
 #!/bin/bash
