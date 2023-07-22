@@ -54,8 +54,8 @@ rstrnt_info "*** Running Plugin: $0 @$PWD"
 
 if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 	echo "{debug} current dir: $PWD"
-	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS"
 	[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS"
+	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS"
 
 	#if install requires at different repo
 	_cmd=taskname2url.py
@@ -65,8 +65,8 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 		chmod +x /usr/bin/${_cmd}
 	}
 
-	for taskuri in $TASK_URIS; do taskOpts+="-task=$taskuri "; done
 	for repourl in $REPO_URLS; do repoOpts+="-repo=$repourl "; done
+	for taskuri in $TASK_URIS; do taskOpts+="-task=$taskuri "; done
 	targetdir=/mnt/tests
 	require_tasks=$({ sed -nr '/^.*"RhtsRequires:\s+library\(([^"]+)\)" .*$/{s@@\1@;s@/@/Library/@;p}' Makefile;
 			  awk -F'[=;]' '/^(task|repo)Requires/{for (i=2;i<=NF;i++){if($i ~ "^/") print substr($i,2)}}' metadata;
@@ -80,7 +80,7 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 		fpath=$repopath/$rpath
 		[[ -d $fpath ]] && continue
 
-		echo "{debug} install task require: $fpath"
+		echo -e "\n{debug} install task require: $fpath"
 		file=${url##*/}
 		[[ "$url" != "$url_prev" ]] && curl -k -Ls ${url} -o ${file}
 		if test -f ${file}; then
@@ -106,7 +106,10 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 		echo "{debug} install dependencies of $fpath"
 		pkgs=$({ sed -nr '/^.*"Requires:\s+([^"()]+)" .*$/{s//\1/;s/ +/\n/;p}' $fpath/Makefile;
 			} 2>/dev/null | sort -u)
-		[[ -n "$pkgs" ]] && { yum install -y $pkgs; echo; }
+		[[ -n "$pkgs" ]] && {
+			echo "{run} yum install -y $pkgs &>/tmp/${0##*?}.log"
+			yum --setopt=strict=0 install -y $pkgs &>/tmp/${0##*?}.log
+		}
 	done
 	echo -e "{debug} leaving restraint plugin $0\n"
 fi
