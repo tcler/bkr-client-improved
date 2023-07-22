@@ -105,10 +105,10 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 		fi
 		echo "{debug} install dependencies of $fpath"
 		pkgs=$({ sed -nr '/^.*"Requires:\s+([^"()]+)" .*$/{s//\1/;s/ +/\n/;p}' $fpath/Makefile;
-			} 2>/dev/null | sort -u)
+			} 2>/dev/null | sort -u | xargs)
 		[[ -n "$pkgs" ]] && {
-			echo "{run} yum install -y $pkgs &>/tmp/${0##*?}.log"
-			yum --setopt=strict=0 install -y $pkgs &>/tmp/${0##*?}.log
+			echo "{run} yum install -y $pkgs &>/tmp/${0##*/}.log"
+			yum --setopt=strict=0 install -y $pkgs &>/tmp/${0##*/}.log
 		}
 	done
 	echo -e "{debug} leaving restraint plugin $0\n"
