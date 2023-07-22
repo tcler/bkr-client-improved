@@ -80,7 +80,7 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 		fpath=$repopath/$rpath
 		[[ -d $fpath ]] && continue
 
-		echo "{debug} task require install: $fpath"
+		echo "{debug} install task require: $fpath"
 		file=${url##*/}
 		[[ "$url" != "$url_prev" ]] && curl -k -Ls ${url} -o ${file}
 		if test -f ${file}; then
@@ -89,7 +89,7 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 			filetype=$(file -b ${file})
 			if [[ "$filetype" = Zip* ]]; then
 				_fpath=$(unzip $file -d $targetdir | sed -n '/^ *creating: /{s///;p}')
-				mv $_fpath $fpath
+				[[ "$_fpath" != "$fpath" ]] && mv $_fpath $fpath
 			else
 				case "$filetype" in
 					(gzip*) xtype=z;;
@@ -103,10 +103,12 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 		else
 			continue
 		fi
+		echo "{debug} install dependencies of $fpath"
 		pkgs=$({ sed -nr '/^.*"Requires:\s+([^"()]+)" .*$/{s//\1/;s/ +/\n/;p}' $fpath/Makefile;
 			} 2>/dev/null | sort -u)
-		[[ -n "$pkgs" ]] && yum install -y $pkgs
+		[[ -n "$pkgs" ]] && { yum install -y $pkgs; echo; }
 	done
+	echo -e "{debug} leaving restraint plugin $0\n"
 fi
 
 exec "$@"
