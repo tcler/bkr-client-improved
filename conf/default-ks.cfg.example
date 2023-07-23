@@ -121,6 +121,7 @@ _install_task() {
 		echo "{error} download $url to ${filepath} fail" >&2
 		return 2
 	fi
+	echo -n "$url" >$fpath/.url
 	echo "{debug} install pkg dependencies of $fpath" >&2
 	pkgs=$(_get_package_requires $fpath)
 	[[ -n "$pkgs" ]] && {
