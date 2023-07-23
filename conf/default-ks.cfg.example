@@ -69,7 +69,10 @@ _install_taskname2url() {
 _get_task_requires() {
 	local _fpath=$1
 	pushd "$_fpath" &>/dev/null
-	{ sed -nr '/^.*"RhtsRequires:\s+library\(([^"]+)\)" .*$/{s@@\1@;s@/@/Library/@;p}' Makefile;
+	{ sed -nr '/^.*"RhtsRequires:\s+([^"]+)".*$/{s//\1/;s/\s+/\n/g;p}' Makefile | sort -u |
+		sed -nr -e '/^library\(([^"]+)\)$/{s@@\1@;s@/@/Library/@;p}' \
+			-e '/^test\(([^"]+)\)$/{s@@\1@;s@^/@@;p}' \
+			-e '/^kernel-kernel-/{s@-@/@g;s@^kernel/@@;p}'
 	  awk -F'[=;]' '/^(task|repo)Requires/{for (i=2;i<=NF;i++){if($i ~ "^/") print substr($i,2)}}' metadata;
 	} 2>/dev/null | sort -u | xargs
 	popd &>/dev/null
