@@ -48,6 +48,7 @@ cat << 'EOF' > /usr/share/restraint/plugins/task_run.d/27_task_require
 rstrnt_info "*** Running Plugin: $0 @$PWD"
 
 _targetdir=/mnt/tests
+_downloaddir=/mnt/download
 _logf=/tmp/${0##*/}.log
 
 _install_taskname2url() {
@@ -94,13 +95,17 @@ _install_task() {
 
 	echo -e "\n{debug} install task require: $fpath" >&2
 	file=${url##*/}
-	[[ "$url" != "$url_prev" ]] && curl -k -Ls ${url} -o ${file}
-	if test -f ${file}; then
+	filepath=$_downloaddir/repo/$file
+	if ! test -f ${filepath}; then
+		mkdir -p ${filepath%/*}
+		curl -k -Ls ${url} -o ${filepath}
+	fi
+	if test -f ${filepath}; then
 		url_prev=$url
 		mkdir -p $repopath
-		filetype=$(file -b ${file})
+		filetype=$(file -b ${filepath})
 		if [[ "$filetype" = Zip* ]]; then
-			_fpath=$(unzip $file -d $_targetdir | sed -n '/^ *creating: /{s///;p}')
+			_fpath=$(unzip $filepath -d $_targetdir | sed -n '/^ *creating: /{s///;p}')
 			[[ "$_fpath" != "$fpath" ]] && mv $_fpath $fpath
 		else
 			case "$filetype" in
@@ -109,10 +114,11 @@ _install_task() {
 				(XY*) xtype=J;;
 				(*) xtype=a;;
 			esac
-			topdir=$(tar taf ${file} | head -1 | sed -e 's@/.*@@')
-			tar -C $repopath -${xtype}xf ${file} ${topdir}/$rpath --strip-components=1
+			topdir=$(tar taf ${filepath} | head -1 | sed -e 's@/.*@@')
+			tar -C $repopath -${xtype}xf ${filepath} ${topdir}/$rpath --strip-components=1
 		fi
 	else
+		echo "{error} download $url to ${filepath} fail" >&2
 		return 2
 	fi
 	echo "{debug} install pkg dependencies of $fpath" >&2
