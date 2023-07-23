@@ -88,12 +88,25 @@ _get_package_requires() {
 
 _install_task() {
 	local _task=$1 fpath=
-	read repo _path <<<"${_task/\// }"
+	_task=${_task#CoreOS/}; _task=${_task#/}
+	read taskrepo _rpath <<<"${_task/\// }"
 	uri=$(taskname2url.py /$_task $taskOpts $repoOpts)
 	[[ -z "$uri" ]] && continue
 	read url rpath <<<"${uri/\#/ }"
-	repopath=$_targetdir/$repo
+	repopath=$_targetdir/$taskrepo
 	fpath=$repopath/$rpath
+
+	#skip if required task in same repo and has been there
+	if [[ "$url" = "$URL" && "$taskrepo" = "$TASK_REPO" ]]; then
+		local_fpath="$REPO_PATH/$rpath"
+		if [[ -d "$local_fpath" ]]; then
+			mkdir -p "${fpath%/*}"
+			ln -s $local_fpath $fpath 2>/dev/null
+			echo -n "$url" >$local_fpath/.url
+			return 0
+		fi
+	fi
+
 	if [[ -d $fpath ]]; then
 		if [[ -n "OVER_WRITE_RPM" && ! -f "$fpath/.url" ]]; then
 			rm -rf "$fpath"
@@ -104,7 +117,7 @@ _install_task() {
 
 	echo -e "\n{debug} install task require: /$_task -> $fpath" >&2
 	file=${url##*/}
-	filepath=$_downloaddir/repo/$file
+	filepath=$_downloaddir/taskrepo/$file
 	if ! test -f ${filepath}; then
 		mkdir -p ${filepath%/*}
 		curl -k -Ls ${url} -o ${filepath}
@@ -150,12 +163,22 @@ _install_task_requires() {
 }
 
 if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
-	echo "{debug} current dir: $PWD" >&2
+	CASE_DIR=$PWD
+	TASK="${TESTNAME:-$RSTRNT_TASKNAME}"
+	_TASK=${TASK#/}; _TASK=${_TASK#CoreOS/};
+	read TASK_REPO _RPATH <<<"${_TASK/\// }"
+
+	echo "{debug} current dir: $CASE_DIR" >&2
 	[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS" >&2
 	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS" >&2
 
 	#if install requires at different repo
 	_install_taskname2url
+
+	#get current task's repo and repopath
+	URI=$(taskname2url.py $TASK $taskOpts $repoOpts)
+	read URL RPATH <<<"${URI/\#/ }"
+	REPO_PATH=${CASE_DIR%/$RPATH}
 
 	for repourl in $REPO_URLS; do repoOpts+="-repo=$repourl "; done
 	for taskuri in $TASK_URIS; do taskOpts+="-task=$taskuri "; done
