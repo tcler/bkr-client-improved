@@ -94,9 +94,15 @@ _install_task() {
 	read url rpath <<<"${uri/\#/ }"
 	repopath=$_targetdir/$repo
 	fpath=$repopath/$rpath
-	[[ -d $fpath ]] && return 1
+	if [[ -d $fpath ]]; then
+		if [[ -n "OVER_WRITE_RPM" && ! -f "$fpath/.url" ]]; then
+			rm -rf "$fpath"
+		else
+			return 1
+		fi
+	fi
 
-	echo -e "\n{debug} install task require: $fpath" >&2
+	echo -e "\n{debug} install task require: /$_task -> $fpath" >&2
 	file=${url##*/}
 	filepath=$_downloaddir/repo/$file
 	if ! test -f ${filepath}; then
@@ -125,7 +131,7 @@ _install_task() {
 		return 2
 	fi
 	echo -n "$url" >$fpath/.url
-	echo "{debug} install pkg dependencies of $fpath" >&2
+	echo "{debug} install pkg dependencies of /$_task($fpath)" >&2
 	pkgs=$(_get_package_requires $fpath)
 	[[ -n "$pkgs" ]] && {
 		echo "{run} yum install -y $pkgs &>/tmp/${0##*/}.log"

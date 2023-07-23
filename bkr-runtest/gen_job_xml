@@ -176,12 +176,27 @@ proc fetchtag {taskname} {
 	}
 }
 
+set default-ksf "/etc/beaker/default-ks.cfg"
+set ksfContent {}
+if {![info exist Opt(ksf)] || $Opt(ksf) == ""} {
+	set Opt(ksf) ${default-ksf}
+}
+if [file isfile $Opt(ksf)] {
+	if {![catch {set fp [open $Opt(ksf)]} err]} {
+		set ksfContent [read $fp]
+		close $fp
+	}
+}
+
 # process --param= option
 set GlobalParam {}
 if [info exist Opt(param)] { lappend GlobalParam {*}$Opt(param) }
 if [info exist Opt(noavc)] { lappend GlobalParam "AVC_ERROR=+no_avc_check" }
 if [info exist Opt(task-fetch-url)] { lappend GlobalParam "TASK_URIS=$Opt(task-fetch-url)" }
 if [info exist Opt(fetch-url)] { lappend GlobalParam "REPO_URLS=$Opt(fetch-url)" }
+if [regexp -- {cat .*/usr/share/restraint/plugins/task_run.d/27_task_require} ${ksfContent}] {
+	lappend GlobalParam "OVER_WRITE_RPM=yes"
+}
 
 # process --distro= option
 set DISTRO_L {}
@@ -754,10 +769,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						}
 					}
 
-					set default-ksf "/etc/beaker/default-ks.cfg"
-					if {![info exist Opt(ksf)] || $Opt(ksf) == ""} {
-						set Opt(ksf) ${default-ksf}
-					}
 					if [info exist Opt(ks-append)] {
 						foreach ks $Opt(ks-append) {
 							ks_append ! {
@@ -765,13 +776,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							}
 						}
 					}
-					if [file isfile $Opt(ksf)] {
-						if {![catch {set fp [open $Opt(ksf)]} err]} {
-							ks_append ! {
-								puts "<!\[CDATA\[\n[read $fp]\]\]>"
-							}
-							close $fp
-						}
+
+					ks_append ! {
+						puts "<!\[CDATA\[\n$ksfContent\]\]>"
 					}
 				}
 
