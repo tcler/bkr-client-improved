@@ -22,12 +22,12 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 		{ rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
 	mkdir -p $(_confdir) && cp -f conf/*.example conf/fetch-url.ini $(_confdir)/.
+	cp $(_confdir)/default-ks.cfg{.example,}
+	test -f /etc/beaker/default-ks.cfg || ln -sf $(_confdir)/default-ks.cfg /etc/beaker/default-ks.cfg
+	test -f /etc/beaker/fetch-url.ini || ln -sf $(_confdir)/fetch-url.ini /etc/beaker/fetch-url.ini
 	test -f $(_confdir)/bkr-runtest.conf || cp $(_confdir)/bkr-runtest.conf{.example,}
 	test -f $(_confdir)/bkr-autorun.conf || cp $(_confdir)/bkr-autorun.conf{.example,}
-	test -f $(_confdir)/default-ks.cfg || cp $(_confdir)/default-ks.cfg{.example,}
 	sed -i -e '/[Ff]etchUrl/d' -e 's/defaultOSInstaller/OSInstaller/g' $(_confdir)/bkr-runtest.conf
-	test -f /etc/beaker/default-ks.cfg || mv $(_confdir)/default-ks.cfg /etc/beaker/.
-	test -f /etc/beaker/fetch-url.ini || mv $(_confdir)/fetch-url.ini /etc/beaker/.
 	curl -Ls http://api.github.com/repos/tcler/bkr-client-improved/commits/master -o $(_confdir)/version || :
 	cd lib; for d in *; do rm -fr $(_lib)/$$d; done
 	cd utils; for f in *; do rm -fr $(_bin)/$$f; done
