@@ -41,77 +41,111 @@ cat <<-'EOF' >>/usr/bin/rhts-environment.sh
 	fi
 EOF
 
-[[ $verx = 7 ]] && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-pypkg="python3"
-pycurl=python3-pycurl; [[ $verx = 7 ]] && pycurl=python36-pycurl
-yum install -y $pypkg $pycurl bzip2 gzip zip xz
-
 cat << 'EOF' > /usr/share/restraint/plugins/task_run.d/27_task_require
 #!/bin/bash
 
 . /usr/share/restraint/plugins/helpers
 rstrnt_info "*** Running Plugin: $0 @$PWD"
 
-if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
-	echo "{debug} current dir: $PWD"
-	[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS"
-	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS"
+_targetdir=/mnt/tests
+_logf=/tmp/${0##*/}.log
 
-	#if install requires at different repo
-	_cmd=taskname2url.py
+_install_taskname2url() {
+	local _cmd=taskname2url.py
+	local _pycurl=python3-pycurl
+	[[ $(rpm -E %rhel) = 7 ]] && {
+		yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf}
+		_pycurl=python36-pycurl
+	}
+	yum install -y python3 $_pycurl bzip2 gzip zip xz &>>${_logf}
 	command -v $_cmd || {
 		_url=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/utils/taskname2url.py
 		curl -Ls -o /usr/bin/${_cmd} ${_url}
 		chmod +x /usr/bin/${_cmd}
 	}
+}
+
+_get_task_requires() {
+	local _fpath=$1
+	pushd "$_fpath" &>/dev/null
+	{ sed -nr '/^.*"RhtsRequires:\s+library\(([^"]+)\)" .*$/{s@@\1@;s@/@/Library/@;p}' Makefile;
+	  awk -F'[=;]' '/^(task|repo)Requires/{for (i=2;i<=NF;i++){if($i ~ "^/") print substr($i,2)}}' metadata;
+	} 2>/dev/null | sort -u | xargs
+	popd &>/dev/null
+}
+
+_get_package_requires() {
+	local _fpath=$1 &>/dev/null
+	pushd "$_fpath"
+	{ sed -nr '/^.*"Requires:\s+([^"()]+)" .*$/{s//\1/;s/ +/\n/;p}' $_fpath/Makefile;
+	} 2>/dev/null | sort -u | xargs
+	popd &>/dev/null
+}
+
+_install_task() {
+	local _task=$1 fpath=
+	read repo _path <<<"${_task/\// }"
+	uri=$(taskname2url.py /$_task $taskOpts $repoOpts)
+	[[ -z "$uri" ]] && continue
+	read url rpath <<<"${uri/\#/ }"
+	repopath=$_targetdir/$repo
+	fpath=$repopath/$rpath
+	[[ -d $fpath ]] && return 1
+
+	echo -e "\n{debug} install task require: $fpath" >&2
+	file=${url##*/}
+	[[ "$url" != "$url_prev" ]] && curl -k -Ls ${url} -o ${file}
+	if test -f ${file}; then
+		url_prev=$url
+		mkdir -p $repopath
+		filetype=$(file -b ${file})
+		if [[ "$filetype" = Zip* ]]; then
+			_fpath=$(unzip $file -d $_targetdir | sed -n '/^ *creating: /{s///;p}')
+			[[ "$_fpath" != "$fpath" ]] && mv $_fpath $fpath
+		else
+			case "$filetype" in
+				(gzip*) xtype=z;;
+				(bzip2*) xtype=j;;
+				(XY*) xtype=J;;
+				(*) xtype=a;;
+			esac
+			topdir=$(tar taf ${file} | head -1 | sed -e 's@/.*@@')
+			tar -C $repopath -${xtype}xf ${file} ${topdir}/$rpath --strip-components=1
+		fi
+	else
+		return 2
+	fi
+	echo "{debug} install pkg dependencies of $fpath" >&2
+	pkgs=$(_get_package_requires $fpath)
+	[[ -n "$pkgs" ]] && {
+		echo "{run} yum install -y $pkgs &>/tmp/${0##*/}.log"
+		yum --setopt=strict=0 install -y $pkgs &>/tmp/${0##*/}.log
+	}
+	echo $fpath
+}
+
+_install_task_requires() {
+	local _fpath=$1 _task=
+	local require_tasks=$(_get_task_requires $_fpath)
+	for _task in $require_tasks; do
+		__fpath=$(_install_task "$_task")
+		[[ -d "$__fpath" ]] && _install_task_requires "$__fpath"
+	done
+}
+
+if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
+	echo "{debug} current dir: $PWD" >&2
+	[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS" >&2
+	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS" >&2
+
+	#if install requires at different repo
+	_install_taskname2url
 
 	for repourl in $REPO_URLS; do repoOpts+="-repo=$repourl "; done
 	for taskuri in $TASK_URIS; do taskOpts+="-task=$taskuri "; done
-	targetdir=/mnt/tests
-	require_tasks=$({ sed -nr '/^.*"RhtsRequires:\s+library\(([^"]+)\)" .*$/{s@@\1@;s@/@/Library/@;p}' Makefile;
-			  awk -F'[=;]' '/^(task|repo)Requires/{for (i=2;i<=NF;i++){if($i ~ "^/") print substr($i,2)}}' metadata;
-			} 2>/dev/null | sort -u)
-	for task in $require_tasks; do
-		read repo _path <<<"${task/\// }"
-		uri=$(taskname2url.py /$task $taskOpts $repoOpts)
-		[[ -z "$uri" ]] && continue
-		read url rpath <<<"${uri/\#/ }"
-		repopath=$targetdir/$repo
-		fpath=$repopath/$rpath
-		[[ -d $fpath ]] && continue
+	_install_task_requires .
 
-		echo -e "\n{debug} install task require: $fpath"
-		file=${url##*/}
-		[[ "$url" != "$url_prev" ]] && curl -k -Ls ${url} -o ${file}
-		if test -f ${file}; then
-			url_prev=$url
-			mkdir -p $repopath
-			filetype=$(file -b ${file})
-			if [[ "$filetype" = Zip* ]]; then
-				_fpath=$(unzip $file -d $targetdir | sed -n '/^ *creating: /{s///;p}')
-				[[ "$_fpath" != "$fpath" ]] && mv $_fpath $fpath
-			else
-				case "$filetype" in
-					(gzip*) xtype=z;;
-					(bzip2*) xtype=j;;
-					(XY*) xtype=J;;
-					(*) xtype=a;;
-				esac
-				topdir=$(tar taf ${file} | head -1 | sed -e 's@/.*@@')
-				tar -C $repopath -${xtype}xf ${file} ${topdir}/$rpath --strip-components=1
-			fi
-		else
-			continue
-		fi
-		echo "{debug} install dependencies of $fpath"
-		pkgs=$({ sed -nr '/^.*"Requires:\s+([^"()]+)" .*$/{s//\1/;s/ +/\n/;p}' $fpath/Makefile;
-			} 2>/dev/null | sort -u | xargs)
-		[[ -n "$pkgs" ]] && {
-			echo "{run} yum install -y $pkgs &>/tmp/${0##*/}.log"
-			yum --setopt=strict=0 install -y $pkgs &>/tmp/${0##*/}.log
-		}
-	done
-	echo -e "{debug} leaving restraint plugin $0\n"
+	echo -e "{debug} leaving restraint plugin $0\n" >&2
 fi
 
 exec "$@"
