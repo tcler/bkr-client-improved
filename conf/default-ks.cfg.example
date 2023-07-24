@@ -71,7 +71,7 @@ _install_taskname2url() {
 _get_task_requires() {
 	local _fpath=$1
 	pushd "$_fpath" &>/dev/null
-	{ sed -nr '/^.*"(Rhts|Repo)Requires:\s+([^"]+)".*$/{s//\1/;s/\s+/\n/g;p}' Makefile |
+	{ sed -nr '/^.*"(Rhts|Repo)Requires:\s+([^"]+)".*$/{s//\2/;s/\s+/\n/g;p}' Makefile |
 		sort -u |
 		sed -nr -e '/^library\(([^"]+)\)$/{s@@\1@;s@/@/Library/@;p}' \
 			-e '/^test\(([^"]+)\)$/{s@@\1@;s@^/@@;p}' \
@@ -83,9 +83,9 @@ _get_task_requires() {
 }
 
 _get_package_requires() {
-	local _fpath=$1 &>/dev/null
-	pushd "$_fpath"
-	{ sed -nr '/^.*"Requires:\s+([^"()]+)" .*$/{s//\1/;s/ +/\n/;p}' $_fpath/Makefile;
+	local _fpath=$1
+	pushd "$_fpath" &>/dev/null
+	{ sed -nr '/^.*"Requires:\s+([^"()]+)" .*$/{s//\1/;s/ +/\n/g;p}' $_fpath/Makefile;
 	} 2>/dev/null | sort -u | xargs
 	popd &>/dev/null
 }
@@ -122,6 +122,7 @@ _install_task() {
 	echo -e "\n{debug} install task require: /$_task -> $fpath" >&2
 	file=${url##*/}
 	filepath=$_downloaddir/taskrepo/$file
+	#download the archive of the repo //doesn't support git protocol
 	if ! test -f ${filepath}; then
 		mkdir -p ${filepath%/*}
 		curl -k -Ls ${url} -o ${filepath}
@@ -151,7 +152,7 @@ _install_task() {
 	echo "{debug} install pkg dependencies of /$_task($fpath)" >&2
 	pkgs=$(_get_package_requires $fpath)
 	[[ -n "$pkgs" ]] && {
-		echo "{run} yum install -y $pkgs &>/tmp/${0##*/}.log"
+		echo "{run} yum install -y $pkgs &>/tmp/${0##*/}.log" >&2
 		yum --setopt=strict=0 install -y $pkgs &>/tmp/${0##*/}.log
 	}
 	echo $fpath
