@@ -23,6 +23,7 @@ declaretags partitions partition
 declaretags ks_appends ks_append
 declaretags watchdog
 declaretags task params param
+set dummytask /distribution/utils/dummy
 
 if {[info commands lmap] == ""} {
 	proc lmap args {
@@ -984,7 +985,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							}
 						}
 					} else {
-						task name=/distribution/utils/dummy role=$_role -
+						task name=$dummytask role=$_role ! {
+							fetchtag $dummytask
+						}
 					}
 				}
 
@@ -1025,7 +1028,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								}
 							}
 						} else {
-							task name=/distribution/utils/dummy role=$_role -
+							task name=$dummytask role=$_role ! {
+								fetchtag $dummytask
+							}
 						}
 
 						if {[info exist Opt(reboot)] && $iter < $llen} {
@@ -1101,7 +1106,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							#param name=DISTRO_BUILD value=$distroBuild -
 						}
 					} else {
-						task name=/distribution/utils/dummy role=$_role -
+						task name=$dummytask role=$_role ! {
+							fetchtag $dummytask
+						}
 					}
 				}
 
