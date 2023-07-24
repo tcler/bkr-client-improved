@@ -129,7 +129,6 @@ _install_task() {
 		curl -k -Ls ${url} -o ${filepath}
 	fi
 	if test -f ${filepath}; then
-		url_prev=$url
 		mkdir -p $repopath
 		filetype=$(file -b ${filepath})
 		if [[ "$filetype" = Zip* ]]; then
@@ -181,8 +180,10 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 	echo "{debug} current dir: $CASE_DIR" >&2
 	[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS" >&2
 	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS" >&2
+	for repourl in $REPO_URLS; do repoOpts+="-repo=$repourl "; done
+	for taskuri in $TASK_URIS; do taskOpts+="-task=$taskuri "; done
 
-	#if install requires at different repo
+	#install taskname2url.py and db config
 	_install_taskname2url
 
 	#get current task's repo and repopath
@@ -190,8 +191,7 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 	read URL RPATH <<<"${URI/\#/ }"
 	REPO_PATH=${CASE_DIR%/$RPATH}
 
-	for repourl in $REPO_URLS; do repoOpts+="-repo=$repourl "; done
-	for taskuri in $TASK_URIS; do taskOpts+="-task=$taskuri "; done
+	#install task requires
 	_install_task_requires .
 
 	echo -e "{debug} leaving restraint plugin $0\n" >&2
