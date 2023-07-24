@@ -19,6 +19,8 @@ for arg in sys.argv[1:]:
     if (arg[0] != '-'):
         if (task == None):
             task = arg
+            if not re.match("^/", task):
+                task=f"/{task}"
             _task = re.sub("^(/?CoreOS)?/", "", task)
             repo = _task.split("/")[0]
             path = _task.replace(f"{repo}/", "")
@@ -37,6 +39,9 @@ for arg in sys.argv[1:]:
             taskdict[tname] = uri
         elif (arg[:5] == "-skip"):
             skiprepo = "yes"
+if (_task == None):
+    print(usage, file=sys.stderr); exit(1)
+
 if (conf == None):
     conf = defaultConf
 if re.match("^(ftp|https?)://", conf):
@@ -72,6 +77,8 @@ else:
 
 if task in taskdict.keys():
     print(taskdict[task])
+elif _task in taskdict.keys():
+    print(taskdict[_task])
 elif config.has_option('task-url', task):
     print(config['task-url'][task])
 elif skiprepo == "yes":
