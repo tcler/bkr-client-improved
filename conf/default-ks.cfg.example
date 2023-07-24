@@ -43,6 +43,7 @@ EOF
 
 cat << 'EOF' > /usr/share/restraint/plugins/task_run.d/27_task_require
 #!/bin/bash
+#ref: https://readthedocs.org/projects/restraint/downloads/pdf/latest/#section.1.9
 
 . /usr/share/restraint/plugins/helpers
 rstrnt_info "*** Running Plugin: $0 @$PWD"
@@ -91,7 +92,7 @@ _get_package_requires() {
 }
 
 _install_task() {
-	local _task=$1 fpath=
+	local _task=$1 fpath= local_fpath=
 	_task=${_task#CoreOS/}; _task=${_task#/}
 	read taskrepo _rpath <<<"${_task/\// }"
 	uri=$(taskname2url.py /$_task $taskOpts $repoOpts)
@@ -103,7 +104,7 @@ _install_task() {
 	#skip if required task in same repo and has been there
 	if [[ "$url" = "$URL" && "$taskrepo" = "$TASK_REPO" ]]; then
 		local_fpath="$REPO_PATH/$rpath"
-		if [[ -d "$local_fpath" ]]; then
+		if [[ -d "$local_fpath" && ! -d "$fpath" ]]; then
 			mkdir -p "${fpath%/*}"
 			ln -s $local_fpath $fpath 2>/dev/null
 			echo -n "$url" >$local_fpath/.url
@@ -144,6 +145,10 @@ _install_task() {
 			topdir=$(tar taf ${filepath} | head -1 | sed -e 's@/.*@@')
 			tar -C $repopath -${xtype}xf ${filepath} ${topdir}/$rpath --strip-components=1
 		fi
+		[[ -n "$local_fpath" && ! -d "$local_fpath" ]] && {
+			mkdir -p "${local_fpath%/*}"
+			ln -sf "$fpath" "$local_fpath"
+		}
 	else
 		echo "{error} download $url to ${filepath} fail" >&2
 		return 2
