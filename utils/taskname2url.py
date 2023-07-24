@@ -44,6 +44,8 @@ if (_task == None):
 
 if (conf == None):
     conf = defaultConf
+if not os.path.isfile(defaultConf):
+    conf = "/etc/fetch-url.ini"
 if re.match("^(ftp|https?)://", conf):
     confUrl = conf
 

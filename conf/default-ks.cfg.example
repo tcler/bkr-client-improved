@@ -63,6 +63,8 @@ _install_taskname2url() {
 		_url=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/utils/taskname2url.py
 		curl -Ls -o /usr/bin/${_cmd} ${_url}
 		chmod +x /usr/bin/${_cmd}
+		_dburl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/conf/fetch-url.ini
+		curl -Ls -o /etc/${_dburl##*/} ${_dburl}
 	}
 }
 
