@@ -1,5 +1,7 @@
 #!/bin/bash
 
+{ #avoid crush self running
+
 P=$0; [[ $0 = /* ]] && P=${0##*/}
 switchroot() {
 	[[ $(id -u) != 0 ]] && {
@@ -30,3 +32,6 @@ else
 	install_bkr_client_improved
 fi
 rm -f $tmpf
+
+exit
+}
