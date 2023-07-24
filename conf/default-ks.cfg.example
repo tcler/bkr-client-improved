@@ -132,8 +132,9 @@ _install_task() {
 		mkdir -p $repopath
 		filetype=$(file -b ${filepath})
 		if [[ "$filetype" = Zip* ]]; then
-			_fpath=$(unzip $filepath -d $_targetdir | sed -n '/^ *creating: /{s///;p}')
-			[[ "$_fpath" != "$fpath" ]] && mv $_fpath $fpath
+			_topdir=$(unzip -Z1 $filepath|head -1); _topdir=${_topdir%/}
+			unzip $filepath "${_topdir}/${rpath}/*" -d $_targetdir &>/dev/null
+			[[ "${_topdir}" != "$repopath" ]] && mv ${_topdir} $repopath
 		else
 			case "$filetype" in
 				(gzip*) xtype=z;;
