@@ -6,15 +6,17 @@
 import configparser
 import io,os,sys,re
 
-usage = f"Usage: {sys.argv[0]} <taskname> [/path/to/config|url] [-h] [-repo=rname,url] [-task=task,uri] [-skiprepo] [-d|-debug]"
+usage = f"Usage: {sys.argv[0]} <taskname> [[/path/to/config|url]..] [-h] [-repo=rname,url] [-task=task,uri] [-skiprepo] [-d|-debug]"
 task = None
 conf = None
 debug = 0
 repodict = {}
 taskdict = {}
 skiprepo = "no"
-defaultConf = "/etc/beaker/fetch-url.ini"
+conf_str = ""
 confUrl = "http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/conf/fetch-url.ini"
+defaultConfList = ["/etc/fetch-url.ini", "/etc/beaker/fetch-url.ini"]
+confList = []
 for arg in sys.argv[1:]:
     if (arg[0] != '-'):
         if (task == None):
@@ -25,7 +27,7 @@ for arg in sys.argv[1:]:
             repo = _task.split("/")[0]
             path = _task.replace(f"{repo}/", "")
         elif (conf == None):
-            conf = arg
+            confList.append(arg)
     else:
         if (arg[:2] == "-h"):
             print(usage); exit(0)
@@ -40,42 +42,68 @@ for arg in sys.argv[1:]:
         elif (arg[:5] == "-skip"):
             skiprepo = "yes"
 if (_task == None):
-    print(usage, file=sys.stderr); exit(1)
+    print(usage, file=sys.stderr)
+    exit(1)
 
-if (conf == None):
-    conf = defaultConf
-if not os.path.isfile(defaultConf):
-    conf = "/etc/fetch-url.ini"
-if re.match("^(ftp|https?)://", conf):
-    confUrl = conf
-
-config = configparser.ConfigParser()
-if not os.path.isfile(conf):
-    import pycurl
-    from io import BytesIO
+def curl2str(url):
+    httpcode = 0
+    ret = ""
+    if 'pycurl' not in sys.modules:
+        import pycurl
+    if 'BytesIO' not in sys.modules:
+        from io import BytesIO
+    buf = BytesIO()
     curl = pycurl.Curl()
-    bio = BytesIO()
-    curl.setopt(curl.URL, confUrl)
+    curl.setopt(curl.URL, url)
     curl.setopt(pycurl.FOLLOWLOCATION, 1)
-    curl.setopt(curl.WRITEDATA, bio)
-    curl.perform()
+    curl.setopt(curl.WRITEDATA, buf)
+    try:
+        curl.perform()
+        if 200 == curl.getinfo(pycurl.HTTP_CODE):
+            ret = buf.getvalue().decode('utf8')
+    except pycurl.error as e:
+        message = e
+        if (debug > 0):
+            print(f"[ERROR] curl.perform error: {e}", file=sys.stderr)
+        pass
+        buf.seek(0)
+        buf.truncate()
+    if (debug > 0):
+        print(f"[ERROR] httpcode: {curl.getinfo(pycurl.HTTP_CODE)}, url: {url}", file=sys.stderr)
     curl.close()
-    conf_str = bio.getvalue().decode('utf8')
-    #buf = io.StringIO(conf_str)
-    #config.read_file(buf)
-    config.read_string(conf_str)
-else:
-    config.read(conf)
+    return ret
+
+for file in defaultConfList:
+    if os.path.isfile(file):
+        with open(file, 'r', errors='ignore') as fobj:
+            conf_str += fobj.read()
+
+if (not conf_str.strip()):
+    conf_str += curl2str(confUrl)
+
+for conf in confList:
+    if re.match("^(ftp|https?)://", conf):
+        conf_str += curl2str(conf)
+    elif os.path.isfile(conf):
+        with open(file, 'r', errors = 'ignore') as fobj:
+            conf_str += fobj.read()
+
+if (not conf_str.strip()):
+    print(f"[ERROR] all config files or urls are not available!", file=sys.stderr)
+    exit(1)
+
+config = configparser.ConfigParser(strict=False)
+config.read_string(conf_str)
 
 if (debug > 0):
-    print(f"[DEBUG] {config.sections()}")
+    print(f"[DEBUG] {config.sections()}", file=sys.stderr)
 
 if config.has_section('repo-url'):
     for r in repodict:
         config['repo-url'][r] = repodict[r]
 else:
-    print(f"[ERROR] 'repo-url' section not found, please check config file: {conf}")
-    exit()
+    print(f"[ERROR] 'repo-url' section not found, please check config files/urls", file=sys.stderr)
+    exit(1)
 
 if task in taskdict.keys():
     print(taskdict[task])
