@@ -24,8 +24,12 @@ for arg in sys.argv[1:]:
             if not re.match("^/", task):
                 task=f"/{task}"
             _task = re.sub("^(/?CoreOS)?/", "", task)
-            repo = _task.split("/")[0]
-            path = _task.replace(f"{repo}/", "")
+            _task = re.sub("/$", "", re.sub("/+", "/", _task))
+            if re.match(".+/", _task):
+                repo, rpath = _task.split("/", 1)
+                _rpath = f"#{rpath}"
+            else:
+                repo, _rpath = _task, ""
         elif (conf == None):
             confList.append(arg)
     else:
@@ -114,6 +118,6 @@ elif config.has_option('task-url', task):
 elif skiprepo == "yes":
     exit(0)
 elif config.has_option('repo-url', repo):
-    print(f"{config['repo-url'][repo]}#{path}")
+    print(f"{config['repo-url'][repo]}{_rpath}")
 else:
-    print(f'''{config['repo-url']['__pkg__'].replace("__pkg__", repo)}#{path}''')
+    print(f'''{config['repo-url']['__pkg__'].replace("__pkg__", repo)}{_rpath}''')
