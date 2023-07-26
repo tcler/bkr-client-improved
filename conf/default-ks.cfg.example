@@ -104,6 +104,17 @@ _install_task() {
 	repopath=$_targetdir/$taskrepo
 	fpath="$repopath/$rpath"
 
+	#if there is ? in rpath
+	if [[ "$rpath" = *\?* && -d $repopath ]]; then
+		if rfpath=$(find $repopath | grep -E "$repopath/${rpath//\?/.}$"); then
+			fpath=${rfpath%/}
+			if [[ -f "$fpath/.url" ]]; then
+				return 0
+			fi
+			rpath=${fpath#${repopath}/}
+		fi
+	fi
+
 	#skip if required task in same repo and has been there
 	if [[ "$url" = "$URL" && "$taskrepo" = "$TASK_REPO" ]]; then
 		local_fpath="$REPO_PATH/$rpath"
