@@ -76,7 +76,7 @@ _get_task_requires() {
 		sort -u |
 		sed -nr -e '/^library\(([^"]+)\)$/{s@@\1@;s@/@/Library/@;p}' \
 			-e '/^test\(([^"]+)\)$/{s@@\1@;s@^/@@;p}' \
-			-e '/^kernel-kernel-/{s@-@/@g;s@^kernel/@@;p}' \
+			-e '/^kernel-kernel-/{s@-@?@g;s@^kernel\?@@;s@\?@/@;p}' \
 			-e '/^\//{s@^/@@;p}'
 	  awk -F'[=;]' '/^(task|repo)Requires/{for (i=2;i<=NF;i++){if($i ~ "^/") print substr($i,2)}}' metadata;
 	} 2>/dev/null | sort -u | xargs
@@ -99,7 +99,7 @@ _install_task() {
 	[[ -z "$uri" ]] && continue
 	read url rpath <<<"${uri/\#/ }"
 	repopath=$_targetdir/$taskrepo
-	fpath=$repopath/$rpath
+	fpath="$repopath/$rpath"
 
 	#skip if required task in same repo and has been there
 	if [[ "$url" = "$URL" && "$taskrepo" = "$TASK_REPO" ]]; then
@@ -142,8 +142,13 @@ _install_task() {
 				(XY*) xtype=J;;
 				(*) xtype=a;;
 			esac
-			topdir=$(tar taf ${filepath} | head -1 | sed -e 's@/.*@@')
-			tar -C $repopath -${xtype}xf ${filepath} ${topdir}/$rpath --strip-components=1
+			#topdir=$(tar taf ${filepath} | head -1 | sed -e 's@/.*@@')
+			#tar -C $repopath -${xtype}xf ${filepath} ${topdir}/$rpath --strip-components=1
+			inpath=$(tar taf ${filepath} | grep -E "^[^/]+/${rpath//\?/.}/$"|sed -n '1{s@/$@@;p;q}')
+			tar -C $repopath -${xtype}xf ${filepath} $inpath --strip-components=1
+			rpath=${inpath#*/}; rpath=${rpath%/};
+			fpath="$repopath/$rpath";
+			[[ -n "$local_fpath" ]] && local_fpath="$REPO_PATH/$rpath"
 		fi
 		[[ -n "$local_fpath" && ! -d "$local_fpath" ]] && {
 			mkdir -p "${local_fpath%/*}"
