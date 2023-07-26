@@ -304,6 +304,7 @@ for build in "${builds[@]}"; do
 		run "cat buildArch.txt"
 
 		: <<-'COMM'
+		COMM
 		[ -z "$(< buildArch.txt)" ] && {
 			echo "$prompt [Warn] rpm not found, treat the [$taskid] as build ID."
 			buildid=$taskid
@@ -311,7 +312,6 @@ for build in "${builds[@]}"; do
 			run "awk '/\\<($archPattern)\\.rpm/{print}' ${KOJI}_buildinfo.txt >buildArch.txt"
 			run "cat buildArch.txt"
 		}
-		COMM
 
 		urllist=$(sed -r '/\/?mnt.redhat.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
 		if [[ "$KOJI" = koji ]]; then
