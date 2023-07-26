@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #auther: <jiyin@redhat.com>
 #function: get the fetch-url corresponding to taskname
-#require: fetch-url database. default: /etc/beaker/fetch-url.ini
+#require: fetch-url database. default: /etc/beaker/fetch-url.ini, /etc/fetch-url.ini
 
 import configparser
 import io,os,sys,re
@@ -15,7 +15,7 @@ taskdict = {}
 skiprepo = "no"
 conf_str = ""
 confUrl = "http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/conf/fetch-url.ini"
-defaultConfList = ["/etc/fetch-url.ini", "/etc/beaker/fetch-url.ini"]
+defaultConfList = ["/etc/beaker/fetch-url.ini", "/etc/fetch-url.ini"]
 confList = []
 for arg in sys.argv[1:]:
     if (arg[0] != '-'):
