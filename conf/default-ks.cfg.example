@@ -136,6 +136,7 @@ _install_task() {
 		filetype=$(file -b ${filepath})
 		if [[ "$filetype" = Zip* ]]; then
 			inpath=$(unzip -Z1 $filepath| grep -E "^[^/]+/${rpath//\?/.}/$"|sed -n '1{s@/$@@;p;q}')
+			[[ -z "$inpath" ]] && { echo "{error} no path '$rpath' found in $file" >&2; return 2; }
 			unzip $filepath "${inpath}/*" -d $_targetdir &>/dev/null
 			_topdir=${inpath%%/*}
 			[[ "${_topdir}" != "$taskrepo" ]] && mv $_targetdir/${_topdir} $repopath
@@ -149,6 +150,7 @@ _install_task() {
 			#topdir=$(tar taf ${filepath} | head -1 | sed -e 's@/.*@@')
 			#tar -C $repopath -${xtype}xf ${filepath} ${topdir}/$rpath --strip-components=1
 			inpath=$(tar taf ${filepath} | grep -E "^[^/]+/${rpath//\?/.}/$"|sed -n '1{s@/$@@;p;q}')
+			[[ -z "$inpath" ]] && { echo "{error} no path '$rpath' found in $file" >&2; return 2; }
 			tar -C $repopath -${xtype}xf ${filepath} $inpath --strip-components=1
 		fi
 		rpath=${inpath#*/}; rpath=${rpath%/};
