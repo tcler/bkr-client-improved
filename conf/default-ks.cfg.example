@@ -73,11 +73,14 @@ _get_task_requires() {
 	local _fpath=$1
 	pushd "$_fpath" &>/dev/null
 	{ sed -nr '/^.*"(Rhts|Repo)Requires:\s+([^"]+)".*$/{s//\2/;s/\s+/\n/g;p}' Makefile |
-		sort -u |
-		sed -nr -e '/^library\(([^"]+)\)$/{s@@\1@;s@/@/Library/@;p}' \
-			-e '/^test\(([^"]+)\)$/{s@@\1@;s@^/@@;p}' \
-			-e '/^kernel-kernel-/{s@-@?@g;s@^kernel\?@@;s@\?@/@;p}' \
-			-e '/^\//{s@^/@@;p}'
+		sort -u | awk '
+		match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]) }
+		match($0,/^test\(\/?(.+)\)$/,M) { print(M[1]) }
+		match($0,/^kernel-kernel-(.+)$/,M) { print("kernel/" gensub("-","?","g",M[1])) }
+		match($0,/^nfs-utils-nfs-utils-(.+)$/,M) { print("nfs-utils/" gensub("-","?","g",M[1])) }
+		match($0,/^\//) { print(gensub("^/","",1)) }
+		match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)) }
+		'
 	  awk -F'[=;]' '/^(task|repo)Requires/{for (i=2;i<=NF;i++){if($i ~ "^/") print substr($i,2)}}' metadata;
 	} 2>/dev/null | sort -u | xargs
 	popd &>/dev/null
@@ -132,9 +135,10 @@ _install_task() {
 		mkdir -p $repopath
 		filetype=$(file -b ${filepath})
 		if [[ "$filetype" = Zip* ]]; then
-			_topdir=$(unzip -Z1 $filepath|head -1); _topdir=${_topdir%/}
-			unzip $filepath "${_topdir}/${rpath}/*" -d $_targetdir &>/dev/null
-			[[ "${_topdir}" != "$repopath" ]] && mv ${_topdir} $repopath
+			inpath=$(unzip -Z1 $filepath| grep -E "^[^/]+/${rpath//\?/.}/$"|sed -n '1{s@/$@@;p;q}')
+			unzip $filepath "${inpath}/*" -d $_targetdir &>/dev/null
+			_topdir=${inpath%%/*}
+			[[ "${_topdir}" != "$taskrepo" ]] && mv $_targetdir/${_topdir} $repopath
 		else
 			case "$filetype" in
 				(gzip*) xtype=z;;
@@ -146,10 +150,10 @@ _install_task() {
 			#tar -C $repopath -${xtype}xf ${filepath} ${topdir}/$rpath --strip-components=1
 			inpath=$(tar taf ${filepath} | grep -E "^[^/]+/${rpath//\?/.}/$"|sed -n '1{s@/$@@;p;q}')
 			tar -C $repopath -${xtype}xf ${filepath} $inpath --strip-components=1
-			rpath=${inpath#*/}; rpath=${rpath%/};
-			fpath="$repopath/$rpath";
-			[[ -n "$local_fpath" ]] && local_fpath="$REPO_PATH/$rpath"
 		fi
+		rpath=${inpath#*/}; rpath=${rpath%/};
+		fpath="$repopath/$rpath";
+		[[ -n "$local_fpath" ]] && local_fpath="$REPO_PATH/$rpath"
 		[[ -n "$local_fpath" && ! -d "$local_fpath" ]] && {
 			mkdir -p "${local_fpath%/*}"
 			ln -sf "$fpath" "$local_fpath"
@@ -162,8 +166,8 @@ _install_task() {
 	echo "{debug} install pkg dependencies of /$_task($fpath)" >&2
 	pkgs=$(_get_package_requires $fpath)
 	[[ -n "$pkgs" ]] && {
-		echo "{run} yum install -y $pkgs &>/tmp/${0##*/}.log" >&2
-		yum --setopt=strict=0 install -y $pkgs &>/tmp/${0##*/}.log
+		echo "{run} yum install -y $pkgs &>>$_logf" >&2
+		yum --setopt=strict=0 install -y $pkgs &>>$_logf
 	}
 	echo $fpath
 }
