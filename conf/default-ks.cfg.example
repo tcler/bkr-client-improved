@@ -18,27 +18,28 @@ case $verx in
 	;;
 esac
 
-cat /usr/bin/rhts-environment.sh
-cat <<-'EOF' >>/usr/bin/rhts-environment.sh
-	# see: https://restraint.readthedocs.io/en/latest/remove_rhts.html#legacy-rhts-task-environment-variables
-	# if restraint runs in un-compatable mode, and we still use old ENV name
-	if [[ -n "$RSTRNT_JOBID" && -z "$JOBID" ]]; then
-		export RHTS_COMPAT=no
-		export ARCH="$RSTRNT_OSARCH" \
-		DISTRO="$RSTRNT_OSDISTRO" \
-		FAMILY="$RSTRNT_OSMAJOR" \
-		JOBID="$RSTRNT_JOBID" \
-		REBOOTCOUNT="$RSTRNT_REBOOTCOUNT" \
-		RECIPESETID="$RSTRNT_RECIPESETID" \
-		RECIPEID="$RSTRNT_RECIPEID" \
-		RECIPETESTID="$RSTRNT_RECIPEID" \
-		SUBMITTER="$RSTRNT_OWNER" \
-		TASKID="$RSTRNT_TASKID" \
-		TESTID="$RSTRNT_TASKID" \
-		TESTNAME="$RSTRNT_TASKNAME" \
-		TESTPATH="$RSTRNT_TASKPATH" \
-		VARIANT="$RSTRNT_OSVARIANT"
-	fi
+cat <<-\EOF | sed  -e '/^exec.*$/s///' -e '$r /dev/stdin' /usr/share/restraint/plugins/task_run.d/25_environment
+# see: https://restraint.readthedocs.io/en/latest/remove_rhts.html#legacy-rhts-task-environment-variables
+# if restraint runs in un-compatable mode, and we still use old ENV name
+if [[ -n "$RSTRNT_JOBID" && -z "$JOBID" ]]; then
+	export RHTS_COMPAT=no
+	export ARCH="$RSTRNT_OSARCH" \
+	DISTRO="$RSTRNT_OSDISTRO" \
+	FAMILY="$RSTRNT_OSMAJOR" \
+	JOBID="$RSTRNT_JOBID" \
+	REBOOTCOUNT="$RSTRNT_REBOOTCOUNT" \
+	RECIPESETID="$RSTRNT_RECIPESETID" \
+	RECIPEID="$RSTRNT_RECIPEID" \
+	RECIPETESTID="$RSTRNT_RECIPEID" \
+	SUBMITTER="$RSTRNT_OWNER" \
+	TASKID="$RSTRNT_TASKID" \
+	TESTID="$RSTRNT_TASKID" \
+	TESTNAME="$RSTRNT_TASKNAME" \
+	TESTPATH="$RSTRNT_TASKPATH" \
+	VARIANT="$RSTRNT_OSVARIANT"
+fi
+
+exec "$@"
 EOF
 
 cat << 'EOF' > /usr/share/restraint/plugins/task_run.d/27_task_require
@@ -119,10 +120,13 @@ _install_task() {
 	#skip if required task in same repo and has been there
 	if [[ "$url" = "$URL" && "$taskrepo" = "$TASK_REPO" ]]; then
 		local_fpath="$REPO_PATH/$rpath"
-		if [[ -d "$local_fpath" && ! -d "$fpath" ]]; then
-			mkdir -p "${fpath%/*}"
-			ln -s $local_fpath $fpath 2>/dev/null
-			echo -n "$url" >$local_fpath/.url
+		if [[ -d "$local_fpath" ]]; then
+			if [[ ! -f "$fpath/.url" ]]; then
+				rm -rf ${fpath}
+				mkdir -p "${fpath%/*}"
+				ln -s $local_fpath $fpath 2>/dev/null
+				echo -n "$url" >$local_fpath/.url
+			fi
 			return 0
 		fi
 	fi
