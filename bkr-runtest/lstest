@@ -174,7 +174,7 @@ _caseInfo() {
 	#get case name
 	name=$(get_taskname $metafile)
 	[ -z "$name" ] && {
-		echo "{ERROR} [$casepath/] casename NULL, maybe Makefile wrong." >&2
+		echo "{ERROR} [$casepath/] taskname NULL, please check your '$metafile' file" >&2
 		popd >/dev/null; return 1
 	}
 
