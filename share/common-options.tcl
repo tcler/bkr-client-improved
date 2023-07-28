@@ -116,6 +116,7 @@ set CommonOptionList {
 	reboot			{arg y	help {add reboot after each task}}
 	{param taskparam}	{arg m	help {Set task params, can use multiple times.
 				Use "mh-" prefix to set different value for multihost, example: --param=mh-key=val1,val2}}
+	maxtime			{arg y	help {alias of --param=KILLTIMEOVERRIDE=<maxtime>}}
 	noavc			{arg n	help {alias of --param=AVC_ERROR=+no_avc_check}}
 	nvr			{arg m	help {Specify the kernel(Name-Version-Release) to be installed}}
 	install			{arg m	help {Install PACKAGE using /distribution/pkginstall, can use multiple times}}

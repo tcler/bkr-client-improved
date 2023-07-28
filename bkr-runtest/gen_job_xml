@@ -198,6 +198,7 @@ if [info exist Opt(fetch-url)] { lappend GlobalParam "REPO_URLS=$Opt(fetch-url)"
 if [regexp -- {cat .*/usr/share/restraint/plugins/task_run.d/27_task_require} ${ksfContent}] {
 	lappend GlobalParam "OVER_WRITE_RPM=yes"
 }
+if [info exist Opt(maxtime)] { lappend GlobalParam "KILLTIMEOVERRIDE=$Opt(maxtime)" }
 
 # process --distro= option
 set DISTRO_L {}
