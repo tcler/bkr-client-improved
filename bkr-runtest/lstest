@@ -219,6 +219,7 @@ _caseInfo() {
 		fi
 	fi
 
+	local _maxtime=${Attr[time]%m}
 	if [[ "$FORMAT" = raw ]] || [[ -z "$subtests_yml" ]]; then
 		_attr=$(echo -n "attr: {"; for e in "${!Attr[@]}"; do ymlhash "$e" "${Attr[$e]}"; done; echo -n "}")
 		_attr=${_attr//, \}/\}}
@@ -226,7 +227,10 @@ _caseInfo() {
 			_setup=", "$(echo -n "setup: ["; for e in "${Setup[@]}"; do ymllist "$e"; done; echo -n "]")
 			_setup=${_setup/, ]/]}
 		}
-		echo "- ${name}: {${_attr}${_setup}}"
+		if [[ ${_maxtime} -lt 5 ]]; then
+			_param=", param: [KILLTIMEOVERRIDE=$(((_maxtime+5)*60))]"
+		fi
+		echo "- ${name}: {${_attr}${_setup}${_param}}"
 	else
 		while read l; do
 			[[ -z "$l" ]] && continue
@@ -239,6 +243,14 @@ _caseInfo() {
 					l=$(yq ".[0].attr.$key=\"${oval}\"" <<<"$l")
 				fi
 			done
+
+			#update param
+			if [[ ${_maxtime} -lt 5 ]]; then
+				local paramCnt
+				local _paramList=($(yq ".[0].param.[]" <<<"$l"))
+				paramCnt=${#_paramList[@]}
+				l=$(yq ".[0].param.[$paramCnt]=\"KILLTIMEOVERRIDE=$(((_maxtime+5)*60))\"" <<<"$l")
+			fi
 
 			#get the setup list
 			if [[ ${#Setup[@]} -gt 0 ]]; then
