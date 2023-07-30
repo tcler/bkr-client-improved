@@ -74,7 +74,7 @@ _install_taskname2url() {
 _get_task_requires() {
 	local _fpath=$1
 	pushd "$_fpath" &>/dev/null
-	{ sed -nr '/^.*"(Rhts|Repo)?Requires:\s+([^"]+)".*$/{s//\2/;s/\s+/\n/g;p}' Makefile |
+	{ sed -nr '/^.*"(Rhts|Repo)?Requires:\s*([^"]+)".*$/{s//\2/;s/\s+/\n/g;p}' Makefile |
 		sort -u | awk '
 		match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]) }
 		match($0,/^test\(\/?(.+)\)$/,M) { print(M[1]) }
@@ -91,7 +91,7 @@ _get_task_requires() {
 _get_package_requires() {
 	local _fpath=$1
 	pushd "$_fpath" &>/dev/null
-	{ sed -nr '/^.*"Requires:\s+([^"()]+)" .*$/{s//\1/;s/ +/\n/g;p}' $_fpath/Makefile |
+	{ sed -nr '/^.*"Requires:\s*([^"()]+)" .*$/{s//\1/;s/ +/\n/g;p}' $_fpath/Makefile |
 		grep -E -v '^kernel-kernel-|^(.+)-CoreOS-\1-|^/';
 	} 2>/dev/null | sort -u | xargs
 	popd &>/dev/null

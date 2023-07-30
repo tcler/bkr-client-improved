@@ -92,8 +92,8 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 	}
 
 	lassign $testkey issched igset
-	regexp {pkg(=|: )?([^ ,{}]+)} $testList _ignore _op pkg 
-	if {![info exist pkg] || $pkg == ""} {set pkg ?}
+	regexp {(pkg|component)(=|: )?([^ ,{}]+)} $testList _match _key _op component
+	if {![info exist component] || $component == ""} {set component ?}
 
 	# Gen gset string
 	set gset [lindex $testkey 1]
@@ -105,7 +105,7 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 		lassign [regsub {.*topo=[^0-9]*([0-9]+)[^0-9]+([0-9]+).*} "$gset $options" {\1 \2}] servNum clntNum
 		set topoDesc M.$servNum.$clntNum
 	}
-	if {$pkg in {merged}} { set topoDesc X }
+	if {$component in {merged}} { set topoDesc X }
 
 	# Get task number
 	set tnum [llength $testList]
@@ -182,7 +182,7 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 	set WB $format
 	if {$WB == ""} {set WB {[%T] [%P@%D %H:%N] %C%S/%s %G}}
 	regsub -all "%T" $WB "$time" WB
-	regsub -all "%P" $WB "$pkg" WB
+	regsub -all "%P" $WB "$component" WB
 	regsub -all "%D" $WB "$distro" WB
 	regsub -all "%H" $WB "$topoDesc" WB
 	regsub -all "%N" $WB "$tnum" WB

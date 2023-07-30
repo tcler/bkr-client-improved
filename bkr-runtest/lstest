@@ -125,10 +125,10 @@ _caseInfo() {
 	local metafile=testinfo.desc
 	local casepath=$1
 	local subtestf=$2
-	local name=
+	local taskname=
 
 	declare -A Attr
-	local _time= _pkg= _ssched=no _type= _level=
+	local _time= _component= _ssched=no _type= _level=
 
 	declare -a Setup
 	local topo=
@@ -171,9 +171,9 @@ _caseInfo() {
 		}
 	fi
 
-	#get case name
-	name=$(get_taskname $metafile)
-	[ -z "$name" ] && {
+	#get task name
+	taskname=$(get_taskname $metafile)
+	[ -z "$taskname" ] && {
 		echo "{ERROR} [$casepath/] taskname NULL, please check your '$metafile' file" >&2
 		popd >/dev/null; return 1
 	}
@@ -182,9 +182,9 @@ _caseInfo() {
 	_time=$(get_max_time $metafile)
 	Attr[time]=$_time
 
-	#get test attr: pkg name belong to
-	_pkg=$(get_test_component $metafile)
-	Attr[pkg]=$_pkg
+	#get test attr: pkg/component name belong to
+	_component=$(get_test_component $metafile)
+	Attr[component]=$_component
 
 	#get test attr: sepatate scheduling?
 	_ssched=$(get_test_ssched $metafile)
@@ -206,7 +206,39 @@ _caseInfo() {
 	topo=$(get_test_topo $metafile)
 	[[ -n "$topo" ]] && Setup+=(--topo=$topo)
 
-	[[ $metafile = testinfo.desc ]] && rm -rf $metafile
+	if [[ $metafile = testinfo.desc ]]; then
+		repoHead=$(sed -r 's@^((/CoreOS)?/[^/]+)/.*$@\1@' <<<${taskname})
+		[[ "$META" = yes ]] && cat <<-EOF >metadata
+		[General]
+		name=$taskname
+		component=${_component}
+		owner=$(sed -nr '/Owner:\s+/{s///;p;q}' $metafile)
+		description=$(sed -nr '/Description:\s+/{s///;p;q}' $metafile)
+		priority=$_level
+		license=$(sed -nr '/License:\s+/{s///;p;q}' $metafile)
+		topo=${topo:-singleHost}
+		confidential=no
+		destructive=no
+		$(sed -nr '/Bug:\s+/{s//bug=/;p;q}' $metafile)
+
+		[restraint]
+		entry_point=make run
+		dependencies=$(sed -nr '/^.*Requires:\s*([^"()]+)$/{s//\1/;s/ +/\n/g;p}' $metafile |
+			grep -E -v -e '^kernel-kernel-|^(.+)-CoreOS-\1-|^/' -e '^$' | paste -s -d\; -)
+		repoRequires=$(sed -nr '/^.*Requires:\s*([^"]+)$/{s//\1/;s/\s+/\n/g;p}' $metafile |
+			sort -u | awk '
+			match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]) }
+			match($0,/^test\(\/?(.+)\)$/,M) { print(M[1]) }
+			match($0,/^kernel-kernel-(.+)$/,M) { print("kernel/" gensub("-","/","g",M[1])) }
+			match($0,/^nfs-utils-nfs-utils-(.+)$/,M) { print("nfs-utils/" gensub("-","?","g",M[1])) }
+			match($0,/^\//) { print(gensub("^/","",1)) }
+			match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)) }
+		' | sed -e 's;^;/;' -e '/\?/!'"s@^${repoHead}/@@" | paste -s -d\; -)
+		max_time=${Attr[time]}
+		no_localwatchdog=true
+		EOF
+		rm -rf $metafile
+	fi
 
 	subtests_generator="gen_subtest.sh"
 	[ -x $subtests_generator ] && sh $subtests_generator
@@ -230,7 +262,7 @@ _caseInfo() {
 		if [[ ${_maxtime} -lt 5 ]]; then
 			_param=", param: [KILLTIMEOVERRIDE=$(((_maxtime+5)*60))]"
 		fi
-		echo "- ${name}: {${_attr}${_setup}${_param}}"
+		echo "- ${taskname}: {${_attr}${_setup}${_param}}"
 	else
 		while read l; do
 			[[ -z "$l" ]] && continue
@@ -276,7 +308,7 @@ _caseInfo() {
 			#l=$(yq "sort_keys(.[])" <<<"$l")
 			l=$(yq "sort_keys(.[])|sort_keys(.[].attr)" <<<"$l")
 
-			echo "${l/-/- ${name}:}"
+			echo "${l/-/- ${taskname}:}"
 		done <<<"$subtests_yml"
 	fi
 
@@ -312,13 +344,14 @@ P=${0##*/}
 FORMAT=std
 #-------------------------------------------------------------------------------
 Usage() {
-	echo "Usage: $P [--raw | -e[expand_file] | -t <maxtime>] [\$dir ...]"
+	echo "Usage: $P [--raw | -e[expand_file] | -t <maxtime>] [--metaf] [\$dir ...]"
 }
 _at=`getopt -o hdrt:e:: \
 	--long help \
 	--long raw \
 	--long fmt: \
 	--long conv \
+	--long metaf \
     -a -n "$P" -- "$@"`
 eval set -- "$_at"
 
@@ -331,6 +364,7 @@ while true; do
 	-t)		maxtime=${2}; shift 2;;
 	-e)		E=yes; setupConf=$2; shift 2;;
 	--conv)		CONV=yes; shift 1;;
+	--meta*)	META=yes; shift 1;;
 	--) shift; break;;
 	esac
 done
