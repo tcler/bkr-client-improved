@@ -185,7 +185,7 @@ buildname2url() {
 	local _build=$1
 	local _url= _path=
 	local rc=1
-	_path=$(brew buildinfo $_build|grep -o "/brewroot/vol/.*/$(arch)/"|uniq)
+	_path=$(brew buildinfo $_build|grep -E -o "/brewroot/vol/.*/(${archPattern})/"|uniq)
 	if [[ -n "$_path" ]]; then
 		echo "{debug} path: $_path" >&2
 		_url=$(curl -Ls -o /dev/null -w %{url_effective} $downloadBaseUrl/$_path)
