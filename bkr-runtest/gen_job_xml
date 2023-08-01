@@ -195,7 +195,7 @@ if [info exist Opt(param)] { lappend GlobalParam {*}$Opt(param) }
 if [info exist Opt(noavc)] { lappend GlobalParam "AVC_ERROR=+no_avc_check" }
 if [info exist Opt(task-fetch-url)] { lappend GlobalParam "TASK_URIS=$Opt(task-fetch-url)" }
 if [info exist Opt(fetch-url)] { lappend GlobalParam "REPO_URLS=$Opt(fetch-url)" }
-if [regexp -- {cat .*/usr/share/restraint/plugins/task_run.d/27_task_require} ${ksfContent}] {
+if [regexp -- {cat .*>.*/27_task_require} ${ksfContent}] {
 	lappend GlobalParam "OVER_WRITE_RPM=yes"
 }
 if [info exist Opt(maxtime)] { lappend GlobalParam "KILLTIMEOVERRIDE=$Opt(maxtime)" }
