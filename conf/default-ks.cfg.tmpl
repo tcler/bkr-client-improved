@@ -1,0 +1,36 @@
+%post --log=/root/my-ks-post.log
+
+rtype=rel-eng
+rtype=nightly
+downhostname=download.devel.redhat.com
+verx=$(rpm -E %rhel)
+case $verx in
+8|9)
+	buildrootUrl=http://$downhostname/rhel-$verx/$rtype/BUILDROOT-$verx/latest-BUILDROOT-$verx-RHEL-$verx/compose/Buildroot/$(arch)/os/
+	cat <<-EOF >/etc/yum.repos.d/beaker-buildroot.repo
+	[beaker-buildroot]
+	name=beaker-buildroot
+	baseurl=$buildrootUrl
+	enabled=1
+	gpgcheck=0
+	skip_if_unavailable=1
+	EOF
+	;;
+esac
+
+_rpath=share/restraint/plugins/task_run.d
+: <<\COMM
+_path=qa/rhts/lookaside/bkr-client-improved/$_rpath
+pushd /usr/$_rpath
+	curl -k -Ls -O http://$downhostname/$_path/{25_environment,27_task_require}
+	chmod a+x *
+popd
+COMM
+
+cat << 'EOF' > /usr/$_rpath/25_environment
+EOF
+cat << 'EOF' > /usr/$_rpath/27_task_require
+EOF
+chmod a+x /usr/$_rpath/*
+
+%end

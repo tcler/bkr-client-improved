@@ -1,50 +1,3 @@
-%post --log=/root/my-ks-post.log
-
-rtype=rel-eng
-rtype=nightly
-downhostname=download.devel.redhat.com
-verx=$(rpm -E %rhel)
-case $verx in
-8|9)
-	buildrootUrl=http://$downhostname/rhel-$verx/$rtype/BUILDROOT-$verx/latest-BUILDROOT-$verx-RHEL-$verx/compose/Buildroot/$(arch)/os/
-	cat <<-EOF >/etc/yum.repos.d/beaker-buildroot.repo
-	[beaker-buildroot]
-	name=beaker-buildroot
-	baseurl=$buildrootUrl
-	enabled=1
-	gpgcheck=0
-	skip_if_unavailable=1
-	EOF
-	;;
-esac
-
-cat <<-\EOF | sed  -e '/^exec.*$/s///' -e '$r /dev/stdin' /usr/share/restraint/plugins/task_run.d/25_environment
-# see: https://restraint.readthedocs.io/en/latest/remove_rhts.html#legacy-rhts-task-environment-variables
-# if restraint runs in un-compatable mode, and we still use old ENV name
-if [[ -n "$RSTRNT_JOBID" && -z "$JOBID" ]]; then
-	export RHTS_COMPAT=no
-	export ARCH="$RSTRNT_OSARCH" \
-	DISTRO="$RSTRNT_OSDISTRO" \
-	FAMILY="$RSTRNT_OSMAJOR" \
-	JOBID="$RSTRNT_JOBID" \
-	REBOOTCOUNT="$RSTRNT_REBOOTCOUNT" \
-	RECIPESETID="$RSTRNT_RECIPESETID" \
-	RECIPEID="$RSTRNT_RECIPEID" \
-	RECIPETESTID="$RSTRNT_RECIPEID" \
-	SUBMITTER="$RSTRNT_OWNER" \
-	TASKID="$RSTRNT_TASKID" \
-	TESTID="$RSTRNT_TASKID" \
-	TESTNAME="$RSTRNT_TASKNAME" \
-	TEST="$RSTRNT_TASKNAME" \
-	TESTPATH="$RSTRNT_TASKPATH" \
-	VARIANT="$RSTRNT_OSVARIANT"
-fi
-[[ -z "$KILLTIMEOVERRIDE" ]] && export KILLTIMEOVERRIDE=$((RSTRNT_MAXTIME+600))
-
-exec "$@"
-EOF
-
-cat << 'EOF' > /usr/share/restraint/plugins/task_run.d/27_task_require
 #!/bin/bash
 #ref: https://readthedocs.org/projects/restraint/downloads/pdf/latest/#section.1.9
 
@@ -228,7 +181,3 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 fi
 
 exec "$@"
-EOF
-chmod a+x /usr/share/restraint/plugins/task_run.d/27_task_require
-
-%end

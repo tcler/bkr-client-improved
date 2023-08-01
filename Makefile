@@ -22,7 +22,11 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 		{ rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
 	mkdir -p $(_confdir) && cp -f conf/*.example conf/fetch-url.ini $(_confdir)/.
-	cp $(_confdir)/default-ks.cfg{.example,}
+	@{ _rpath=share/restraint/plugins/task_run.d; \
+	   echo -e "/25_environment$$/r $$_rpath/25_environment"; \
+	   echo -e "/27_task_require$$/r $$_rpath/27_task_require"; \
+	   echo -e 'g/.*/p\nQ'; } | \
+		ed -s conf/default-ks.cfg.tmpl >$(_confdir)/default-ks.cfg
 	test -f /etc/beaker/default-ks.cfg || ln -sf $(_confdir)/default-ks.cfg /etc/beaker/default-ks.cfg
 	test -f /etc/beaker/fetch-url.ini || ln -sf $(_confdir)/fetch-url.ini /etc/beaker/fetch-url.ini
 	test -f $(_confdir)/bkr-runtest.conf || cp $(_confdir)/bkr-runtest.conf{.example,}
@@ -34,7 +38,7 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	cd bkr-runtest; for f in *; do rm -fr $(_bin)/$$f; done
 	cp -rf -d lib/* $(_lib)/.
 	cp -f -d bkr-runtest/* utils/* $(_bin)/.
-	mkdir -p $(_share) && cp -f share/* $(_share)/.
+	mkdir -p $(_share) && cp -rf share/* $(_share)/.
 	@yum install -y bash-completion
 	cp -fd bash-completion/* ${completion_path}/.||cp -fd bash-completion/* $${completion_path/\/*/}/. || :
 	@rm -f /usr/lib/python2.7/site-packages/bkr/client/commands/cmd_recipes_list.py $(_bin)/distro-pkg #remove old file
