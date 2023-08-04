@@ -17,11 +17,10 @@ is_rh_intranet() { local iurl=http://download.devel.redhat.com; is_available_url
 _repon=bkr-client-improved
 _confdir=/etc/$_repon
 install_bkr_client_improved() {
-	local url=https://github.com/tcler/$_repon
-	local clonedir=$(mktemp -d)
-	for ((i=0;i<8;i++)); do git clone $url $clonedir && break || sleep 2; done
-	make -C $clonedir
-	rm -rf $clonedir
+	local url=https://github.com/tcler/$_repon/archive/refs/heads/master.tar.gz
+	local tmpdir=$(mktemp -d)
+	curl -k -Ls $url | tar zxf - -C $tmpdir && make -C $tmpdir/${_repon}-master
+	rm -rf $tmpdir
 }
 
 tmpf=$(mktemp)

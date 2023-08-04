@@ -49,10 +49,9 @@ yqinstall: _isroot
 
 install_kiss_vm_ns: _isroot
 	@command -v kiss-update.sh && kiss-update.sh || { \
-	rm -rf kiss-vm-ns; command -v git || yum install -y git; \
-	export https_proxy=squid.redhat.com:8080; git clone https://github.com/tcler/kiss-vm-ns; \
-	make -C kiss-vm-ns; \
-	rm -rf kiss-vm-ns; }
+	rm -rf kiss-vm-ns-master; export https_proxy=squid.redhat.com:8080; \
+	curl -k -Ls https://github.com/tcler/kiss-vm-ns/archive/refs/heads/master.tar.gz | tar zxf -; \
+	make -C kiss-vm-ns-master; rm -rf kiss-vm-ns-master; }
 
 install_all: install_robot _install_web
 
