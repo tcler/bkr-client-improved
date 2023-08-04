@@ -11,6 +11,9 @@ switchroot() {
 }
 switchroot "$@"
 
+is_available_url() { curl --connect-timeout 8 -m 16 --output /dev/null -k --silent --head --fail "$1" &>/dev/null; }
+is_intranet() { local iurl=http://download.devel.redhat.com; is_available_url $iurl; }
+
 _repon=bkr-client-improved
 _confdir=/etc/$_repon
 install_bkr_client_improved() {
@@ -24,6 +27,8 @@ install_bkr_client_improved() {
 tmpf=$(mktemp)
 cleanup() { rm -rf $tmp; }
 trap cleanup SIGINT SIGQUIT SIGTERM
+
+is_intranet && export https_proxy=squid.redhat.com:8080
 curl -Ls http://api.github.com/repos/tcler/$_repon/commits/master -o $tmpf
 if cmp $tmpf $_confdir/version 2>/dev/null; then
 	echo "[Info] you are using the latest version"

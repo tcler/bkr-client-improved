@@ -90,6 +90,7 @@ rpm: _isroot
 	./build_rpm.sh
 
 p pu pull u up update:
+	export https_proxy=squid.redhat.com:8080
 	git pull --rebase || :
 	@echo
 
