@@ -3,12 +3,12 @@
 
 baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
 
-is_intranet() {
+is_rh_intranet() {
 	local iurl=http://download.devel.redhat.com
 	curl --connect-timeout 5 -m 10 --output /dev/null --silent --head --fail $iurl &>/dev/null
 }
 
-is_intranet && {
+is_rh_intranet && {
 	Intranet=yes
 	baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
 }
