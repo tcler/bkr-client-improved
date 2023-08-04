@@ -274,20 +274,24 @@ for build in "${builds[@]}"; do
 		run "yum install kernel-64k -y"
 	elif [[ "$build" = upk ]]; then
 		run install_brew -
-		build=$(koji list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet | sort -Vr | awk '{print $1; exit}')
+		build=$(koji list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet |
+			sort -Vr | awk '{print $1; exit}')
 	elif [[ "$build" = lstk ]]; then
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		build=$($KOJI list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+		build=$($KOJI list-builds --pattern=kernel-${ver}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null |
+			sort -Vr | awk "/-[0-9]+\.${rel/*./}/"'{print $1; exit}')
 	elif [[ "$build" = lstdtk ]]; then
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		build=$($KOJI list-builds --pattern=kernel-${ver/.*/.*}-${rel/*./*.}.dt* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+		build=$($KOJI list-builds --pattern=kernel-${ver}-${rel/*./*.}.dt* --state=COMPLETE  --quiet 2>/dev/null |
+			sort -Vr | awk '{print $1; exit}')
 	elif [[ "$build" = latest-* ]]; then
 		pkg=${build#latest-}
 		run install_brew -
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		build=$($KOJI list-builds --pattern=$pkg-*-${rel/*./*.} --state=COMPLETE --after=$(date -d"now-1024 days" +%F)  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+		build=$($KOJI list-builds --pattern=$pkg-*-${rel/*./*.} --state=COMPLETE --after=$(date -d"now-1024 days" +%F)  --quiet 2>/dev/null |
+			sort -Vr | awk '{print $1; exit}')
 	fi
 
 	if [[ "$build" =~ ^[0-9]+$ ]]; then
