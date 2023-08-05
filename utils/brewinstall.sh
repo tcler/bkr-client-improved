@@ -185,7 +185,7 @@ buildname2url() {
 	local _build=$1
 	local _url= _path=
 	local rc=1
-	_path=$(brew buildinfo $_build|grep -E -o "/brewroot/vol/.*/(${archPattern})/"|uniq)
+	_path=$(${KOJI:-brew} buildinfo $_build|grep -E -o "/brewroot/vol/.*/(${archPattern})/"|uniq)
 	if [[ -n "$_path" ]]; then
 		echo "{debug} path: $_path" >&2
 		_url=$(curl -Ls -o /dev/null -w %{url_effective} $downloadBaseUrl/$_path)
@@ -274,7 +274,8 @@ for build in "${builds[@]}"; do
 		run "yum install kernel-64k -y"
 	elif [[ "$build" = upk ]]; then
 		run install_brew -
-		build=$(koji list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet |
+		KOJI=koji
+		build=$($KOJI list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet |
 			sort -Vr | awk '{print $1; exit}')
 	elif [[ "$build" = lstk ]]; then
 		run install_brew -
