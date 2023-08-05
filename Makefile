@@ -6,6 +6,9 @@ _share=/usr/share/bkr-client-improved
 _confdir=/etc/bkr-client-improved
 completion_path=/usr/share/bash-completion/completions
 
+HTTP_PROXY := $(shell curl --connect-timeout 8 -m 16 --output /dev/null -k --silent --head --fail \
+			"http://download.devel.redhat.com" &>/dev/null && echo "squid.redhat.com:8080")
+
 install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	@if [[ $$(rpm -E %rhel) != "%rhel" ]]; then \
 	  if ! rpm -q epel-release; then \
@@ -89,7 +92,6 @@ rpm: _isroot
 	./build_rpm.sh
 
 p pu pull u up update:
-	export https_proxy=squid.redhat.com:8080
-	git pull --rebase || :
+	https_proxy=$(HTTP_PROXY) git pull --rebase || :
 	@echo
 
