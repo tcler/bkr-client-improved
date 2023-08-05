@@ -53,7 +53,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $P <[brew_scratch_build_id] | [lstk|lstdtk|rtk|upk|brew_build_name] | [url]> [-koji] [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch]
+	 $P <[brew_scratch_build_id] | [lstk|rtk|upk|brew_build_name] | [url]> [-koji] [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch]
 
 	Example:
 	 $P 23822847  # brew/koji scratch build id
@@ -64,7 +64,6 @@ Usage() {
 	 $P lstk                       # install latest release kernel
 	 $P lstk -debuginfo            # install latest release kernel and it's -debuginfo package
 	 $P lstk -debugk               # install latest release debug kernel
-	 $P lstdtk                     # install latest dt(devel/test) kernel
 	 $P upk                        # install latest upstream kernel
 	 $P rtk                        # install rt kernel
 	 $P [ftp|http]://url/path/ [-depthLevel=N]  # install all rpms in url/path, default download depth level 2
@@ -287,14 +286,9 @@ for build in "${builds[@]}"; do
 		run install_brew -
 		KOJI=brew
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
+		rel=${rel%.kpq*}
 		build=$($KOJI list-builds --pattern=kernel-${ver}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null |
-			sort -Vr | awk "/-[0-9]+\.${rel/*./}/"'{print $1; exit}')
-	elif [[ "$build" = lstdtk ]]; then
-		run install_brew -
-		KOJI=brew
-		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		build=$($KOJI list-builds --pattern=kernel-${ver}-${rel/*./*.}.dt* --state=COMPLETE  --quiet 2>/dev/null |
-			sort -Vr | awk '{print $1; exit}')
+			sort -Vr | awk "\$1 ~ /-[0-9]+\.${rel/*./}[^.]*$/"'{print $1; exit}')
 	elif [[ "$build" = latest-* ]]; then
 		pkg=${build#latest-}
 		run install_brew -
