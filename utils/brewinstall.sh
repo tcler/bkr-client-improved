@@ -183,18 +183,23 @@ download_pkgs_from_repo() {
 
 buildname2url() {
 	local _build=$1
-	local _url= _path=
+	local url= _paths=
 	local rc=1
-	_path=$(brew buildinfo $_build|grep -E -o "/brewroot/vol/.*/(${archPattern})/"|uniq)
-	[[ -z "$_path" ]] && _path=$(koji buildinfo $_build|grep -E -o "/brewroot/vol/.*/(${archPattern})/"|uniq)
-	if [[ -n "$_path" ]]; then
-		echo "{debug} path: $_path" >&2
-		_url=$(curl -Ls -o /dev/null -w %{url_effective} $downloadBaseUrl/$_path)
-		echo "{debug} url: $_url" >&2
-		if is_available_url $_url; then
-			echo $_url
-			rc=0
-		fi
+	_paths=$(brew buildinfo $_build|grep -E -o "/brewroot/vol/.*/(${archPattern})/"|uniq)
+	[[ -z "$_paths" ]] && {
+		_paths=$(koji buildinfo $_build|grep -E -o "/packages/.*/(${archPattern})/"|uniq)
+		downloadBaseUrl=https://kojipkgs.fedoraproject.org
+	}
+	if [[ -n "$_paths" ]]; then
+		echo "{debug} paths: $_paths" >&2
+		for _path in $_paths; do
+			url=$(curl -Ls -o /dev/null -w %{url_effective} $downloadBaseUrl/$_path)
+			echo "{debug} url: $url" >&2
+			if is_available_url $url; then
+				echo $url
+				rc=0
+			fi
+		done
 	fi
 
 	return $rc
@@ -400,11 +405,13 @@ for build in "${builds[@]}"; do
 
 		run install_brew -
 		buildname=$build
-		url=$(buildname2url $buildname)
+		urls=$(buildname2url $buildname)
 		if [[ $? = 0 ]]; then
 			which wget &>/dev/null || yum install -y wget
-			run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts $wgetROpts --progress=dot:mega $url" 0  "download-${url##*/}"
-			find */ -name '*.rpm' | xargs -i mv {} ./
+			for url in $urls; do
+				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts $wgetROpts --progress=dot:mega $url" 0  "download-${url##*/}"
+				find */ -name '*.rpm' | xargs -i mv {} ./
+			done
 		else
 			for a in "${archList[@]}"; do
 				run "$KOJI download-build $DEBUG_INFO_OPT $buildname --arch=${a}" - ||
