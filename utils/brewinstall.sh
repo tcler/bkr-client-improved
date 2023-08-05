@@ -185,7 +185,8 @@ buildname2url() {
 	local _build=$1
 	local _url= _path=
 	local rc=1
-	_path=$(${KOJI:-brew} buildinfo $_build|grep -E -o "/brewroot/vol/.*/(${archPattern})/"|uniq)
+	_path=$(brew buildinfo $_build|grep -E -o "/brewroot/vol/.*/(${archPattern})/"|uniq)
+	[[ -z "$_path" ]] && _path=$(koji buildinfo $_build|grep -E -o "/brewroot/vol/.*/(${archPattern})/"|uniq)
 	if [[ -n "$_path" ]]; then
 		echo "{debug} path: $_path" >&2
 		_url=$(curl -Ls -o /dev/null -w %{url_effective} $downloadBaseUrl/$_path)
@@ -279,11 +280,13 @@ for build in "${builds[@]}"; do
 			sort -Vr | awk '{print $1; exit}')
 	elif [[ "$build" = lstk ]]; then
 		run install_brew -
+		KOJI=brew
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		build=$($KOJI list-builds --pattern=kernel-${ver}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null |
 			sort -Vr | awk "/-[0-9]+\.${rel/*./}/"'{print $1; exit}')
 	elif [[ "$build" = lstdtk ]]; then
 		run install_brew -
+		KOJI=brew
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		build=$($KOJI list-builds --pattern=kernel-${ver}-${rel/*./*.}.dt* --state=COMPLETE  --quiet 2>/dev/null |
 			sort -Vr | awk '{print $1; exit}')
