@@ -222,7 +222,7 @@ _caseInfo() {
 		$(sed -nr '/Bug:\s+/{s//bug=/;p;q}' $metafile)
 
 		[restraint]
-		entry_point=make run
+		entry_point=$(sed -rn '/^run:/,/^[^[:space:]]+:( |$)|^$/{//d; s/^([^[:space:]])/\t\1/; s/([^;\]) *$/\1;/; p}' Makefile|sed -r '1{s/^\t//}')
 		dependencies=$(sed -nr '/^.*Requires:\s*([^"()]+)$/{s//\1/;s/ +/\n/g;p}' $metafile |
 			grep -E -v -e '^kernel-kernel-|^(.+)-CoreOS-\1-|^/' -e '^$' | paste -s -d\; -)
 		repoRequires=$(sed -nr '/^.*Requires:\s*([^"]+)$/{s//\1/;s/\s+/\n/g;p}' $metafile |
