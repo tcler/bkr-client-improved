@@ -208,6 +208,10 @@ _caseInfo() {
 
 	if [[ $metafile = testinfo.desc ]]; then
 		repoHead=$(sed -r 's@^((/CoreOS)?/[^/]+)/.*$@\1@' <<<${taskname})
+		awk -F: '/^run:/{ if ($2 != "") print("#fixme: add cmd of", $2); }' Makefile >main.sh
+		sed -rn '/^run:/,/^[^[:space:]]+:( |$)|^$/{//d; s/^([^[:space:]])/\t\1/; s/([^;\]) *$/\1;/; p}' Makefile|
+			sed -r -e '1{s/^\t//}' >>main.sh
+		chmod +x main.sh
 		[[ "$META" = yes ]] && cat <<-EOF >metadata
 		[General]
 		name=$taskname
@@ -222,9 +226,9 @@ _caseInfo() {
 		$(sed -nr '/Bug:\s+/{s//bug=/;p;q}' $metafile)
 
 		[restraint]
-		entry_point=$(sed -rn '/^run:/,/^[^[:space:]]+:( |$)|^$/{//d; s/^([^[:space:]])/\t\1/; s/([^;\]) *$/\1;/; p}' Makefile|sed -r '1{s/^\t//}')
-		dependencies=$(sed -nr '/^.*Requires:\s*([^"()]+)$/{s//\1/;s/ +/\n/g;p}' $metafile |
-			grep -E -v -e '^kernel-kernel-|^(.+)-CoreOS-\1-|^/' -e '^$' | paste -s -d\; -)
+		entry_point=./main.sh
+		softDependencies=$(sed -nr '/^.*Requires:\s*([^"()]+)$/{s//\1/;s/ +/\n/g;p}' $metafile |
+			grep -E -v -e '^kernel-kernel-|^(.+)-CoreOS-\1-|^/' -e '^$' | sort -u | paste -s -d\; -)
 		repoRequires=$(sed -nr '/^.*Requires:\s*([^"]+)$/{s//\1/;s/\s+/\n/g;p}' $metafile |
 			sort -u | awk '
 			match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]) }
@@ -233,7 +237,7 @@ _caseInfo() {
 			match($0,/^nfs-utils-nfs-utils-(.+)$/,M) { print("nfs-utils/" gensub("-","?","g",M[1])) }
 			match($0,/^\//) { print(gensub("^/","",1)) }
 			match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)) }
-		' | sed -e 's;^;/;' -e '/\?/!'"s@^${repoHead}/@@" | paste -s -d\; -)
+		' | sed -e 's;^;/;' -e '/\?/!'"s@^${repoHead}/@@" | sort -u | paste -s -d\; -)
 		max_time=${Attr[time]}
 		no_localwatchdog=true
 		EOF
