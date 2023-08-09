@@ -28,7 +28,7 @@ _install_taskname2url() {
 _get_task_requires() {
 	local _fpath=$1
 	pushd "$_fpath" &>/dev/null
-	{ sed -nr '/^.*"(Rhts|Repo)?Requires:\s*([^"]+)".*$/{s//\2/;s/\s+/\n/g;p}' Makefile |
+	{ test -f Makefile && sed -nr '/^.*"(Rhts|Repo)?Requires:\s*([^"]+)".*$/{s//\2/;s/\s+/\n/g;p}' Makefile |
 		sort -u | awk '
 		match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]) }
 		match($0,/^test\(\/?(.+)\)$/,M) { print(M[1]) }
@@ -37,7 +37,13 @@ _get_task_requires() {
 		match($0,/^\//) { print(gensub("^/","",1)) }
 		match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)) }
 		'
-	  awk -F'[=;]' '/^(task|repo)Requires/{for (i=2;i<=NF;i++){if($i ~ "^/") print substr($i,2)}}' metadata;
+
+	  component=$(awk -F'[=/ ]+' '/^name/{print $2}' metadata);
+	  awk -v head=$component -F'[=;]' '/^(task|repo)Requires/ {
+		for (i=2;i<=NF;i++) {
+			if ($i ~ "^/") print substr($i,2); else print head"/"$i
+		}
+	  }' metadata;
 	} 2>/dev/null | sort -u | xargs
 	popd &>/dev/null
 }
