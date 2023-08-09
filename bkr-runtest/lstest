@@ -208,39 +208,63 @@ _caseInfo() {
 
 	if [[ $metafile = testinfo.desc ]]; then
 		repoHead=$(sed -r 's@^((/CoreOS)?/[^/]+)/.*$@\1@' <<<${taskname})
-		awk -F: '/^run:/{ if ($2 != "") print("#fixme: add cmd of", $2); }' Makefile >main.sh
-		sed -rn '/^run:/,/^[^[:space:]]+:( |$)|^$/{//d; s/^([^[:space:]])/\t\1/; s/([^;\]) *$/\1;/; p}' Makefile|
-			sed -r -e '1{s/^\t//}' >>main.sh
-		chmod +x main.sh
-		[[ "$META" = yes ]] && cat <<-EOF >metadata
-		[General]
-		name=$taskname
-		component=${_component}
-		owner=$(sed -nr '/Owner:\s+/{s///;p;q}' $metafile)
-		description=$(sed -nr '/Description:\s+/{s///;p;q}' $metafile)
-		priority=$_level
-		license=$(sed -nr '/License:\s+/{s///;p;q}' $metafile)
-		topo=${topo:-singleHost}
-		confidential=no
-		destructive=no
-		$(sed -nr '/Bug:\s+/{s//bug=/;p;q}' $metafile)
+		rundep=$(sed -n '/^run:[[:space:]]*/{ s///; s/ *\$(FILES) *//; p; }' Makefile)
+		builddep=$(sed -n '/^build:[[:space:]]*/{ s///; s/ *\$(FILES) *//; p; }' Makefile)
+		buildaction=$(sed -rn '/^build:/,/^[^[:space:]]+:( |$)|^$/{//d; s/^([^[:space:]])/\t\1/; s/([^;\]) *$/\1;/; p}' Makefile|
+			sed -e '1{s/^\t//}' -e 's/chmod a+x runtest.sh *;\?//' -e 's/test -x runtest.sh *|| *//')
+		runaction=$(sed -rn '/^run:/,/^[^[:space:]]+:( |$)|^$/{//d; s/^([^[:space:]])/\t\1/; s/([^;\]) *$/\1;/; p}' Makefile|
+			sed -r -e '1{s/^\t//}')
+		if [[ "$META" = yes ]]; then
+			ep="bash main.sh"
+			: >main.sh
+			if [[ -z "$rundep" ]] || [[ "$rundep" = build && -z "$buildaction" ]]; then
+				git rm Makefile
+			else
+				echo -e "#fixme: add actions of '${builddep}' here:\n" >main.sh
+				echo -e "$buildaction\n" >>main.sh
+				ep="make run"
+			fi
+			echo "$runaction" >>main.sh
+			chmod +x main.sh
 
-		[restraint]
-		entry_point=./main.sh
-		softDependencies=$(sed -nr '/^.*Requires:\s*([^"()]+)$/{s//\1/;s/ +/\n/g;p}' $metafile |
-			grep -E -v -e '^kernel-kernel-|^(.+)-CoreOS-\1-|^/' -e '^$' | sort -u | paste -s -d\; -)
-		repoRequires=$(sed -nr '/^.*Requires:\s*([^"]+)$/{s//\1/;s/\s+/\n/g;p}' $metafile |
-			sort -u | awk '
-			match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]) }
-			match($0,/^test\(\/?(.+)\)$/,M) { print(M[1]) }
-			match($0,/^kernel-kernel-(.+)$/,M) { print("kernel/" gensub("-","/","g",M[1])) }
-			match($0,/^nfs-utils-nfs-utils-(.+)$/,M) { print("nfs-utils/" gensub("-","?","g",M[1])) }
-			match($0,/^\//) { print(gensub("^/","",1)) }
-			match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)) }
-		' | sed -e 's;^;/;' -e '/\?/!'"s@^${repoHead}/@@" | sort -u | paste -s -d\; -)
-		max_time=${Attr[time]}
-		no_localwatchdog=true
-		EOF
+			cat <<-EOF >metadata
+			[General]
+			name=$taskname
+			component=${_component}
+			owner=$(sed -nr '/Owner:\s+/{s///;p;q}' $metafile)
+			description=$(sed -nr '/Description:\s+/{s///;p;q}' $metafile)
+			priority=$_level
+			license=$(sed -nr '/License:\s+/{s///;p;q}' $metafile)
+			topo=${topo:-singleHost}
+			confidential=no
+			destructive=no
+			$(sed -nr '/Bug:\s+/{s//bug=/;p;q}' $metafile)
+
+			[restraint]
+			entry_point=$ep
+			softDependencies=$(sed -nr '/^.*Requires:\s*([^"()]+)$/{s//\1/;s/ +/\n/g;p}' $metafile |
+				grep -E -v -e '^kernel-kernel-|^(.+)-CoreOS-\1-|^/' -e '^$' | sort -u | paste -s -d\; -)
+			repoRequires=$(sed -nr '/^.*Requires:\s*([^"]+)$/{s//\1/;s/\s+/\n/g;p}' $metafile |
+				sort -u | awk '
+				match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]) }
+				match($0,/^test\(\/?(.+)\)$/,M) { print(M[1]) }
+				match($0,/^kernel-kernel-(.+)$/,M) { print("kernel/" gensub("-","/","g",M[1])) }
+				match($0,/^nfs-utils-nfs-utils-(.+)$/,M) { print("nfs-utils/" gensub("-","?","g",M[1])) }
+				match($0,/^\//) { print(gensub("^/","",1)) }
+				match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)) }
+			' | sed -e 's;^;/;' -e '/\?/!'"s@^${repoHead}/@@" | sort -u | paste -s -d\; -)
+			max_time=${Attr[time]}
+			no_localwatchdog=true
+			EOF
+			git add metadata main.sh 2>/dev/null
+			sed -e 's/\$ARCH/\$RSTRNT_OSARCH/g' -e 's/\$DISTRO/\$RSTRNT_OSDISTRO/g' \
+				-e 's/\$FAMILY/\$RSTRNT_OSMAJOR/g' -e 's/\$JOBID/\$RSTRNT_JOBID/g' \
+				-e 's/\$REBOOTCOUNT/\$RSTRNT_REBOOTCOUNT/g' -e 's/\$RECIPESETID/\$RSTRNT_RECIPESETID/g' \
+				-e 's/\$RECIPEID/\$RSTRNT_RECIPEID/g' -e 's/\$RECIPETESTID/\$RSTRNT_RECIPEID/g' \
+				-e 's/\$SUBMITTER/\$RSTRNT_OWNER/g' -e 's/\$TASKID/\$RSTRNT_TASKID/g' \
+				-e 's/\$TESTID/\$RSTRNT_TASKID/g' -e 's/\$TESTNAME/\$RSTRNT_TASKNAME/g' -e 's/\$TEST\>/\$RSTRNT_TASKNAME/g' \
+				-e 's/\$TESTPATH/\$RSTRNT_TASKPATH/g' -e 's/\$VARIANT/\$RSTRNT_OSVARIANT/g' -i runtest.sh
+		fi
 		rm -rf $metafile
 	fi
 
@@ -332,7 +356,7 @@ _getTestList() {
 			_subtestf=$(readlink -f $_d/subtest.yml)
 			d=$(readlink -f $_d/_test_case_link/)
 		fi
-		[ -f ${d}/Makefile ] || continue
+		[[ ! -f ${d}/Makefile && ! -f ${d}/metadata ]] && continue
 
 		info=$(_caseInfo ${d} $_subtestf)
 		[ -z "$info" ] && continue
@@ -368,7 +392,7 @@ while true; do
 	-t)		maxtime=${2}; shift 2;;
 	-e)		E=yes; setupConf=$2; shift 2;;
 	--conv)		CONV=yes; shift 1;;
-	--meta*)	META=yes; shift 1;;
+	--meta*)	META=yes; FORMAT=raw; shift 1;;
 	--) shift; break;;
 	esac
 done
