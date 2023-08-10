@@ -209,7 +209,7 @@ builds=()
 for arg; do
 	case "$arg" in
 	-koji)           KOJI=koji;;
-	-debuginfo)      DEBUG_INFO_OPT=--debuginfo;;
+	-debuginfo)      DEBUG_INFO_OPT=--debuginfo; DEBUG_INFO=yes;;
 	-onlydebuginfo)  DEBUG_INFO_OPT=--debuginfo; ONLY_DEBUG_INFO=yes; KREBOOT=no;;
 	-onlydownload)   ONLY_DOWNLOAD=yes;;
 	-debug|-debugk*) FLAG=debugkernel;;
@@ -240,10 +240,12 @@ if [[ -z "$ExcludePattern" ]]; then
 	fi
 fi
 if [[ "$FLAG" != debugkernel ]]; then
-	[[ -n "$ExcludePattern" ]] && ExcludePattern+='|*debug*.rpm' || ExcludePattern='*debug*.rpm'
+	ExcludePattern+='|*debug*.rpm'
+elif [[ "$DEBUG_INFO" != yes ]]; then
+	ExcludePattern+='|*debuginfo*.rpm'
 fi
 if [[ -n "$ExcludePattern" ]]; then
-	wgetROpts="-R ${ExcludePattern//|/ -R }"
+	wgetROpts="-R${ExcludePattern//|/ -R}"
 fi
 
 # fix ssl certificate verify failed
@@ -264,6 +266,17 @@ archList=($(arch) noarch)
 [[ -n "$_ARCH" ]] && archList=(${_ARCH//,/ })
 archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
 wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A.${a}.rpm"; done)
+[[ "$FLAG" = debugkernel ]] && {
+	wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A*debug-*.${a}.rpm"; done)
+	[[ "$DEBUG_INFO" = yes ]] && wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A*debug*.${a}.rpm"; done)
+}
+
+if grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
+	run "yum --setopt=strict=0 install @RT @NFV -y"
+	wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A*-rt-*.${a}.rpm"; done)
+elif grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
+	wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A*-64k*.${a}.rpm"; done)
+fi
 
 # Download packges
 depthLevel=${DEPTH_LEVEL:-2}
@@ -271,12 +284,9 @@ buildcnt=${#builds[@]}
 for build in "${builds[@]}"; do
 	[[ "$build" = -* ]] && { continue; }
 
-	if [[ "$build" = rtk ]]; then
+	if [[ "$build" = rtk || "$build" = 64k ]]; then
 		let buildcnt--
-		run "yum --setopt=strict=0 install @RT @NFV -y"
-	elif [[ "$build" = 64k ]]; then
-		let buildcnt--
-		run "yum install kernel-64k -y"
+		continue
 	elif [[ "$build" = upk ]]; then
 		run install_brew -
 		KOJI=koji
@@ -303,15 +313,13 @@ for build in "${builds[@]}"; do
 			downloadBaseUrl=https://kojipkgs.fedoraproject.org
 		fi
 		taskid=${build}
-		#wait the scratch build finish
+		#wait the scratch build task finish
 		while $KOJI taskinfo $taskid|grep -q '^State: open'; do echo "[$(date +%T) Info] build hasn't finished, wait"; sleep 5m; done
 
 		run "$KOJI taskinfo -r $taskid > >(tee ${KOJI}_taskinfo.txt)"
 		run "awk '/\\<($archPattern)\\.rpm/{print}' ${KOJI}_taskinfo.txt >buildArch.txt"
 		run "cat buildArch.txt"
 
-		: <<-'COMM'
-		COMM
 		[ -z "$(< buildArch.txt)" ] && {
 			echo "$prompt [Warn] rpm not found, treat the [$taskid] as build ID."
 			buildid=$taskid
@@ -338,7 +346,7 @@ for build in "${builds[@]}"; do
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
 				which wget &>/dev/null || yum install -y wget
-				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts $wgetROpts --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
+				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
 		}
@@ -364,7 +372,7 @@ for build in "${builds[@]}"; do
 				run "curl -O -L $url" 0  "download-${url##*/}"
 			else
 				which wget &>/dev/null || yum install -y wget
-				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts $wgetROpts --progress=dot:mega $url" 0  "download-${url##*/}"
+				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
@@ -403,7 +411,7 @@ for build in "${builds[@]}"; do
 		if [[ $? = 0 ]]; then
 			which wget &>/dev/null || yum install -y wget
 			for url in $urls; do
-				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetOpts $wgetROpts --progress=dot:mega $url" 0  "download-${url##*/}"
+				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			done
 		else
@@ -465,13 +473,9 @@ done
 case $INSTALL_TYPE in
 nothing)
 	if grep -E -w 'rtk' <<<"${builds[*]}"; then
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 kernel-rt*.rpm" - ||
-			run "rpm -Uvh --force --nodeps kernel-rt*.rpm" - ||
-			for rpm in kernel-rt*.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
-	elif grep -E -w '64kk' <<<"${builds[*]}"; then
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 kernel-64k*.rpm" - ||
-			run "rpm -Uvh --force --nodeps kernel-64k*.rpm" - ||
-			for rpm in kernel-64k*.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 kernel-rt*"
+	elif grep -E -w '64k' <<<"${builds[*]}"; then
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 kernel-64k*"
 	fi
 	;;
 rpms)
@@ -494,31 +498,21 @@ mountpoint /boot || mount /boot
 
 yum install -y grubby
 run "grubby --default-kernel"
+[[ "$FLAG" =~ debugkernel ]] && { kpat=".?debug"; } || { kpat=$; }
 if grep -E -w 'rtk' <<<"${builds[*]}"; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E '\+rt$|^kernel-rt'|head -1)
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E '\+rt'"$kpat" | head -1)
 elif grep -E -w '64k' <<<"${builds[*]}"; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E '\+64k$'|head -1)
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E '\+64k'"$kpat" | head -1)
 else
-	if [[ /boot/vmlinuz-$(uname -r) = $(grubby --default-kernel) ]]; then
-		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|head -1)
+	if [[ /boot/vmlinuz-$(uname -r) != $(grubby --default-kernel) ]]; then
+		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|
+		grep "$kpat" | head -1)
 	fi
 fi
 [[ -n "$kernelpath" ]] &&
 	run "grubby --set-default=$kernelpath"
 
-# if include debug in FLAG
-[[ "$FLAG" =~ debugkernel ]] && {
-	if [ -x /sbin/grubby -o -x /usr/sbin/grubby ]; then
-		VRA=$(rpm -qp --qf '%{version}-%{release}.%{arch}' $(ls kernel-debug*rpm | head -1))
-		run "grubby --set-default /boot/vmlinuz-${VRA}*debug"
-	elif [ -x /usr/sbin/grub2-set-default ]; then
-		run "grub2-set-default $(grep ^menuentry /boot/grub2/grub.cfg | cut -f 2 -d \' | nl -v 0 | awk '/\.debug)/{print $1}')"
-	elif [ -x /usr/sbin/grub-set-default ]; then
-		run "grub-set-default $(grep '^[[:space:]]*kernel' /boot/grub/grub.conf | nl -v 0 | awk '/\.debug /{print $1}')"
-	fi
-}
-
-if ls *.$(arch).rpm|grep -E '^kernel-(redhat|rt-)?(debug-)?[0-9]'; then
+if ls *.$(arch).rpm|grep -E '^kernel-(redhat|rt-|64k-)?(debug-)?[0-9]'; then
 	[[ "$KREBOOT" = yes ]] && reboot
 fi
 
