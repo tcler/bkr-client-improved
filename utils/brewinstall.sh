@@ -473,9 +473,9 @@ done
 case $INSTALL_TYPE in
 nothing)
 	if grep -E -w 'rtk' <<<"${builds[*]}"; then
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 kernel-rt*"
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt*" -
 	elif grep -E -w '64k' <<<"${builds[*]}"; then
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 kernel-64k*"
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k*" -
 	fi
 	;;
 rpms)
