@@ -169,8 +169,8 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 	echo "{debug} current dir: $CASE_DIR" >&2
 	[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS" >&2
 	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS" >&2
-	for repourl in $REPO_URLS; do repoOpts+="-repo=$repourl "; done
-	for taskuri in $TASK_URIS; do taskOpts+="-task=$taskuri "; done
+	for repourl in $REPO_URLS; do [[ "$repourl" != *,* ]] && continue; repoOpts+="-repo=$repourl "; done
+	for taskuri in $TASK_URIS; do [[ "$taskurl" != *,* ]] && continue; taskOpts+="-task=$taskuri "; done
 
 	#install taskname2url.py and db config
 	_install_taskname2url
