@@ -160,6 +160,9 @@ if [info exist Opt(fetch-url)] {
 
 if [info exist Opt(task-fetch-url)] {
 	foreach _url $Opt(task-fetch-url) {
+		if ![regexp -- {,} ${_url}] {
+			continue
+		}
 		lassign [split ${_url} ","] taskname url
 		set taskFetchUrl($taskname) $url
 	}
