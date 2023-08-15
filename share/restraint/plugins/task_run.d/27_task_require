@@ -79,7 +79,7 @@ _install_task() {
 	fi
 
 	#skip if required task in same repo and has been there
-	if [[ "$url" = "$URL" && "$taskrepo" = "$TASK_REPO" ]]; then
+	if [[ "$url" = "$URL" && "$taskrepo" = "$TASK_REPO" && "$REPO_PATH" != "$repopath" ]]; then
 		local_fpath="$REPO_PATH/$rpath"
 		if [[ -d "$local_fpath" ]]; then
 			if [[ ! -f "$fpath/.url" ]]; then
@@ -170,7 +170,7 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 	[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS" >&2
 	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS" >&2
 	for repourl in $REPO_URLS; do [[ "$repourl" != *,* ]] && continue; repoOpts+="-repo=$repourl "; done
-	for taskuri in $TASK_URIS; do [[ "$taskurl" != *,* ]] && continue; taskOpts+="-task=$taskuri "; done
+	for taskuri in $TASK_URIS; do [[ "$taskuri" != *,* ]] && continue; taskOpts+="-task=$taskuri "; done
 
 	#install taskname2url.py and db config
 	_install_taskname2url
