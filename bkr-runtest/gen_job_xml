@@ -379,6 +379,23 @@ if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 }
 
 if [info exist Opt(ks-meta)] { append recipe_ks_meta " " {*}$Opt(ks-meta) }
+set ksAppend {}
+if [info exist Opt(ks-pkgs)] {
+	append ksAppend "\n%packages --ignoremissing"
+	foreach ks $Opt(ks-pkgs) { append ksAppend "\n[string map {" " "\n"} $ks]" }
+	append ksAppend "\n%end"
+}
+if [info exist Opt(ks-append)] { foreach ks $Opt(ks-append) { append ksAppend "\n$ks" } }
+if [info exist Opt(ks-post)] {
+	append ksAppend "\n%post"
+	foreach ks $Opt(ks-post) { append ksAppend "\n$ks" }
+	append ksAppend "\n%end"
+}
+if [info exist Opt(ks-pre)] {
+	append ksAppend "\n%pre"
+	foreach ks $Opt(ks-pre) { append ksAppend "\n$ks" }
+	append ksAppend "\n%end"
+}
 
 #https://projects.engineering.redhat.com/browse/BKR-4998
 append recipe_ks_meta " disabled_root_access"
@@ -774,11 +791,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						}
 					}
 
-					if [info exist Opt(ks-append)] {
-						foreach ks $Opt(ks-append) {
-							ks_append ! {
-								puts "<!\[CDATA\[\n$ks\]\]>"
-							}
+					if {$ksAppend != ""} {
+						ks_append ! {
+							puts "<!\[CDATA\[\n$ksAppend\]\]>"
 						}
 					}
 

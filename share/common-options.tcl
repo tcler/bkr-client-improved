@@ -167,8 +167,11 @@ set CommonOptionList {
 	{part partition}	{arg m	help {Additional <partitions/> for job, example: --part='fs=xfs name=/mnt/xfs size=10 type=part'}}
 	method			{arg y	help {Installation source method (nfs, http, ftp)}}
 	ks-meta			{arg m  help {Pass kickstart metadata OPTIONS when generating kickstart}}
-	ks-append		{arg m	help {Specify additional kickstart commands to add to the base kickstart file}}
+	ks-append		{arg m	help {append additional fragment to the base kickstart file}}
 	ks			{link ks-append hide y}
+	ks-pkgs			{arg m	help {append additional packages to %packages section in base kickstart file}}
+	ks-post			{arg m	help {append additional commands to %post section in the base kickstart file}}
+	ks-pre			{arg m	help {append additional commands to %pre section in the base kickstart file}}
 	ksf			{arg y	help {Similar to --ks-append, but pass the content of a specified file}}
 	{k-opts kernel-options}	{arg m	help {Pass OPTIONS to kernel during installation}}
 	{k-opts-post kernel-options-post}	{arg m	help {Pass OPTIONS to kernel after installation}}
