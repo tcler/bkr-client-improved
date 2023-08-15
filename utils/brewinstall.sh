@@ -232,11 +232,11 @@ done
 
 if [[ -z "$ExcludePattern" ]]; then
 	if ! grep -E -w 'rtk|kernel-rt|64k|kernel-64k' <<<"${builds[*]}"; then
-		ExcludePattern='*-rt*.rpm|*-64k*.rpm'
+		ExcludePattern='kernel-rt*.rpm|kernel-64k*.rpm'
 	elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
-		ExcludePattern='*-rt*.rpm'
+		ExcludePattern='kernel-rt*.rpm'
 	elif ! grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
-		ExcludePattern='*-64k*.rpm'
+		ExcludePattern='kernel-64k*.rpm'
 	fi
 fi
 if [[ "$FLAG" != debugkernel ]]; then
@@ -319,6 +319,7 @@ for build in "${builds[@]}"; do
 		run "$KOJI taskinfo -r $taskid > >(tee ${KOJI}_taskinfo.txt)"
 		run "awk '/\\<($archPattern)\\.rpm/{print}' ${KOJI}_taskinfo.txt >buildArch.txt"
 		run "cat buildArch.txt"
+		_buildname=$(awk -v IGNORECASE=1 '/^build:/ {print $2}' ${KOJI}_taskinfo.txt)
 
 		[ -z "$(< buildArch.txt)" ] && {
 			echo "$prompt [Warn] rpm not found, treat the [$taskid] as build ID."
@@ -326,6 +327,11 @@ for build in "${builds[@]}"; do
 			run "$KOJI buildinfo $buildid > >(tee ${KOJI}_buildinfo.txt)"
 			run "awk '/\\<($archPattern)\\.rpm/{print}' ${KOJI}_buildinfo.txt >buildArch.txt"
 			run "cat buildArch.txt"
+			_buildname=$(awk -v IGNORECASE=1 '/^build:/ {print $2}' ${KOJI}_buildinfo.txt)
+		}
+
+		[[ "$_buildname" != kernel-* ]] && {
+			wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A.${a}.rpm"; done)
 		}
 
 		urllist=$(sed -r '/\/?mnt.redhat.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
@@ -408,6 +414,9 @@ for build in "${builds[@]}"; do
 		run install_brew -
 		buildname=$build
 		urls=$(buildname2url $buildname)
+		[[ "$buildname" != kernel-* ]] && {
+			wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A.${a}.rpm"; done)
+		}
 		if [[ $? = 0 ]]; then
 			which wget &>/dev/null || yum install -y wget
 			for url in $urls; do
