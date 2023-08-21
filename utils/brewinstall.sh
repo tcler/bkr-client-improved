@@ -226,6 +226,11 @@ for arg; do
 	-*)              echo "{WARN} unkown option '${arg}'";;
 	*)
 			builds+=($arg)
+			if [[ "$arg" = kernel-rt* ]]; then
+				builds+=(rtk)
+			elif [[ "$arg" = kernel-64k* ]]; then
+				builds+=(64k)
+			fi
 		;;
 	esac
 done
