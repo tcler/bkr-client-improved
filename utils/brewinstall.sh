@@ -419,10 +419,10 @@ for build in "${builds[@]}"; do
 
 		run install_brew -
 		buildname=$build
-		urls=$(buildname2url $buildname)
 		[[ "$buildname" != kernel-* ]] && {
 			wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A.${a}.rpm"; done)
 		}
+		urls=$(buildname2url $buildname)
 		if [[ $? = 0 ]]; then
 			which wget &>/dev/null || yum install -y wget
 			for url in $urls; do
