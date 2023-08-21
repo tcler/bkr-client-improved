@@ -260,7 +260,8 @@ update-ca-trust
 
 if [[ "${#builds[@]}" = 0 ]]; then
 	if [[ "$FLAG" = debugkernel || "$ONLY_DEBUG_INFO" = yes ]]; then
-		builds+=(kernel-$(uname -r|sed 's/\.[^.]*$//'))
+		grep -Eq '(^| )kernel-' <<<"${builds[*]}" ||
+			builds+=(kernel-$(uname -r|sed 's/\.[^.]*$//'))
 	else
 		Usage >&2
 		exit
@@ -517,11 +518,9 @@ if grep -E -w 'rtk' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E '\+rt'"$kpat" | head -1)
 elif grep -E -w '64k' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E '\+64k'"$kpat" | head -1)
-else
-	if [[ /boot/vmlinuz-$(uname -r) != $(grubby --default-kernel) ]]; then
-		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|
-		grep "$kpat" | head -1)
-	fi
+elif grep -E '(^| )kernel-' <<<"${builds[*]}"; then
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|
+	grep "$kpat" | head -1)
 fi
 [[ -n "$kernelpath" ]] &&
 	run "grubby --set-default=$kernelpath"
