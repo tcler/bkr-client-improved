@@ -520,7 +520,7 @@ elif grep -E -w '64k' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E '\+64k'"$kpat" | head -1)
 elif grep -E '(^| )kernel-' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|
-	grep "$kpat" | head -1)
+	grep -E "$kpat" | head -1)
 fi
 [[ -n "$kernelpath" ]] &&
 	run "grubby --set-default=$kernelpath"
