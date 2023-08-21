@@ -30,8 +30,8 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	   echo -e "/27_task_require$$/r $$_rpath/27_task_require"; \
 	   echo -e 'g/.*/p\nQ'; } | \
 		ed -s conf/default-ks.cfg.tmpl >$(_confdir)/default-ks.cfg
-	test -f /etc/beaker/default-ks.cfg || ln -sf $(_confdir)/default-ks.cfg /etc/beaker/default-ks.cfg
-	test -f /etc/beaker/fetch-url.ini || ln -sf $(_confdir)/fetch-url.ini /etc/beaker/fetch-url.ini
+	test -d /etc/beaker && ln -sf $(_confdir)/fetch-url.ini /etc/beaker/fetch-url.ini
+	test -d /etc/beaker && ln -sf $(_confdir)/default-ks.cfg /etc/beaker/default-ks.cfg
 	test -f $(_confdir)/bkr-runtest.conf || cp $(_confdir)/bkr-runtest.conf{.example,}
 	test -f $(_confdir)/bkr-autorun.conf || cp $(_confdir)/bkr-autorun.conf{.example,}
 	sed -i -e '/[Ff]etchUrl/d' -e 's/defaultOSInstaller/OSInstaller/g' $(_confdir)/bkr-runtest.conf
