@@ -14,6 +14,7 @@ set CommonOptionList {
 	task-fetch-url		{arg m	help {accept a fetch url for a special task. e.g:
 				--task-fetch-url /distribution/kernelinstall,https://gitlab.com/redhat/centos-stream/tests/kernel/kernel-tests/-/archive/main/kernel-tests-main.tar.gz#distribution/kernelinstall
 				}}
+	norun			{arg n	help {only download task without running it}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
 	job-owner		{arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
 	{wb whiteboard}		{arg y	help {Set the whiteboard for this job}}

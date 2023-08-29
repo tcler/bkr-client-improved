@@ -1,0 +1,10 @@
+#!/bin/bash
+#ref: https://readthedocs.org/projects/restraint/downloads/pdf/latest/#section.1.9
+
+. /usr/share/restraint/plugins/helpers
+rstrnt_info "*** Running Plugin: $0 @$PWD"
+
+_exit0() { [[ "$DRYRUN" = yes ]] && exit 0; }
+_exit0  #only fetch-url and requires without running
+
+exec "$@"

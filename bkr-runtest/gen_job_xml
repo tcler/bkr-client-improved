@@ -191,6 +191,19 @@ if [file isfile $Opt(ksf)] {
 		close $fp
 	}
 }
+if [info exist Opt(norun)] {
+	append ksfContent {
+	%post
+	downhostname=download.devel.redhat.com
+	_rpath=share/restraint/plugins/task_run.d
+	_path=qa/rhts/lookaside/bkr-client-improved/$_rpath
+	pushd /usr/$_rpath
+		curl -k -Ls -O http://$downhostname/$_path/28_exit0
+		chmod a+x *
+	popd
+	%end
+	}
+}
 
 # process --param= option
 set GlobalParam {}
@@ -200,6 +213,9 @@ if [info exist Opt(task-fetch-url)] { lappend GlobalParam "TASK_URIS=$Opt(task-f
 if [info exist Opt(fetch-url)] { lappend GlobalParam "REPO_URLS=$Opt(fetch-url)" }
 if [regexp -- {cat .*>.*/27_task_require} ${ksfContent}] {
 	lappend GlobalParam "OVER_WRITE_RPM=yes"
+}
+if [regexp -- {cat .*>.*/28_exit0} ${ksfContent}] {
+	lappend GlobalParam "DRYRUN=yes"
 }
 if [info exist Opt(maxtime)] { lappend GlobalParam "KILLTIMEOVERRIDE=$Opt(maxtime)" }
 
