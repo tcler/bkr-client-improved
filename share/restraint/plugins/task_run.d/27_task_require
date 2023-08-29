@@ -8,20 +8,20 @@ _targetdir=/mnt/tests
 _downloaddir=/mnt/download
 _logf=/tmp/${0##*/}.log
 
-_install_taskname2url() {
-	local _cmd=taskname2url.py
+_install_requirements() {
 	local _pycurl=python3-pycurl
 	[[ $(rpm -E %rhel) = 7 ]] && {
-		yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf}
+		yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
 		_pycurl=python36-pycurl
 	}
-	yum install -y python3 $_pycurl bzip2 gzip zip xz &>>${_logf}
-	command -v $_cmd || {
-		_url=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/utils/taskname2url.py
-		curl -Ls -o /usr/bin/${_cmd} ${_url}
-		chmod +x /usr/bin/${_cmd}
-		_dburl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/conf/fetch-url.ini
-		curl -Ls -o /etc/${_dburl##*/} ${_dburl}
+	yum install -y python3 $_pycurl bzip2 gzip zip xz &>>${_logf:-/dev/null}
+
+	hash -r && command -v taskname2url.py || {
+		local _downloadurl=http://download.devel.redhat.com/qa/rhts/lookaside
+		local _urls="$_downloadurl/kiss-vm-ns/utils/curl-download.sh $_downloadurl/kiss-vm-ns/utils/extract.sh $_downloadurl/bkr-client-improved/utils/taskname2url.py"
+		(cd /usr/bin && for _url in $_urls; do curl -Ls -O $_url; done && chmod +x *)
+		local _dburl=$_downloadurl/bkr-client-improved/conf/fetch-url.ini
+		(cd /etc && curl -Ls -O ${_dburl})
 	}
 }
 
@@ -106,31 +106,11 @@ _install_task() {
 	#download the archive of the repo //doesn't support git protocol
 	if ! test -f ${filepath}; then
 		mkdir -p ${filepath%/*}
-		curl -k -Ls ${url} -o ${filepath}
+		curl-download.sh ${filepath} ${url} -s
 	fi
 	if test -f ${filepath}; then
-		mkdir -p $repopath
-		filetype=$(file -b ${filepath})
-		if [[ "$filetype" = Zip* ]]; then
-			inpath=$(unzip -Z1 $filepath| grep -E "^[^/]+/${rpath//\?/.}/$"|sed -n '1{s@/$@@;p;q}')
-			[[ -z "$inpath" ]] && { echo "{error} no path '$rpath' found in $file" >&2; return 2; }
-			unzip $filepath "${inpath}/*" -d $_targetdir &>/dev/null
-			_topdir=${inpath%%/*}
-			[[ "${_topdir}" != "$taskrepo" ]] && mv $_targetdir/${_topdir} $repopath
-		else
-			case "$filetype" in
-				(gzip*) xtype=z;;
-				(bzip2*) xtype=j;;
-				(XY*) xtype=J;;
-				(*) xtype=a;;
-			esac
-			#topdir=$(tar taf ${filepath} | head -1 | sed -e 's@/.*@@')
-			#tar -C $repopath -${xtype}xf ${filepath} ${topdir}/$rpath --strip-components=1
-			inpath=$(tar taf ${filepath} | grep -E "^[^/]+/${rpath//\?/.}/$"|sed -n '1{s@/$@@;p;q}')
-			[[ -z "$inpath" ]] && { echo "{error} no path '$rpath' found in $file" >&2; return 2; }
-			tar -C $repopath -${xtype}xf ${filepath} $inpath --strip-components=1
-		fi
-		rpath=${inpath#*/}; rpath=${rpath%/};
+		rpath=$(extract.sh ${filepath} --list --path=${rpath}|sed -rn '1{s@^[^/]+/@@;s@/$@@;p;q}')
+		extract.sh ${filepath} $_targetdir $taskrepo --path=${rpath}
 		fpath="$repopath/$rpath";
 		[[ -n "$local_fpath" ]] && local_fpath="$REPO_PATH/$rpath"
 		[[ -n "$local_fpath" && ! -d "$local_fpath" ]] && {
@@ -173,7 +153,7 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 	for taskuri in $TASK_URIS; do [[ "$taskuri" != *,* ]] && continue; taskOpts+="-task=$taskuri "; done
 
 	#install taskname2url.py and db config
-	_install_taskname2url
+	_install_requirements
 
 	#get current task's repo and repopath
 	URI=$(taskname2url.py $TASK $taskOpts $repoOpts)
