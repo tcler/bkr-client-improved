@@ -7,4 +7,6 @@ rstrnt_info "*** Running Plugin: $0 @$PWD"
 _exit0() { [[ "$DRYRUN" = yes ]] && exit 0; }
 _exit0  #only fetch-url and requires without running
 
+echo -e "{debug} leaving restraint plugin $0\n" >&2
+
 exec "$@"
