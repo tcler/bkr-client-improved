@@ -18,7 +18,7 @@ _bkr_runtest()
         COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
     else
         if [[ $narg -le 2 ]]; then
-            local arg1="RedHatEnterpriseLinux7 RedHatEnterpriseLinux6 7 6 <Distroname>"
+            local arg1="RedHatEnterpriseLinux7 RedHatEnterpriseLinux6 7 6 8 9 <Distroname>"
             COMPREPLY=( $( compgen -W "$arg1" -- "$cur" ) )
         #elif [[ $narg -eq 3 ]]; then
         #    COMPREPLY=( $( compgen -u "$cur" ) )
