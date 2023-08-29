@@ -16,7 +16,7 @@ _install_requirements() {
 	}
 	yum install -y python3 $_pycurl bzip2 gzip zip xz &>>${_logf:-/dev/null}
 
-	hash -r && command -v taskname2url.py || {
+	hash -r && command -v taskname2url.py && command -v curl-download.sh && command -v extract.sh || {
 		local _downloadurl=http://download.devel.redhat.com/qa/rhts/lookaside
 		local _urls="$_downloadurl/kiss-vm-ns/utils/curl-download.sh $_downloadurl/kiss-vm-ns/utils/extract.sh $_downloadurl/bkr-client-improved/utils/taskname2url.py"
 		(cd /usr/bin && for _url in $_urls; do curl -Ls -O $_url; done && chmod +x *)
@@ -72,7 +72,8 @@ _install_task() {
 		if rfpath=$(find $repopath | grep -E "$repopath/${rpath//\?/.}$"); then
 			fpath=${rfpath%/}
 			if [[ -f "$fpath/.url" ]]; then
-				return 0
+				echo "$fpath"
+				return 1
 			fi
 			rpath=${fpath#${repopath}/}
 		fi
@@ -88,7 +89,8 @@ _install_task() {
 				ln -s $local_fpath $fpath 2>/dev/null
 				echo -n "$url" >$local_fpath/.url
 			fi
-			return 0
+			echo "$local_fpath"
+			return 1
 		fi
 	fi
 
@@ -96,11 +98,12 @@ _install_task() {
 		if [[ -n "OVER_WRITE_RPM" && ! -f "$fpath/.url" ]]; then
 			rm -rf "$fpath"
 		else
+			echo "$fpath"
 			return 1
 		fi
 	fi
 
-	echo -e "\n{debug} install task require: /$_task -> $fpath" >&2
+	echo -e "\n{debug} fetching task: /$_task -> $fpath" >&2
 	file=${url##*/}
 	filepath=$_downloaddir/taskrepo/$file
 	#download the archive of the repo //doesn't support git protocol
@@ -129,31 +132,32 @@ _install_task() {
 		yum --setopt=strict=0 install -y $pkgs &>>$_logf
 	}
 	echo $fpath
+	return 0
 }
 
 _install_task_requires() {
-	local _fpath=$1 _task=
+	local _fpath=$1 _task= __fpath=
 	local require_tasks=$(_get_task_requires $_fpath)
 	for _task in $require_tasks; do
 		__fpath=$(_install_task "$_task")
-		[[ -d "$__fpath" ]] && _install_task_requires "$__fpath"
+		[[ $? = 0 && -d "$__fpath" ]] && _install_task_requires "$__fpath"
 	done
 }
 
 if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
-	CASE_DIR=$PWD
+	#install taskname2url.py,curl-download.sh,extract.sh and db config
+	_install_requirements &>/dev/null
+
 	TASK="${TESTNAME:-$RSTRNT_TASKNAME}"
 	_TASK=${TASK#/}; _TASK=${_TASK#CoreOS/};
 	read TASK_REPO _RPATH <<<"${_TASK/\// }"
+	CASE_DIR=$PWD
 
 	echo "{debug} current dir: $CASE_DIR" >&2
 	[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS" >&2
 	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS" >&2
 	for repourl in $REPO_URLS; do [[ "$repourl" != *,* ]] && continue; repoOpts+="-repo=$repourl "; done
 	for taskuri in $TASK_URIS; do [[ "$taskuri" != *,* ]] && continue; taskOpts+="-task=$taskuri "; done
-
-	#install taskname2url.py and db config
-	_install_requirements
 
 	#get current task's repo and repopath
 	URI=$(taskname2url.py $TASK $taskOpts $repoOpts)
