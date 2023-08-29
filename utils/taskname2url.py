@@ -7,7 +7,7 @@ import configparser
 import io,os,sys,re
 
 usage = f"Usage: {sys.argv[0]} <taskname> [[/path/to/config|url]..] [-h] [-repo=rname,url] [-task=task,uri] [-skiprepo] [-d|-debug]"
-task = None
+task, _task = None, None
 conf = None
 debug = 0
 repodict = {}
