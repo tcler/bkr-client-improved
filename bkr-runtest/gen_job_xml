@@ -203,6 +203,7 @@ if [info exist Opt(norun)] {
 	popd
 	%end
 	}
+	if ![info exist Opt(reserve)] { set Opt(reserve) 356400 }
 }
 
 # process --param= option
