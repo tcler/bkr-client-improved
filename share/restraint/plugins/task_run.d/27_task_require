@@ -59,6 +59,7 @@ _get_package_requires() {
 
 _install_task() {
 	local _task=$1 fpath= local_fpath=
+	local taskrepo= _rpath= url= rpath=
 	_task=${_task#CoreOS/}; _task=${_task#/}
 	read taskrepo _rpath <<<"${_task/\// }"
 	uri=$(taskname2url.py /$_task $taskOpts $repoOpts)
@@ -67,6 +68,7 @@ _install_task() {
 	repopath=$_targetdir/$taskrepo
 	fpath="$repopath/$rpath"
 
+	[[ "$_rpath" != "$rpath" ]] && { rm -rf "$repopath/${_rpath}"; mkdir -p "$repopath/${_rpath%/*}"; ln -sf "$fpath" "$repopath/${_rpath}"; }
 	#if there is ? in rpath
 	if [[ "$rpath" = *\?* && -d $repopath ]]; then
 		if rfpath=$(find $repopath | grep -E "$repopath/${rpath//\?/.}$"); then
@@ -147,18 +149,17 @@ _install_task_requires() {
 if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 	#install taskname2url.py,curl-download.sh,extract.sh and db config
 	_install_requirements &>/dev/null
-
-	TASK="${TESTNAME:-$RSTRNT_TASKNAME}"
-	_TASK=${TASK#/}; _TASK=${_TASK#CoreOS/};
-	read TASK_REPO _RPATH <<<"${_TASK/\// }"
-	CASE_DIR=$PWD
-
-	echo "{debug} current dir: $CASE_DIR" >&2
 	[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS" >&2
 	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS" >&2
 	for repourl in $REPO_URLS; do [[ "$repourl" != *,* ]] && continue; repoOpts+="-repo=$repourl "; done
 	for taskuri in $TASK_URIS; do [[ "$taskuri" != *,* ]] && continue; taskOpts+="-task=$taskuri "; done
 
+	TASK="${TESTNAME:-$RSTRNT_TASKNAME}"
+	_TASK=${TASK#/}; _TASK=${_TASK#CoreOS/};
+	read TASK_REPO _RPATH <<<"${_TASK/\// }"
+
+	CASE_DIR=$PWD
+	echo "{debug} current dir: $CASE_DIR" >&2
 	#get current task's repo and repopath
 	URI=$(taskname2url.py $TASK $taskOpts $repoOpts)
 	read URL RPATH <<<"${URI/\#/ }"
