@@ -10,7 +10,7 @@ _install_requirements() {
 		yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
 		_pycurl=python36-pycurl
 	}
-	yum install -y python3 $_pycurl bzip2 gzip zip xz &>>${_logf:-/dev/null}
+	yum --setopt=strict=0 install -y python3 $_pycurl bzip2 gzip zip xz restraint-rhts breakerlib &>>${_logf:-/dev/null}
 
 	hash -r && command -v taskname2url.py && command -v curl-download.sh && command -v extract.sh || {
 		local _downloadurl=http://download.devel.redhat.com/qa/rhts/lookaside
@@ -132,7 +132,7 @@ _install_task() {
 	echo "${INDENT}{debug} install pkg dependencies of /$_task($fpath)" >&2
 	pkgs=$(_get_package_requires $fpath)
 	[[ -n "$pkgs" ]] && {
-		echo "${INDENT}{run} yum install -y $pkgs &>>${_logf:-/dev/null}" >&2
+		echo "${INDENT}{run} yum --setopt=strict=0 install -y $pkgs &>>${_logf:-/dev/null}" >&2
 		yum --setopt=strict=0 install -y $pkgs &>>${_logf:-/dev/null}
 	}
 	echo $fpath
@@ -164,6 +164,7 @@ Usage() {
 _at=`getopt -o fh \
     --long repo: \
     --long task: \
+    --long fetch-require \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -172,6 +173,7 @@ while true; do
 	-f) let FORCE++; shift;;
 	--repo) REPO_URLS+="$2 "; shift 2;;
 	--task) TASK_URIS+="$2 "; taskl+=(${2%%,*}); shift 2;;
+	--fetch-require) FETCH_REQUIRE=yes; shift;;
 	--) shift; break;;
 	esac
 done
@@ -190,15 +192,33 @@ for __task; do
 	URL=
 	RPATH=
 	REPO_PATH=
-	__fpath=$(_install_task $__task)
-	_rc=$?
-	case "$_rc" in
-	2) echo "{error} fetch task ${__task} to ${__fpath} fail! " >&2; continue;;
-	1) { echo "{info} task ${__task} has been there -> ${__fpath}" >&2; continue; }; ;;
-	esac
 
-	pushd "$__fpath";
-	TASK=$__task
+	if [[ "$FETCH_REQUIRE" != yes ]]; then
+		__fpath=$(_install_task $__task)
+		_rc=$?
+		case "$_rc" in
+		2) echo "{error} fetch task ${__task} to ${__fpath} fail! " >&2; continue;;
+		1) { echo "{info} task ${__task} has been there -> ${__fpath}" >&2; continue; }; ;;
+		esac
+		TASK=$__task
+	else
+		__fpath=$__task
+		TASK="${TESTNAME:-$RSTRNT_TASKNAME}"
+		#for local test
+		if [[ -z "$TASK" ]]; then
+			get_taskname() {
+				local casedir=$1; make -C $casedir testinfo.desc &>/dev/null
+				if [[ -f $casedir/metadata ]]; then
+					awk -F'[ =]+' '$1 == "name" {print $2}' $casedir/metadata
+				elif [[ -f $casedir/testinfo.desc ]]; then
+					awk -F'[: =\t]+' '/^Name:/{print $2}' $casedir/testinfo.desc
+				fi
+			}
+			TASK="$(get_taskname $__fpath)"
+		fi
+	fi
+
+	pushd "$__fpath" &>/dev/null
 	_TASK=${TASK#/}; _TASK=${_TASK#CoreOS/};
 	read TASK_REPO _RPATH <<<"${_TASK/\// }"
 
@@ -211,5 +231,5 @@ for __task; do
 
 	#install task requires
 	_install_task_requires .
-	popd;
+	popd &>/dev/null
 done
