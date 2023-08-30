@@ -12,13 +12,16 @@ _install_requirements() {
 	}
 	yum --setopt=strict=0 install -y python3 $_pycurl bzip2 gzip zip xz restraint-rhts breakerlib &>>${_logf:-/dev/null}
 
-	hash -r && command -v taskname2url.py && command -v curl-download.sh && command -v extract.sh || {
-		local _downloadurl=http://download.devel.redhat.com/qa/rhts/lookaside
-		local _urls="$_downloadurl/kiss-vm-ns/utils/curl-download.sh $_downloadurl/kiss-vm-ns/utils/extract.sh $_downloadurl/bkr-client-improved/utils/taskname2url.py"
-		(cd /usr/bin && for _url in $_urls; do curl -Ls -O $_url; done && chmod +x *)
-		local _dburl=$_downloadurl/bkr-client-improved/conf/fetch-url.ini
-		(cd /etc && curl -Ls -O ${_dburl})
-	}
+	local _downloadurl=http://download.devel.redhat.com/qa/rhts/lookaside
+	local _urls=()
+	hash -r
+	command -v curl-download.sh || _urls+=($_downloadurl/kiss-vm-ns/utils/curl-download.sh)
+	command -v extract.sh       || _urls+=($_downloadurl/kiss-vm-ns/utils/extract.sh)
+	command -v taskname2url.py  || _urls+=($_downloadurl/bkr-client-improved/utils/taskname2url.py)
+	(cd /usr/bin && for _url in "${_urls[@]}"; do curl -Ls -O $_url; done && chmod +x *)
+
+	local _dburl=$_downloadurl/bkr-client-improved/conf/fetch-url.ini
+	[[ -f /etc/${_dburl##*/} ]] || (cd /etc && curl -Ls -O ${_dburl})
 }
 
 _get_task_requires() {
