@@ -145,15 +145,25 @@ _install_task_requires() {
 	INDENT="${INDENT%  }"
 }
 
+Usage() {
+	cat <<-EOF
+	Usage: ${0##/*/} [-h] [-f] </task/name [/task2/name ...]>"
+	Example:
+	  ${0##/*/} /nfs-utils/services/systemd/rpcgssd /kernel/filesystems/nfs/nfstest/nfstest_ssc
+	  ${0##/*/} /kernel/networking/tipc/tipcutils/fuzz -f
+	EOF
+}
 _at=`getopt -o fh \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
 	case "$1" in
+	-h) Usage; shift; exit 0;;
 	-f) FORCE=yes; shift;;
 	--) shift; break;;
 	esac
 done
+[[ $# = 0 ]] && { Usage >&2; exit 1; }
 
 #install taskname2url.py,curl-download.sh,extract.sh and db config
 _install_requirements
