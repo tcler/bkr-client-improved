@@ -1,4 +1,12 @@
 #!/bin/bash
+switchroot() {
+	local P=$0 SH=; [[ $0 = /* ]] && P=${0##*/}; [[ -e $P && ! -x $P ]] && SH=$SHELL
+	[[ $(id -u) != 0 ]] && {
+		echo -e "\E[1;30m{WARN} $P need root permission, switch to:\n  sudo $SH $P $@\E[0m"
+		exec sudo $SH $P "$@"
+	}
+}
+switchroot "$@"
 
 _targetdir=/mnt/tests
 _downloaddir=/mnt/download
@@ -18,7 +26,7 @@ _install_requirements() {
 	command -v curl-download.sh || _urls+=($_downloadurl/kiss-vm-ns/utils/curl-download.sh)
 	command -v extract.sh       || _urls+=($_downloadurl/kiss-vm-ns/utils/extract.sh)
 	command -v taskname2url.py  || _urls+=($_downloadurl/bkr-client-improved/utils/taskname2url.py)
-	(cd /usr/bin && for _url in "${_urls[@]}"; do curl -Ls -O $_url; done && chmod +x *)
+	(cd /usr/bin && for _url in "${_urls[@]}"; do curl -Ls -O $_url; chmod +x ${_url##*/}; done)
 
 	local _dburl=$_downloadurl/bkr-client-improved/conf/fetch-url.ini
 	[[ -f /etc/${_dburl##*/} ]] || (cd /etc && curl -Ls -O ${_dburl})
@@ -173,6 +181,11 @@ Usage() {
 	  ${0##/*/} -f --task=/kernel/fs/nfs/nfstest/nfstest_delegation,https://github.com/tcler/linux-network-filesystems/archive/refs/heads/master.tar.gz#testcases/nfs/nfstest/nfstest_delegation
 	EOF
 }
+
+#treat arg that looks like var=val as env
+for a; do [[ "$a" =~ ^[a-zA-Z_][a-zA-Z0-9_]*=.+ ]] && ENV+=("$a") || at+=("$a"); shift; done
+set -- "${at[@]}"
+
 _at=`getopt -o fh \
     --long repo: \
     --long task: \
@@ -222,7 +235,7 @@ for __task; do
 		_rc=$?
 		case "$_rc" in
 		2) echo "{error} fetch task ${__task} to ${__fpath} fail! " >&2; continue;;
-		1) { echo "{info} task ${__task} has been there -> ${__fpath}" >&2; continue; }; ;;
+		1) { echo "{info} task ${__task} has been there -> ${__fpath}" >&2; [[ "$RUN_TASK" != yes ]] && continue; }; ;;
 		esac
 		TASK=$__task
 	fi
@@ -242,7 +255,8 @@ for __task; do
 	_install_task_requires .
 
 	if [[ "$RUN_TASK" = yes ]]; then
-		(export TEST=$TASK $TESTNAME=$TASK RSTRNT_TASKNAME=$TASK
+		(for env in "${ENV[@]}"; do eval export ${env%%=*}=\${env#*=}; done
+		export TEST=$TASK TESTNAME=$TASK RSTRNT_TASKNAME=$TASK
 		if [[ -f metadata ]]; then
 			eval "$(sed -rn '/^entry_point *= */{s///;p}' metadata)"
 		else
