@@ -64,7 +64,7 @@ _install_task() {
 	repopath=$_targetdir/$taskrepo
 	fpath="$repopath/$rpath"
 
-	[[ "$FORCE" = yes && -d "$fpath" ]] && { [[ "$(cat $fpath/.pid 2>/dev/null)" != $$ ]] && rm -rf "${fpath}"; }
+	[[ "$FORCE" -gt 0 && -d "$fpath" ]] && { [[ "$(cat $fpath/.pid 2>/dev/null)" != $$ ]] && rm -rf "${fpath}"; }
 	[[ "$_rpath" != "$rpath" ]] && { rm -rf "$repopath/${_rpath}"; mkdir -p "$repopath/${_rpath%/*}"; ln -sf "$fpath" "$repopath/${_rpath}"; }
 
 	#if there is ? in rpath
@@ -104,15 +104,18 @@ _install_task() {
 	fi
 
 	echo -e "\n${INDENT}{debug} fetching task: /$_task -> $fpath" >&2
-	file=${url##*/}
+	local file=${url##*/}
+	[[ "$FORCE" -gt 1 ]] && { file+=-$$; }
 	filepath=$_downloaddir/taskrepo/$file
 	#download the archive of the repo //doesn't support git protocol
-	if ! test -f ${filepath}; then
-		mkdir -p ${filepath%/*}
-		curl-download.sh ${filepath} ${url} -s >&2
+	if [[ ! -f ${filepath} ]]; then
+		mkdir -p ${filepath%/*}; rm ${filepath%$$}* -f
+		curl-download.sh ${filepath} ${url} -s|& sed "s/^/$INDENT/" >&2
+		[[ "$FORCE" -gt 1 ]] && { ln -f ${filepath} ${filepath%-$$}; }
 	fi
 	if test -f ${filepath}; then
-		rpath=$(extract.sh ${filepath} --list --path=${rpath}|sed -rn '1{s@^[^/]+/@@;s@/$@@;p;q}')
+		[[ "$rpath" = *\?* ]] &&
+			rpath=$(extract.sh ${filepath} --list --path=${rpath}|sed -rn '1{s@^[^/]+/@@;s@/$@@;p;q}')
 		extract.sh ${filepath} $_targetdir $taskrepo --path=${rpath}|& sed "s/^/$INDENT/" >&2
 		fpath="$repopath/$rpath";
 		[[ -n "$local_fpath" ]] && local_fpath="$REPO_PATH/$rpath"
@@ -152,8 +155,9 @@ Usage() {
 	Usage: ${0##/*/} [-h] </task/name [/task2/name ...]> [-f] [--repo=<rname,url>] [--task=</task/name,url#/relative/path>]"
 	Example:
 	  ${0##/*/} /nfs-utils/services/systemd/rpcgssd /kernel/filesystems/nfs/nfstest/nfstest_ssc
-	  ${0##/*/} /kernel/networking/tipc/tipcutils/fuzz -f
-	  ${0##/*/} /kernel/fs/nfs/pynfs --repo=kernel,http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz
+	  ${0##/*/} /kernel/networking/tipc/tipcutils/fuzz -f  #force re-{extract}
+	  ${0##/*/} /kernel/networking/tipc/tipcutils/fuzz -ff #force re-{download and extract}
+	  ${0##/*/} /kernel/filesystems/nfs/pynfs --repo=kernel,http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz
 	  ${0##/*/} -f --task=/kernel/fs/nfs/nfstest/nfstest_delegation,https://github.com/tcler/linux-network-filesystems/archive/refs/heads/master.tar.gz#testcases/nfs/nfstest/nfstest_delegation
 	EOF
 }
@@ -165,7 +169,7 @@ eval set -- "$_at"
 while true; do
 	case "$1" in
 	-h) Usage; shift; exit 0;;
-	-f) FORCE=yes; shift;;
+	-f) let FORCE++; shift;;
 	--repo) REPO_URLS+="$2 "; shift 2;;
 	--task) TASK_URIS+="$2 "; taskl+=(${2%%,*}); shift 2;;
 	--) shift; break;;
