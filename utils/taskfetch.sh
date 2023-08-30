@@ -55,6 +55,7 @@ _get_package_requires() {
 
 _install_task() {
 	local _task=$1 fpath= local_fpath=
+	local taskrepo= _rpath= url= rpath=
 	_task=${_task#CoreOS/}; _task=${_task#/}
 	read taskrepo _rpath <<<"${_task/\// }"
 	uri=$(taskname2url.py /$_task $taskOpts $repoOpts)
@@ -64,6 +65,7 @@ _install_task() {
 	fpath="$repopath/$rpath"
 
 	[[ "$FORCE" = yes && -d "$fpath" ]] && { [[ "$(cat $fpath/.pid 2>/dev/null)" != $$ ]] && rm -rf "${fpath}"; }
+	[[ "$_rpath" != "$rpath" ]] && { rm -rf "$repopath/${_rpath}"; mkdir -p "$repopath/${_rpath%/*}"; ln -sf "$fpath" "$repopath/${_rpath}"; }
 
 	#if there is ? in rpath
 	if [[ "$rpath" = *\?* && -d $repopath ]]; then
@@ -107,7 +109,7 @@ _install_task() {
 	#download the archive of the repo //doesn't support git protocol
 	if ! test -f ${filepath}; then
 		mkdir -p ${filepath%/*}
-		curl-download.sh ${filepath} ${url} -s
+		curl-download.sh ${filepath} ${url} -s >&2
 	fi
 	if test -f ${filepath}; then
 		rpath=$(extract.sh ${filepath} --list --path=${rpath}|sed -rn '1{s@^[^/]+/@@;s@/$@@;p;q}')
@@ -127,8 +129,8 @@ _install_task() {
 	echo "${INDENT}{debug} install pkg dependencies of /$_task($fpath)" >&2
 	pkgs=$(_get_package_requires $fpath)
 	[[ -n "$pkgs" ]] && {
-		echo "${INDENT}{run} yum install -y $pkgs &>>$_logf" >&2
-		yum --setopt=strict=0 install -y $pkgs &>>$_logf
+		echo "${INDENT}{run} yum install -y $pkgs &>>${_logf:-/dev/null}" >&2
+		yum --setopt=strict=0 install -y $pkgs &>>${_logf:-/dev/null}
 	}
 	echo $fpath
 	return 0
@@ -147,48 +149,57 @@ _install_task_requires() {
 
 Usage() {
 	cat <<-EOF
-	Usage: ${0##/*/} [-h] [-f] </task/name [/task2/name ...]>"
+	Usage: ${0##/*/} [-h] </task/name [/task2/name ...]> [-f] [--repo=<rname,url>] [--task=</task/name,url#/relative/path>]"
 	Example:
 	  ${0##/*/} /nfs-utils/services/systemd/rpcgssd /kernel/filesystems/nfs/nfstest/nfstest_ssc
 	  ${0##/*/} /kernel/networking/tipc/tipcutils/fuzz -f
+	  ${0##/*/} /kernel/fs/nfs/pynfs --repo=kernel,http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz
+	  ${0##/*/} -f --task=/kernel/fs/nfs/nfstest/nfstest_delegation,https://github.com/tcler/linux-network-filesystems/archive/refs/heads/master.tar.gz#testcases/nfs/nfstest/nfstest_delegation
 	EOF
 }
 _at=`getopt -o fh \
+    --long repo: \
+    --long task: \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
 	case "$1" in
 	-h) Usage; shift; exit 0;;
 	-f) FORCE=yes; shift;;
+	--repo) REPO_URLS+="$2 "; shift 2;;
+	--task) TASK_URIS+="$2 "; taskl+=(${2%%,*}); shift 2;;
 	--) shift; break;;
 	esac
 done
+eval set -- "$@" "${taskl[@]}"
 [[ $# = 0 ]] && { Usage >&2; exit 1; }
 
 #install taskname2url.py,curl-download.sh,extract.sh and db config
 _install_requirements
+[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS" >&2
+[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS" >&2
+for repourl in $REPO_URLS; do [[ "$repourl" != *,* ]] && continue; repoOpts+="-repo=$repourl "; done
+for taskuri in $TASK_URIS; do [[ "$taskuri" != *,* ]] && continue; taskOpts+="-task=$taskuri "; done
 
 for __task; do
 	INDENT=
+	URL=
+	RPATH=
+	REPO_PATH=
 	__fpath=$(_install_task $__task)
 	_rc=$?
 	case "$_rc" in
 	2) echo "{error} fetch task ${__task} to ${__fpath} fail! " >&2; continue;;
 	1) { echo "{info} task ${__task} has been there -> ${__fpath}" >&2; continue; }; ;;
 	esac
-	pushd "$__fpath";
 
+	pushd "$__fpath";
 	TASK=$__task
 	_TASK=${TASK#/}; _TASK=${_TASK#CoreOS/};
 	read TASK_REPO _RPATH <<<"${_TASK/\// }"
+
 	CASE_DIR=$PWD
-
 	echo "{debug} current dir: $CASE_DIR" >&2
-	[[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS" >&2
-	[[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS" >&2
-	for repourl in $REPO_URLS; do [[ "$repourl" != *,* ]] && continue; repoOpts+="-repo=$repourl "; done
-	for taskuri in $TASK_URIS; do [[ "$taskuri" != *,* ]] && continue; taskOpts+="-task=$taskuri "; done
-
 	#get current task's repo and repopath
 	URI=$(taskname2url.py $TASK $taskOpts $repoOpts)
 	read URL RPATH <<<"${URI/\#/ }"
