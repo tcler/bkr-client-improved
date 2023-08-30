@@ -179,6 +179,7 @@ Usage() {
 	  ${0##/*/} /kernel/networking/tipc/tipcutils/fuzz -ff #force re-{download and extract}
 	  ${0##/*/} /kernel/filesystems/nfs/pynfs --repo=kernel,http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz
 	  ${0##/*/} -f --task=/kernel/fs/nfs/nfstest/nfstest_delegation,https://github.com/tcler/linux-network-filesystems/archive/refs/heads/master.tar.gz#testcases/nfs/nfstest/nfstest_delegation
+	  ${0##/*/} --run /nfs-utils/stress/fast-mount-local RESVPORT=yes
 	EOF
 }
 
