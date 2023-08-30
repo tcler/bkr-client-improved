@@ -168,6 +168,7 @@ _at=`getopt -o fh \
     --long repo: \
     --long task: \
     --long fetch-require \
+    --long install-deps \
     -a -n "$0" -- "$@"`
 eval set -- "$_at"
 while true; do
@@ -177,6 +178,7 @@ while true; do
 	--repo) REPO_URLS+="$2 "; shift 2;;
 	--task) TASK_URIS+="$2 "; taskl+=(${2%%,*}); shift 2;;
 	--fetch-require) FETCH_REQUIRE=yes; shift;;
+	--install-deps) _install_requirements; shift; exit 0;;
 	--) shift; break;;
 	esac
 done
