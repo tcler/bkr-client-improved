@@ -153,6 +153,15 @@ _install_task_requires() {
 	INDENT="${INDENT%  }"
 }
 
+get_taskname() {
+	local casedir=$1; make -C $casedir testinfo.desc &>/dev/null
+	if [[ -f $casedir/metadata ]]; then
+		awk -F'[ =]+' '$1 == "name" {print $2}' $casedir/metadata
+	elif [[ -f $casedir/testinfo.desc ]]; then
+		awk -F'[: =\t]+' '/^Name:/{print $2}' $casedir/testinfo.desc
+	fi
+}
+
 Usage() {
 	cat <<-EOF
 	Usage: ${0##/*/} [-h] </task/name [/task2/name ...]> [-f] [--repo=<rname,url>] [--task=</task/name,url#/relative/path>]"
@@ -167,6 +176,7 @@ Usage() {
 _at=`getopt -o fh \
     --long repo: \
     --long task: \
+    --long run   \
     --long fetch-require \
     --long install-deps \
     -a -n "$0" -- "$@"`
@@ -177,6 +187,7 @@ while true; do
 	-f) let FORCE++; shift;;
 	--repo) REPO_URLS+="$2 "; shift 2;;
 	--task) TASK_URIS+="$2 "; taskl+=(${2%%,*}); shift 2;;
+	--run)  RUN_TASK=yes; shift;;
 	--fetch-require) FETCH_REQUIRE=yes; shift;;
 	--install-deps) _install_requirements; shift; exit 0;;
 	--) shift; break;;
@@ -198,7 +209,15 @@ for __task; do
 	RPATH=
 	REPO_PATH=
 
-	if [[ "$FETCH_REQUIRE" != yes ]]; then
+	if [[ -d "$__task" || "$FETCH_REQUIRE" = yes ]]; then
+		__fpath=$(readlink -f $__task)
+		TASK="${TESTNAME:-$RSTRNT_TASKNAME}"
+		#for local test
+		if [[ -z "$TASK" ]]; then
+			TASK="$(get_taskname $__fpath)"
+			[[ -z "$TASK" ]] && { echo "{warn} can not get taskname from '$__fpath'" >&2; continue; }
+		fi
+	else #fetch task
 		__fpath=$(_install_task $__task)
 		_rc=$?
 		case "$_rc" in
@@ -206,21 +225,6 @@ for __task; do
 		1) { echo "{info} task ${__task} has been there -> ${__fpath}" >&2; continue; }; ;;
 		esac
 		TASK=$__task
-	else
-		__fpath=$__task
-		TASK="${TESTNAME:-$RSTRNT_TASKNAME}"
-		#for local test
-		if [[ -z "$TASK" ]]; then
-			get_taskname() {
-				local casedir=$1; make -C $casedir testinfo.desc &>/dev/null
-				if [[ -f $casedir/metadata ]]; then
-					awk -F'[ =]+' '$1 == "name" {print $2}' $casedir/metadata
-				elif [[ -f $casedir/testinfo.desc ]]; then
-					awk -F'[: =\t]+' '/^Name:/{print $2}' $casedir/testinfo.desc
-				fi
-			}
-			TASK="$(get_taskname $__fpath)"
-		fi
 	fi
 
 	pushd "$__fpath" &>/dev/null
@@ -236,5 +240,15 @@ for __task; do
 
 	#install task requires
 	_install_task_requires .
+
+	if [[ "$RUN_TASK" = yes ]]; then
+		(export TEST=$TASK $TESTNAME=$TASK RSTRNT_TASKNAME=$TASK
+		if [[ -f metadata ]]; then
+			eval "$(sed -rn '/^entry_point *= */{s///;p}' metadata)"
+		else
+			make run
+		fi
+		) &> >(tee taskout.log)
+	fi
 	popd &>/dev/null
 done
