@@ -109,11 +109,11 @@ _install_task() {
 	#download the archive of the repo //doesn't support git protocol
 	if ! test -f ${filepath}; then
 		mkdir -p ${filepath%/*}
-		curl-download.sh ${filepath} ${url} -s
+		curl-download.sh ${filepath} ${url} -s >&2
 	fi
 	if test -f ${filepath}; then
 		rpath=$(extract.sh ${filepath} --list --path=${rpath}|sed -rn '1{s@^[^/]+/@@;s@/$@@;p;q}')
-		extract.sh ${filepath} $_targetdir $taskrepo --path=${rpath}
+		extract.sh ${filepath} $_targetdir $taskrepo --path=${rpath} >&2
 		fpath="$repopath/$rpath";
 		[[ -n "$local_fpath" ]] && local_fpath="$REPO_PATH/$rpath"
 		[[ -n "$local_fpath" && ! -d "$local_fpath" ]] && {
