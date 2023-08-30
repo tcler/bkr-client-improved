@@ -63,6 +63,8 @@ _install_task() {
 	repopath=$_targetdir/$taskrepo
 	fpath="$repopath/$rpath"
 
+	[[ "$FORCE" = yes && -d "$fpath" ]] && { [[ "$(cat $fpath/.pid 2>/dev/null)" != $$ ]] && rm -rf "${fpath}"; }
+
 	#if there is ? in rpath
 	if [[ "$rpath" = *\?* && -d $repopath ]]; then
 		if rfpath=$(find $repopath | grep -E "$repopath/${rpath//\?/.}$"); then
@@ -121,6 +123,7 @@ _install_task() {
 		return 2
 	fi
 	echo -n "$url" >$fpath/.url
+	echo -n "$$" >$fpath/.pid
 	echo "${INDENT}{debug} install pkg dependencies of /$_task($fpath)" >&2
 	pkgs=$(_get_package_requires $fpath)
 	[[ -n "$pkgs" ]] && {
@@ -139,7 +142,18 @@ _install_task_requires() {
 		__fpath=$(_install_task "$_task")
 		[[ $? = 0 && -d "$__fpath" ]] && _install_task_requires "$__fpath"
 	done
+	INDENT="${INDENT%  }"
 }
+
+_at=`getopt -o fh \
+    -a -n "$0" -- "$@"`
+eval set -- "$_at"
+while true; do
+	case "$1" in
+	-f) FORCE=yes; shift;;
+	--) shift; break;;
+	esac
+done
 
 #install taskname2url.py,curl-download.sh,extract.sh and db config
 _install_requirements
@@ -149,8 +163,8 @@ for __task; do
 	__fpath=$(_install_task $__task)
 	_rc=$?
 	case "$_rc" in
-	1) echo "{info} task ${__task} has been there -> ${__fpath}" >&2; continue;;
 	2) echo "{error} fetch task ${__task} to ${__fpath} fail! " >&2; continue;;
+	1) { echo "{info} task ${__task} has been there -> ${__fpath}" >&2; continue; }; ;;
 	esac
 	pushd "$__fpath";
 
