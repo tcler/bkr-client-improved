@@ -12,7 +12,7 @@ _install_requirements() {
 	hash -r && command -v taskfetch.sh || {
 		local _downloadurl=http://download.devel.redhat.com/qa/rhts/lookaside
 		local _urls="$_downloadurl/bkr-client-improved/utils/taskfetch.sh"
-		(cd /usr/bin && for _url in $_urls; do curl -Ls -O $_url; done && chmod +x *)
+		(cd /usr/bin && for _url in $_urls; do curl -Ls -O $_url && chmod +x ${_url##*/}; done)
 	}
 }
 
@@ -24,7 +24,7 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 	for repourl in $REPO_URLS; do [[ "$repourl" != *,* ]] && continue; repoOpts+="--repo=$repourl "; done
 	for taskuri in $TASK_URIS; do [[ "$taskuri" != *,* ]] && continue; taskOpts+="--task=$taskuri "; done
 
-	taskfetch.sh --fetch-require .
+	taskfetch.sh $repoOpts $taskOpts --fetch-require .
 
 	echo -e "{debug} leaving restraint plugin $0\n" >&2
 fi
