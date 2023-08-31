@@ -18,7 +18,9 @@ _install_requirements() {
 		yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
 		_pycurl=python36-pycurl
 	}
-	yum --setopt=strict=0 install -y python3 $_pycurl bzip2 gzip zip xz restraint-rhts breakerlib &>>${_logf:-/dev/null}
+	local _pkgs="python3 $_pycurl bzip2 gzip zip xz restraint-rhts breakerlib"
+	_pkgs=$(rpm -q $_pkgs > >(awk '/not.installed/{print $2}')) ||
+		yum --setopt=strict=0 install -y $_pkgs &>>${_logf:-/dev/null}
 
 	local _downloadurl=http://download.devel.redhat.com/qa/rhts/lookaside
 	local _urls=()
