@@ -172,13 +172,13 @@ get_taskname() {
 
 Usage() {
 	cat <<-EOF
-	Usage: ${0##/*/} [-h] </task/name [/task2/name ...]> [-f] [--repo=<rname,url>] [--task=</task/name,url#/relative/path>]"
+	Usage: ${0##/*/} [-h] </task/name [/task2/name ...]> [-f] [--repo=<rname@url>] [--task=</task/name@url#/relative/path>]"
 	Example:
 	  ${0##/*/} /nfs-utils/services/systemd/rpcgssd /kernel/filesystems/nfs/nfstest/nfstest_ssc
 	  ${0##/*/} /kernel/networking/tipc/tipcutils/fuzz -f  #force re-{extract}
 	  ${0##/*/} /kernel/networking/tipc/tipcutils/fuzz -ff #force re-{download and extract}
-	  ${0##/*/} /kernel/filesystems/nfs/pynfs --repo=kernel,http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz
-	  ${0##/*/} -f --task=/kernel/fs/nfs/nfstest/nfstest_delegation,https://github.com/tcler/linux-network-filesystems/archive/refs/heads/master.tar.gz#testcases/nfs/nfstest/nfstest_delegation
+	  ${0##/*/} /kernel/filesystems/nfs/pynfs --repo=kernel@http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz
+	  ${0##/*/} -f --task=/kernel/fs/nfs/nfstest/nfstest_delegation@https://github.com/tcler/linux-network-filesystems/archive/refs/heads/master.tar.gz#testcases/nfs/nfstest/nfstest_delegation
 	  ${0##/*/} --run /nfs-utils/stress/fast-mount-local RESVPORT=yes
 	EOF
 }
@@ -200,7 +200,7 @@ while true; do
 	-h) Usage; shift; exit 0;;
 	-f) let FORCE++; shift;;
 	--repo) REPO_URLS+="$2 "; shift 2;;
-	--task) TASK_URIS+="$2 "; taskl+=(${2%%,*}); shift 2;;
+	--task) TASK_URIS+="$2 "; taskl+=(${2%%[,@]*}); shift 2;;
 	--run)  RUN_TASK=yes; shift;;
 	--fetch-require) FETCH_REQUIRE=yes; shift;;
 	--install-deps) _install_requirements; shift; exit 0;;
@@ -214,8 +214,8 @@ eval set -- "$@" "${taskl[@]}"
 _install_requirements
 [[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS" >&2
 [[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS" >&2
-for repourl in $REPO_URLS; do [[ "$repourl" != *,* ]] && continue; repoOpts+="-repo=$repourl "; done
-for taskuri in $TASK_URIS; do [[ "$taskuri" != *,* ]] && continue; taskOpts+="-task=$taskuri "; done
+for repourl in $REPO_URLS; do [[ "$repourl" != *[,@]* ]] && continue; repoOpts+="-repo=$repourl "; done
+for taskuri in $TASK_URIS; do [[ "$taskuri" != *[,@]* ]] && continue; taskOpts+="-task=$taskuri "; done
 
 for __task; do
 	INDENT=

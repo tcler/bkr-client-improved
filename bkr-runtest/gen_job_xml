@@ -150,7 +150,7 @@ if [info exist Opt(fetch-url)] {
 			set fetch_test_from_url no
 			continue
 		}
-		if ![regexp -- {,} ${_url}] {
+		if ![regexp -- {[,@]} ${_url}] {
 			continue
 		} else {
 			append taskname2urlOpts "-repo=$_url "
@@ -160,10 +160,10 @@ if [info exist Opt(fetch-url)] {
 
 if [info exist Opt(task-fetch-url)] {
 	foreach _url $Opt(task-fetch-url) {
-		if ![regexp -- {,} ${_url}] {
+		if ![regexp -- {[,@]} ${_url}] {
 			continue
 		}
-		lassign [split ${_url} ","] taskname url
+		lassign [split ${_url} {[,@]}] taskname url
 		set taskFetchUrl($taskname) $url
 	}
 }

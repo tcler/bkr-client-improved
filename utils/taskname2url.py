@@ -6,7 +6,7 @@
 import configparser
 import io,os,sys,re
 
-usage = f"Usage: {sys.argv[0]} <taskname> [[/path/to/config|url]..] [-h] [-repo=rname,url] [-task=task,uri] [-skiprepo] [-d|-debug]"
+usage = f"Usage: {sys.argv[0]} <taskname> [[/path/to/config|url]..] [-h] [-repo=rname@url] [-task=task@uri] [-skiprepo] [-d|-debug]"
 task, _task = None, None
 conf = None
 debug = 0
@@ -38,10 +38,10 @@ for arg in sys.argv[1:]:
         elif (arg[:2] == "-d"):
             debug += arg.count('d')
         elif (arg[:6] == "-repo="):
-            rname, url = arg[6:].split(",")
+            rname, url = re.split("[,@]", arg[6:])
             repodict[rname] = url
         elif (arg[:6] == "-task="):
-            tname, uri = arg[6:].split(",")
+            tname, uri = re.split("[,@]", arg[6:])
             taskdict[tname] = uri
         elif (arg[:5] == "-skip"):
             skiprepo = "yes"
