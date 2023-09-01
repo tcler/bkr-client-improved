@@ -254,9 +254,7 @@ if [[ -n "$ExcludePattern" ]]; then
 fi
 
 # fix ssl certificate verify failed
-curl -s https://password.corp.redhat.com/RH-IT-Root-CA.crt -o /etc/pki/ca-trust/source/anchors/RH-IT-Root-CA.crt
-curl -s https://password.corp.redhat.com/legacy.crt -o /etc/pki/ca-trust/source/anchors/legacy.crt
-update-ca-trust
+(cd /etc/pki/ca-trust/source/anchors && curl -Ls --remote-name-all https://password.corp.redhat.com/{RH-IT-Root-CA.crt,legacy.crt} && update-ca-trust)
 
 if [[ "${#builds[@]}" = 0 ]]; then
 	if [[ "$FLAG" = debugkernel || "$ONLY_DEBUG_INFO" = yes ]]; then
