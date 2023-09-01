@@ -91,7 +91,10 @@ _web_require:
 rpm: _isroot
 	./build_rpm.sh
 
-p pu pull u up update:
+u up update:
 	https_proxy=$(HTTP_PROXY) git pull --rebase || :
+	@echo
+p pu push:
+	https_proxy=$(HTTP_PROXY) git push origin master || :
 	@echo
 
