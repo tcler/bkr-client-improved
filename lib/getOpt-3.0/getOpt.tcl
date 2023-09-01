@@ -255,7 +255,7 @@ proc ::getOpt::genOptdesc {optNameList} {
 	set optdesc [join "$shortOpt $longOpt" ", "]
 }
 
-proc ::getOpt::getUsage {optLists} {
+proc ::getOpt::getUsage {optLists {out "stdout"}} {
 
 	foreach {group optDict} $optLists {
 
@@ -266,7 +266,7 @@ proc ::getOpt::getUsage {optLists} {
 		}
 	}
 
-	puts "$group"
+	puts $out "$group"
 
 	#generate usage list
 	foreach opt [dict keys $optDict] {
@@ -293,28 +293,28 @@ proc ::getOpt::getUsage {optLists} {
 		set help_length [string length "$opthelp"]
 
 		if {$opt_length > $pad-4 && $help_length > 8} {
-			puts [format "    %-${pad}s\n %${pad}s    %s" "$optdesc $argdesc" {} $opthelp]
+			puts $out [format "    %-${pad}s\n %${pad}s    %s" "$optdesc $argdesc" {} $opthelp]
 		} else {
-			puts [format "    %-${pad}s %s" "$optdesc $argdesc" $opthelp]
+			puts $out [format "    %-${pad}s %s" "$optdesc $argdesc" $opthelp]
 		}
 	}
 	}
 
 	unset optDict
 
-	puts "\nComments:"
+	puts $out "\nComments:"
 	if [info exist flag] {
-		puts {    *  [arg] means arg is optional, need use --opt=arg to specify an argument}
-		puts {       <arg> means arg is required, and -f a -f b will get the latest 'b'}
-		puts {       {arg} means arg is required, and -f a -f b will get a list 'a b'}
+		puts $out {    *  [arg] means arg is optional, need use --opt=arg to specify an argument}
+		puts $out {       <arg> means arg is required, and -f a -f b will get the latest 'b'}
+		puts $out {       {arg} means arg is required, and -f a -f b will get a list 'a b'}
 
-		puts {}
-		puts {    *  if arg is required, '--opt arg' is same as '--opt=arg'}
-		puts {}
+		puts $out {}
+		puts $out {    *  if arg is required, '--opt arg' is same as '--opt=arg'}
+		puts $out {}
 	}
-	puts {    *  '-opt' will be treated as:}
-	puts {           '--opt'    if 'opt' is defined;}
-	puts {           '-o -p -t' if 'opt' is undefined;}
-	puts {           '-o -p=t'  if 'opt' is undefined and '-p' need an argument;}
-	puts {}
+	puts $out {    *  '-opt' will be treated as:}
+	puts $out {           '--opt'    if 'opt' is defined;}
+	puts $out {           '-o -p -t' if 'opt' is undefined;}
+	puts $out {           '-o -p=t'  if 'opt' is undefined and '-p' need an argument;}
+	puts $out {}
 }

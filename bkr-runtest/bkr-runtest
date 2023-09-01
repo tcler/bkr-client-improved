@@ -26,7 +26,7 @@ set ForwardOpt {}
 set OptionList {
   "  Base options:" {
 	{help h}   {arg n	help {Print this usage}}
-	{dryrun n} {arg o	help {Just generate XML file(s), not submit job to beaker}}
+	{dryrun n} {arg o	help {-ntest.xml Just generate XML file(s), not submit job to beaker}}
 	{jobn}     {arg y	help {--jobn=N submit job N times}}
 	{merge m}  {arg n	help {Merge all recipeSets in one job XML}}
 	alone      {arg n	help {Submit all tests separately, one case one recipe}}
@@ -46,8 +46,8 @@ lappend OptionList {*}[string map {"\{arg " "\{forward y arg "} $CommonOptionLis
 # _parse_ argument
 getOptions $OptionList $::argv Opt InvalidOpt Args ForwardOpt
 if [info exist Opt(d)] {
-	puts "\[$prog\]: Arguments:{$Args}"
-	puts "\[$prog\]: ForwardOpt{$ForwardOpt}"
+	puts "\[$prog\] Arguments:{$Args}"
+	puts "\[$prog\] ForwardOpt{$ForwardOpt}"
 	parray InvalidOpt
 	parray Opt
 }
@@ -109,7 +109,7 @@ if {[llength $Args] < 1 && ![info exist Opt(distro)]} {
 
 set SubcmdOpt $ForwardOpt
 if [info exist Opt(d)] {
-	puts "\[$prog\]: SubcmdOpt{$SubcmdOpt}"
+	puts stderr "\[$prog\] SubcmdOpt{$SubcmdOpt}"
 }
 
 set TestArgList {}
@@ -132,6 +132,10 @@ if [regexp -- {^RH[A-Z]{2}-[0-9]{4}:[0-9]+} $Distro] {
 
 #If Distro is short format
 set Distro [expandDistro $Distro]
+if {$Distro == ""} {
+	puts stderr "\[$prog\] Err: distro value is emtpy, please use a valid value. or 's' for restraint Standalone mode"
+	exit 1
+}
 
 # Get the test list
 set _TestList {}
@@ -141,7 +145,7 @@ set TestListFile {}
 if {[llength $TestArgList]==0 && ![istty stdin]} {lappend TestArgList -}
 if {[llength $TestArgList]==0 && $_TestList == {}} {
 	if {$prog != "bkr-reservesys"} {
-		puts "\[$prog\]: *Remind*: No test specified, will reserve host($Distro) for you"
+		puts stderr "\[$prog\] *Remind*: No test specified, will reserve host($Distro) for you"
 	}
 	if ![regexp -- {--reserve} $ForwardOpt] {
 		lappend _TestList {/distribution/reservesys: {attr: {pkg: distribution, time: 12h, ssched: no, type: Functioal}}}
@@ -334,6 +338,7 @@ if [info exist Opt(merge)] {
 	lappend SubcmdOpt {-recipe}
 }
 
+set loop 0
 foreach {tkey tvalue} [array get TestGroup] {
 	set testGset $tkey
 	set testList $tvalue
@@ -370,6 +375,11 @@ foreach {tkey tvalue} [array get TestGroup] {
 	set jobinfo job_[regsub -all {[^-?,=_a-zA-Z0-9]} $WB {_}]; # substitute special characters
 	set jobinfo [regsub -all {_+} $jobinfo {_}];		   # merge duplicate underlines
 	set xmlf [string range $jobinfo 0 128].[expr {int(rand()*10000)}].xml; # limit filename length
+	if {[info exist Opt(dryrun)] && $Opt(dryrun) ni {"" "n"}} {
+		set xmlf [string map {.xml ""} $Opt(dryrun)]
+		if {$loop > 0} {append xmlf "-[pid]-$loop"}
+		append xmlf .xml
+	}
 
 	set testDistro $Distro
 	if [regexp -- {--?distro=} $gset] {
@@ -383,8 +393,8 @@ foreach {tkey tvalue} [array get TestGroup] {
 		foreach t $testList { puts $fp "$t" }
 		catch {close $fp} err
 
-		puts "\[$prog\]: Test require: {$gset}"
-		puts "\[$prog\]: Generate job XML ==> '$xmlf'"
+		puts stderr "\[$prog\] Test require: {$gset}"
+		puts stderr "\[$prog\] Generate job XML ==> '$xmlf'"
 
 		if [info exist xmlf_merged] {
 			exec sed -n {/retention_tag/,/\/notify/p} $xmlf > ${xmlf_merged}.head
@@ -399,19 +409,20 @@ foreach {tkey tvalue} [array get TestGroup] {
 					puts "$result"
 				}
 				file delete $xmlf
-			} elseif {$Opt(dryrun) != ""} {
+			} elseif {$Opt(dryrun) in {"" "n"}} {
 				puts [exec cat $xmlf]
 				file delete $xmlf
 			}
 		}
 		puts ""
 	} else {
-		puts "\[$prog\]: Error: fail to write $xmlf\n\n$err"
+		puts stderr "\[$prog\] Err: fail to write $xmlf\n\n$err"
 	}
+	incr loop
 }
 
 if [info exist xmlf_merged] {
-	puts "\[$prog\]: Merged all recipeSets to '$xmlf_merged'"
+	puts stderr "\[$prog\] Merged all recipeSets to '$xmlf_merged'"
 	set XML [exec cat ${xmlf_merged}.head ${xmlf_merged}.body ${xmlf_merged}.tail]
 	file delete ${xmlf_merged}.head
 	file delete ${xmlf_merged}.body
