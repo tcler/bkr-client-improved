@@ -124,7 +124,7 @@ for f in $kfList; do
 		changeUrl=$url
 
 		for chan in "#fs-qe" "#network-qe"; do
-			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
+			: ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$chan" \
 			    "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new rhel${V} kernel: $nvr    # $changeUrl"
 		done
 
@@ -135,7 +135,7 @@ for f in $kfList; do
 		    grep "^\- \[fs\]" | sed 's/.*\[\([[:digit:]]\+\)\].*/\1/g;t;d' | sort -u >fsBugs
 
 		for bugid in $(cat fsBugs); do
-			ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "#fs-qe" \
+			: ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "#fs-qe" \
 			    "https://bugzilla.redhat.com/$bugid $(su jiyin --command="bugzilla query --bug_id=$bugid --outputformat='- %{qa_contact} - %{summary}'")"
 		done
 	done

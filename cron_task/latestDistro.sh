@@ -101,12 +101,12 @@ for V in $DVLIST; do
 		[[ "$line" = *label?:* ]] && label="${line/*label?:/- with label:}"
 		for chan in $chanList; do
 			if test "$fschan" = "$chan"; then
-				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
-				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line #labs: $labs"
+				: ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
+				#-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: $line #labs: $labs"
 			else
 				_distro=${distro/-/-${ircRoyalblue}}${ircPlain}
-				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
-				-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: ${_distro} ${ircRed}${knvr}${ircPlain} ${ircBold}${label}${ircPlain} #labs: $labs"
+				: ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot \
+				#-C "$chan" "${ircBold}${ircRoyalblue}{Notice}${ircPlain} new distro: ${_distro} ${ircRed}${knvr}${ircPlain} ${ircBold}${label}${ircPlain} #labs: $labs"
 			fi
 			sleep 1
 		done
@@ -140,7 +140,7 @@ for V in $DVLIST; do
 			pkgDiff=$(diff -pNur -w ${f}.pkgvers_${dtype} ${f}.pkgvers_${dtype}.tmp | awk '/^+[^+]/{ORS=" "; print $0 }' | cut -d " " -f 2-)
 			if [ -n "$pkgDiff" ]; then
 				preDistro=$(head -1 ${f}.pkgvers_${dtype})
-				ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$fschan" \
+				: ircmsg.sh -s fs-qe.usersys.redhat.com -p 6667 -n testBot -P rhqerobot:irc.devel.redhat.com -L testBot:testBot -C "$fschan" \
 				    "${ircPlain}highlight newer pkg: ${ircTeal}${pkgDiff} ${ircPlain}(vary to $preDistro)"
 			fi
 		}
