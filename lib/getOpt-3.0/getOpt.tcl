@@ -123,7 +123,7 @@ proc ::getOpt::argparse {optionList argvVar optVar optArgVar} {
 					if [dict exists $optAttr arg] {
 						set xtype [dict get $optAttr arg]
 					}
-					if {[dict exist $optionList $x link]} {
+					if {[dict exists $optionList $x link]} {
 						set x_link [dict get $optionList $x link]
 						lassign [getOptObj $optionList $x_link] _x_link optAttr
 						if {$_x_link != ""} {
@@ -261,7 +261,7 @@ proc ::getOpt::getUsage {optLists {out "stdout"}} {
 
 	#ignore hide options
 	foreach key [dict keys $optDict] {
-		if [dict exist $optDict $key hide] {
+		if [dict exists $optDict $key hide] {
 			dict unset optDict $key
 		}
 	}
