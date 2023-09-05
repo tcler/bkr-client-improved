@@ -257,7 +257,7 @@ _caseInfo() {
 			no_localwatchdog=true
 			EOF
 			git add metadata main.sh 2>/dev/null
-			sed -e 's/\$ARCH/\$RSTRNT_OSARCH/g' -e 's/\$DISTRO/\$RSTRNT_OSDISTRO/g' \
+			sed -r -e 's/\$ARCH/\$RSTRNT_OSARCH/g' -e 's/\$DISTRO(_BUILD)?/\$RSTRNT_OSDISTRO/g' \
 				-e 's/\$FAMILY/\$RSTRNT_OSMAJOR/g' -e 's/\$JOBID/\$RSTRNT_JOBID/g' \
 				-e 's/\$REBOOTCOUNT/\$RSTRNT_REBOOTCOUNT/g' -e 's/\$RECIPESETID/\$RSTRNT_RECIPESETID/g' \
 				-e 's/\$RECIPEID/\$RSTRNT_RECIPEID/g' -e 's/\$RECIPETESTID/\$RSTRNT_RECIPEID/g' \
