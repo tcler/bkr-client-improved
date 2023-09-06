@@ -208,24 +208,20 @@ _caseInfo() {
 
 	if [[ $metafile = testinfo.desc ]]; then
 		repoHead=$(sed -r 's@^((/CoreOS)?/[^/]+)/.*$@\1@' <<<${taskname})
-		rundep=$(sed -n '/^run:[[:space:]]*/{ s///; s/ *\$(FILES) *//; p; }' Makefile)
-		builddep=$(sed -n '/^build:[[:space:]]*/{ s///; s/ *\$(FILES) *//; p; }' Makefile)
-		buildaction=$(sed -rn '/^build:/,/^[^[:space:]]+:( |$)|^$/{//d; s/^([^[:space:]])/\t\1/; s/([^;\]) *$/\1;/; p}' Makefile|
-			sed -e '1{s/^\t//}' -e 's/chmod a+x runtest.sh *;\?//' -e 's/test -x runtest.sh *|| *//')
-		runaction=$(sed -rn '/^run:/,/^[^[:space:]]+:( |$)|^$/{//d; s/^([^[:space:]])/\t\1/; s/([^;\]) *$/\1;/; p}' Makefile|
-			sed -r -e '1{s/^\t//}')
 		if [[ "$META" = yes ]]; then
-			ep="bash main.sh"
-			: >main.sh
-			if [[ -z "$rundep" ]] || [[ "$rundep" = build && -z "$buildaction" ]]; then
-				git rm Makefile
+			makentrace=$(make run -n --trace)
+			finalsh=$(echo "$makentrace"|sed -e '/^Makefile:.*/d' \
+				-e '/^test -x runtest.sh || chmod +x runtest.sh$/d' \
+				-e '/^chmod +x runtest.sh$/d')
+			if [[ "$finalsh" = ./runtest.sh || "$finalsh" = "bash runtest.sh" ]]; then
+				ep="bash runtest.sh"
 			else
-				echo -e "#fixme: add actions of '${builddep}' here:\n" >main.sh
-				echo -e "$buildaction\n" >>main.sh
-				ep="make run"
+				echo "$makentrace"|sed -r '/^Makefile:.* update target .([a-zA-Z0-9_]+).*$/{s//\n#\1:/}' >main.sh
+				chmod +x main.sh
+				git add main.sh
+				ep="bash main.sh"
 			fi
-			echo "$runaction" >>main.sh
-			chmod +x main.sh
+			git rm -f Makefile _env
 
 			cat <<-EOF >metadata
 			[General]
