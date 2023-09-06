@@ -25,11 +25,7 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 		{ rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
 	mkdir -p $(_confdir) && cp -f conf/*.example conf/fetch-url.ini $(_confdir)/.
-	@{ _rpath=share/restraint/plugins/task_run.d; \
-	   echo -e "/25_environment$$/r $$_rpath/25_environment"; \
-	   echo -e "/27_task_require$$/r $$_rpath/27_task_require"; \
-	   echo -e 'g/.*/p\nQ'; } | \
-		ed -s conf/default-ks.cfg.tmpl >$(_confdir)/default-ks.cfg
+	@cp conf/default-ks.cfg.tmpl $(_confdir)/default-ks.cfg
 	test -d /etc/beaker && ln -sf $(_confdir)/fetch-url.ini /etc/beaker/fetch-url.ini
 	test -d /etc/beaker && ln -sf $(_confdir)/default-ks.cfg /etc/beaker/default-ks.cfg
 	test -f $(_confdir)/bkr-runtest.conf || cp $(_confdir)/bkr-runtest.conf{.example,}
