@@ -46,7 +46,7 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 	set cnt 0
 	global alone
 puts "\[limitSubmitJobs\]: -> | bkr-runtest -n- $distro - ${alone} $rgset --random"
-	if {![catch {set fp [open "|bkr-runtest -n- $distro - ${alone} $rgset --random" w]} err]} {
+	if {![catch {set fp [open "|bash -c {bkr-runtest -n- $distro - ${alone} $rgset --random 2>&1}" w]} err]} {
 		foreach T $testlist { puts $fp $T }
 		if {[catch {close $fp} err]} {
 			puts "{Error} close pipe(|bkr-runtest) $fp err:\n$err"
