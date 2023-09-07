@@ -6,6 +6,7 @@ Usage() {
 cat <<END
 Usage: $0 [other options] <casedir>
 	<casedir>               #path/dir
+	-c <component>          #component
 	-m [ServNum,ClntNum]    #multihost machines number
 	-l <0|1|2|...>          #Tier/level specify(default 1)
 	-t <type1[,type2,...]>  #type: function/regression/stress
@@ -17,7 +18,7 @@ END
 
 # __main__
 # argument process
-_at=`getopt -o d:m::l:t:h \
+_at=`getopt -o c:d:m::l:t:h \
 	--long time: \
 	--long desc: \
 	--long help \
@@ -26,17 +27,18 @@ eval set -- "$_at"
 
 while true; do
 	case "$1" in
-	-m)             multihost=${2:-1,1}; shift 2;;
+	-c)		component=${2}; shift 2;;
+	-m)		multihost=${2:-1,1}; shift 2;;
 	-l)		level=$2; shift 2;;
 	-t)		type="${2//,/ }"; shift 2;;
 	--time)		time="$2"; shift 2;;
-	--desc)		desc="$2"; shift 2;;
-	-h|--help)      Usage; shift 1; exit 0;;
+	-d|--desc)	desc="$2"; shift 2;;
+	-h|--help)	Usage; shift 1; exit 0;;
 	--) shift; break;;
 	esac
 done
 
-level=${level:-1}
+level=${level:-tier1}
 casedir="$*"
 test -z "$casedir" && { Usage >&2; exit 1; }
 test -n "$multihost" && read ServNum ClntNum nil <<<"${multihost//[.,]/ }"
@@ -51,6 +53,8 @@ test -z "$type" && {
 	[[ "$dir" =~ [Ss]tress ]] && type=stress
 }
 
+gitroot() { local d=$(readlink -f ${1:-.}); while :; do d=${d%/*}; test -d $d/.git && { echo $d; break; } done; }
+
 #create the case dir, and cd ..
 echo "create case dir: $dir/$basedir"
 mkdir -p "$dir/$basedir"
@@ -60,86 +64,31 @@ pushd "$dir/$basedir" &>/dev/null
 #get the user.name and user.email info
 name=`git config user.name`
 mail=`git config user.email`
+owner="$name <$mail>"
+reporoot=$(gitroot)
+reponame=${reporoot##*/}
+rpath=${PWD/${reporoot//\//?}?/}
+taskname=/${reponame%.git}/$rpath
 
-gen_makefile() {
-echo "create $dir/$basedir/Makefile"
-cat >Makefile <<EOF
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#   Description: ${desc:-test for: $base}
-#   Author: $name <$mail>
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#
-#   Copyright (c) $(date +%Y) Red Hat, Inc. All rights reserved.
-#
-#   This copyrighted material is made available to anyone wishing
-#   to use, modify, copy, or redistribute it subject to the terms
-#   and conditions of the GNU General Public License version 2.
-#
-#   This program is distributed in the hope that it will be
-#   useful, but WITHOUT ANY WARRANTY; without even the implied
-#   warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
-#   PURPOSE. See the GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public
-#   License along with this program; if not, write to the Free
-#   Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
-#   Boston, MA 02110-1301, USA.
-#
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+gen_metadata() {
+echo "create $dir/$basedir/metadata"
+cat >metadata <<EOF
+[General]
+name=$taskname
+component=${component:-${reponame%.git}}
+owner=$owner
+description=${desc:-test for: $base}
+priority=${level}
+license=GPL v2
+topo=${topo:-singleHost}
+confidential=no
+destructive=no
 
-#Generate and export TEST= PACKAGE=
-TENV=_env
-ifeq (\$(PKG_TOP_DIR),)
-    export PKG_TOP_DIR := \$(shell p=\$\$PWD; while :; do \\
-        [ -e \$\$p/env.mk -o -z "\$\$p" ] && { echo \$\$p; break; }; p=\$\${p%/*}; done)
-    export _TOP_DIR := \$(shell p=\$\$PWD; while :; do \\
-        [ -d \$\$p/.git -o -z "\$\$p" ] && { echo \$\$p; break; }; p=\$\${p%/*}; done)
-    -include \$(PKG_TOP_DIR)/env.mk
-endif
-include \$(TENV)
-ifeq (\$(_TOP_DIR),)
-    _TOP_DIR=/mnt/tests/\$(TOPLEVEL_NAMESPACE)
-endif
-#===============================================================================
-export TESTVERSION=1.0
-
-BUILT_FILES=
-FILES=\$(TENV) \$(METADATA) runtest.sh Makefile PURPOSE
-
-.PHONY: all install download clean
-
-run: \$(FILES) build
-	( set +o posix; . /usr/bin/rhts-environment.sh || exit 1; \\
-. /usr/share/beakerlib/beakerlib.sh || exit 1; \\
-. runtest.sh )
-
-build: \$(BUILT_FILES)
-	test -x runtest.sh || chmod a+x runtest.sh
-
-clean:
-	rm -f *~ \$(BUILT_FILES)
-
-include /usr/share/rhts/lib/rhts-make.include
-
-\$(METADATA): Makefile
-	@echo "Owner:           $name <$mail>" > \$(METADATA)
-	@echo "Name:            \$(TEST)" >> \$(METADATA)
-	@echo "TestVersion:     \$(TESTVERSION)" >> \$(METADATA)
-	@echo "Path:            \$(TEST_DIR)" >> \$(METADATA)
-	@echo "Description:     ${desc:-test for: $base}" >> \$(METADATA)
-	@echo "Type:            ${type}" >> \$(METADATA)
-	@echo "Type:            \$(PACKAGE)-level-tier${level/[Tt]ier/}" >> \$(METADATA)
-	@echo "TestTime:        ${time:-30m}" >> \$(METADATA)
-	@echo "RunFor:          \$(PACKAGE)" >> \$(METADATA)
-	@echo "Requires:        \$(PACKAGE)" >> \$(METADATA)
-	@echo "Priority:        Normal" >> \$(METADATA)
-	@echo "License:         GPLv2" >> \$(METADATA)
-	@echo "Requires:	library(kernel/base)" >> \$(METADATA)
-	@echo "Requires:	cifs-utils nfs-utils autofs" >> \$(METADATA)
-	@echo "Requires:	wireshark tcpdump net-tools tmux" >> \$(METADATA)
-	@echo "Requires:	procmail sssd sssd-client" >> \$(METADATA)
-	@echo "RhtsRequires:	library(kernel/base)" >> \$(METADATA)
-	rhts-lint \$(METADATA)
+entry_point=bash runtest.sh
+softDependencies=vim;tmux
+repoRequires=Library/base
+max_time=${time:-16m}
+no_localwatchdog=true
 EOF
 }
 
@@ -150,7 +99,7 @@ cat >runtest.sh <<EOF
 # vim: dict=/usr/share/beakerlib/dictionary.vim cpt=.,w,b,u,t,i,k
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #   Description: ${desc:-test for: $base}
-#   Author: $name <$mail>
+#   Author: $owner
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #
 #   Copyright (c) $(date +%Y) Red Hat, Inc. All rights reserved.
@@ -319,7 +268,6 @@ cat >PURPOSE <<EOF
 EOF
 }
 
-gen_makefile
+gen_metadata
 gen_runtest
 gen_purpose
-make testinfo.desc
