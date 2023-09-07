@@ -45,8 +45,8 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 	# call bkr-runtest -n, and submit xml
 	set cnt 0
 	global alone
-puts "\[limitSubmitJobs\]: -> | bkr-runtest -n $distro - ${alone} $rgset --random"
-	if {![catch {set fp [open "|bkr-runtest -n $distro - ${alone} $rgset --random" w]} err]} {
+puts "\[limitSubmitJobs\]: -> | bkr-runtest -n- $distro - ${alone} $rgset --random"
+	if {![catch {set fp [open "|bkr-runtest -n- $distro - ${alone} $rgset --random" w]} err]} {
 		foreach T $testlist { puts $fp $T }
 		if {[catch {close $fp} err]} {
 			puts "{Error} close pipe(|bkr-runtest) $fp err:\n$err"
@@ -169,6 +169,10 @@ db eval {
 
 #Update test status and result
 foreach {jobID taskList} [array get runningTest] {
+	set jobid [regsub {J:} $jobID {}]
+	set jobdel [catch {exec bash -c "curl -Ls https://beaker.engineering.redhat.com/jobs/$jobid | grep -q is.deleted.:.true"} out opt]
+	if {$jobdel eq "0"} {continue}
+
 	#ifdebug
 	puts "==>$jobID"
 	set XML [getXML $jobID]
@@ -180,7 +184,10 @@ foreach {jobID taskList} [array get runningTest] {
 	foreach recipeNode $recipeNodeList {
 		set arch [$recipeNode @arch]
 		set _arch [lindex [split $arch .] 0]
-		incr HostUsed($_arch)
+		set recipeStatus [$recipeNode @status]
+		if {$recipeStatus ni {"Aborted" "Completed"}} {
+			incr HostUsed($_arch)
+		}
 		#puts "$jobID incr HostUsed($_arch) = $HostUsed($_arch)"
 	}
 
