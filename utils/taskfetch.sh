@@ -203,8 +203,8 @@ while true; do
 	case "$1" in
 	-h) Usage; shift; exit 0;;
 	-f) let FORCE++; shift;;
-	--repo) REPO_URLS+="$2 "; shift 2;;
-	--task) TASK_URIS+="$2 "; taskl+=(${2%%[,@]*}); shift 2;;
+	--repo) [[ "REPO_URLS" != *${2}* ]] && REPO_URLS+="$2 "; shift 2;;
+	--task) [[ "TASK_URIS" != *${2}* ]] && TASK_URIS+="$2 "; taskl+=(${2%%[,@]*}); shift 2;;
 	--run)  RUN_TASK=yes; shift;;
 	--fetch-require) FETCH_REQUIRE=yes; shift;;
 	--install-deps) _install_requirements; shift; exit 0;;
