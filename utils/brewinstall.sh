@@ -19,10 +19,7 @@ is_available_url() {
         local _url=$1
         curl --connect-timeout 8 -m 16 --output /dev/null --silent --head --fail $_url &>/dev/null
 }
-is_rh_intranet() {
-	local iurl=http://download.devel.redhat.com
-	is_available_url $iurl
-}
+is_rh_intranet() { host ipa.redhat.com &>/dev/null; }
 
 [[ function = "$(type -t report_result)" ]] || report_result() {  echo "$@"; }
 
