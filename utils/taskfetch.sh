@@ -48,7 +48,7 @@ _get_task_requires() {
 		'
 
 	  component=$(awk -F'[=/ ]+' '/^name/{print $2}' metadata);
-	  awk -v head=$component -F'[=;]' '/^(task|repo)Requires/ {
+	  awk -v head=$component -F'[=;]' '/^(task|orepo|repo)Requires/ {
 		for (i=2;i<=NF;i++) {
 			if ($i ~ "^/") print substr($i,2); else print head"/"$i
 		}
