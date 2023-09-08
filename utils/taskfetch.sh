@@ -189,6 +189,8 @@ Usage() {
 for a; do [[ "$a" =~ ^[a-zA-Z_][a-zA-Z0-9_]*=.+ ]] && ENV+=("$a") || at+=("$a"); shift; done
 set -- "${at[@]}"
 
+REPO_URLS+=${REPO_URLS:+ }
+TASK_URIS+=${TASK_URIS:+ }
 _at=`getopt -o fh \
     --long repo: \
     --long task: \
