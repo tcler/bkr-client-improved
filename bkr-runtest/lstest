@@ -227,12 +227,13 @@ _caseInfo() {
 
 			requires=$(sed -nr '/^.*Requires:\s*([^"]+)$/{s//\1/;s/\s+/\n/g;p}' $metafile |
 				sort -u | awk '
-				match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]) }
-				match($0,/^test\(\/?(.+)\)$/,M) { print(M[1]) }
-				match($0,/^kernel-kernel-(.+)$/,M) { print("kernel/" gensub("-","/","g",M[1])) }
-				match($0,/^nfs-utils-nfs-utils-(.+)$/,M) { print("nfs-utils/" gensub("-","?","g",M[1])) }
-				match($0,/^\//) { print(gensub("^/","",1)) }
-				match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)) }
+				match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]); next }
+				match($0,/^test\(\/?(.+)\)$/,M) { print(M[1]); next }
+				match($0,/^kernel-kernel-(.+)$/,M) { print("kernel/" gensub("-","/","g",M[1])); next }
+				match($0,/^nfs-utils-nfs-utils-(.+)$/,M) { print("nfs-utils/" gensub("-","?","g",M[1])); next }
+				match($0,/^\//) { print(gensub("^/","",1)); next }
+				match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)); next }
+				match($0,/^.+\//) { print; next }
 			' | sed -e 's;^;/;' -e '/\?/!'"s@^${repoHead}/@@" | sort -u)
 			cat <<-EOF >metadata
 			[General]
@@ -250,7 +251,7 @@ _caseInfo() {
 			[restraint]
 			entry_point=$ep
 			softDependencies=$(sed -nr '/^.*Requires:\s*([^"()]+)$/{s//\1/;s/ +/\n/g;p}' $metafile |
-				grep -E -v -e '^kernel-kernel-|^(.+)-CoreOS-\1-|^/' -e '^$' | sort -u | paste -s -d\; -)
+				grep -E -v -e '^kernel-kernel-|^(.+)-CoreOS-\1-|/' -e '^$' | sort -u | paste -s -d\; -)
 			repoRequires=$(echo "$requires"|grep -v ^/ | paste -s -d\; -)
 			orepoRequires=$(echo "$requires"|grep ^/ | paste -s -d\; -)
 			max_time=${Attr[time]}
