@@ -394,13 +394,25 @@ foreach {tkey tvalue} [array get TestGroup] {
 	set hostParamOpt {}
 	if {[info exist Opt(host)]} {
 		foreach e $Opt(host) {lappend hostlist {*}[split $e ", "]}
-		set xmlf "job-[join $Opt(host) ,].xml"
+		set xmlf "job-[join $hostlist ,].xml"
 		set testDistro s
 		set i 0
 		set hostOpt [lmap h $hostlist {incr i; set _ "--host=$i=root@$h"}]
+		if [regexp -- {topo=singleHost} $gset] {
+			set hostOpt [lindex $hostOpt 0]
+			set xmlf "job-[lindex $list 0].xml"
+		} elseif [regexp -- {topo=multiHost} $gset] {
+			set SC [regsub {.*topo=multiHost.([0-9]+).([0-9]+).*} $gset {\1 \2}]
+			lassign $SC ServerN ClientN
+			set HostN [expr {$ServerN + $ClientN}]
+			puts "{debug} ServerN=$ServerN, ClientN=$ClientN, HostN=$HostN"
+			set hostOpt [lrange $hostOpt 0 [expr {${HostN}-1}]]
+			if {$ServerN > 0} { lappend hostParamOpt "--param=SERVERS=[lrange $hostlist 0 [expr ${ServerN}-1]]" }
+			if {$ClientN > 0} { lappend hostParamOpt "--param=CLIENTS=[lrange $hostlist $ServerN [expr ${HostN}-1]]" }
+		}
 	}
 	if {![catch {set fp \
-	  [open "|gen_job_xml -distro=$testDistro -F - {-wb=$WB} $gset $SubcmdOpt >$xmlf 2>@stderr" w]} err]} {
+	  [open "|gen_job_xml -distro=$testDistro -F - {-wb=$WB} $gset $SubcmdOpt $hostParamOpt >$xmlf 2>@stderr" w]} err]} {
 		foreach t $testList { puts $fp "$t" }
 		catch {close $fp} err
 
