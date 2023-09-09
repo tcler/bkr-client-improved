@@ -205,8 +205,8 @@ else
 rlPhaseEnd
 
 rlPhaseStartTest do-$role-Test-
-	run '"'rhts-sync-set -s servReady'"'
-	run '"'rhts-sync-block -s testDone \$CLIENT'"'  #fix me
+	run '"'testmark servReady'"'
+	run '"'testwaitfor testDone \$CLIENT'"'  #fix me
 rlPhaseEnd
 
 rlPhaseStartCleanup do-$role-Cleanup-
@@ -223,7 +223,7 @@ rlPhaseEnd'
 	run "mkdir -p $nfsmp"
 	nfsvers=$NFS_VERS
 	[[ -n "$SERVER" ]] && {
-		run '"'rhts-sync-block -s servReady \$SERVER'"'  #fix me
+		run '"'testwaitfor servReady \$SERVER'"'  #fix me
 		nfsvers=$(ls_nfsvers $SERVER)
 	}
 	run "test -n '"'\$nfsvers'"'"
@@ -237,7 +237,7 @@ rlPhaseEnd
 done
 
 rlPhaseStartCleanup do-$role-Cleanup-
-	[[ -n "$SERVER" ]] && run '"'rhts-sync-set -s testDone'"'  #fix me
+	[[ -n "$SERVER" ]] && run '"'testmark testDone'"'  #fix me
 	rlFileRestore
 rlPhaseEnd'
     echo "}"
