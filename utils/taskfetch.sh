@@ -70,6 +70,7 @@ _install_task() {
 	local _task=$1 fpath= local_fpath=
 	local taskrepo= _rpath= url= rpath=
 	_task=${_task#CoreOS/}; _task=${_task#/}
+	[[ -z "$_task" ]] && { return 2; }
 	read taskrepo _rpath <<<"${_task/\// }"
 	uri=$(taskname2url.py /$_task $taskOpts $repoOpts)
 	[[ -z "$uri" ]] && { echo "{warn} 'taskname2url.py /$_task $taskOpts $repoOpts' fail" >&2; return 2; }
