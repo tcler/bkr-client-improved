@@ -26,6 +26,7 @@ set ForwardOpt {}
 set OptionList {
   "  Base options:" {
 	{help h}   {arg n	help {Print this usage}}
+	{host}	   {arg y	help {restraint standalone mode, if host not reachable create local VM Guest}}
 	{dryrun n} {arg o	help {-ntest.xml Just generate XML file(s), not submit job to beaker}}
 	{jobn}     {arg y	help {--jobn=N submit job N times}}
 	{merge m}  {arg n	help {Merge all recipeSets in one job XML}}
@@ -388,6 +389,11 @@ foreach {tkey tvalue} [array get TestGroup] {
 		set gset [regsub -all -- {--?nvr=([^ ]+)} $gset {}]
 		set testDistro [expandDistro $testDistro]
 	}
+
+	if {[info exist Opt(host)]} {
+		set xmlf "job-$Opt(host).xml"
+		set testDistro s
+	}
 	if {![catch {set fp \
 	  [open "|gen_job_xml -distro=$testDistro -F - {-wb=$WB} $gset $SubcmdOpt >$xmlf 2>@stderr" w]} err]} {
 		foreach t $testList { puts $fp "$t" }
@@ -403,10 +409,14 @@ foreach {tkey tvalue} [array get TestGroup] {
 
 			file delete $xmlf
 		} else {
-			if ![info exist Opt(dryrun)] {
-				for {set i 0}  {$i < $jobN} {incr i} {
-					set status [catch {exec bkr job-submit $xmlf} result]
-					puts "$result"
+			if {![info exist Opt(dryrun)]} {
+				if ![info exist Opt(host)] {
+					for {set i 0}  {$i < $jobN} {incr i} {
+						set status [catch {exec bkr job-submit $xmlf} result]
+						puts "$result"
+					}
+				} else {
+					exec bash -c "restraint -v --job $xmlf --host 1=root@$Opt(host) || :" >@stdout 2>@stderr
 				}
 				file delete $xmlf
 			} elseif {$Opt(dryrun) in {"" "n"}} {
