@@ -16,7 +16,7 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	  fi; \
 	fi
 	@rpm -q beaker-client || utils/beaker-client_install.sh
-	@yum install -y rhts-devel
+	@yum install -y rhts-devel restraint-client
 	@rpm -q rhts-devel || { cp repos/beaker-harness.repo /etc/yum.repos.d/.; yum install -y restraint-rhts; }
 	@rpm -q expect >/dev/null || yum install -y expect #package that in default RHEL repo
 	@yum install -y tcllib #epel
@@ -42,6 +42,7 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	cp -fd bash-completion/* ${completion_path}/.||cp -fd bash-completion/* $${completion_path/\/*/}/. || :
 	@rm -f /usr/lib/python2.7/site-packages/bkr/client/commands/cmd_recipes_list.py $(_bin)/distro-pkg #remove old file
 	@rm -f $(_bin)/{distro-to-vm.sh,downloadBrewBuild,installBrewPkg,yaml2dict} #remove old file
+	@grep -q '^StrictHostKeyChecking no' /etc/ssh/ssh_config || echo "StrictHostKeyChecking no" >>/etc/ssh/ssh_config
 
 yqinstall: _isroot
 	./utils/yq-install.sh
