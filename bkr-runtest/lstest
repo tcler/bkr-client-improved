@@ -112,7 +112,7 @@ get_test_component() {
 		_component=$(awk -F'[ =]+' '$1 == "component" {print $2}' $metaf)
 	fi
 	[[ -z "$_component" ]] &&
-		_component=$(get_taskname $metaf|awk -F/ '{print $2}')
+		_component=$(get_taskname $metaf|awk -F/ '{if ($2 != "CoreOS") {print $2} else {print $3}}')
 	echo -n ${_component}
 }
 
