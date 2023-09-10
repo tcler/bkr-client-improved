@@ -47,7 +47,7 @@ _get_task_requires() {
 		match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)) }
 		'
 
-	  component=$(awk -F'[=/ ]+' '/^name/{print $2}' metadata);
+	  component=$(awk -F'[=/ ]+' '/^name/{if ($2 != "CoreOS") {print $2} else {print $3}}' metadata);
 	  awk -v head=$component -F'[=;]' '/^(task|orepo|repo)Requires/ {
 		for (i=2;i<=NF;i++) {
 			if ($i ~ "^/") print substr($i,2); else print head"/"$i
