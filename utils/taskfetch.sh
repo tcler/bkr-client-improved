@@ -34,21 +34,32 @@ _install_requirements() {
 	[[ -f /etc/${_dburl##*/} ]] || (cd /etc && curl -Ls -O ${_dburl})
 }
 
+get_taskname() {
+	local casedir=$1; make -C $casedir testinfo.desc &>/dev/null
+	if [[ -f $casedir/metadata ]]; then
+		awk -F'[ =]+' '$1 == "name" {print $2}' $casedir/metadata
+	elif [[ -f $casedir/testinfo.desc ]]; then
+		awk -F'[: =\t]+' '/^Name:/{print $2}' $casedir/testinfo.desc
+	fi
+}
+
 _get_task_requires() {
 	local _fpath=$1
 	pushd "$_fpath" &>/dev/null
+	local _reponame=$(get_taskname .|awk -F/ '{if ($2 != "CoreOS") {print $2} else {print $3}}')
 	{ test -f Makefile && sed -nr '/^.*"(Rhts|Repo)?Requires:\s*([^"]+)".*$/{s//\2/;s/\s+/\n/g;p}' Makefile |
-		sort -u | awk '
-		match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]) }
-		match($0,/^test\(\/?(.+)\)$/,M) { print(M[1]) }
-		match($0,/^kernel-kernel-(.+)$/,M) { print("kernel/" gensub("-","?","g",M[1])) }
-		match($0,/^nfs-utils-nfs-utils-(.+)$/,M) { print("nfs-utils/" gensub("-","?","g",M[1])) }
-		match($0,/^\//) { print(gensub("^/","",1)) }
-		match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)) }
+		sort -u | awk -v repon=$_reponame '
+		match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]); next }
+		match($0,/^test\(\/?(.+)\)$/,M) { print(M[1]); next }
+		match($0,/^kernel-kernel-(.+)$/,M) { print("kernel/" gensub("-","?","g",M[1])); next }
+		match($0,/^nfs-utils-nfs-utils-(.+)$/,M) { print("nfs-utils/" gensub("-","?","g",M[1])); next }
+		match($0,/^\//) { print(gensub("^/","",1)); next }
+		match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)); next }
+		match($0,/^.+\//) { print repon"/"$0; next }
 		'
 
-	  component=$(awk -F'[=/ ]+' '/^name/{if ($2 != "CoreOS") {print $2} else {print $3}}' metadata);
-	  awk -v head=$component -F'[=;]' '/^(task|orepo|repo)Requires/ {
+	  _reponame=$(awk -F'[=/ ]+' '/^name/{if ($2 != "CoreOS") {print $2} else {print $3}}' metadata);
+	  awk -v head=$_reponame -F'[=;]' '/^(task|orepo|repo)Requires/ {
 		for (i=2;i<=NF;i++) {
 			if ($i ~ "^/") print substr($i,2); else print head"/"$i
 		}
@@ -162,15 +173,6 @@ _install_task_requires() {
 		[[ $? = 0 && -d "$__fpath" ]] && _install_task_requires "$__fpath"
 	done
 	INDENT="${INDENT%  }"
-}
-
-get_taskname() {
-	local casedir=$1; make -C $casedir testinfo.desc &>/dev/null
-	if [[ -f $casedir/metadata ]]; then
-		awk -F'[ =]+' '$1 == "name" {print $2}' $casedir/metadata
-	elif [[ -f $casedir/testinfo.desc ]]; then
-		awk -F'[: =\t]+' '/^Name:/{print $2}' $casedir/testinfo.desc
-	fi
 }
 
 Usage() {
