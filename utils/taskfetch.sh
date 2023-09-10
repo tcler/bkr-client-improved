@@ -98,7 +98,7 @@ _install_task() {
 			fpath=${rfpath%/}
 			if [[ -f "$fpath/.url" ]]; then
 				echo "$fpath"
-				_get_task_requires "$fpath" 2>/dev/null|grep -q Library/ && return 0 || return 1
+				_get_task_requires "$fpath" 2>/dev/null|grep -q /Library/ && return 8 || return 1
 			fi
 			rpath=${fpath#${repopath}/}
 		fi
@@ -115,7 +115,7 @@ _install_task() {
 				echo -n "$url" >$local_fpath/.url
 			fi
 			echo "$local_fpath"
-			_get_task_requires "$local_fpath" 2>/dev/null|grep -q Library/ && return 0 || return 1
+			_get_task_requires "$local_fpath" 2>/dev/null|grep -q /Library/ && return 8 || return 1
 		fi
 	fi
 
@@ -124,7 +124,7 @@ _install_task() {
 			rm -rf "$fpath"
 		else
 			echo "$fpath"
-			_get_task_requires "$fpath" 2>/dev/null|grep -q Library/ && return 0 || return 1
+			_get_task_requires "$fpath" 2>/dev/null|grep -q /Library/ && return 8 || return 1
 		fi
 	fi
 
@@ -166,11 +166,20 @@ _install_task() {
 
 _install_task_requires() {
 	INDENT+="  "
+	local onlyBkrLibrary=
+	[[ "$1" = -bkrlib ]] && { shift; onlyBkrLibrary=yes; }
 	local _fpath=$1 _task= __fpath=
 	local require_tasks=$(_get_task_requires $_fpath)
 	for _task in $require_tasks; do
-		__fpath=$(_install_task "$_task")
-		[[ $? = 0 && -d "$__fpath" ]] && _install_task_requires "$__fpath"
+		[[ "$onlyBkrLibrary" = yes && $_task != */Library/* ]] && continue
+		__fpath=$(_install_task "$_task"); rc=$?
+		[[ -d "$__fpath" ]] && {
+			if [[ "$rc" = 0 ]]; then
+				_install_task_requires "$__fpath"
+			elif [[ "$rc" = 8 ]]; then
+				_install_task_requires -bkrlib "$__fpath"
+			fi
+		}
 	done
 	INDENT="${INDENT%  }"
 }
