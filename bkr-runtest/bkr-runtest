@@ -415,6 +415,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 			set hostOpt [lrange $hostOpt 0 [expr ${HostN}-1]]
 			if {$ServerN > 0} { lappend hostParamOpt "--param=SERVERS=[lrange $hostlist 0 [expr ${ServerN}-1]]" }
 			if {$ClientN > 0} { lappend hostParamOpt "--param=CLIENTS=[lrange $hostlist $ServerN [expr ${HostN}-1]]" }
+			if {$HostN > 0} { lappend hostParamOpt "--param=RSTRNT_STANDALONE=yes" }
 		}
 	}
 	if {![catch {set fp \
