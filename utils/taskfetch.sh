@@ -59,7 +59,7 @@ _get_task_requires() {
 		'
 
 	  _reponame=$(awk -F'[=/ ]+' '/^name/{if ($2 != "CoreOS") {print $2} else {print $3}}' metadata);
-	  awk -v head=$_reponame -F'[=;]' '/^(task|orepo|repo)Requires/ {
+	  awk -v head=$_reponame -F'[=;]' '/^(task|orepo|repo)Requires= *[^ ]+/ {
 		for (i=2;i<=NF;i++) {
 			if ($i ~ "^/") print substr($i,2); else print head"/"$i
 		}
@@ -98,7 +98,7 @@ _install_task() {
 			fpath=${rfpath%/}
 			if [[ -f "$fpath/.url" ]]; then
 				echo "$fpath"
-				return 1
+				_get_task_requires "$fpath" 2>/dev/null|grep -q Library/ && return 0 || return 1
 			fi
 			rpath=${fpath#${repopath}/}
 		fi
@@ -115,7 +115,7 @@ _install_task() {
 				echo -n "$url" >$local_fpath/.url
 			fi
 			echo "$local_fpath"
-			return 1
+			_get_task_requires "$local_fpath" 2>/dev/null|grep -q Library/ && return 0 || return 1
 		fi
 	fi
 
@@ -124,7 +124,7 @@ _install_task() {
 			rm -rf "$fpath"
 		else
 			echo "$fpath"
-			return 1
+			_get_task_requires "$fpath" 2>/dev/null|grep -q Library/ && return 0 || return 1
 		fi
 	fi
 
