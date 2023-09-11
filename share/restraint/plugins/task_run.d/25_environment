@@ -42,6 +42,7 @@ if [[ -n "$RSTRNT_JOBID" && -z "$JOBID" ]]; then
 fi
 [[ -z "$KILLTIMEOVERRIDE" ]] && export KILLTIMEOVERRIDE=$((RSTRNT_MAXTIME+600))
 
+#setup for restraint stand-alone multihost test
 if [[ "$RSTRNT_STANDALONE" = yes ]]; then
 	if [[ ${HOSTNAME} = *.* ]]; then
 		domain=${HOSTNAME#*.}
@@ -52,7 +53,53 @@ if [[ "$RSTRNT_STANDALONE" = yes ]]; then
 			[[ $host != *.* ]] && CLIENTS=${CLIENTS/$host/$host.$domain}
 		done
 	fi
+
+	set_ssh_without_passwd() {
+		which expect 2>/dev/null || yum install -y expect
+		local pass=${1:-redhat};
+		local host
+		local homedir
+
+		echo -e "${pass}\n${pass}" | passwd --stdin `id -nu`
+		echo "{Info} change passwd to $pass finish"
+		[ -n "$disableNoPasswd" ] && return 0
+
+		echo "{Info} rhts_sync_set -s ChangePassword"
+		/usr/bin/rhts_sync_set -s ChangePassword
+
+		echo "{Info} rhts_sync_block wait other machines change passwd done."
+		/usr/bin/rhts_sync_block -s ChangePassword ${CLIENTS//$HOSTNAME/} ${SERVERS//$HOSTNAME/}
+
+		echo "{Info} ssh-keygen ..."
+		homedir=~
+		mkdir -p $homedir/.ssh && chmod 0700 $homedir/.ssh &&
+		test -f $homedir/.ssh/id_ecdsa || ssh-keygen -q -t ecdsa -f $homedir/.ssh/id_ecdsa -N ''
+
+		for host in ${CLIENTS//$HOSTNAME/} ${SERVERS//$HOSTNAME/} $HOSTNAME; do
+			echo -e "\n{Info} ssh-copy-id to $host ..."
+
+			# It takes a long time for s390x on RHEL-ALT to show the password prompt
+			# So raise the timeout to 15 seconds
+			expect -c  'set timeout 15
+			spawn ssh-copy-id -o StrictHostKeyChecking=no -i '"$homedir/.ssh/id_ecdsa.pub $host"'
+			expect {
+				"*yes/no" { send "yes\r"; exp_continue }
+				"*assword:" { send "'"$pass"'\r" }
+			}
+			expect eof
+			'
+		done
+		echo -e "{Info} set_ssh_without_passwd done."
+		echo -e "------------------------------------------------"
+	}
+	grep -q ^set_ssh_without_passwd $RSTRNT_TASKPATH/runtest.sh || {
+		_logf=/tmp/set-ssh-without-passwd.log
+		[[ ! -f $_logf ]] && set_ssh_without_passwd &>$_logf
+	}
+
+	#remove testmark files
 	rm -f /tmp/.sync-*
+
 fi
 
 exec "$@"
