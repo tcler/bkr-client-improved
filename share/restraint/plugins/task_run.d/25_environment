@@ -106,6 +106,28 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 
 		echo pid=$$ >/tmp/testenv.info
 		env >>/tmp/testenv.info
+
+		binpath=/usr/local/bin
+		cat <<-\EOF > $binpath/testmark
+			#!/bin/bash
+			[[ "$1" = -s ]] && shift
+			mark=${1//[ \/]/-}
+			touch "/tmp/.sync-$mark"
+		EOF
+		cat <<-\EOF > $binpath/testwaitfor
+			#!/bin/bash
+			while true; do case "$1" in (-*) shift;; (*) break;; esac; done
+			mark=${1//[ \/]/-}; shift
+			for host; do
+				[[ "$host" = -* || "$host" = [0-9]* ]] && continue
+				while true; do timeout 8s ssh root@$host test -f "/tmp/.sync-$mark" && break || sleep 8; done
+			done
+		EOF
+		chmod +x $binpath/{testmark,testwaitfor}
+		ln -sf $binpath/testmark $binpath/rhts_sync_set
+		ln -sf $binpath/testmark $binpath/rhts-sync-set
+		ln -sf $binpath/testwaitfor $binpath/rhts_sync_block
+		ln -sf $binpath/testwaitfor $binpath/rhts-sync-block
 	fi
 fi
 
