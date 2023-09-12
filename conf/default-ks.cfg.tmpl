@@ -24,8 +24,8 @@ esac
 _rpath=share/restraint/plugins/task_run.d
 _path=qa/rhts/lookaside/bkr-client-improved/$_rpath
 curl -k -Ls --output-dir /usr/$_rpath --remote-name-all http://$downhostname/$_path/{25_environment,27_task_require}
-chmod a+x  /usr/$_rpath/*
-sed -i '$i[[ -z "\$RSTRNT_NOPLUGINS" ]] && { testmark __finallyDone; testwaitfor __finallyDone $SERVERS $CLIENTS; rm -rf /tmp/testmark; }' /usr/${_rpath%/*}/completed.d/85_sync_multihost_tasks
+curl -k -Ls --output-dir /usr/${_rpath%/*}/completed.d -O http://$downhostname/${_path%/*}/completed.d/85_sync_multihost_tasks
+chmod a+x  /usr/$_rpath/* /usr/${_rpath%/*}/completed.d/*
 
 #add more post actions:
 

@@ -1,0 +1,19 @@
+#!/usr/bin/bash
+#
+# Synchronize tasks between SERVER/Client jobs
+# on multihost machines.
+#
+export TASKORDER=$(expr $TASKORDER + 1)
+
+if [[ "$RSTRNT_STANDALONE" != yes ]]; then
+	if [ -z "$SERVERS" ] || [ -z "$CLIENTS" ]; then
+	    echo "Skipping Multihost sync .. SERVERS/CLIENTS roles not set"
+	else
+	    echo "Multihost synchronization for Servers=$SERVERS Clients=$CLIENTS"
+	    rstrnt-sync-set -s DONE
+	    rstrnt-sync-block -s DONE --retry 30 $SERVERS $CLIENTS $DRIVER
+	fi
+else
+	[[ -z "$RSTRNT_NOPLUGINS" ]] && 
+		{ testmark __finallyDone; testwaitfor __finallyDone $SERVERS $CLIENTS; rm -rf /tmp/testmark; } 2>/dev/null
+fi
