@@ -58,37 +58,32 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 		set_ssh_without_passwd() {
 			which expect 2>/dev/null || yum install -y expect
 			local pass=${1:-redhat};
-			local host
-			local homedir
+			local host homedir=~
 
 			echo -e "${pass}\n${pass}" | passwd --stdin `id -nu`
 			echo "{Info} change passwd to $pass finish"
-			[ -n "$disableNoPasswd" ] && return 0
 
-			echo "{Info} rhts_sync_set -s ChangePassword"
-			/usr/bin/rhts_sync_set -s ChangePassword
-
-			echo "{Info} rhts_sync_block wait other machines change passwd done."
-			/usr/bin/rhts_sync_block -s ChangePassword ${CLIENTS//$HOSTNAME/} ${SERVERS//$HOSTNAME/}
-
-			echo "{Info} ssh-keygen ..."
-			homedir=~
 			mkdir -p $homedir/.ssh && chmod 0700 $homedir/.ssh &&
 			test -f $homedir/.ssh/id_ecdsa || ssh-keygen -q -t ecdsa -f $homedir/.ssh/id_ecdsa -N ''
 
 			for host in ${CLIENTS//$HOSTNAME/} ${SERVERS//$HOSTNAME/} $HOSTNAME; do
 				echo -e "\n{Info} ssh-copy-id to $host ..."
-
 				# It takes a long time for s390x on RHEL-ALT to show the password prompt
 				# So raise the timeout to 15 seconds
-				expect -c  'set timeout 15
-				spawn ssh-copy-id -o StrictHostKeyChecking=no -i '"$homedir/.ssh/id_ecdsa.pub $host"'
-				expect {
-					"*yes/no" { send "yes\r"; exp_continue }
-					"*assword:" { send "'"$pass"'\r" }
-				}
-				expect eof
-				'
+				while :; do
+					expect -c  'log_user 1; set timeout 15
+						spawn ssh-copy-id -o StrictHostKeyChecking=no -i '"$homedir/.ssh/id_ecdsa.pub $host"'
+						log_user 0
+						expect {
+							{*yes/no} { send "yes\r"; exp_continue }
+							{*[Pp]assword:*} { send "'"$pass"'\r"; exp_continue }
+							{Permission denied *} {}
+						}
+						lassign [wait] pid spawnid osrc rc
+						puts stderr "=debug= $expect_out(buffer)"
+						exit $rc
+					' && break || sleep 16
+				done
 			done
 			echo -e "{Info} set_ssh_without_passwd done."
 			echo -e "------------------------------------------------"
