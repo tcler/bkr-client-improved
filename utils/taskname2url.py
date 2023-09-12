@@ -38,9 +38,14 @@ for arg in sys.argv[1:]:
         elif (arg[:2] == "-d"):
             debug += arg.count('d')
         elif (arg[:6] == "-repo="):
+            if not re.search(r'[@,]', arg):
+                arg = f"{arg}@"
             rname, url = re.split("[,@]", arg[6:])
+            rname = re.sub("^/+", "", rname)
             repodict[rname] = url
         elif (arg[:6] == "-task="):
+            if not re.search(r'[@,]', arg):
+                arg = f"{arg}@"
             tname, uri = re.split("[,@]", arg[6:])
             taskdict[tname] = uri
         elif (arg[:5] == "-skip"):
@@ -118,6 +123,7 @@ elif config.has_option('task-url', task):
 elif skiprepo == "yes":
     exit(0)
 elif config.has_option('repo-url', repo):
-    print(f"{config['repo-url'][repo]}{_rpath}")
+    if config['repo-url'][repo]:
+        print(f"{config['repo-url'][repo]}{_rpath}")
 else:
     print(f'''{config['repo-url']['__pkg__'].replace("__pkg__", repo)}{_rpath}''')

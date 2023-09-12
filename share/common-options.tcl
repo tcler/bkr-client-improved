@@ -8,9 +8,13 @@ set CommonOptionList {
 				--fetch-url kernel@https://github.com/User/Repo/archive/refs/heads/master.tar.gz
 				--fetch-url kernel@git://freetest.org/linux-nfs/public_git/tests.git?master
 				--fetch-url nfs-utils@https://pkgs.devel.rh.com/cgit/tests/nfs-utils/?master
+
+				--fetch-url no      #means disable fetch-url
+				--fetch-url rname@  #means disable fetch-url for all task like: /rname/relative/path
 				}}
 	task-fetch-url		{arg m	help {accept a fetch url for a special task. e.g:
 				--task-fetch-url /distribution/kernelinstall@https://gitlab.com/redhat/centos-stream/tests/kernel/kernel-tests/-/archive/main/kernel-tests-main.tar.gz#distribution/kernelinstall
+				--task-fetch-url /distribution/kernelinstall@  #means disable fetch-url for this task
 				}}
 	norun			{arg n	help {only download task without running it}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}

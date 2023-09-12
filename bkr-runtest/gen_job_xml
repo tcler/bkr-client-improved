@@ -146,12 +146,13 @@ array set taskFetchUrl {}
 set taskname2urlOpts {}
 if [info exist Opt(fetch-url)] {
 	foreach _url $Opt(fetch-url) {
+		regsub -line {^/+} $_url {} _url
 		if {${_url} == "no"} {
 			set fetch_test_from_url no
 			continue
 		}
 		if ![regexp -- {[,@]} ${_url}] {
-			continue
+			append taskname2urlOpts "-repo=${_url}@"
 		} else {
 			append taskname2urlOpts "-repo=[string map {, @} $_url] "
 		}
@@ -161,7 +162,7 @@ if [info exist Opt(fetch-url)] {
 if [info exist Opt(task-fetch-url)] {
 	foreach _url $Opt(task-fetch-url) {
 		if ![regexp -- {[,@]} ${_url}] {
-			continue
+			append _url "@"
 		}
 		lassign [split ${_url} {[,@]}] taskname url
 		set taskFetchUrl($taskname) $url
