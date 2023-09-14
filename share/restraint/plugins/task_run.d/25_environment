@@ -90,10 +90,9 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 		}
 		grep -q ^set_ssh_without_passwd $RSTRNT_TASKPATH/runtest.sh || {
 			_logf=/tmp/set-ssh-without-passwd.log
-			[[ ! -f $_logf ]] && {
-				echo -e "{debug} plugin $0: set ssh without password ...\n" >&2
-				set_ssh_without_passwd &>$_logf
-			}
+			rm -f ~/.ssh/known_hosts
+			echo -e "{debug} plugin $0: set ssh without password ...\n" >&2
+			set_ssh_without_passwd &>$_logf
 		}
 
 		#remove testmark files
