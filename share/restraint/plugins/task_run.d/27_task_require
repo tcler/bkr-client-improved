@@ -12,7 +12,7 @@ _install_requirements() {
 	hash -r && command -v taskfetch.sh || {
 		local _downloadurl=http://download.devel.redhat.com/qa/rhts/lookaside
 		local _urls="$_downloadurl/bkr-client-improved/utils/taskfetch.sh"
-		(cd /usr/bin && for _url in $_urls; do curl -Ls -O $_url && chmod +x ${_url##*/}; done)
+		(cd /usr/bin && for _url in $_urls; do curl -Ls --retry 64 --retry-delay 2 -O $_url && chmod +x ${_url##*/}; done)
 	}
 }
 

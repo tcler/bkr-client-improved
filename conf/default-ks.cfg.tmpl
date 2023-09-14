@@ -23,8 +23,8 @@ esac
 #update restraint plugins
 _rpath=share/restraint/plugins/task_run.d
 _path=qa/rhts/lookaside/bkr-client-improved/$_rpath
-curl -k -Ls --output-dir /usr/$_rpath --remote-name-all http://$downhostname/$_path/{25_environment,27_task_require}
-curl -k -Ls --output-dir /usr/${_rpath%/*}/completed.d -O http://$downhostname/${_path%/*}/completed.d/85_sync_multihost_tasks
+(cd /usr/$_rpath && curl -k -Ls --retry 64 --retry-delay 2 --remote-name-all http://$downhostname/$_path/{25_environment,27_task_require})
+(cd /usr/${_rpath%/*}/completed.d && curl -k -Ls --retry 64 --retry-delay 2 -O http://$downhostname/${_path%/*}/completed.d/85_sync_multihost_tasks)
 chmod a+x  /usr/$_rpath/* /usr/${_rpath%/*}/completed.d/*
 
 #add more post actions:

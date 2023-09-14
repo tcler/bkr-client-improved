@@ -28,10 +28,10 @@ _install_requirements() {
 	command -v curl-download.sh || _urls+=($_downloadurl/kiss-vm-ns/utils/curl-download.sh)
 	command -v extract.sh       || _urls+=($_downloadurl/kiss-vm-ns/utils/extract.sh)
 	command -v taskname2url.py  || _urls+=($_downloadurl/bkr-client-improved/utils/taskname2url.py)
-	(cd /usr/bin && for _url in "${_urls[@]}"; do curl -Ls -O $_url; chmod +x ${_url##*/}; done)
+	(cd /usr/bin && for _url in "${_urls[@]}"; do curl -Ls --retry 64 --retry-delay 2 -O $_url; chmod +x ${_url##*/}; done)
 
 	local _dburl=$_downloadurl/bkr-client-improved/conf/fetch-url.ini
-	[[ -f /etc/${_dburl##*/} ]] || (cd /etc && curl -Ls -O ${_dburl})
+	[[ -f /etc/${_dburl##*/} ]] || (cd /etc && curl -Ls --retry 64 --retry-delay 2 -O ${_dburl})
 }
 
 get_taskname() {
