@@ -13,6 +13,10 @@ _downloaddir=/mnt/download
 _logf=/tmp/${0##*/}.log
 
 _install_requirements() {
+	if ps axf|grep -v "^ *$$ "|grep -q 'taskfetch.sh  *--install-dep[s]'; then
+		while ps axf|grep -v "^ *$$ "|grep -q 'taskfetch.sh  *--install-dep[s]'; do sleep 2; done
+		return 0
+	fi
 	local _pycurl=python3-pycurl
 	[[ $(rpm -E %rhel) = 7 ]] && {
 		yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
