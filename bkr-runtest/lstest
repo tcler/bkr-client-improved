@@ -258,13 +258,21 @@ _caseInfo() {
 			no_localwatchdog=true
 			EOF
 			git add metadata main.sh 2>/dev/null
-			sed -r -e 's/\$ARCH/\$RSTRNT_OSARCH/g' -e 's/\$DISTRO(_BUILD)?/\$RSTRNT_OSDISTRO/g' \
-				-e 's/\$FAMILY/\$RSTRNT_OSMAJOR/g' -e 's/\$JOBID/\$RSTRNT_JOBID/g' \
-				-e 's/\$REBOOTCOUNT/\$RSTRNT_REBOOTCOUNT/g' -e 's/\$RECIPESETID/\$RSTRNT_RECIPESETID/g' \
-				-e 's/\$RECIPEID/\$RSTRNT_RECIPEID/g' -e 's/\$RECIPETESTID/\$RSTRNT_RECIPEID/g' \
-				-e 's/\$SUBMITTER/\$RSTRNT_OWNER/g' -e 's/\$TASKID/\$RSTRNT_TASKID/g' \
-				-e 's/\$TESTID/\$RSTRNT_TASKID/g' -e 's/\$TESTNAME/\$RSTRNT_TASKNAME/g' -e 's/\$TEST\>/\$RSTRNT_TASKNAME/g' \
-				-e 's/\$TESTPATH/\$RSTRNT_TASKPATH/g' -e 's/\$VARIANT/\$RSTRNT_OSVARIANT/g' -i runtest.sh
+			sed -e 's/\$ARCH/\${RSTRNT_OSARCH}/g' -e 's/\${ARCH}/\${RSTRNT_OSARCH}/g' \
+				-e 's/\$DISTRO\(_BUILD\)\?/\${RSTRNT_OSDISTRO}/g' -e 's/\${DISTRO\(_BUILD\)\?}/\${RSTRNT_OSDISTRO}/g' \
+				-e 's/\$FAMILY/\${RSTRNT_OSMAJOR}/g' -e 's/\${FAMILY}/\${RSTRNT_OSMAJOR}/g' \
+				-e 's/\$JOBID/\${RSTRNT_JOBID}/g' -e 's/\${JOBID}/\${RSTRNT_JOBID}/g' \
+				-e 's/\$REBOOTCOUNT/\${RSTRNT_REBOOTCOUNT}/g' -e 's/\${REBOOTCOUNT}/\${RSTRNT_REBOOTCOUNT}/g' \
+				-e 's/\$RECIPESETID/\${RSTRNT_RECIPESETID}/g' -e 's/\${RECIPESETID}/\${RSTRNT_RECIPESETID}/g' \
+				-e 's/\$RECIPEID/\${RSTRNT_RECIPEID}/g' -e 's/\${RECIPEID}/\${RSTRNT_RECIPEID}/g' \
+				-e 's/\$RECIPETESTID/\${RSTRNT_RECIPEID}/g' -e 's/\${RECIPETESTID}/\${RSTRNT_RECIPEID}/g' \
+				-e 's/\$SUBMITTER/\${RSTRNT_OWNER}/g' -e 's/\${SUBMITTER}/\${RSTRNT_OWNER}/g' \
+				-e 's/\$TASKID/\${RSTRNT_TASKID}/g' -e 's/\${TASKID}/\${RSTRNT_TASKID}/g' \
+				-e 's/\$TESTID/\${RSTRNT_TASKID}/g' -e 's/\${TESTID}/\${RSTRNT_TASKID}/g' \
+				-e 's/\$TESTNAME/\${RSTRNT_TASKNAME}/g' -e 's/\${TESTNAME}/\${RSTRNT_TASKNAME}/g' \
+				-e 's/\$TEST\>/\${RSTRNT_TASKNAME}/g' -e 's/\${TEST}/\${RSTRNT_TASKNAME}/g' \
+				-e 's/\$TESTPATH/\${RSTRNT_TASKPATH}/g' -e 's/\${TESTPATH}/\${RSTRNT_TASKPATH}/g' \
+				-e 's/\$VARIANT/\${RSTRNT_OSVARIANT}/g' -e 's/\${VARIANT}/\${RSTRNT_OSVARIANT}/g' -i runtest.sh
 			git add runtest.sh
 		fi
 		rm -rf $metafile
