@@ -257,7 +257,9 @@ _caseInfo() {
 			max_time=${Attr[time]}
 			no_localwatchdog=true
 			EOF
-			git add metadata main.sh 2>/dev/null
+			tmtconf=main.fmf
+			test -f $tmtconf && sed -i "/^test: make run/s//test: $ep/" $tmtconf || tmtconf=
+			git add metadata main.sh $tmtconf 2>/dev/null
 			sed -e 's/\$ARCH/\${RSTRNT_OSARCH}/g' -e 's/\${ARCH}/\${RSTRNT_OSARCH}/g' \
 				-e 's/\$DISTRO\(_BUILD\)\?/\${RSTRNT_OSDISTRO}/g' -e 's/\${DISTRO\(_BUILD\)\?}/\${RSTRNT_OSDISTRO}/g' \
 				-e 's/\$FAMILY/\${RSTRNT_OSMAJOR}/g' -e 's/\${FAMILY}/\${RSTRNT_OSMAJOR}/g' \
