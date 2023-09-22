@@ -14,6 +14,7 @@ set CommonOptionList {
 				}}
 	task-fetch-url		{arg m	help {accept a fetch url for a special task. e.g:
 				--task-fetch-url /distribution/kernelinstall@https://gitlab.com/redhat/centos-stream/tests/kernel/kernel-tests/-/archive/main/kernel-tests-main.tar.gz#distribution/kernelinstall
+				--task-fetch-url /kernel/fs/nfs/base@http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz  #the '#relative path' could be omitted
 				--task-fetch-url /distribution/kernelinstall@  #means disable fetch-url for this task
 				}}
 	norun			{arg n	help {only download task without running it}}

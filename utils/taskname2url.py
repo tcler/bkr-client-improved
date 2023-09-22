@@ -47,6 +47,9 @@ for arg in sys.argv[1:]:
             if not re.search(r'[@,]', arg):
                 arg = f"{arg}@"
             tname, uri = re.split("[,@]", arg[6:])
+            tname = re.sub('^/+/', '/', tname)
+            if not re.search(r'#', uri):
+                uri += f"#{re.sub('^/*[^/]+/', '', tname)}"
             taskdict[tname] = uri
         elif (arg[:5] == "-skip"):
             skiprepo = "yes"
