@@ -166,8 +166,12 @@ if [info exist Opt(task-fetch-url)] {
 		}
 		lassign [split ${_url} {[,@]}] taskname url
 		set taskname [regsub {^/+} $taskname {/}]
+		set url "[regsub {#$} $url {}]"
 		if ![regexp -- {.*#.*} ${url}] {
 			append url "#[regsub {^/*[^/]+/} $taskname {}]"
+		}
+		if [regexp -- {.*#\.\.$} ${url}] {
+			set url "[regsub {..$} $url [regsub {^/+} $taskname {}]]"
 		}
 		set taskFetchUrl($taskname) $url
 	}
