@@ -921,7 +921,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					foreach build $Opt(Brew) { append brewBuildList $build " " }
 				}
 				if [info exist Opt(brew)] {
-					append brewBuildList [lindex $Opt(brew) $R] " "
+					set _build [lindex $Opt(brew) $R]
+					if {$_build == ""} {set _build "vim"}
+					append brewBuildList "${_build} "
 				}
 				if {[llength $brewBuildList] > 0} {
 					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList}"
