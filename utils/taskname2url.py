@@ -47,13 +47,7 @@ for arg in sys.argv[1:]:
             if not re.search(r'[@,]', arg):
                 arg = f"{arg}@"
             tname, uri = re.split("[,@]", arg[6:])
-            tname = re.sub('^/+', '/', tname)
-            _tname = re.sub('^/+', '', tname)
-            uri = f"{re.sub('#$', '', uri)}"
-            if not re.search(r'#', uri):
-                uri += f"#{re.sub('^/*[^/]+/', '', tname)}"
-            if re.search(r'#..$', uri):
-                uri = f"{re.sub('..$', _tname, uri)}"
+            tname = re.sub('^/+/', '/', tname)
             taskdict[tname] = uri
         elif (arg[:5] == "-skip"):
             skiprepo = "yes"
@@ -121,12 +115,22 @@ else:
     print(f"[ERROR] 'repo-url' section not found, please check config files/urls", file=sys.stderr)
     exit(1)
 
+def get_uri(uri, task):
+    _uri = f"{re.sub('#$', '', uri)}"
+    _tname = re.sub('^/+', '', task)
+    _tname = re.sub("^(/?CoreOS)?/", "", _tname)
+    if not re.search(r'#', _uri):
+        _uri += f"#{re.sub('^/*[^/]+/', '', _tname)}"
+    if re.search(r'#..$', _uri):
+        _uri = f"{re.sub('..$', _tname, _uri)}"
+    return _uri
+
 if task in taskdict.keys():
-    print(taskdict[task])
+    print(get_uri(taskdict[task], task))
 elif _task in taskdict.keys():
-    print(taskdict[_task])
+    print(get_uri(taskdict[_task], _task))
 elif config.has_option('task-url', task):
-    print(config['task-url'][task])
+    print(get_uri(config['task-url'][task], task))
 elif skiprepo == "yes":
     exit(0)
 elif config.has_option('repo-url', repo):
