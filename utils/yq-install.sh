@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if yq -h | grep -q mikefarah; then
+if yq -h |& grep -q mikefarah; then
 	echo "[INFO] yq has been installed: $(which yq)"
 	exit 0
 fi
@@ -21,6 +21,7 @@ eval installpath=~/bin
 YQ_URL=https://github.com/mikefarah/yq/releases/download/v4.35.2/yq_linux_$arch
 YQ_URL=$(curl -Ls https://api.github.com/repos/mikefarah/yq/releases/latest |
 	sed -rn "/^.*(https:.*yq_linux_$arch)\"$/{s//\1/;p}")
+echo "[yq-install.sh] downloading yq from: ${YQ_URL}"
 curl -Ls "$YQ_URL" -o $installpath/yq
 chmod +x $installpath/yq
 which yq
