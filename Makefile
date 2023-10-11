@@ -16,8 +16,8 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	  fi; \
 	fi
 	@rpm -q beaker-client || utils/beaker-client_install.sh
-	@yum install -y rhts-devel restraint-client
-	@rpm -q rhts-devel || { cp repos/beaker-harness.repo /etc/yum.repos.d/.; yum install -y restraint-rhts; }
+	@-yum install -y rhts-devel restraint-client
+	@rpm -q rhts-devel restraint-client || { cp repos/beaker-harness.repo /etc/yum.repos.d/.; yum install -y restraint-rhts restraint-client; }
 	@rpm -q expect >/dev/null || yum install -y expect #package that in default RHEL repo
 	@yum install -y tcllib #epel
 	@yum install -y tdom || yum-install-from-fedora.sh tdom || :
