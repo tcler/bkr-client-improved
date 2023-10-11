@@ -18,6 +18,7 @@ set CommonOptionList {
 				--task-fetch-url /kernel/fs/nfs/base@http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz   #the '#relative path' could be omitted
 				--task-fetch-url /distribution/kernelinstall@   #means disable fetch-url for this task
 				}}
+	fetch-url-opts		{arg y	help {fetch url options, e.g: "retry=8 timeo=32 abort-fetch-fail"}}
 	norun			{arg n	help {only download task without running it}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
 	job-owner		{arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}

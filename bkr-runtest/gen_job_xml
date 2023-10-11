@@ -144,6 +144,7 @@ if [info exist Opt(help)] {
 set fetch_test_from_url yes
 array set taskFetchUrl {}
 set taskname2urlOpts {}
+set fetch-urlOpts {}
 if [info exist Opt(fetch-url)] {
 	foreach _url $Opt(fetch-url) {
 		regsub -line {^/+} $_url {} _url
@@ -157,6 +158,9 @@ if [info exist Opt(fetch-url)] {
 			append taskname2urlOpts "-repo=[string map {, @} $_url] "
 		}
 	}
+}
+if [info exist Opt(fetch-url-opts)] {
+	set fetch-urlOpts " $Opt(fetch-url-opts)"
 }
 
 if [info exist Opt(task-fetch-url)] {
@@ -185,7 +189,7 @@ proc fetchtag {taskname} {
 		set _url [exec bash -c "taskname2url.py $taskname $::taskname2urlOpts 2>/dev/null || :"]
 	}
 	if {$_url != ""} {
-		doTag fetch url=$_url -
+		doTag fetch "url=${_url}${::fetch-urlOpts}" -
 	}
 }
 
