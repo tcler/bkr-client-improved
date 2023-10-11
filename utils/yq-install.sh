@@ -5,6 +5,10 @@ if yq -h | grep -q mikefarah; then
 	exit 0
 fi
 
+is_rh_intranet() { host ipa.redhat.com &>/dev/null; }
+is_rh_intranet() { grep -q redhat.com /etc/resolv.conf; }
+is_rh_intranet && export https_proxy=squid.redhat.com:8080
+
 arch=$(uname -m)
 case $arch in
 x86_64)  arch=amd64;;
@@ -14,7 +18,9 @@ esac
 eval installpath=~/bin
 [[ $(id -u) = 0 ]] && installpath=/usr/bin
 
-YQ_URL=https://github.com/mikefarah/yq/releases/download/v4.30.5/yq_linux_$arch
+YQ_URL=https://github.com/mikefarah/yq/releases/download/v4.35.2/yq_linux_$arch
+YQ_URL=$(curl -Ls https://api.github.com/repos/mikefarah/yq/releases/latest |
+	sed -rn "/^.*(https:.*yq_linux_$arch)\"$/{s//\1/;p}")
 curl -Ls "$YQ_URL" -o $installpath/yq
 chmod +x $installpath/yq
 which yq
