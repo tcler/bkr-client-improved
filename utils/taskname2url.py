@@ -116,13 +116,17 @@ else:
     exit(1)
 
 def get_uri(uri, task):
-    _uri = f"{re.sub('#$', '', uri)}"
+    _uri = re.sub(r'#( |$)', r'\1', uri, 1)
     _tname = re.sub('^/+', '', task)
     _tname = re.sub("^(/?CoreOS)?/", "", _tname)
     if not re.search(r'#', _uri):
-        _uri += f"#{re.sub('^/*[^/]+/', '', _tname)}"
-    if re.search(r'#..$', _uri):
-        _uri = f"{re.sub('..$', _tname, _uri)}"
+        _rpath = f"{re.sub('^/*[^/]+/', '', _tname)}"
+        if not re.search(r' ', _uri):
+            _uri += f"#{_rpath}"
+        else:
+            _uri = f"{re.sub(' ', f'#{_rpath} ', _uri, 1)}"
+    if re.search(r'#\.\.( |$)', _uri):
+        _uri = re.sub('#\.\.', f'#{_tname}', _uri, 1)
     return _uri
 
 if task in taskdict.keys():
