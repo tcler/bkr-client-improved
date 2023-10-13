@@ -520,13 +520,14 @@ mountpoint /boot || mount /boot
 
 yum install -y grubby
 run "grubby --default-kernel"
+ls --help|grep -q time:.birth && lsOpt='--time=birth'
 [[ "$FLAG" =~ debugkernel ]] && { kpat="(.?debug|\+debug)"; } || { kpat=$; }
 if grep -E -w 'rtk' <<<"${builds[*]}"; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E "\\+rt$kpat|\\.rt.*$kpat" | head -1)
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "\\+rt$kpat|\\.rt.*$kpat" | head -1)
 elif grep -E -w '64k' <<<"${builds[*]}"; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E "\\+64k$kpat|\\.rt.*$kpat" | head -1)
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "\\+64k$kpat|\\.rt.*$kpat" | head -1)
 elif grep -E '(^| )kernel-' <<<"${builds[*]}"; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 --time=birth|grep -E "$kpat" | head -1)
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "$kpat" | head -1)
 fi
 [[ -n "$kernelpath" ]] &&
 	run "grubby --set-default=$kernelpath"
