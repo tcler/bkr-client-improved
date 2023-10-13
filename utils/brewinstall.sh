@@ -201,6 +201,18 @@ buildname2url() {
 	return $rc
 }
 
+rwget() {
+	local url=$1
+	[[ -z "$url" ]] && return 1
+	if [[ -n "$ONLY_DEBUG_INFO" ]]; then
+		run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
+	else
+		run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
+		[[ -n "$DEBUG_INFO_OPT" ]] &&
+			run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
+	fi
+}
+
 # parse options
 builds=()
 for arg; do
@@ -242,7 +254,7 @@ if [[ -z "$ExcludePattern" ]]; then
 	fi
 fi
 if [[ "$FLAG" != debugkernel ]]; then
-	ExcludePattern+='|*debug*.rpm'
+	ExcludePattern+='|*debug-*.rpm'
 elif [[ "$DEBUG_INFO" != yes ]]; then
 	ExcludePattern+='|*debuginfo*.rpm'
 fi
@@ -254,10 +266,9 @@ fi
 # https://certs.corp.redhat.com/ https://docs.google.com/spreadsheets/d/1g0FN13NPnC38GsyWG0aAJ0v8FljNDlqTTa35ap7N46w/edit#gid=0
 (cd /etc/pki/ca-trust/source/anchors && curl -Ls --remote-name-all https://certs.corp.redhat.com/{2022-IT-Root-CA.pem,2015-IT-Root-CA.pem,ipa.crt} && update-ca-trust)
 
-if [[ "${#builds[@]}" = 0 ]]; then
+if [[ ${#builds[@]} = 0 ]]; then
 	if [[ "$FLAG" = debugkernel || "$ONLY_DEBUG_INFO" = yes ]]; then
-		grep -Eq '(^| )kernel-' <<<"${builds[*]}" ||
-			builds+=(kernel-$(uname -r|sed 's/\.[^.]*$//'))
+		builds+=(kernel-$(uname -r|sed 's/\.[^.]*$//'))
 	else
 		Usage >&2
 		exit
@@ -354,7 +365,7 @@ for build in "${builds[@]}"; do
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
 				which wget &>/dev/null || yum install -y wget
-				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega $finalUrl" 0  "download-${finalUrl##*/}"
+				rwget $finalUrl
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
 		}
@@ -380,7 +391,7 @@ for build in "${builds[@]}"; do
 				run "curl -O -L $url" 0  "download-${url##*/}"
 			else
 				which wget &>/dev/null || yum install -y wget
-				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
+				rwget $url
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
@@ -398,7 +409,7 @@ for build in "${builds[@]}"; do
 			nbuild=$($KOJI list-builds --pattern=${build}* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 			[[ -n "$nbuild" ]] && build=$nbuild
 		fi
-		if [[ "$ONLY_DOWNLOAD" != yes ]]; then
+		if [[ "$ONLY_DOWNLOAD" != yes && -z "$DEBUG_INFO_OPT" ]]; then
 			curknvr=kernel-$(uname -r)
 			if [[ "$build" = ${curknvr%.*} && "$FLAG" != debugkernel ]]; then
 				report_result "kernel($build) has been installed" PASS
@@ -422,7 +433,7 @@ for build in "${builds[@]}"; do
 		if [[ $? = 0 ]]; then
 			which wget &>/dev/null || yum install -y wget
 			for url in $urls; do
-				run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
+				rwget $url
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			done
 		else
