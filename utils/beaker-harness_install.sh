@@ -17,6 +17,7 @@ if grep -q NAME=Fedora /etc/os-release; then
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
+	sslverify=0
 	EOF
 else
 	cat <<-EOF >/etc/yum.repos.d/beaker-harness.repo
@@ -26,6 +27,7 @@ else
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
+	sslverify=0
 	EOF
 fi
 

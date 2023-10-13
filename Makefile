@@ -15,9 +15,8 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	    rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-$$(rpm -E %rhel).noarch.rpm; :; \
 	  fi; \
 	fi
-	@rpm -q beaker-client || utils/beaker-client_install.sh
-	@-yum install -y rhts-devel restraint-client
-	@rpm -q rhts-devel restraint-client || { cp repos/beaker-harness.repo /etc/yum.repos.d/.; yum install -y restraint-rhts restraint-client; }
+	@./utils/beaker-client_install.sh
+	@yum install -y restraint-rhts restraint-client
 	@rpm -q expect >/dev/null || yum install -y expect #package that in default RHEL repo
 	@yum install -y tcllib #epel
 	@yum install -y tdom || yum-install-from-fedora.sh tdom || :
@@ -48,8 +47,8 @@ yqinstall: _isroot
 	./utils/yq-install.sh
 
 install_kiss_vm_ns: _isroot
-	@command -v kiss-update.sh && kiss-update.sh || { \
-	rm -rf kiss-vm-ns-master; export https_proxy=squid.redhat.com:8080; \
+	@export https_proxy=$(HTTP_PROXY); \
+	command -v kiss-update.sh && kiss-update.sh || { rm -rf kiss-vm-ns-master; \
 	curl -k -Ls https://github.com/tcler/kiss-vm-ns/archive/refs/heads/master.tar.gz | tar zxf -; \
 	make -C kiss-vm-ns-master; rm -rf kiss-vm-ns-master; }
 

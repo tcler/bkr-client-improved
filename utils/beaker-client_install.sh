@@ -1,17 +1,8 @@
 #!/bin/bash
 
-rpm -q beaker-client && {
-	echo "{INFO} beaker-client has been installed in your system"
-	exit
-}
-
 #__main__
 kuser=$1
 verx=$(rpm -E %rhel)
-
-if [[ -f conf/rh-nm-openvpn-config.tgz ]]; then
-	(cd /; tar zxf $OLDPWD/conf/rh-nm-openvpn-config.tgz)
-fi
 
 if grep -E -q ^NAME=.?Fedora /etc/os-release; then
 	cat <<-'EOF' >/etc/yum.repos.d/beaker-client.repo
@@ -22,6 +13,7 @@ if grep -E -q ^NAME=.?Fedora /etc/os-release; then
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
+	sslverify=0
 	EOF
 
 	cat <<-'EOF' >/etc/yum.repos.d/beaker-harness.repo
@@ -31,6 +23,7 @@ if grep -E -q ^NAME=.?Fedora /etc/os-release; then
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
+	sslverify=0
 	EOF
 else
 	cat <<-'EOF' >/etc/yum.repos.d/beaker-client.repo
@@ -40,6 +33,7 @@ else
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
+	sslverify=0
 	EOF
 
 	cat <<-EOF >/etc/yum.repos.d/beaker-harness.repo
@@ -49,7 +43,17 @@ else
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
+	sslverify=0
 	EOF
+fi
+
+rpm -q beaker-client && {
+	echo "{INFO} beaker-client has been installed in your system"
+	exit
+}
+
+if [[ -f conf/rh-nm-openvpn-config.tgz ]]; then
+	(cd /; tar zxf $OLDPWD/conf/rh-nm-openvpn-config.tgz)
 fi
 
 # fix ssl certificate verify failed
@@ -110,7 +114,7 @@ cat <<-'EOF' >/etc/krb5.conf
 #https://source.redhat.com/groups/public/identity-access-management/identity__access_management_wiki/how_to_kerberos_realm_referrals
 EOF
 
-mkdir /etc/ipa && curl -o /etc/ipa/ca.crt https://certs.corp.redhat.com/ipa.crt
+mkdir -p /etc/ipa && curl -o /etc/ipa/ca.crt https://certs.corp.redhat.com/ipa.crt
 
 yum install -y krb5-workstation
 
