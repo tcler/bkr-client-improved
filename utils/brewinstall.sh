@@ -255,7 +255,8 @@ if [[ -z "$ExcludePattern" ]]; then
 fi
 if [[ "$FLAG" != debugkernel ]]; then
 	ExcludePattern+='|*debug-*.rpm'
-elif [[ "$DEBUG_INFO" != yes ]]; then
+fi
+if [[ "$DEBUG_INFO" != yes ]]; then
 	ExcludePattern+='|*debuginfo*.rpm'
 fi
 if [[ -n "$ExcludePattern" ]]; then
