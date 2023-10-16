@@ -465,6 +465,7 @@ done
 run "echo build_count: $buildcnt"
 run "ls -lh"
 if [[ $buildcnt -gt 0 ]]; then
+	run "touch -a *.rpm"
 	run "ls -lh *.rpm"
 	[ $? != 0 ] && {
 		report_result download-rpms FAIL
