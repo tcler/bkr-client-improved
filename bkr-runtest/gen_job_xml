@@ -24,6 +24,7 @@ declaretags ks_appends ks_append
 declaretags watchdog
 declaretags task params param
 set dummytask /distribution/utils/dummy
+set restraint-repo {}
 
 if {[info commands lmap] == ""} {
 	proc lmap args {
@@ -139,6 +140,10 @@ proc debug {} {
 if [info exist Opt(help)] {
 	Usage
 	exit 0
+}
+
+if [info exist Opt(restraint-repo)] {
+	set restraint-repo "$Opt(restraint-repo)"
 }
 
 set fetch_test_from_url yes
@@ -790,6 +795,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 				}
 				repos ! {
+					if {${restraint-repo} ne {}} {
+						repo name=restraint url=${restraint-repo} -
+					}
 					if [info exist Opt(repo)] {
 						set i 0
 						foreach url $Opt(repo) {

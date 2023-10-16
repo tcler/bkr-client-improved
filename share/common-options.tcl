@@ -3,7 +3,7 @@ set CommonOptionList {
 
   "\n  Options for job configuration:" {
 	harness			{arg y	help {specify alternative harness, available value: beah|restraint; default: restraint}}
-	{fetch-url restraint-git}	{arg m	help {specify restraint fetch url. e.g:
+	{fetch-url}		{arg m	help {specify restraint fetch url. e.g:
 				--fetch-url kernel@https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2
 				--fetch-url kernel@https://github.com/User/Repo/archive/refs/heads/master.tar.gz
 				--fetch-url kernel@git://freetest.org/linux-nfs/public_git/tests.git?master
@@ -19,6 +19,7 @@ set CommonOptionList {
 				--task-fetch-url /distribution/kernelinstall@   #means disable fetch-url for this task
 				}}
 	fetch-url-opts		{arg y	help {fetch url options, e.g: "retry=8 timeo=32 abort-fetch-fail"}}
+	restraint-repo		{arg y	help {restraint repo relace default value}}
 	norun			{arg n	help {only download task without running it}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
 	job-owner		{arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
