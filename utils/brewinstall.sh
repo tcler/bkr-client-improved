@@ -536,7 +536,7 @@ elif grep -E '(^| )kernel-' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "$kpat" | head -1)
 fi
 [[ -n "$kernelpath" ]] &&
-	grubby --set-default=$kernelpath
+	run "grubby --set-default=$kernelpath"
 
 if [[ $(ls *.$(arch).rpm | wc -l) -ne 0 ]]; then
 	if ls *.$(arch).rpm|grep -E '^kernel-(redhat|rt-|64k-)?(debug-)?[0-9]'; then
