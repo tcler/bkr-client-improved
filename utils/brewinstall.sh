@@ -463,7 +463,7 @@ done
 
 # Install packages
 run "echo build_count: $buildcnt"
-run "ls -lh"
+
 if [[ $buildcnt -gt 0 ]]; then
 	run "ls -lh *.rpm"
 	[ $? != 0 ] && {
@@ -511,7 +511,8 @@ rpm)
 	for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
 	;;
 *)
-	run "yum install -y --nogpgcheck --setopt=keepcache=1 *.rpm" - ||
+	# If the target kernel behind the current kernel, kernel scripts may not be run normally.
+	run "yum reinstall -y --nogpgcheck --setopt=keepcache=1 *.rpm" - ||
 		run "rpm -Uvh --force --nodeps *.rpm" - ||
 		for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
 esac
@@ -521,7 +522,7 @@ mountpoint /boot || mount /boot
 
 yum install -y grubby
 run "grubby --default-kernel"
-ls --help|grep -q time:.birth; then
+if ls --help|grep -q time:.birth; then
 	lsOpt='--time=birth'
 else
 	touch $(rpm -qlp *.rpm | grep ^/boot) 2>/dev/null
@@ -535,12 +536,14 @@ elif grep -E '(^| )kernel-' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "$kpat" | head -1)
 fi
 [[ -n "$kernelpath" ]] &&
-	run "grubby --set-default=$kernelpath"
+	grubby --set-default=$kernelpath
 
-if ls *.$(arch).rpm|grep -E '^kernel-(redhat|rt-|64k-)?(debug-)?[0-9]'; then
-	[[ "$KREBOOT" = yes ]] && reboot
+if [[ $(ls *.$(arch).rpm | wc -l) -ne 0 ]]; then
+	if ls *.$(arch).rpm|grep -E '^kernel-(redhat|rt-|64k-)?(debug-)?[0-9]'; then
+		[[ "$KREBOOT" = yes ]] && reboot || exit 0
+	fi
 fi
 
 if grep -E -w 'rtk|64k' <<<"${builds[*]}"; then
-	[[ "$KREBOOT" = yes ]] && reboot
+	[[ "$KREBOOT" = yes ]] && reboot || exit 0
 fi
