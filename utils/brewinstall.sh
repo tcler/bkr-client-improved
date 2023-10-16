@@ -521,7 +521,11 @@ mountpoint /boot || mount /boot
 
 yum install -y grubby
 run "grubby --default-kernel"
-ls --help|grep -q time:.birth && lsOpt='--time=birth'
+ls --help|grep -q time:.birth; then
+	lsOpt='--time=birth'
+else
+	touch $(rpm -qlp *.rpm | grep ^/boot) 2>/dev/null
+fi
 [[ "$FLAG" =~ debugkernel ]] && { kpat="(.?debug|\+debug)"; } || { kpat=$; }
 if grep -E -w 'rtk' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "\\+rt$kpat|\\.rt.*$kpat" | head -1)
