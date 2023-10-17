@@ -153,15 +153,16 @@ download_pkgs_from_repo() {
 	local cnt=$(echo -n "$urls"|wc -l)
 	for url in $urls; do
 		file=${url##*/}
-		eval "case '$file' in
-		(${ExcludePattern:-.})
-			echo '{Info} [$i/$cnt] skip excluded pkg $url'
-			let i++; continue;;
-		esac"
-		[[ "$FLAG" != debugkernel ]] && [[ "$file" = *debuginfo* || "$file" = *-debug-* ]] && {
-			echo "{Info} [$i/$cnt] skip debuginfo pkg $url"
-			let i++; continue
-		}
+
+		if [[ -n "$ONLY_DEBUG_INFO" ]]; then
+			[[ "$file" != *debuginfo* ]] && continue
+		else
+			eval "case '$file' in
+			(${ExcludePattern:-.})
+				echo '{Info} [$i/$cnt] skip excluded pkg $url'
+				let i++; continue;;
+			esac"
+		fi
 		echo "{Info} [$i/$cnt] download $url"
 		curl -L -k $url -o ${url##*/} 2>/dev/null || {
 			ourl=$url
@@ -256,7 +257,7 @@ fi
 if [[ "$FLAG" != debugkernel ]]; then
 	ExcludePattern+='|*debug-*.rpm'
 fi
-if [[ "$DEBUG_INFO" != yes ]]; then
+if [[ "$DEBUG_INFO" != yes && "$ONLY_DEBUG_INFO" != yes ]]; then
 	ExcludePattern+='|*debuginfo*.rpm'
 fi
 if [[ -n "$ExcludePattern" ]]; then
