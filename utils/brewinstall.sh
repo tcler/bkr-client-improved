@@ -206,11 +206,11 @@ rwget() {
 	local url=$1
 	[[ -z "$url" ]] && return 1
 	if [[ -n "$ONLY_DEBUG_INFO" ]]; then
-		run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
+		run "echo $url | xargs -P0 -n1 wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega" 0  "download-${url##*/}"
 	else
-		run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
+		run "echo $url | xargs -P0 -n1 wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega" 0  "download-${url##*/}"
 		[[ -n "$DEBUG_INFO_OPT" ]] &&
-			run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
+			run "echo $url | xargs -P0 -n1 wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega" 0  "download-${url##*/}"
 	fi
 }
 
