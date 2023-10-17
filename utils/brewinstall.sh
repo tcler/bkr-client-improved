@@ -463,6 +463,7 @@ done
 
 # Install packages
 run "echo build_count: $buildcnt"
+run "ls -lh"
 
 if [[ $buildcnt -gt 0 ]]; then
 	run "ls -lh *.rpm"
@@ -536,20 +537,20 @@ elif grep -E '(^| )kernel-' <<<"${builds[*]}"; then
 fi
 if [[ -n "$kernelpath" ]]; then
 	# If the target kernel behind the current kernel, kernel scripts may not be run normally.
-	if ! run "grubby --set-default=$kernelpath" && [[ $(ls *.$(arch).rpm | wc -l) -ne 0 ]]; then
-		run "yum reinstall -y --nogpgcheck --setopt=keepcache=1 *.rpm" - ||
-		run "rpm -Uvh --force --nodeps *.rpm" - ||
-		for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
-	fi
+	run "grubby --set-default=$kernelpath" || {
+		if [[ $(ls *.$(arch).rpm | wc -l) -ne 0 ]]; then
+			run "yum reinstall -y --nogpgcheck --setopt=keepcache=1 *.rpm" - ||
+			  run "rpm -Uvh --force --nodeps *.rpm" - ||
+			  for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
+		fi
+	}
 fi
 
-if [[ $(ls *.$(arch).rpm | wc -l) -ne 0 ]]; then
-	if ls *.$(arch).rpm|grep -E '^kernel-(redhat|rt-|64k-)?(debug-)?[0-9]'; then
-		[[ "$KREBOOT" = yes ]] && reboot || exit 0
-	fi
+_reboot=no
+if ls *.$(arch).rpm 2>/dev/null|grep -E '^kernel-(redhat|rt-|64k-)?(debug-)?[0-9]'; then
+	[[ "$KREBOOT" = yes ]] && _reboot=yes
 fi
-
 if grep -E -w 'rtk|64k' <<<"${builds[*]}"; then
-	[[ "$KREBOOT" = yes ]] && reboot || exit 0
+	[[ "$KREBOOT" = yes ]] && _reboot=yes
 fi
-
+[[ $_reboot = yes ]] && reboot || exit 0
