@@ -18,7 +18,8 @@ set CommonOptionList {
 				--task-fetch-url /kernel/fs/nfs/base@http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz   #the '#relative path' could be omitted
 				--task-fetch-url /distribution/kernelinstall@   #means disable fetch-url for this task
 				}}
-	fetch-url-opts		{arg y	help {fetch url options, e.g: "retry=8 timeo=32 abort-fetch-fail"}}
+	keepchanges		{arg n	help {see: https://restraint.readthedocs.io/en/latest/jobs.html#keeping-your-task-changes-intact}}
+	fetch-opts		{arg y	help {task fetch options, e.g: "retry=8 timeo=32 abort-fetch-fail"}}
 	restraint-repo		{arg y	help {restraint repo relace default value}}
 	norun			{arg n	help {only download task without running it}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}

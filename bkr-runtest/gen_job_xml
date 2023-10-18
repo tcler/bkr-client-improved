@@ -149,7 +149,8 @@ if [info exist Opt(restraint-repo)] {
 set fetch_test_from_url yes
 array set taskFetchUrl {}
 set taskname2urlOpts {}
-set fetch-urlOpts {}
+set task-fetch-opts {}
+set kpchgs {no}
 if [info exist Opt(fetch-url)] {
 	foreach _url $Opt(fetch-url) {
 		regsub -line {^/+} $_url {} _url
@@ -164,8 +165,14 @@ if [info exist Opt(fetch-url)] {
 		}
 	}
 }
-if [info exist Opt(fetch-url-opts)] {
-	set fetch-urlOpts " $Opt(fetch-url-opts)"
+if [info exist Opt(fetch-opts)] {
+	set task-fetch-opts "$Opt(fetch-opts)"
+}
+if [info exist Opt(keepchanges)] {
+	set kpchgs {yes}
+	if [info exist Opt(fetch-opts)] {
+		append task-fetch-opts " keepchanges=${kpchgs}"
+	}
 }
 
 if [info exist Opt(task-fetch-url)] {
@@ -198,7 +205,7 @@ proc fetchtag {taskname} {
 		set _url [exec bash -c "taskname2url.py $taskname $::taskname2urlOpts 2>/dev/null || :"]
 	}
 	if {$_url != ""} {
-		doTag fetch "url=${_url}${::fetch-urlOpts}" -
+		doTag fetch "url=${_url} ${::task-fetch-opts}" -
 	}
 }
 
@@ -1039,7 +1046,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 					if {$insert in {1 y yes}} {
-						task name=$taskname role=$_role ! {
+						task name=$taskname role=$_role keepchanges=${kpchgs} ! {
 							if {$_fetch_from_url ne "disable"} {
 								fetchtag $taskname
 							}
@@ -1060,7 +1067,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							}
 						}
 					} else {
-						task name=$dummytask role=$_role ! {
+						task name=$dummytask role=$_role keepchanges=${kpchgs} ! {
 							fetchtag $dummytask
 						}
 					}
@@ -1082,7 +1089,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 						if {$insert in {1 y yes}} {
-							task name=$name role=$_role ! {
+							task name=$name role=$_role keepchanges=${kpchgs} ! {
 								if {$_fetch_from_url ne "disable"} {
 									fetchtag $name
 								}
@@ -1103,13 +1110,13 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								}
 							}
 						} else {
-							task name=$dummytask role=$_role ! {
+							task name=$dummytask role=$_role keepchanges=${kpchgs} ! {
 								fetchtag $dummytask
 							}
 						}
 
 						if {[info exist Opt(reboot)] && $iter < $llen} {
-							task name=/distribution/utils/reboot role=$role -
+							task name=/distribution/utils/reboot role=$role keepchanges=${kpchgs} -
 						}
 						incr iter
 					}
@@ -1166,7 +1173,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 					if {$insert in {1 y yes}} {
-						task name=$taskname role=$_role ! {
+						task name=$taskname role=$_role keepchanges=${kpchgs} ! {
 							if {$_fetch_from_url ne "disable"} {
 								fetchtag $taskname
 							}
@@ -1187,7 +1194,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							#param name=DISTRO_BUILD value=$distroBuild -
 						}
 					} else {
-						task name=$dummytask role=$_role ! {
+						task name=$dummytask role=$_role keepchanges=${kpchgs} ! {
 							fetchtag $dummytask
 						}
 					}
