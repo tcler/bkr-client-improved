@@ -1,5 +1,0 @@
-[beaker-harness]
-name=Beaker Harness - RedHatEnterpriseLinux$releasever
-baseurl=http://download.devel.redhat.com/beakerrepos/harness/RedHatEnterpriseLinux$releasever/
-enabled=1
-gpgcheck=0

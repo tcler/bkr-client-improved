@@ -24,7 +24,7 @@ declaretags ks_appends ks_append
 declaretags watchdog
 declaretags task params param
 set dummytask /distribution/utils/dummy
-set restraint-repo {}
+set restraintrepo {}
 
 if {[info commands lmap] == ""} {
 	proc lmap args {
@@ -56,6 +56,16 @@ proc json2dict {txt} {
     return {}
   }
   return $result
+}
+
+proc nrestraint-repo {distro} {
+	if [regexp -nocase -- {^RHEL-[0-9]+.*} $distro] {
+		set osver "[regsub {^(RHEL-[0-9+]).*$} $distro {\1}]"
+	}
+	if [regexp -nocase -- {^fedora-[0-9]+.*} $distro] {
+		set osver "[regsub {^(fedora)-([0-9+]).*$} $distro {\1\2}]"
+	}
+	return "http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/beaker-harness-active/[string tolower $osver]"
 }
 
 # global var
@@ -143,7 +153,7 @@ if [info exist Opt(help)] {
 }
 
 if [info exist Opt(restraint-repo)] {
-	set restraint-repo "$Opt(restraint-repo)"
+	set restraintrepo "$Opt(restraint-repo)"
 }
 
 set fetch_test_from_url yes
@@ -802,8 +812,11 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 				}
 				repos ! {
-					if {${restraint-repo} ne {}} {
-						repo name=restraint url=${restraint-repo} -
+					if {[info exist Opt(nrestraint)] && ${restraintrepo} eq {}} {
+						set restraintrepo [nrestraint-repo $DISTRO]
+					}
+					if {${restraintrepo} ne {}} {
+						repo name=restraint "url=${restraintrepo}" -
 					}
 					if [info exist Opt(repo)] {
 						set i 0

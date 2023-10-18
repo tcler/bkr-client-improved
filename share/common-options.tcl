@@ -20,6 +20,7 @@ set CommonOptionList {
 				}}
 	keepchanges		{arg n	help {see: https://restraint.readthedocs.io/en/latest/jobs.html#keeping-your-task-changes-intact}}
 	fetch-opts		{arg y	help {task fetch options, e.g: "retry=8 timeo=32 abort-fetch-fail"}}
+	nrestraint		{arg n	help {use restraint devel build}}
 	restraint-repo		{arg y	help {restraint repo relace default value}}
 	norun			{arg n	help {only download task without running it}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
