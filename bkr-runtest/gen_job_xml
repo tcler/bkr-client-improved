@@ -65,7 +65,8 @@ proc nrestraint-repo {distro} {
 	if [regexp -nocase -- {^fedora-[0-9]+.*} $distro] {
 		set osver "[regsub {^(fedora)-([0-9+]).*$} $distro {\1\2}]"
 	}
-	return "http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/beaker-harness-active/[string tolower $osver]"
+	#return "http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/beaker-harness-active/[string tolower $osver]"
+	return "http://download.devel.redhat.com/qa/rhts/lookaside/beaker-harness-active/[string tolower $osver]"
 }
 
 # global var
