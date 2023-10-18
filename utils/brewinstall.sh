@@ -202,15 +202,28 @@ buildname2url() {
 	return $rc
 }
 
+parallel_rwget()
+{
+	local url=$1
+	[[ -z "$url" ]] && return 1
+	local urls=($(curl -Ls ${url} | sed -rn '/.*>(.*.rpm)<.*/{s//\1/;p}' | grep -v -E "${ExcludePattern}" | xargs -I@ echo "$url@"))
+	for i in ${urls[@]}; do
+		echo $i
+	done
+	if [ -n "${urls[*]}" ]; then
+		run "echo ${urls[*]} | xargs -P0 -n1 curl -C0 -O" 0  "download-${url##*/}"
+	fi
+}
+
 rwget() {
 	local url=$1
 	[[ -z "$url" ]] && return 1
 	if [[ -n "$ONLY_DEBUG_INFO" ]]; then
-		run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
+		run "echo $url | xargs -P0 -n1 wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega" 0  "download-${url##*/}"
 	else
-		run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
+		run "echo $url | xargs -P0 -n1 wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega" 0  "download-${url##*/}"
 		[[ -n "$DEBUG_INFO_OPT" ]] &&
-			run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
+			run "echo $url | xargs -P0 -n1 wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega" 0  "download-${url##*/}"
 	fi
 }
 
@@ -247,21 +260,20 @@ done
 
 if [[ -z "$ExcludePattern" ]]; then
 	if ! grep -E -w 'rtk|kernel-rt|64k|kernel-64k' <<<"${builds[*]}"; then
-		ExcludePattern='kernel-rt*.rpm|kernel-64k*.rpm'
+		ExcludePattern='kernel-rt.*.rpm|kernel-64k.*.rpm'
 	elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
-		ExcludePattern='kernel-rt*.rpm'
+		ExcludePattern='kernel-rt.*.rpm'
 	elif ! grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
-		ExcludePattern='kernel-64k*.rpm'
+		ExcludePattern='kernel-64k.*.rpm'
 	fi
 fi
+
 if [[ "$FLAG" != debugkernel ]]; then
-	ExcludePattern+='|*debug-*.rpm'
+	ExcludePattern+='|.*debug-.*.rpm'
 fi
+
 if [[ "$DEBUG_INFO" != yes && "$ONLY_DEBUG_INFO" != yes ]]; then
-	ExcludePattern+='|*debuginfo*.rpm'
-fi
-if [[ -n "$ExcludePattern" ]]; then
-	wgetROpts="-R${ExcludePattern//|/ -R}"
+	ExcludePattern+='|.*debuginfo.*.rpm'
 fi
 
 # fix ssl certificate verify failed
@@ -435,7 +447,7 @@ for build in "${builds[@]}"; do
 		if [[ $? = 0 ]]; then
 			which wget &>/dev/null || yum install -y wget
 			for url in $urls; do
-				rwget $url
+				parallel_rwget $url
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			done
 		else
@@ -528,7 +540,9 @@ if ls --help|grep -q time:.birth; then
 else
 	touch $(rpm -qlp *.rpm | grep ^/boot) 2>/dev/null
 fi
+
 [[ "$FLAG" =~ debugkernel ]] && { kpat="(.?debug|\+debug)"; } || { kpat=$; }
+
 if grep -E -w 'rtk' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "\\+rt$kpat|\\.rt.*$kpat" | head -1)
 elif grep -E -w '64k' <<<"${builds[*]}"; then
@@ -536,6 +550,7 @@ elif grep -E -w '64k' <<<"${builds[*]}"; then
 elif grep -E '(^| )kernel-' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "$kpat" | head -1)
 fi
+
 if [[ -n "$kernelpath" ]]; then
 	# If the target kernel behind the current kernel, kernel scripts may not be run normally.
 	run "grubby --set-default=$kernelpath" || {
