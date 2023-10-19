@@ -202,6 +202,37 @@ buildname2url() {
 	return $rc
 }
 
+parallel_curl()
+{
+	local url=$1
+	[[ -z "$url" ]] && return 1
+	local regular_match=${ExcludePattern//./.*}
+	local urls=($(curl -Ls ${url} | sed -rn '/.*>(.*.rpm)<.*/{s//\1/;p}' | grep -v -E "${regular_match}" | xargs -I@ echo "$url@"))
+	if [ -n "${urls[*]}" ]; then
+		run "echo ${urls[*]} | xargs -P0 -n1 curl -LSks -C0 -O --retry 16 --max-time 3600 --connect-timeout 60 --speed-time 3600 --ignore-content-length -w '%{url} %{speed_download} bps total_size %{size_download} bytes download_time %{time_total} second\n'" 0  "download-${url##*/}"
+	fi
+}
+
+parallel_all_files()
+{
+	local part_urllist=(${1})
+	local curl_list=()
+	local regular_match=${ExcludePattern//./.*}
+	[[ -z "${part_urllist[*]}" ]] && return 1
+
+	for index in "${!part_urllist[@]}"; do
+		echo "${part_urllist[$index]}" | grep -E "${regular_match}" && unset part_urllist[$index]
+	done
+
+	for index in "${!part_urllist[@]}"; do
+		curl_list[$index]="$downloadBaseUrl/${part_urllist[$index]}"
+	done
+
+	if [ -n "${curl_list[*]}" ]; then
+		run "echo ${curl_list[*]} | xargs -P0 -n1 curl -LSks -C0 -O --retry 16 --max-time 3600 --connect-timeout 60 --speed-time 3600 --ignore-content-length -w '%{url} downloadspeed %{speed_download} bps total_size %{size_download} bytes download_time %{time_total} second\n'" 0  "download-${curl_list##*/}"
+	fi
+}
+
 rwget() {
 	local url=$1
 	[[ -z "$url" ]] && return 1
@@ -353,12 +384,16 @@ for build in "${builds[@]}"; do
 		if [[ "$KOJI" = koji ]]; then
 			urllist=$(sed -r '/\/?mnt.koji.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
 		fi
-		for url in $urllist; do
-			file=${url##*/}
-			eval "case '$file' in (${ExcludePattern:-.}) continue;; esac"
-			[[ "$FLAG" != debugkernel ]] && [[ "$file" = *debuginfo* || "$file" = *-debug-* ]] && continue
-			run "curl -O -L $downloadBaseUrl/$url" 0  "download-${url##*/}"
-		done
+
+		# add double quota to prevent extended
+		parallel_all_files "${urllist}"
+#		for url in $urllist; do
+#			file=${url##*/}
+#			eval "case '$file' in (${ExcludePattern:-.}) continue;; esac"
+#			[[ "$FLAG" != debugkernel ]] && [[ "$file" = *debuginfo* || "$file" = *-debug-* ]] && continue
+##			run "curl -O -L $downloadBaseUrl/$url" 0  "download-${url##*/}"
+#			file_list+=(${file_list[*]} "${file}")
+#		done
 
 		#try download rpms from brew download server
 		[[ -z "$urllist" && "$KOJI" = brew ]] && {
@@ -367,7 +402,7 @@ for build in "${builds[@]}"; do
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
 				which wget &>/dev/null || yum install -y wget
-				rwget $finalUrl
+				parallel_curl $finalUrl
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
 		}
@@ -435,7 +470,7 @@ for build in "${builds[@]}"; do
 		if [[ $? = 0 ]]; then
 			which wget &>/dev/null || yum install -y wget
 			for url in $urls; do
-				rwget $url
+				parallel_curl $url
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			done
 		else
