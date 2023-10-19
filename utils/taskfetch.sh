@@ -20,6 +20,7 @@ _install_requirements() {
 	local _pycurl=python3-pycurl
 	[[ $(rpm -E %rhel) = 7 ]] && {
 		yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
+		sed -i -e /skip_if_unavailable/d -e '/enabled=1/askip_if_unavailable=1' /etc/yum.repos.d/epel.repo
 		_pycurl=python36-pycurl
 	}
 	local _pkgs="python3 $_pycurl bzip2 gzip zip xz restraint-rhts breakerlib"
