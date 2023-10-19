@@ -87,7 +87,7 @@ _install_task() {
 	_task=${_task#CoreOS/}; _task=${_task#/}
 	[[ -z "$_task" ]] && { return 2; }
 	read taskrepo _rpath <<<"${_task/\// }"
-	uri=$(taskname2url.py /$_task $taskOpts $repoOpts)
+	read uri _ < <(taskname2url.py /$_task $taskOpts $repoOpts)
 	[[ -z "$uri" ]] && { echo "{warn} 'taskname2url.py /$_task $taskOpts $repoOpts' fail" >&2; return 2; }
 	[[ "$uri" != http* && "$uri" != ftp* ]] && {
 		echo "{warn} 'taskfetch.sh now only support http[s]/ftp protocols'" >&2; return 2; }
@@ -270,7 +270,7 @@ for __task; do
 	CASE_DIR=$PWD
 	echo "{debug} current dir: $CASE_DIR" >&2
 	#get current task's repo and repopath
-	URI=$(taskname2url.py $TASK $taskOpts $repoOpts)
+	read URI _ < <(taskname2url.py $TASK $taskOpts $repoOpts)
 	read URL RPATH <<<"${URI/\#/ }"
 	REPO_PATH=${CASE_DIR%/$RPATH}
 

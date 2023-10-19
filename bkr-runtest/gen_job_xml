@@ -178,13 +178,11 @@ if [info exist Opt(fetch-url)] {
 	}
 }
 if [info exist Opt(fetch-opts)] {
-	set task-fetch-opts "$Opt(fetch-opts)"
+	set task-fetch-opts " $Opt(fetch-opts)"
 }
 if [info exist Opt(keepchanges)] {
 	set kpchgs {yes}
-	if [info exist Opt(fetch-opts)] {
-		append task-fetch-opts " keepchanges=${kpchgs}"
-	}
+	append task-fetch-opts " keepchanges=${kpchgs}"
 }
 
 if [info exist Opt(task-fetch-url)] {
@@ -209,15 +207,17 @@ if [info exist Opt(task-fetch-url)] {
 	}
 }
 
-proc fetchtag {taskname} {
+proc gettask_uri_and_opts {taskname} {
 	if [info exist ::taskFetchUrl($taskname)] {
-		set _url $::taskFetchUrl($taskname)
+		return $::taskFetchUrl($taskname)
 	} else {
 		if {$::fetch_test_from_url == "no"} { append ::taskname2urlOpts "-skiprepo" }
-		set _url [exec bash -c "taskname2url.py $taskname $::taskname2urlOpts 2>/dev/null || :"]
+		return [exec bash -c "taskname2url.py $taskname $::taskname2urlOpts 2>/dev/null || :"]
 	}
-	if {$_url != ""} {
-		doTag fetch "url=${_url} ${::task-fetch-opts}" -
+}
+proc fetchtag {uri} {
+	if {$uri != ""} {
+		doTag fetch "url=${uri}" -
 	}
 }
 
@@ -1063,14 +1063,21 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 					if {$insert in {1 y yes}} {
-						task name=$taskname role=$_role ${kpchgsParam} ! {
+						set uri_and_opts [gettask_uri_and_opts $taskname]
+						set uri [lindex $uri_and_opts 0]
+						set opts ${task-fetch-opts}
+						if {[llength $uri_and_opts] > 0} {
+							append opts " [lrange $uri_and_opts 1 end]"
+						}
+						task name=$taskname$opts role=$_role ${kpchgsParam} ! {
 							if {$_fetch_from_url ne "disable"} {
-								fetchtag $taskname
+								fetchtag $uri
 							}
 							params ! {
 								foreach taskparam $taskparams {
 									if [string match _task* $taskparam] {continue}
 									lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
+									set pvalue {*}$pvalue
 									# use "mh-" prefix to set different value for multihost
 									if [regexp {^mh-} $pname] {
 										set pname [string range $pname 3 end]
@@ -1084,8 +1091,15 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							}
 						}
 					} else {
-						task name=$dummytask role=$_role ${kpchgsParam} ! {
-							fetchtag $dummytask
+						set taskname $dummytask
+						set uri_and_opts [gettask_uri_and_opts $taskname]
+						set uri [lindex $uri_and_opts 0]
+						set opts ${task-fetch-opts}
+						if {[llength $uri_and_opts] > 0} {
+							append opts " [lrange $uri_and_opts 1 end]"
+						}
+						task name=$taskname${opts} role=$_role ${kpchgsParam} ! {
+							fetchtag $uri
 						}
 					}
 				}
@@ -1106,14 +1120,21 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 						if {$insert in {1 y yes}} {
-							task name=$name role=$_role ${kpchgsParam} ! {
+							set uri_and_opts [list {*}[gettask_uri_and_opts $name]]
+							set uri [lindex $uri_and_opts 0]
+							set opts ${task-fetch-opts}
+							if {[llength $uri_and_opts] > 0} {
+								append opts " [lrange $uri_and_opts 1 end]"
+							}
+							task name=$name${opts} role=$_role ${kpchgsParam} ! {
 								if {$_fetch_from_url ne "disable"} {
-									fetchtag $name
+									fetchtag $uri
 								}
 								params ! {
 									foreach taskparam $taskparams {
 										if [string match _task* $taskparam] {continue}
 										lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
+										set pvalue {*}$pvalue
 										# use "mh-" prefix to set different value for multihost
 										if [regexp {^mh-} $pname] {
 											set pname [string range $pname 3 end]
@@ -1127,8 +1148,15 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								}
 							}
 						} else {
-							task name=$dummytask role=$_role ${kpchgsParam} ! {
-								fetchtag $dummytask
+							set name $dummytask
+							set uri_and_opts [gettask_uri_and_opts $name]
+							set uri [lindex $uri_and_opts 0]
+							set opts ${task-fetch-opts}
+							if {[llength $uri_and_opts] > 0} {
+								append opts " [lrange $uri_and_opts 1 end]"
+							}
+							task name=$name${opts} role=$_role ${kpchgsParam} ! {
+								fetchtag $uri
 							}
 						}
 
@@ -1190,14 +1218,21 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 
 					if {$insert in {1 y yes}} {
-						task name=$taskname role=$_role ${kpchgsParam} ! {
+						set uri_and_opts [gettask_uri_and_opts $taskname]
+						set uri [lindex $uri_and_opts 0]
+						set opts ${task-fetch-opts}
+						if {[llength $uri_and_opts] > 0} {
+							append opts " [lrange $uri_and_opts 1 end]"
+						}
+						task name=$taskname${opts} role=$_role ${kpchgsParam} ! {
 							if {$_fetch_from_url ne "disable"} {
-								fetchtag $taskname
+								fetchtag $uri
 							}
 							params ! {
 								foreach taskparam $taskparams {
 									if [string match _task* $taskparam] {continue}
 									lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
+									set pvalue {*}$pvalue
 									# use "mh-" prefix to set different value for multihost
 									if [regexp {^mh-} $pname] {
 										set pname [string range $pname 3 end]
@@ -1211,8 +1246,15 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							#param name=DISTRO_BUILD value=$distroBuild -
 						}
 					} else {
-						task name=$dummytask role=$_role ${kpchgsParam} ! {
-							fetchtag $dummytask
+						set taskname $dummytask
+						set uri_and_opts [gettask_uri_and_opts $taskname]
+						set uri [lindex $uri_and_opts 0]
+						set opts ${task-fetch-opts}
+						if {[llength $uri_and_opts] > 0} {
+							append opts " [lrange $uri_and_opts 1 end]"
+						}
+						task name=$taskname${opts} role=$_role ${kpchgsParam} ! {
+							fetchtag $uri
 						}
 					}
 				}
