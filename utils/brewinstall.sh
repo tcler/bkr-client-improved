@@ -214,6 +214,43 @@ rwget() {
 	fi
 }
 
+ParallelDownload()
+{
+	# receive a tuple and call curl to download
+	local UrlList=(${1})
+	local CurlOpt='-LSks -C0 -O --retry 16 --max-time 3600 --connect-timeout 60 --speed-time 3600 --ignore-content-length -w '%{url} %{speed_download} bps total_size %{size_download} bytes download_time %{time_total} second\n''
+	[[ -z "${UrlList[*]}" ]] && return 1
+	[ -n "${UrlList[*]}" ] &&\
+	run "echo ${UrlList[*]} | xargs -P0 -n1 curl ${CurlOpt}" 0
+}
+
+getUrlListByPCurl()
+{
+	# receive a url and decide is a paraent url or a url list. Then call the filter function to filter allowed urllist
+	local url=($1)
+	local regular_match=$(filter) # hope give a regular match to filter package
+	local urls=() # will return a download list
+	[[ -z "${url[*]}" ]] && return 1
+
+	# output a url tuple
+	if [ ${!url[*]} -eq 1 ]; then
+		local urls=($(curl -Ls ${url} | sed -rn '/.*>(.*.rpm)<.*/{s//\1/;p}' | grep -v -E "${regular_match}" | xargs -I@ echo "$url@"))
+	else
+		for index in "${!url[@]}"; do
+			echo "${url[$index]}" | grep -E "${regular_match}" && unset url[$index]
+		done
+		for index in "${!url[@]}"; do
+			urls[$index]="$downloadBaseUrl/${url[$index]}"
+		done
+	fi
+
+	# check the url effective
+	for index in ${!urls[@]}; do
+		is_available_url ${urls[$index]} || unset urls[$index]
+	done
+	echo "${urls[*]}"
+}
+
 # parse options
 builds=()
 for arg; do
