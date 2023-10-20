@@ -141,7 +141,7 @@ if {$Distro == ""} {
 # Get the test list
 set _TestList {}
 set TestList {}
-if [info exist Opt(task)] { set _TestList [list $Opt(task)] }
+if [info exist Opt(task)] { lappend _TestList $Opt(task) }
 set TestListFile {}
 if {[llength $TestArgList]==0 && ![istty stdin]} {lappend TestArgList -}
 if {[llength $TestArgList]==0 && $_TestList == {}} {
@@ -185,8 +185,18 @@ if {[llength $TestArgList]==0 && $_TestList == {}} {
 
 # test filters
 foreach test $_TestList {
-	regsub -line {^-  *} $test {} test
+	if [string match "{*}" $test] { set test {*}$test }
+	regsub -line {^-} $test {} test
+	set test [string trim $test]
 	if [regexp {^/[^: ]+$} $test] { set test "${test}: {}" }
+	if [regexp {^/[^: ]+ ([^= \}]+=.*)+$} $test] {
+		set tname [lindex $test 0]
+		set paramlist {}
+		foreach param [lrange $test 1 end] {
+			append paramlist " ,\"$param\""
+		}
+		set test "${tname}: {param: \[[string range $paramlist 2 end]\]}"
+	}
 	if {$test in {dummy dumy dum}} { set test "/distribution/utils/dummy: {}" }
 
 	if {[exec yq {.[].attr.disable} << $test] ni {no 0 null}} continue

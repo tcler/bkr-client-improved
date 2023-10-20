@@ -1055,27 +1055,29 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					set taskname [lindex $taskb 0]
 					set taskparams [lrange $taskb 1 end]
 					set insert 1
-					lassign [list $role "" enable ""] _role _roleval _fetch_from_url _task_position
+					lassign [list $role "" enable "" ""] _role _roleval _fetch_url _task_position _opts
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
-					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_from_url
+					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_url
 					if {$_roleval ne ""} { set _role $_roleval }
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_position=*] _ _task_position
 					if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
+					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _opts=*] _ _opts
 
 					if {$insert in {1 y yes}} {
 						set uri_and_opts [gettask_uri_and_opts $taskname]
 						set uri [lindex $uri_and_opts 0]
-						set opts ${task-fetch-opts}
+						set opts " ${_opts} ${task-fetch-opts}"
 						if {[llength $uri_and_opts] > 0} {
 							append opts " [lrange $uri_and_opts 1 end]"
 						}
 						task name=$taskname$opts role=$_role ${kpchgsParam} ! {
-							if {$_fetch_from_url ne "disable"} {
+							if {$_fetch_url ne "disable"} {
 								fetchtag $uri
 							}
 							params ! {
 								foreach taskparam $taskparams {
 									if [string match _task* $taskparam] {continue}
+									if [string match _opts=* $taskparam] {continue}
 									lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
 									# use "mh-" prefix to set different value for multihost
 									if [regexp {^mh-} $pname] {
@@ -1111,27 +1113,29 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						set name [lindex $task 0]
 						set taskparams [lrange $task 1 end]
 						set insert 1
-						lassign [list $role "" enable ""] _role _roleval _fetch_from_url _task_position
+						lassign [list $role "" enable "" ""] _role _roleval _fetch_url _task_position _opts
 						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
-						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_from_url
+						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_url
 						if {$_roleval ne ""} { set _role $_roleval }
 						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_position=*] _ _task_position
 						if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
+						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _opts=*] _ _opts
 
 						if {$insert in {1 y yes}} {
 							set uri_and_opts [list {*}[gettask_uri_and_opts $name]]
 							set uri [lindex $uri_and_opts 0]
-							set opts ${task-fetch-opts}
+							set opts " ${_opts} ${task-fetch-opts}"
 							if {[llength $uri_and_opts] > 0} {
 								append opts " [lrange $uri_and_opts 1 end]"
 							}
 							task name=$name${opts} role=$_role ${kpchgsParam} ! {
-								if {$_fetch_from_url ne "disable"} {
+								if {$_fetch_url ne "disable"} {
 									fetchtag $uri
 								}
 								params ! {
 									foreach taskparam $taskparams {
 										if [string match _task* $taskparam] {continue}
+										if [string match _opts=* $taskparam] {continue}
 										lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
 										# use "mh-" prefix to set different value for multihost
 										if [regexp {^mh-} $pname] {
@@ -1208,27 +1212,29 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					set taskname [lindex $taska 0]
 					set taskparams [lrange $taska 1 end]
 					set insert 1
-					lassign [list $role "" enable ""] _role _roleval _fetch_from_url _task_position
+					lassign [list $role "" enable "" ""] _role _roleval _fetch_url _task_position _opts
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_role=*] _ _roleval
-					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_from_url
+					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_url
 					if {$_roleval ne ""} { set _role $_roleval }
 					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_position=*] _ _task_position
 					if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
+					regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _opts=*] _ _opts
 
 					if {$insert in {1 y yes}} {
 						set uri_and_opts [gettask_uri_and_opts $taskname]
 						set uri [lindex $uri_and_opts 0]
-						set opts ${task-fetch-opts}
+						set opts " ${_opts} ${task-fetch-opts}"
 						if {[llength $uri_and_opts] > 0} {
 							append opts " [lrange $uri_and_opts 1 end]"
 						}
 						task name=$taskname${opts} role=$_role ${kpchgsParam} ! {
-							if {$_fetch_from_url ne "disable"} {
+							if {$_fetch_url ne "disable"} {
 								fetchtag $uri
 							}
 							params ! {
 								foreach taskparam $taskparams {
 									if [string match _task* $taskparam] {continue}
+									if [string match _opts=* $taskparam] {continue}
 									lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
 									# use "mh-" prefix to set different value for multihost
 									if [regexp {^mh-} $pname] {
