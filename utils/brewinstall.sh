@@ -50,7 +50,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $P <[brew_scratch_build_id] | [lstk|rtk|upk|brew_build_name] | [url]> [-koji] [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch]
+	 $P <[brew_scratch_build_id] | [lstk|rtk|upk|brew_build_name] | [url]> [-koji] [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch] [-R= +R= -A=]
 
 	Example:
 	 $P 23822847  # brew/koji scratch build id
@@ -203,9 +203,9 @@ rpmFilter() {
 download_pkgs_from_repo() {
 	local repopath=$1
 	local urls=
-	urls=$(getUrlListByRepo $repopath | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}")
+	urls=$(getUrlListByRepo $repopath | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 	for url in $urls; do
-		curl -L -k $url -o ${url##*/} 2>/dev/null || {
+		run "curl -L -k $url -o ${url##*/}" || {
 			ourl=$url
 			url=$(curl -Ls -o /dev/null -w %{url_effective} $ourl)
 			if [[ "$url" != "$ourl" ]]; then
@@ -245,7 +245,7 @@ buildname2url() {
 down_rpms_from_url() {
 	local purl=$1
 	local urllist=$(curl -Ls ${purl} | sed -rn '/.*>(.*.rpm)<.*/{s//\1/;p}' | xargs -I@ echo "$url@" |
-		rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}")
+		rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 
 	for url in $urllist; do
 		run "curl -Lk -O $url"
@@ -399,7 +399,7 @@ for build in "${builds[@]}"; do
 		if [[ "$KOJI" = koji ]]; then
 			urllist=$(sed -r '/\/?mnt.koji.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
 		fi
-		urllist=$(echo "$urllist" | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}")
+		urllist=$(echo "$urllist" | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 		for url in $urllist; do
 			run "curl -O -L $downloadBaseUrl/$url" 0  "download-${url##*/}"
 		done
@@ -517,7 +517,7 @@ ls -1 *.rpm | grep -q ^kernel-rt && {
 	run "yum --setopt=strict=0 install -y @RT @NFV" -
 }
 
-rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}")
+rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 
 case $INSTALL_TYPE in
 nothing)
