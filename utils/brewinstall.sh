@@ -96,7 +96,7 @@ install_brew() {
 	which brew
 }
 
-download_pkgs_from_repo() {
+getUrlListByRepo() {
 	local repopath=$1
 	local reponame=
 	local url=
@@ -148,22 +148,63 @@ download_pkgs_from_repo() {
 	else
 		urls=$(yum download --url --disablerepo=* --repofrompath=$repopath \*|grep '\.rpm$')
 	fi
+	echo "$urls"
+}
 
-	local i=1
-	local cnt=$(echo -n "$urls"|wc -l)
-	for url in $urls; do
-		file=${url##*/}
+RejectOpts=()
+AcceptOpts=()
 
-		if [[ -n "$ONLY_DEBUG_INFO" ]]; then
-			[[ "$file" != *debuginfo* ]] && continue
+autoAcceptOpts=()
+autoRejectOpts=()
+
+rpmFilter() {
+	local afs=()
+	local rfs=()
+	local nrfs=()
+	local pattype=glob url= file=
+	local reject= accept=
+	for arg; do
+		case "$arg" in
+		-re) pattype=regex;;
+		-A*) afs+=("${arg#-A}");;
+		-R*) rfs+=("${arg#-R}");;
+		+R*) nrfs+=("${arg#+R}");;
+		esac
+	done
+	_match() {
+		local pt=$1
+		if [[ $pt = glob ]]; then
+			[[ "$2" = $3 ]]
 		else
-			eval "case '$file' in
-			(${ExcludePattern:-.})
-				echo '{Info} [$i/$cnt] skip excluded pkg $url'
-				let i++; continue;;
-			esac"
+			[[ "$2" =~ $3 ]]
 		fi
-		echo "{Info} [$i/$cnt] download $url"
+	}
+	echo "[rpmFilter] accepts: ${afs[*]}" >&2
+	echo "[rpmFilter] rejects: ${rfs[*]}" >&2
+	echo "[rpmFilter] rejects!: ${nrfs[*]}" >&2
+	while read url; do
+		#echo "[rpmFilter] _check: $url" >&2
+		file=${url##*/}
+		reject=0
+		for pat in "${rfs[@]}"; do _match $pattype "$file" "$pat" && { reject=1; break; }; done
+		[[ "$reject" = 1 ]] && continue
+		for pat in "${nrfs[@]}"; do _match $pattype "$file" "$pat" || { reject=1; break; }; done
+		[[ "$reject" = 1 ]] && continue
+
+		accept=1; [[ ${#afs[@]} > 0 ]] && accept=0
+		for pat in "${afs[@]}"; do _match $pattype "$file" "$pat" && { accept=1; break; }; done
+		[[ "$accept" = 1 ]] && {
+			echo -e "\E[01;36m[rpmFilter] accept: $url\E[0m" >&2
+			echo "$url"
+		}
+	done
+}
+
+download_pkgs_from_repo() {
+	local repopath=$1
+	local urls=
+	urls=$(getUrlListByRepo $repopath | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}")
+	for url in $urls; do
 		curl -L -k $url -o ${url##*/} 2>/dev/null || {
 			ourl=$url
 			url=$(curl -Ls -o /dev/null -w %{url_effective} $ourl)
@@ -174,7 +215,6 @@ download_pkgs_from_repo() {
 				yum download ${pkg%.rpm} --repofrompath=$repopath --downloaddir=.
 			fi
 		}
-		let i++;
 	done
 }
 
@@ -202,16 +242,14 @@ buildname2url() {
 	return $rc
 }
 
-rwget() {
-	local url=$1
-	[[ -z "$url" ]] && return 1
-	if [[ -n "$ONLY_DEBUG_INFO" ]]; then
-		run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
-	else
-		run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts $wgetOpts --progress=dot:mega $url" 0  "download-${url##*/}"
-		[[ -n "$DEBUG_INFO_OPT" ]] &&
-			run "wget --no-check-certificate -r -l$depthLevel --no-parent $wgetROpts -A\*debuginfo\*.rpm --progress=dot:mega $url" 0  "download-${url##*/}"
-	fi
+down_rpms_from_url() {
+	local purl=$1
+	local urllist=$(curl -Ls ${purl} | sed -rn '/.*>(.*.rpm)<.*/{s//\1/;p}' | xargs -I@ echo "$url@" |
+		rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}")
+
+	for url in $urllist; do
+		run "curl -Lk -O $url"
+	done
 }
 
 # parse options
@@ -224,9 +262,9 @@ for arg; do
 	-onlydownload)   ONLY_DOWNLOAD=yes;;
 	-debug|-debugk*) FLAG=debugkernel;;
 	-noreboot*)      KREBOOT=no;;
-	-x=*)
-		ExcludePattern=${arg/*=/}
-		;;
+	-A=*)            AcceptOpts+=("-A${arg#-A=}");;
+	-R=*)            RejectOpts+=("-R${arg#-R=}");;
+	+R=*)            RejectOpts+=("+R${arg#+R=}");;
 	-depthLevel=*)   depthLevel=${arg/*=/};;
 	-rpms*)          INSTALL_TYPE=rpms;;
 	-yum*)           INSTALL_TYPE=yum;;
@@ -245,23 +283,23 @@ for arg; do
 	esac
 done
 
-if [[ -z "$ExcludePattern" ]]; then
+if [[ "${#autoRejectOpts[@]}" = 0 ]]; then
 	if ! grep -E -w 'rtk|kernel-rt|64k|kernel-64k' <<<"${builds[*]}"; then
-		ExcludePattern='kernel-rt*.rpm|kernel-64k*.rpm'
+		autoRejectOpts+=(-Rkernel-rt*.rpm -Rkernel-64k*.rpm)
 	elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
-		ExcludePattern='kernel-rt*.rpm'
+		autoRejectOpts+=(-Rkernel-rt*.rpm +Rkernel-64k*.rpm)
 	elif ! grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
-		ExcludePattern='kernel-64k*.rpm'
+		autoRejectOpts+=(-Rkernel-64k*.rpm +Rkernel-rt*.rpm)
 	fi
 fi
-if [[ "$FLAG" != debugkernel ]]; then
-	ExcludePattern+='|*debug-*.rpm'
+if [[ "$FLAG" = debugkernel ]]; then
+	autoRejectOpts+=(+R*debug-*.rpm)
 fi
 if [[ "$DEBUG_INFO" != yes && "$ONLY_DEBUG_INFO" != yes ]]; then
-	ExcludePattern+='|*debuginfo*.rpm'
+	autoRejectOpts+=(-R*debuginfo*.rpm)
 fi
-if [[ -n "$ExcludePattern" ]]; then
-	wgetROpts="-R${ExcludePattern//|/ -R}"
+if [[ "$ONLY_DEBUG_INFO" = yes ]]; then
+	autoRejectOpts+=(+R*debuginfo*.rpm)
 fi
 
 # fix ssl certificate verify failed
@@ -280,17 +318,24 @@ fi
 archList=($(arch) noarch)
 [[ -n "$_ARCH" ]] && archList=(${_ARCH//,/ })
 archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
-wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A.${a}.rpm"; done)
-[[ "$FLAG" = debugkernel ]] && {
-	wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A*debug-*.${a}.rpm"; done)
-	[[ "$DEBUG_INFO" = yes ]] && wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A*debug*.${a}.rpm"; done)
-}
+if [[ "$FLAG" = debugkernel ]]; then
+	if [[ "$DEBUG_INFO" = yes ]]; then
+		autoAcceptOpts=()
+		for a in "${archList[@]}"; do autoAcceptOpts+=("-A*debug*.${a}.rpm"); done
+	else
+		autoAcceptOpts=()
+		for a in "${archList[@]}"; do autoAcceptOpts+=("-A*debug-*.${a}.rpm"); done
+	fi
+else
+	autoAcceptOpts=()
+	for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
+fi
 
 if grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
 	run "yum --setopt=strict=0 install @RT @NFV -y"
-	wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A*-rt-*.${a}.rpm"; done)
+	for a in "${archList[@]}"; do autoAcceptOpts+=("-A*-rt-*.${a}.rpm"); done
 elif grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
-	wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A*-64k*.${a}.rpm"; done)
+	for a in "${archList[@]}"; do autoAcceptOpts+=("-A*-64k*.${a}.rpm"); done
 fi
 
 # Download packges
@@ -346,17 +391,16 @@ for build in "${builds[@]}"; do
 		}
 
 		[[ "$_buildname" != kernel-* ]] && {
-			wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A.${a}.rpm"; done)
+			autoAcceptOpts=()
+			for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 		}
 
 		urllist=$(sed -r '/\/?mnt.redhat.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
 		if [[ "$KOJI" = koji ]]; then
 			urllist=$(sed -r '/\/?mnt.koji.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
 		fi
+		urllist=$(echo "$urllist" | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}")
 		for url in $urllist; do
-			file=${url##*/}
-			eval "case '$file' in (${ExcludePattern:-.}) continue;; esac"
-			[[ "$FLAG" != debugkernel ]] && [[ "$file" = *debuginfo* || "$file" = *-debug-* ]] && continue
 			run "curl -O -L $downloadBaseUrl/$url" 0  "download-${url##*/}"
 		done
 
@@ -367,7 +411,7 @@ for build in "${builds[@]}"; do
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
 				which wget &>/dev/null || yum install -y wget
-				rwget $finalUrl
+				down_rpms_from_url $finalUrl
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
 		}
@@ -393,17 +437,9 @@ for build in "${builds[@]}"; do
 				run "curl -O -L $url" 0  "download-${url##*/}"
 			else
 				which wget &>/dev/null || yum install -y wget
-				rwget $url
+				down_rpms_from_url $url
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
-		done
-
-		for file in *.rpm; do
-			eval "case '$file' in
-			(${ExcludePattern:-.})
-				echo '{Info} rm excluded file $file'
-				rm -f '$file';;
-			esac"
 		done
 	else
 		nbuild=$($KOJI list-builds --pattern=${build} --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
@@ -429,27 +465,20 @@ for build in "${builds[@]}"; do
 		run install_brew -
 		buildname=$build
 		[[ "$buildname" != kernel-* ]] && {
-			wgetOpts=$(for a in "${archList[@]}"; do echo -n " -A.${a}.rpm"; done)
+			autoAcceptOpts=()
+			for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 		}
 		urls=$(buildname2url $buildname)
 		if [[ $? = 0 ]]; then
 			which wget &>/dev/null || yum install -y wget
 			for url in $urls; do
-				rwget $url
+				down_rpms_from_url $url
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			done
 		else
 			for a in "${archList[@]}"; do
 				run "$KOJI download-build $DEBUG_INFO_OPT $buildname --arch=${a}" - ||
 					run "koji download-build $DEBUG_INFO_OPT $buildname --arch=${a}" -
-			done
-
-			for file in *.rpm; do
-				eval "case '$file' in
-				(${ExcludePattern:-.})
-					echo '{Info} rm excluded file $file'
-					rm -f '$file';;
-				esac"
 			done
 		fi
 
@@ -488,12 +517,7 @@ ls -1 *.rpm | grep -q ^kernel-rt && {
 	run "yum --setopt=strict=0 install -y @RT @NFV" -
 }
 
-for rpm in *.rpm; do
-	[[ "$ONLY_DEBUG_INFO" = yes && $rpm != *-debuginfo-* ]] && {
-		rm -f $rpm
-		continue
-	}
-done
+rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}")
 
 case $INSTALL_TYPE in
 nothing)
@@ -504,18 +528,18 @@ nothing)
 	fi
 	;;
 rpms)
-	run "rpm -Uvh --force --nodeps *.rpm" -
+	run "rpm -Uvh --force --nodeps $rpmfiles" -
 	;;
 yum)
-	run "yum install -y --nogpgcheck --setopt=keepcache=1 *.rpm" -
+	run "yum install -y --nogpgcheck --setopt=keepcache=1 $rpmfiles" -
 	;;
 rpm)
-	for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
+	for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
 	;;
 *)
-	run "yum install -y --nogpgcheck --setopt=keepcache=1 *.rpm" - ||
-		run "rpm -Uvh --force --nodeps *.rpm" - ||
-		for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
+	run "yum install -y --nogpgcheck --setopt=keepcache=1 $rpmfiles" - ||
+		run "rpm -Uvh --force --nodeps $rpmfiles" - ||
+		for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
 esac
 
 #mount /boot if not yet
