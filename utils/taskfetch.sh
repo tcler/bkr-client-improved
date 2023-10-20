@@ -237,8 +237,16 @@ eval set -- "$@" "${taskl[@]}"
 _install_requirements
 [[ -n "$REPO_URLS" ]] && echo "{debug} task urls: $REPO_URLS" >&2
 [[ -n "$TASK_URIS" ]] && echo "{debug} task urls: $TASK_URIS" >&2
-for repourl in $REPO_URLS; do [[ "$repourl" != *[,@]* ]] && continue; repoOpts+="-repo=$repourl "; done
-for taskuri in $TASK_URIS; do [[ "$taskuri" != *[,@]* ]] && continue; taskOpts+="-task=$taskuri "; done
+for repourl in $REPO_URLS; do
+	[[ "$repourl" != *[,@]* ]] && continue
+	[[ "$taskuri" = *[,@]git:// ]] && continue
+	repoOpts+="-repo=$repourl "
+done
+for taskuri in $TASK_URIS; do
+	[[ "$taskuri" != *[,@]* ]] && continue
+	[[ "$taskuri" = *[,@]git:// ]] && continue
+	taskOpts+="-task=$taskuri "
+done
 
 for __task; do
 	INDENT=
