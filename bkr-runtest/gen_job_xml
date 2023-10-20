@@ -1077,7 +1077,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								foreach taskparam $taskparams {
 									if [string match _task* $taskparam] {continue}
 									lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
-									set pvalue {*}$pvalue
 									# use "mh-" prefix to set different value for multihost
 									if [regexp {^mh-} $pname] {
 										set pname [string range $pname 3 end]
@@ -1134,7 +1133,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 									foreach taskparam $taskparams {
 										if [string match _task* $taskparam] {continue}
 										lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
-										set pvalue {*}$pvalue
 										# use "mh-" prefix to set different value for multihost
 										if [regexp {^mh-} $pname] {
 											set pname [string range $pname 3 end]
@@ -1232,7 +1230,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								foreach taskparam $taskparams {
 									if [string match _task* $taskparam] {continue}
 									lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
-									set pvalue {*}$pvalue
 									# use "mh-" prefix to set different value for multihost
 									if [regexp {^mh-} $pname] {
 										set pname [string range $pname 3 end]
