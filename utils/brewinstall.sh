@@ -96,6 +96,11 @@ install_brew() {
 	which brew
 }
 
+getUrlListByUrl() {
+	local purl=$1
+	curl -Ls ${purl} | sed -rn '/.*>(.*.rpm)<.*/{s//\1/;p}' | xargs -I@ echo "$purl@"
+}
+
 getUrlListByRepo() {
 	local repopath=$1
 	local reponame=
@@ -200,24 +205,6 @@ rpmFilter() {
 	done
 }
 
-download_pkgs_from_repo() {
-	local repopath=$1
-	local urls=
-	urls=$(getUrlListByRepo $repopath | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
-	for url in $urls; do
-		run "curl -L -k $url -o ${url##*/}" || {
-			ourl=$url
-			url=$(curl -Ls -o /dev/null -w %{url_effective} $ourl)
-			if [[ "$url" != "$ourl" ]]; then
-				curl -L -k $url -o ${url##*/} 2>/dev/null
-			else
-				pkg=${url##*/}
-				yum download ${pkg%.rpm} --repofrompath=$repopath --downloaddir=.
-			fi
-		}
-	done
-}
-
 buildname2url() {
 	local _build=$1
 	local url= _paths=
@@ -242,14 +229,43 @@ buildname2url() {
 	return $rc
 }
 
-down_rpms_from_url() {
-	local purl=$1
-	local urllist=$(curl -Ls ${purl} | sed -rn '/.*>(.*.rpm)<.*/{s//\1/;p}' | xargs -I@ echo "$url@" |
-		rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
+_curl_download() {
+	local url=$1 ourl=
+	curl -L -k $url -O || {
+		ourl=$url
+		url=$(curl -Ls -o /dev/null -w %{url_effective} $ourl)
+		if [[ "$url" != "$ourl" ]]; then
+			curl -L -k $url -O
+		fi
+	}
+}
 
-	for url in $urllist; do
-		run "curl -Lk -O $url"
-	done
+batch_download() {
+	local dtype=
+	[[ "$1" = -p ]] && dtype=parallel
+	if [[ "$dtype" = parallel ]]; then
+		while read url; do
+			echo "_curl_download $url &"
+			_curl_download $url &
+		done
+		wait
+	else
+		while read url; do
+			run "_curl_download $url"
+		done
+	fi
+}
+
+download_pkgs_from_repo() {
+	local repopath=$1
+	time batch_download -p < <(getUrlListByRepo $repopath |
+		rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
+}
+
+download_rpms_from_url() {
+	local purl=$1
+	time batch_download -p < <(getUrlListByUrl $purl |
+		rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 }
 
 # parse options
@@ -301,6 +317,13 @@ fi
 if [[ "$ONLY_DEBUG_INFO" = yes ]]; then
 	autoRejectOpts+=(+R*debuginfo*.rpm)
 fi
+
+autoRejectOpts+=(+Rkernel*)
+! grep -q -w virt <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-virt-*.rpm)
+! grep -q -w devel <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-devel-*.rpm)
+! grep -q -w tools <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-tools-*.rpm)
+! grep -q -w doc <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-doc-*.rpm)
+! grep -q -w selftest <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-selftest-*.rpm)
 
 # fix ssl certificate verify failed
 # https://certs.corp.redhat.com/ https://docs.google.com/spreadsheets/d/1g0FN13NPnC38GsyWG0aAJ0v8FljNDlqTTa35ap7N46w/edit#gid=0
@@ -411,7 +434,7 @@ for build in "${builds[@]}"; do
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
 				which wget &>/dev/null || yum install -y wget
-				down_rpms_from_url $finalUrl
+				download_rpms_from_url $finalUrl
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
 		}
@@ -437,7 +460,7 @@ for build in "${builds[@]}"; do
 				run "curl -O -L $url" 0  "download-${url##*/}"
 			else
 				which wget &>/dev/null || yum install -y wget
-				down_rpms_from_url $url
+				download_rpms_from_url $url
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
@@ -472,7 +495,7 @@ for build in "${builds[@]}"; do
 		if [[ $? = 0 ]]; then
 			which wget &>/dev/null || yum install -y wget
 			for url in $urls; do
-				down_rpms_from_url $url
+				download_rpms_from_url $url
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			done
 		else
