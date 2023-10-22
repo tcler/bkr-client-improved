@@ -310,6 +310,8 @@ if [[ "${#autoRejectOpts[@]}" = 0 ]]; then
 fi
 if [[ "$FLAG" = debugkernel ]]; then
 	autoRejectOpts+=(+R*debug-*.rpm)
+else
+	autoRejectOpts+=(-R*debug-*.rpm)
 fi
 if [[ "$DEBUG_INFO" != yes && "$ONLY_DEBUG_INFO" != yes ]]; then
 	autoRejectOpts+=(-R*debuginfo*.rpm)
@@ -378,10 +380,17 @@ for build in "${builds[@]}"; do
 	elif [[ "$build" = lstk ]]; then
 		run install_brew -
 		KOJI=brew
-		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
-		rel=${rel%.kpq*}
-		build=$($KOJI list-builds --pattern=kernel-${ver}-${rel/*./*.}* --state=COMPLETE  --quiet 2>/dev/null |
-			sort -Vr | awk "\$1 ~ /-[0-9]+\.${rel/*./}[^.]*$/"'{print $1; exit}')
+		if [[ "$(rpm -E %rhel)" != %rhel && "$(uname -r)" = *eln* ]]; then
+			_vr=$(yum provides kernel-core | awk -v RS= '/BaseOS/{print $NF}')
+			read ver rel < <(echo "$_vr"|sed -r 's/^([0-9]+.[0-9]+.[0-9]+)-(.*)$/\1 \2/')
+			_pattern="kernel-${ver}-${rel/*./*.}*"
+		else
+			read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
+			rel=${rel%.kpq*}
+			_pattern="kernel-${ver}-${rel/*./*.}*"
+		fi
+		build=$($KOJI list-builds --pattern=$_pattern --state=COMPLETE  --quiet 2>/dev/null |
+			sort -Vr | awk "\$1 ~ /-[-.0-9]+\.${rel/*./}[^.]*$/"'{print $1; exit}')
 	elif [[ "$build" = latest-* ]]; then
 		pkg=${build#latest-}
 		run install_brew -
