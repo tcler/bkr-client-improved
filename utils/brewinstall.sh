@@ -268,6 +268,41 @@ download_rpms_from_url() {
 		rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 }
 
+ParallelDownload()
+{
+
+	local temp_urls="${1:-$(cat)}"
+	[[ -z "${temp_urls[*]}" ]] && return 1
+	[ -n "${temp_urls[*]}" ] &&\
+	echo ${temp_urls[*]} | xargs -P0 -n1 curl -LSks -C0 -O --retry 16 --max-time 3600 --connect-timeout 60 --speed-time 3600 --ignore-content-length -w '%{url_effective} %{speed_download} bps total_size %{size_download} bytes download_time %{time_total} second\n'
+}
+
+getUrlListByPCurl()
+{
+	# receive a temp_urls to do more judge
+
+	local urls=()
+	local temp_urls="${1:-$(cat)}"
+
+	temp_urls=$(echo "${temp_urls}" | tr '\n' ' ' | sed 's/^[ \t]*//;s/[ \t]*$//')
+	IFS=' ' read -ra UrlList <<< "${temp_urls}"
+	[[ -z "${UrlList[*]}" ]] && return 1
+
+	# if a single url will found rpms. if a mutiple url will splice a complete path
+	if [ ${#UrlList[@]} -qe 1 ]; then
+			urls=$(curl -Ls "${UrlList}" | sed -rn '/.*>(.*.rpm)<.*/{s//\1/;p}' | xargs -I@ echo "${UrlList}@")
+	elif [ ${#UrlList} -eq 0 ]; then
+		echo "didn't got any url"
+		return 1
+	else
+		for index in ${!UrlList[@]}; do
+			urls+="$downloadBaseUrl/${UrlList[$index]} "
+		done
+	fi
+	# output urls to download
+	echo "${urls[*]}"
+}
+
 # parse options
 builds=()
 for arg; do
