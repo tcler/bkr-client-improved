@@ -259,13 +259,13 @@ batch_download() {
 download_pkgs_from_repo() {
 	local repopath=$1
 	time batch_download -p < <(getUrlListByRepo $repopath |
-		rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
+		rpmFilter "${bROpts[@]}" "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 }
 
 download_rpms_from_url() {
 	local purl=$1
 	time batch_download -p < <(getUrlListByUrl $purl |
-		rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
+		rpmFilter "${bROpts[@]}" "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 }
 
 # parse options
@@ -299,15 +299,7 @@ for arg; do
 	esac
 done
 
-if [[ "${#autoRejectOpts[@]}" = 0 ]]; then
-	if ! grep -E -w 'rtk|kernel-rt|64k|kernel-64k' <<<"${builds[*]}"; then
-		autoRejectOpts+=(-Rkernel-rt*.rpm -Rkernel-64k*.rpm)
-	elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
-		autoRejectOpts+=(-Rkernel-rt*.rpm +Rkernel-64k*.rpm)
-	elif ! grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
-		autoRejectOpts+=(-Rkernel-64k*.rpm +Rkernel-rt*.rpm)
-	fi
-fi
+#common Reject Filter Options
 if [[ "$FLAG" = debugkernel ]]; then
 	autoRejectOpts+=(+R*debug-*.rpm)
 else
@@ -320,12 +312,20 @@ if [[ "$ONLY_DEBUG_INFO" = yes ]]; then
 	autoRejectOpts+=(+R*debuginfo*.rpm)
 fi
 
-autoRejectOpts+=(+Rkernel*)
-! grep -q -w virt <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-virt-*.rpm)
-! grep -q -w devel <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-devel-*.rpm)
-! grep -q -w tools <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-tools-*.rpm)
-! grep -q -w doc <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-doc-*.rpm)
-! grep -q -w selftest <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-selftest-*.rpm)
+#kernel Reject Filter Options
+kROpts+=(+Rkernel*)
+if ! grep -E -w 'rtk|kernel-rt|64k|kernel-64k' <<<"${builds[*]}"; then
+	kROpts+=(-Rkernel-rt*.rpm -Rkernel-64k*.rpm)
+elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
+	kROpts+=(-Rkernel-rt*.rpm +Rkernel-64k*.rpm)
+elif ! grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
+	kROpts+=(-Rkernel-64k*.rpm +Rkernel-rt*.rpm)
+fi
+! grep -q -w virt <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && kROpts+=(-R*-virt-*.rpm)
+! grep -q -w devel <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && kROpts+=(-R*-devel-*.rpm)
+! grep -q -w tools <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && kROpts+=(-R*-tools-*.rpm)
+! grep -q -w doc <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && kROpts+=(-R*-doc-*.rpm)
+! grep -q selftest <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && kROpts+=(-R*-selftests-*.rpm)
 
 # fix ssl certificate verify failed
 # https://certs.corp.redhat.com/ https://docs.google.com/spreadsheets/d/1g0FN13NPnC38GsyWG0aAJ0v8FljNDlqTTa35ap7N46w/edit#gid=0
@@ -343,24 +343,10 @@ fi
 archList=($(arch) noarch)
 [[ -n "$_ARCH" ]] && archList=(${_ARCH//,/ })
 archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
-if [[ "$FLAG" = debugkernel ]]; then
-	if [[ "$DEBUG_INFO" = yes ]]; then
-		autoAcceptOpts=()
-		for a in "${archList[@]}"; do autoAcceptOpts+=("-A*debug*.${a}.rpm"); done
-	else
-		autoAcceptOpts=()
-		for a in "${archList[@]}"; do autoAcceptOpts+=("-A*debug-*.${a}.rpm"); done
-	fi
-else
-	autoAcceptOpts=()
-	for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
-fi
+for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 
 if grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
 	run "yum --setopt=strict=0 install @RT @NFV -y"
-	for a in "${archList[@]}"; do autoAcceptOpts+=("-A*-rt-*.${a}.rpm"); done
-elif grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
-	for a in "${archList[@]}"; do autoAcceptOpts+=("-A*-64k*.${a}.rpm"); done
 fi
 
 # Download packges
@@ -399,6 +385,7 @@ for build in "${builds[@]}"; do
 			sort -Vr | awk '{print $1; exit}')
 	fi
 
+	bROpts=()
 	if [[ "$build" =~ ^[0-9]+$ ]]; then
 		run install_brew -
 		if [[ "$KOJI" = koji ]]; then
@@ -422,16 +409,15 @@ for build in "${builds[@]}"; do
 			_buildname=$(awk -v IGNORECASE=1 '/^build:/ {print $2}' ${KOJI}_buildinfo.txt)
 		}
 
-		[[ "$_buildname" != kernel-* ]] && {
-			autoAcceptOpts=()
-			for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
+		[[ "$_buildname" = kernel-* ]] && {
+			bROpts=("${kROpts[@]}")
 		}
 
 		urllist=$(sed -r '/\/?mnt.redhat.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
 		if [[ "$KOJI" = koji ]]; then
 			urllist=$(sed -r '/\/?mnt.koji.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
 		fi
-		urllist=$(echo "$urllist" | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
+		urllist=$(echo "$urllist" | rpmFilter "${bROpts[@]}" "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 		for url in $urllist; do
 			run "curl -O -L $downloadBaseUrl/$url" 0  "download-${url##*/}"
 		done
@@ -442,7 +428,6 @@ for build in "${builds[@]}"; do
 			downloadServerUrl=$downloadBaseUrl/brewroot/scratch/$owner/task_$taskid
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
-				which wget &>/dev/null || yum install -y wget
 				download_rpms_from_url $finalUrl
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			}
@@ -462,21 +447,26 @@ for build in "${builds[@]}"; do
 		done
 		run "umount $nfsmp" -
 	elif [[ "$build" =~ ^repo: || "$build" = *s3.upshift.redhat.com/DH-PROD-CKI/internal/*/*.?basearch ]]; then
+		if getUrlListByRepo ${build#repo:} | grep -q kernel-; then
+			bROpts=("${kROpts[@]}")
+		fi
 		download_pkgs_from_repo ${build#repo:}
 	elif [[ "$build" =~ ^(ftp|http|https):// ]]; then
 		for url in $build; do
 			if [[ $url = *.rpm ]]; then
 				run "curl -O -L $url" 0  "download-${url##*/}"
 			else
-				which wget &>/dev/null || yum install -y wget
+				if getUrlListByUrl ${build#repo:} | grep -q kernel-; then
+					bROpts=("${kROpts[@]}")
+				fi
 				download_rpms_from_url $url
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
 	else
-		nbuild=$($KOJI list-builds --pattern=${build} --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+		nbuild=$($KOJI list-builds --pattern=${build} --state=COMPLETE --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 		if [[ -z "$nbuild" ]]; then
-			nbuild=$($KOJI list-builds --pattern=${build}* --state=COMPLETE  --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
+			nbuild=$($KOJI list-builds --pattern=${build}* --state=COMPLETE --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 			[[ -n "$nbuild" ]] && build=$nbuild
 		fi
 		if [[ "$ONLY_DOWNLOAD" != yes && -z "$DEBUG_INFO_OPT" ]]; then
@@ -496,9 +486,8 @@ for build in "${builds[@]}"; do
 
 		run install_brew -
 		buildname=$build
-		[[ "$buildname" != kernel-* ]] && {
-			autoAcceptOpts=()
-			for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
+		[[ "$buildname" = kernel-* ]] && {
+			bROpts=("${kROpts[@]}")
 		}
 		urls=$(buildname2url $buildname)
 		if [[ $? = 0 ]]; then
