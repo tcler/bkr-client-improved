@@ -313,7 +313,6 @@ if [[ "$ONLY_DEBUG_INFO" = yes ]]; then
 fi
 
 #kernel Reject Filter Options
-kROpts+=(+Rkernel*)
 if ! grep -E -w 'rtk|kernel-rt|64k|kernel-64k' <<<"${builds[*]}"; then
 	kROpts+=(-Rkernel-rt*.rpm -Rkernel-64k*.rpm)
 elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
@@ -321,11 +320,9 @@ elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
 elif ! grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
 	kROpts+=(-Rkernel-64k*.rpm +Rkernel-rt*.rpm)
 fi
-! grep -q -w virt <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && kROpts+=(-R*-virt-*.rpm)
-! grep -q -w devel <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && kROpts+=(-R*-devel-*.rpm)
-! grep -q -w tools <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && kROpts+=(-R*-tools-*.rpm)
-! grep -q -w doc <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && kROpts+=(-R*-doc-*.rpm)
-! grep -q selftest <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && kROpts+=(-R*-selftests-*.rpm)
+# selftest, tools, devel will used in network-qe team
+# kernel-uki-virt - contains the Unified Kernel Image (UKI) of the RHEL kernel.
+! grep -q -w doc <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-doc-*.rpm)
 
 # fix ssl certificate verify failed
 # https://certs.corp.redhat.com/ https://docs.google.com/spreadsheets/d/1g0FN13NPnC38GsyWG0aAJ0v8FljNDlqTTa35ap7N46w/edit#gid=0
