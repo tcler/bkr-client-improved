@@ -564,6 +564,8 @@ esac
 mountpoint /boot || mount /boot
 
 yum install -y grubby
+# fix https://pkgs.devel.redhat.com/git/tests/distribution/tree/brew-build-install/runtest.sh
+[[ -d ${pkgpool} ]] && pushd
 run "grubby --default-kernel"
 if ls --help|grep -q time:.birth; then
 	lsOpt='--time=birth'
@@ -593,6 +595,7 @@ _reboot=no
 if ls *.$(arch).rpm 2>/dev/null|grep -E '^kernel-(redhat|rt-|64k-)?(debug-)?[0-9]'; then
 	[[ "$KREBOOT" = yes ]] && _reboot=yes
 fi
+[[ -d ${pkgpool} ]] && popd
 if grep -E -w 'rtk|64k' <<<"${builds[*]}"; then
 	[[ "$KREBOOT" = yes ]] && _reboot=yes
 fi
