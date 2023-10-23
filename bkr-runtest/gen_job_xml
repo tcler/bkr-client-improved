@@ -179,10 +179,15 @@ if [info exist Opt(fetch-url)] {
 }
 if [info exist Opt(fetch-opts)] {
 	set task-fetch-opts " $Opt(fetch-opts)"
+	if [string match {*keepchanges*} ${task-fetch-opts}] {
+		set kpchgs "yes"
+	}
 }
 if [info exist Opt(keepchanges)] {
 	set kpchgs {yes}
-	append task-fetch-opts " keepchanges=${kpchgs}"
+	if ![string match {*keepchanges*} ${task-fetch-opts}] {
+		append task-fetch-opts " keepchanges"
+	}
 }
 
 if [info exist Opt(task-fetch-url)] {
