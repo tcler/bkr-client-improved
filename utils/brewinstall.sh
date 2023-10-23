@@ -313,7 +313,6 @@ if [[ "$ONLY_DEBUG_INFO" = yes ]]; then
 fi
 
 #kernel Reject Filter Options
-kROpts+=(+Rkernel*)
 if ! grep -E -w 'rtk|kernel-rt|64k|kernel-64k' <<<"${builds[*]}"; then
 	kROpts+=(-Rkernel-rt*.rpm -Rkernel-64k*.rpm)
 elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
