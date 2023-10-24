@@ -183,6 +183,7 @@ if [info exist Opt(fetch-url)] {
 
 if [info exist Opt(fetch-opts)] {
 	set task-fetch-opts " $Opt(fetch-opts)"
+	set task-fetch-opts [regsub {abort[^ ,]*,?} ${task-fetch-opts} {/}]
 	if [string match {*keepchanges*} ${task-fetch-opts}] {
 		set kpchgs "yes"
 	}
