@@ -278,9 +278,9 @@ for arg; do
 	-onlydownload)   ONLY_DOWNLOAD=yes;;
 	-debug|-debugk*) FLAG=debugkernel;;
 	-noreboot*)      KREBOOT=no;;
-	-A=*)            AcceptOpts+=("-A${arg#-A=}");;
-	-R=*)            RejectOpts+=("-R${arg#-R=}");;
-	+R=*)            RejectOpts+=("+R${arg#+R=}");;
+	-A*)             AcceptOpts+=("${arg/-A=/-A}");;
+	-R*)             RejectOpts+=("${arg/-R=/-R}");;
+	+R*)             RejectOpts+=("${arg/+R=/+R}");;
 	-depthLevel=*)   depthLevel=${arg/*=/};;
 	-rpms*)          INSTALL_TYPE=rpms;;
 	-yum*)           INSTALL_TYPE=yum;;
