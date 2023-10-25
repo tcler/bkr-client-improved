@@ -34,6 +34,18 @@ proc getXML {jobID} {
 	regsub {<\?xml .*?\?>} $xml {}
 }
 
+proc list2shargs {arglist} {
+	set args {}
+	foreach arg $arglist {
+		if [string match "{*}" ${arg}] {
+			append args "'{*}${arg}' "
+		} else {
+			append args "'${arg}' "
+		}
+	}
+	return $args
+}
+
 proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 	foreach file [glob -nocomplain *.xml] { file delete -force $file }
 	set testNum [llength $testlist]
@@ -45,8 +57,9 @@ proc limitSubmitJobs {distro rgset arch testlist limitNum} {
 	# call bkr-runtest -n, and submit xml
 	set cnt 0
 	global alone
-puts "\[limitSubmitJobs\]: -> | bkr-runtest -n- $distro - ${alone} $rgset --random"
-	if {![catch {set fp [open "|bash -c {bkr-runtest -n- $distro - ${alone} $rgset --random 2>&1}" w]} err]} {
+	set _rgset [list2shargs $rgset]
+puts "\[limitSubmitJobs\]: -> | bkr-runtest -n- $distro - ${alone} ${_rgset} --random"
+	if {![catch {set fp [open "|bash -c {bkr-runtest -n- $distro - ${alone} ${_rgset} --random 2>&1}" w]} err]} {
 		foreach T $testlist { puts $fp $T }
 		if {[catch {close $fp} err]} {
 			puts "{Error} close pipe(|bkr-runtest) $fp err:\n$err"
