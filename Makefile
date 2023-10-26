@@ -15,7 +15,7 @@ install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	  fi; \
 	fi
 	@./utils/beaker-client_install.sh
-	@yum install -y restraint-rhts restraint-client --allowerasing
+	@yum install -y restraint-rhts restraint-client $$(yum -h|grep -o .--allowerasing)
 	@rpm -q expect >/dev/null || yum install -y expect #package that in default RHEL repo
 	@yum install -y tcllib #epel
 	@yum install -y tdom || yum-install-from-fedora.sh tdom || :
