@@ -19,6 +19,9 @@ Unofficial tools for [beaker-project](https://beaker-project.org/) with improved
 ## Install
 
 ```bash
+curl -L https://raw.githubusercontent.com/tcler/bkr-client-improved/master/bkr-runtest/bkr-update.sh | sudo bash
+
+#or
 git clone https://github.com/tcler/bkr-client-improved
 cd bkr-client-improved
 sudo make install  # or "sudo make install_all" to install the beaker-test-robot tools
