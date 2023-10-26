@@ -6,8 +6,7 @@ _share=/usr/share/bkr-client-improved
 _confdir=/etc/bkr-client-improved
 completion_path=/usr/share/bash-completion/completions
 
-HTTP_PROXY := $(shell curl --connect-timeout 8 -m 16 --output /dev/null -k --silent --head --fail \
-			"http://download.devel.redhat.com" &>/dev/null && echo "squid.redhat.com:8080")
+HTTP_PROXY := $(shell grep -q redhat.com /etc/resolv.conf && echo "squid.redhat.com:8080")
 
 install install_runtest: _isroot yqinstall install_kiss_vm_ns
 	@if [[ $$(rpm -E %rhel) != "%rhel" ]]; then \
@@ -47,10 +46,7 @@ yqinstall: _isroot
 	./utils/yq-install.sh
 
 install_kiss_vm_ns: _isroot
-	@export https_proxy=$(HTTP_PROXY); \
-	command -v kiss-update.sh && kiss-update.sh || { rm -rf kiss-vm-ns-master; \
-	curl -k -Ls https://github.com/tcler/kiss-vm-ns/archive/refs/heads/master.tar.gz | tar zxf -; \
-	make -C kiss-vm-ns-master; rm -rf kiss-vm-ns-master; }
+	-command -v kiss-update.sh && kiss-update.sh || ./utils/kiss-vm-ns_install.sh
 
 install_all: install_robot _install_web
 
