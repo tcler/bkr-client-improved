@@ -60,7 +60,7 @@ done
 
 prcoID=$1
 prjPath=${prjPath:-$PrjPath}
-bhbranch=${2:-beaker-harness-rhel-9}
+target=${2:-beaker-harness-rhel-9}
 webBaseUrl=https://github.com/${prjPath}
 apiBaseUrl=https://api.github.com/repos/${prjPath}
 
@@ -68,6 +68,7 @@ pullBaseUrl=${apiBaseUrl}/tarball/pull
 commitBaseUrl=${webBaseUrl}/archive
 masterUrl=${webBaseUrl}/archive/refs/heads/master.tar.gz
 
+#get the tarball url and infix according the PR or Commit ID
 if [[ "${prcoID}" =~ ^[1-9][0-9]+$ ]]; then
 	_type=pr; _infix=pr.${prcoID}
 	tarballUrl=${pullBaseUrl}/${prcoID}/head
@@ -75,7 +76,8 @@ elif [[ "${prcoID,,}" =~ ^[0-9a-f]+$ ]]; then
 	_type=co; _infix=co.${prcoID}
 	tarballUrl=${commitBaseUrl}/${prcoID}.tar.gz
 elif [[ "${prcoID,,}" = ma* ]]; then
-	_coID=$(curl -Ls ${apiBaseUrl}/commits/master | awk -F'[ :",]+' '$2=="sha"{print substr($3,0,7); exit}')
+	_coID=$(curl -Ls ${apiBaseUrl}/commits/master |
+		awk -F'[ :",]+' '$2=="sha"{print substr($3,0,7); exit}')
 	_type=ma; _infix=master.$_coID
 	tarballUrl=$masterUrl
 else
@@ -83,12 +85,15 @@ else
 fi
 [[ -n "$fork" ]] && _infix=${fork}.${_infix}
 
+#clone/copy the Restraint rh-build repo
 _spec_repodir=~/restraint-build
 [[ -d "$_spec_repodir" ]] || rhpkg clone restraint $_spec_repodir
 spec_repodir=~/Restraint-prbuild-${_infix}
 [[ -d "$spec_repodir" ]] || cp -r $_spec_repodir $spec_repodir
+
+#__main__
 (cd $spec_repodir || exit 1 && git checkout .
-git checkout $bhbranch && git pull --rebase
+git checkout $target && git pull --rebase
 tarballName=${PrjName}-${_infix/./-}.tgz
 
 #download PR tarball
@@ -122,7 +127,7 @@ tar zcf ${ntarballName} ${newTopdir}
 
 #gen relInfix and update Release value in spec file
 relInfix=${_infix}
-[[ $_type = pr ]] && relInfix=${oldTopdir/*-/${_infix}.}
+[[ $_type = pr ]] && { _coID=${oldTopdir/*-/}; relInfix=${_infix}.${_coID}; }
 sed -ri -e "/Release:/{s/%/.${relInfix:-wrongInfix.}&/}" \
 	-e "/Source0:/{s|/[^/]+$|/${ntarballName}|}" restraint.spec
 
@@ -135,6 +140,7 @@ if [[ -z "$srpmfile" ]]; then
 	echo "{Error} create srpm file fail" >&2
 	exit 2
 fi
+cp -u $(ls *.{gz,xz,bz2}|grep -v $ntarballName) $_spec_repodir/.
 
 arches=${arches:-x86_64}
 ##tips: like curl rhpkg doesn't support '--options=xyz', please use '--options xyz'
@@ -144,7 +150,7 @@ echo -e "\033[1;34m{DEBUG} run: rhpkg scratch-build --srpm $srpmfile $archOpt\03
 rhpkg scratch-build --srpm $srpmfile $archOpt |& tee build-screen.log
 
 #get build state
-prBuildInfoFile=/tmp/rstrnt-prbuild-${_infix}.info
+prBuildInfoFile=/tmp/rstrnt-prbuild-${_infix}-${target}.info
 brewTaskID=$(awk '/Created task:/{print $NF}' build-screen.log)
 brew taskinfo -r $brewTaskID |& tee $prBuildInfoFile
 buildStat=$(awk '/^State:/{print $NF}' $prBuildInfoFile)
