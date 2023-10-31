@@ -168,6 +168,12 @@ rpmFilter() {
 	local nrfs=()
 	local pattype=glob url= file=
 	local reject= accept=
+
+	if [[ "$DOWNLOAD_ALL" = yes ]]; then
+		cat
+		return 0
+	fi
+
 	for arg; do
 		case "$arg" in
 		-re) pattype=regex;;
@@ -275,7 +281,8 @@ for arg; do
 	-koji)           KOJI=koji;;
 	-debuginfo)      DEBUG_INFO_OPT=--debuginfo; DEBUG_INFO=yes;;
 	-onlydebuginfo)  DEBUG_INFO_OPT=--debuginfo; ONLY_DEBUG_INFO=yes; KREBOOT=no;;
-	-onlydownload)   ONLY_DOWNLOAD=yes;;
+	-onlydownload|-downloadonly) ONLY_DOWNLOAD=yes;;
+	-downloadall)    DOWNLOAD_ALL=yes; ONLY_DOWNLOAD=yes;;
 	-debug|-debugk*) FLAG=debugkernel;;
 	-noreboot*)      KREBOOT=no;;
 	-A*)             AcceptOpts+=("${arg/-A=/-A}");;
