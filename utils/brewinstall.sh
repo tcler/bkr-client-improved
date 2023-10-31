@@ -575,7 +575,7 @@ run "grubby --default-kernel"
 if ls --help|grep -q time:.birth; then
 	lsOpt='--time=birth'
 else
-	touch $(rpm -qlp *.rpm | grep ^/boot) 2>/dev/null
+	run "touch -m $(rpm -qlp *.rpm | grep ^/boot)" -
 fi
 [[ "$FLAG" =~ debugkernel ]] && { kpat="(.?debug|\+debug)"; } || { kpat=$; }
 if grep -E -w 'rtk' <<<"${builds[*]}"; then
