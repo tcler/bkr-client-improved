@@ -570,12 +570,12 @@ esac
 #mount /boot if not yet
 mountpoint /boot || mount /boot
 
-yum install -y grubby
+rpm -q grubby || yum install -y grubby
 run "grubby --default-kernel"
 if ls --help|grep -q time:.birth; then
 	lsOpt='--time=birth'
 else
-	run "touch -m $(rpm -qlp *.rpm | grep ^/boot)" -
+	run "touch -m -a $(rpm -qlp *.rpm | grep ^/boot)" -
 fi
 [[ "$FLAG" =~ debugkernel ]] && { kpat="(.?debug|\+debug)"; } || { kpat=$; }
 if grep -E -w 'rtk' <<<"${builds[*]}"; then
@@ -585,6 +585,9 @@ elif grep -E -w '64k' <<<"${builds[*]}"; then
 elif grep -E '(^| )kernel-' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "$kpat" | head -1)
 fi
+echo "kernelpath is :${kernelpath}"
+run "ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}"
+
 if [[ -n "$kernelpath" ]]; then
 	# If the target kernel behind the current kernel, kernel scripts may not be run normally.
 	run "grubby --set-default=$kernelpath" || {
