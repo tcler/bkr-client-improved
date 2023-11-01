@@ -349,7 +349,9 @@ archList=($(arch) noarch)
 archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
 for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 
-if grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
+if grep -E -w 'kernel-rt.*' <<<"${builds[*]}"; then
+	run "yum --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt*"
+elif grep -E -w 'rtk' <<<"${builds[*]}"; then
 	run "yum --setopt=strict=0 install @RT @NFV -y"
 fi
 
@@ -539,7 +541,7 @@ fi
 
 #install possible dependencies
 ls -1 *.rpm | grep -q ^kernel-rt && {
-	run "yum --setopt=strict=0 install -y @RT @NFV" -
+	run "yum --setopt=strict=0 install -y @RT @NFV --exclude=kernel-rt*" -
 }
 
 rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
