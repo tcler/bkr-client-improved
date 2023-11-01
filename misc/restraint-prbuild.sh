@@ -22,7 +22,7 @@ _requires_cmds rhpkg brew || exit 2
 ## argparse
 Usage() {
 	echo "Usage: $P <prID|commitID|master> [target: beaker-harness-rhel-\$N|eng-fedora-\$N] [--arches=<arch,list|all>] [--prj=tcler/restraint] [-n|--dry]"
-	echo "Args and Opthers:"
+	echo "Args and Options:"
 	echo "  \$1            a {PR(pull request) ID} or {commit ID(sha)} or {master}"
 	echo "  \$2            the build target name: beaker-harness-rhel-\$N|eng-fedora-\$N  #default:beaker-harness-rhel-9"
 	echo "  -h,--help     output this help info"
