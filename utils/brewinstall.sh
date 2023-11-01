@@ -547,9 +547,15 @@ rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "$
 case $INSTALL_TYPE in
 nothing)
 	if grep -E -w 'rtk' <<<"${builds[*]}"; then
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt*" -
+		if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
+			run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt*" -
+		fi
 	elif grep -E -w '64k' <<<"${builds[*]}"; then
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k*" -
+		if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
+			run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k*" -
+		else
+			run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k* --exclude=kernel-64k-debug*" -
+		fi
 	fi
 	;;
 rpms)
