@@ -8,7 +8,7 @@ completion_path=/usr/share/bash-completion/completions
 
 HTTP_PROXY := $(shell grep -q redhat.com /etc/resolv.conf && echo "squid.redhat.com:8080")
 
-install install_runtest: _isroot yqinstall install_kiss_vm_ns
+install install_runtest: _isroot _rh_intranet yqinstall install_kiss_vm_ns
 	@if [[ $$(rpm -E %rhel) != "%rhel" ]]; then \
 	  if ! rpm -q epel-release; then \
 	    rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-$$(rpm -E %rhel).noarch.rpm; :; \
@@ -67,11 +67,19 @@ _install_web: _isroot _web_require
 	@chmod o+w /opt/wub2/CA
 	@chmod u+s /usr/local/bin/trms-service.sh
 
-_install_require: _isroot
+_install_require: _isroot _rh_intranet
 	@sed -i '/^Defaults *secure_path/{/.usr.local.bin/! {s; *$$;:$(_bin);}}' /etc/sudoers
 	@rpm -q tcl-devel >/dev/null || yum install -y tcl-devel #package that in default RHEL repo
 	@rpm -q sqlite >/dev/null || yum install -y sqlite #package that in default RHEL repo
 	@rpm -q sqlite-tcl >/dev/null || { yum install -y sqlite-tcl; exit 0; } #package that in default RHEL repo
+
+_rh_intranet:
+	@if ! host ipa.redhat.com &>/dev/null; then \
+		tar -C / -zxf conf/rh-cert.tgz; update-ca-trust; \
+		tar -C / -zxf conf/rh-nm-openvpn-profiles.tgz; nmcli c r; \
+		{ echo -e "[Warn] you have not connected in redhat intranet."; \
+		  echo -e " ref: https://redhat.service-now.com/help?id=kb_article_view&sysparm_article=KB0005424" >&2; exit 1; }; \
+	fi
 
 _isroot:
 	@test `id -u` = 0 || { echo "[Warn] need root permission" >&2; exit 1; }

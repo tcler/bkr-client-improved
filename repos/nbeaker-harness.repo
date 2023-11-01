@@ -1,5 +1,0 @@
-[nbeaker-harness]
-name=NBeaker Harness - RedHatEnterpriseLinux$releasever
-baseurl=http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/beaker-harness-active/rhel-$releasever
-enabled=1
-gpgcheck=0
