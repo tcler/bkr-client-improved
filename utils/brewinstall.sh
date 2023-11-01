@@ -202,7 +202,7 @@ rpmFilter() {
 		for pat in "${nrfs[@]}"; do _match $pattype "$file" "$pat" || { reject=1; break; }; done
 		[[ "$reject" = 1 ]] && continue
 
-		accept=1; [[ ${#afs[@]} > 0 ]] && accept=0
+		accept=1; [[ ${#afs[@]} -gt 0 ]] && accept=0
 		for pat in "${afs[@]}"; do _match $pattype "$file" "$pat" && { accept=1; break; }; done
 		[[ "$accept" = 1 ]] && {
 			echo -e "\E[01;36m[rpmFilter] accept: $url\E[0m" >&2
@@ -350,7 +350,7 @@ archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
 for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 
 if grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
-	run "yum --setopt=strict=0 install @RT @NFV -y"
+	run "yum --setopt=strict=0 install @RT @NFV --exclude=kernel-rt* -y"
 fi
 
 # Download packges
@@ -539,7 +539,7 @@ fi
 
 #install possible dependencies
 ls -1 *.rpm | grep -q ^kernel-rt && {
-	run "yum --setopt=strict=0 install -y @RT @NFV" -
+	run "yum --setopt=strict=0 install -y @RT @NFV --exclude=kernel-rt*" -
 }
 
 rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
