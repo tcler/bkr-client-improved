@@ -584,13 +584,15 @@ else
 	touch -m -a $(rpm -qlp *.rpm | grep ^/boot) 2> /dev/null
 	sync -f
 fi
-[[ "$FLAG" =~ debugkernel ]] && { kpat="(.?debug|\+debug)"; } || { kpat=$; }
+
+dbgpat="(.?debug|[+-]debug)"
+[[ "$FLAG" =~ debugkernel ]] && { grepOpt='grep -E'; } || { grepOpt='grep -Ev'; }
 if grep -E -w 'rtk' <<<"${builds[*]}"; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "\\+rt$kpat|\\.rt.*$kpat" | head -1)
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+rt|\.rt.*' | $grepOpt "$dbgpat" | head -1)
 elif grep -E -w '64k' <<<"${builds[*]}"; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "\\+64k$kpat|\\.rt.*$kpat" | head -1)
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+64k|\.64k.*' | $grepOpt "$dbgpat" | head -1)
 elif grep -E '(^| )kernel-' <<<"${builds[*]}"; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E "$kpat" | head -1)
+	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}| $grepOpt "$dbgpat" | head -1)
 fi
 
 run "ls /boot/vmlinuz-*$(uname -m)* -tl ${lsOpt:--u}"
