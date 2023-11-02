@@ -349,8 +349,12 @@ archList=($(arch) noarch)
 archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
 for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 
-if grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
+if [ ${#builds[@]} = 1 ] && grep -E -w 'rtk' <<<"${builds[*]}"; then
 	run "yum --setopt=strict=0 install @RT @NFV -y"
+elif [ ${#builds[@]} -gt 1 ] && grep -E -w 'kernel' <<<"${builds[*]}"; then
+	run "yum --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*"
+elif [ ${#builds[@]} -gt 1 ] && grep -E -w 'rtk' <<<"${builds[*]}"; then
+	run "yum --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*"
 fi
 
 # Download packges
