@@ -40,8 +40,8 @@ get_max_time() {
 	elif [[ "$metaf" = metadata ]]; then
 		_time=$(awk -F'[ =]+' '$1 == "max_time" {print $2}' $metaf)
 	fi
-	[[ $_time =~ [0-9]+h ]] && _time=$((${_time/h/}*60))m
-	[[ $_time =~ [0-9]+d ]] && _time=$((${_time/d/}*24*60))m
+	[[ $_time =~ [0-9]+h ]] && _time=$(bc<<<"scale=0;${_time/h/}*60/1")m
+	[[ $_time =~ [0-9]+d ]] && _time=$(bc<<<"scale=0;${_time/d/}*24*60/1")m
 	echo -n ${_time:-30m}
 }
 
