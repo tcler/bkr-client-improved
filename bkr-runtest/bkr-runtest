@@ -344,9 +344,11 @@ if [info exist hostRequireAlias] {
 	}
 }
 
-if [info exist Opt(merge)] {
-	set xmlf_merged "job_merged.[clock format [clock seconds] -format %Y%m%d_%H%M].[expr {int(rand()*10000)}].xml"
-	lappend SubcmdOpt {-recipe}
+if {[array size TestGroup] > 1} {
+	if [info exist Opt(merge)] {
+		set xmlf_merged "job_merged.[clock format [clock seconds] -format %Y%m%d_%H%M].[expr {int(rand()*10000)}].xml"
+		lappend SubcmdOpt {-recipe}
+	}
 }
 
 set loop 0
