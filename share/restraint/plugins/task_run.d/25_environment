@@ -40,6 +40,11 @@ if [[ -n "$RSTRNT_JOBID" && -z "$JOBID" ]]; then
 	TESTPATH="$RSTRNT_TASKPATH" \
 	VARIANT="$RSTRNT_OSVARIANT"
 fi
+#Note: in fetch-url mode taskname could be any string, but here we only store first word in RSTRNT_TASKNAME
+#to avoid that space in TASKNAME cause unexpected result
+export RSTRNT_TASKNAME=${RSTRNT_TASKNAME%% *}
+export TEST=${TEST%% *} TESTNAME=${TESTNAME%% *}
+
 [[ -z "$KILLTIMEOVERRIDE" ]] && export KILLTIMEOVERRIDE=$((RSTRNT_MAXTIME+600))
 
 #setup for restraint stand-alone multihost test
