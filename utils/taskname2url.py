@@ -126,7 +126,7 @@ def get_uri(uri, task):
         else:
             _uri = f"{re.sub(' ', f'#{_rpath} ', _uri, 1)}"
     if re.search(r'#\.\.( |$)', _uri):
-        _uri = re.sub('#\.\.', f'#{_tname}', _uri, 1)
+        _uri = re.sub(r'#\.\.', f'#{_tname}', _uri, 1)
     return _uri
 
 if task in taskdict.keys():
