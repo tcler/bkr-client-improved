@@ -142,7 +142,7 @@ _install_task() {
 	#download the archive of the repo //doesn't support git protocol
 	if [[ ! -f ${filepath} ]]; then
 		mkdir -p ${filepath%/*}; rm ${filepath%$$}* -f
-		curl-download.sh ${filepath} ${url} -s|& sed "s/^/$INDENT/" >&2
+		curl-download.sh -otimeo=360,retry=6 ${filepath} ${url} -s|& sed "s/^/$INDENT/" >&2
 		[[ "$FORCE" -gt 1 ]] && { ln -f ${filepath} ${filepath%-$$}; }
 	fi
 	if test -f ${filepath}; then
