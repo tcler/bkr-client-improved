@@ -76,7 +76,7 @@ which brew &>/dev/null || {
 	yum --setopt=strict=0 --setopt=sslverify=0 install -y koji python3-koji python3-pycurl brewkoji
 }
 which brew &>/dev/null || installBrew2
-yum install --setopt=sslverify=0 -y bash-completion-brew
+which brew &>/dev/null || yum install --setopt=sslverify=0 -y bash-completion-brew
 
-which brew
+which brew || echo "install brew failed!!!"
 rm -rf /etc/yum.repos.d/rcm-tools-*.repo
