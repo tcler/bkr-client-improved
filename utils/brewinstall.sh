@@ -480,15 +480,22 @@ for build in "${builds[@]}"; do
 			[[ -n "$nbuild" ]] && build=$nbuild
 		fi
 		if [[ "$ONLY_DOWNLOAD" != yes && -z "$DEBUG_INFO_OPT" ]]; then
-			curknvr=kernel-$(uname -r)
-			if [[ "$build" = ${curknvr%.*} && "$FLAG" != debugkernel ]]; then
-				report_result "kernel($build) has been installed" PASS
+			# find rt/64k kernel package
+			if grep -E 'rt|rtk' <<< "${builds[*]}"; then
+				curknvr=kernel-rt-$(sed -n "s/\(.*\)\(.$(rpm -E %{_arch}).*\)/\1/p" <<< $(uname -r))
+			elif grep -E '64k' <<< "${builds[*]}"; then
+				curknvr=kernel-64k-$(sed -n "s/\(.*\)\(.$(rpm -E %{_arch}).*\)/\1/p" <<< $(uname -r))
+			else
+				curknvr=kernel-$(uname -r)
+			fi
+			if [[ "${build}" = ${curknvr} && "$FLAG" != debugkernel ]]; then
+				report_result "kernel($curknvr has been installed" PASS
 				let buildcnt--
 				continue
 			fi
 
-			if rpm -q $build 2>/dev/null && [[ "$FLAG" != debugkernel ]]; then
-				report_result "build($build) has been installed" PASS
+			if rpm -q ${curknvr} 2>/dev/null && [[ "$FLAG" != debugkernel ]]; then
+				report_result "build($curknvr) has been installed" PASS
 				let buildcnt--
 				continue
 			fi
