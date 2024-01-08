@@ -481,13 +481,13 @@ for build in "${builds[@]}"; do
 		fi
 		if [[ "$ONLY_DOWNLOAD" != yes && -z "$DEBUG_INFO_OPT" ]]; then
 			curknvr=kernel-$(uname -r)
-			if [[ "$build" = ${curknvr%.*} && "$FLAG" != debugkernel ]]; then
+			if [[ "${build}" = ${curknvr%.*} && "$FLAG" != debugkernel && ! "${builds[*]}" =~ rtk|64k ]]; then
 				report_result "kernel($build) has been installed" PASS
 				let buildcnt--
 				continue
 			fi
 
-			if rpm -q $build 2>/dev/null && [[ "$FLAG" != debugkernel ]]; then
+			if rpm -q ${curknvr} 2>/dev/null && [[ "$FLAG" != debugkernel && ! "${builds[*]}" =~ rtk|64k ]]; then
 				report_result "build($build) has been installed" PASS
 				let buildcnt--
 				continue
