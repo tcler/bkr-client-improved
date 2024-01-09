@@ -487,7 +487,7 @@ for build in "${builds[@]}"; do
 				continue
 			fi
 
-			if rpm -q ${curknvr} 2>/dev/null && [[ "$FLAG" != debugkernel && ! "${builds[*]}" =~ rtk|64k ]]; then
+			if rpm -q ${build} 2>/dev/null && [[ "$FLAG" != debugkernel && ! "${builds[*]}" =~ rtk|64k ]]; then
 				report_result "build($build) has been installed" PASS
 				let buildcnt--
 				continue
