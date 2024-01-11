@@ -89,7 +89,7 @@ _install_task() {
 	[[ -z "$_task" ]] && { return 2; }
 	read taskrepo _rpath <<<"${_task/\// }"
 	read uri _ < <(taskname2url.py /$_task $taskOpts $repoOpts)
-	[[ -z "$uri" ]] && { echo "{warn} 'taskname2url.py /$_task $taskOpts $repoOpts' fail" >&2; return 2; }
+	[[ -z "$uri" ]] && { echo "{warn} 'taskname2url.py /$_task $taskOpts $repoOpts' fail, or this task disable fetch-url" >&2; return 2; }
 	[[ "$uri" != http* && "$uri" != ftp* ]] && {
 		echo "{warn} 'taskfetch.sh now only support http[s]/ftp protocols'" >&2; return 2; }
 	read url rpath <<<"${uri/\#/ }"
