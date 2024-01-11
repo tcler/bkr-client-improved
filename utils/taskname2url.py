@@ -116,6 +116,8 @@ else:
     exit(1)
 
 def get_uri(uri, task):
+    if not uri:
+        return uri
     _uri = re.sub(r'#( |$)', r'\1', uri, 1)
     _tname = re.sub('^/+', '', task)
     _tname = re.sub("^(/?CoreOS)?/", "", _tname)

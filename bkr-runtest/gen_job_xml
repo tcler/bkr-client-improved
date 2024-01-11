@@ -922,6 +922,14 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					set NVR_L [lrange $NVR_L 1 end]
 				}
 
+				# pkg install
+				if [info exist Opt(install)] {
+					foreach pkg $Opt(install) {
+						lappend insertTasks "/distribution/pkginstall PKGARGNAME=$pkg VERLOCK=yes"
+					}
+				}
+
+				# kernel install
 				set UP ""
 				if {$NVR ni {"" "{}"}} {
 					if ![regexp {^upstream.*} $NVR] {
@@ -962,6 +970,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 					lappend insertTasks "/kernel/distribution/upstream-kernel/install $params"
 
+				}
+				if {[info exist Opt(kpatch)]} {
+					lassign [split $Opt(kpatch) {,}] knvr kpnvr kpurl
+					set params [list]
+					lappend params KERNELARGVARIANT=up KERNELARGNAME=kernel KERNELARGVERSION=[string map {"kernel-" {}} $knvr] KPATCHNVR=$kpnvr KPATCHURL=$kpurl
+					lappend insertTasks "/distribution/kpatchinstall $params"
 				}
 				set brewBuildList ""
 				if {[info exist Opt(dbgk)] && $NVR in {"" "{}"}} {
@@ -1028,12 +1042,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
 					}
 					lappend insertTasks "/distribution/utils/reboot"
-				}
-				# pkg install
-				if [info exist Opt(install)] {
-					foreach pkg $Opt(install) {
-						lappend insertTasks "/distribution/pkginstall PKGARGNAME=$pkg VERLOCK=yes"
-					}
 				}
 				# --kcov --gcov task
 				if [info exist Opt(kcov)] {
