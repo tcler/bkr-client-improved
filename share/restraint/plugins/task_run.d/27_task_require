@@ -31,7 +31,11 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 		taskOpts+="'--task=$taskuri' "
 	done
 
-	eval taskfetch.sh $repoOpts $taskOpts --fetch-require .
+	if [[ "$_FETCH_URL" = no && ! -f matadata ]]; then
+		echo -e "{info} legacy test case and without fetch-url setup. do nothing" >&2
+	else
+		eval taskfetch.sh $repoOpts $taskOpts --fetch-require .
+	fi
 
 	echo -e "{debug} leaving restraint plugin $0\n" >&2
 fi
