@@ -140,7 +140,8 @@ set CommonOptionList {
 	upstream-patch		{arg y	help {apply specified patch[es] before compile upstream kernel}}
 	upstream-kernel-kasan   {arg n  help {Flag to enable upstream kernel kasan support}}
 	kpatch			{arg y	help {apply specified patch[es] and install kernel; ref: /distribution/kpatchinstall
-				e.g: --kpatch=kernel-5.14.0-284.18.1.el9_2,kpatch-patch-5_14_0-284_18_1-1-6.el9_2,\$kpatch_url}}
+				e.g: --kpatch=kernel-5.14.0-284.18.1.el9_2,kpatch-patch-5_14_0-284_18_1-1-6.el9_2
+				e.g: --kpatch=kernel-5.14.0-284.18.1.el9_2,kpatch-patch-5_14_0-284_18_1-1-6.el9_2,$kpatch_url}}
 	{Brew B Scratch}	{arg m  help {Install brew built or 3rd party pkg[s] by using /distribution/brew-build-install, can use multiple times
 				e.g: --Brew=\$brew_scratch_build_id              #install according brew scratch build id
 				e.g: --Brew=\$brew_build_name                    #install according brew build name
