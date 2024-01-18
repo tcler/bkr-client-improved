@@ -32,8 +32,9 @@ installBrew2() {
 		baseUrl=http://download.eng.pek2.redhat.com/rhel-$verx
 	if [[ $(rpm -E %rhel) != %rhel ]]; then
 		case $verx in
-		[567])
-			type=workstation
+		# https://docs.engineering.redhat.com/pages/viewpage.action?spaceKey=RCMDOC&title=RCM+Tools+Release+Guide
+		[67])
+			type=Workstation
 			pkglist='koji brewkoji'
 			;;
 		8|9)
