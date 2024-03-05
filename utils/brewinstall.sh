@@ -21,7 +21,7 @@ is_available_url() {
 }
 is_rh_intranet() { host ipa.redhat.com &>/dev/null; }
 
-[[ function = "$(type -t report_result)" ]] || report_result() {  echo "$@"; }
+[[ function = "$(type -t my_report_result)" ]] || my_report_result() {  echo "$@"; }
 
 P=${0##*/}
 KOJI=brew
@@ -40,7 +40,7 @@ run() {
 	eval $cmdline
 	ret=$?
 	[[ $expect_ret != - && $expect_ret != $ret ]] && {
-		report_result "$comment" FAIL
+		my_report_result "$comment" FAIL
 		let retcode++
 	}
 
@@ -482,13 +482,13 @@ for build in "${builds[@]}"; do
 		if [[ "$ONLY_DOWNLOAD" != yes && -z "$DEBUG_INFO_OPT" ]]; then
 			curknvr=kernel-$(uname -r)
 			if [[ "${build}" = ${curknvr%.*} && "$FLAG" != debugkernel && ! "${builds[*]}" =~ rtk|64k ]]; then
-				report_result "kernel($build) has been installed" PASS
+				my_report_result "kernel($build) has been installed" PASS
 				let buildcnt--
 				continue
 			fi
 
 			if rpm -q ${build} 2>/dev/null && [[ "$FLAG" != debugkernel && ! "${builds[*]}" =~ rtk|64k ]]; then
-				report_result "build($build) has been installed" PASS
+				my_report_result "build($build) has been installed" PASS
 				let buildcnt--
 				continue
 			fi
@@ -529,7 +529,7 @@ run "ls -lh"
 if [[ $buildcnt -gt 0 ]]; then
 	run "ls -lh *.rpm"
 	[ $? != 0 ] && {
-		report_result download-rpms FAIL
+		my_report_result download-rpms FAIL
 		exit 1
 	}
 else
