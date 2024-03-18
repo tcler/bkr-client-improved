@@ -39,7 +39,7 @@ done
 
 case $family in
 alt7|alt-7)	family=RedHatEnterpriseLinuxAlternateArchitectures7;;
-3|4|6|7|8|9)	family=RedHatEnterpriseLinux$family;;
+3|4|6|7|8|9|10)	family=RedHatEnterpriseLinux$family;;
 5s|5)		family=RedHatEnterpriseLinuxServer5;;
 5c)		family=RedHatEnterpriseLinuxClient5;;
 [0-9].*)	name=RHEL-$family; family=;;

@@ -32,7 +32,7 @@ from="kernel monitor <from@redhat.com>"
 mailTo=fs@redhat.com
 mailCc=net@redhat.com
 kgitDir=/home/yjh/ws/code.repo
-VLIST="6 7 8 9"
+VLIST="6 7 8 9 10"
 latestKernelF=.latest.kernel
 kfList=$(eval echo $latestKernelF-{${VLIST// /,}})
 #echo $kfList

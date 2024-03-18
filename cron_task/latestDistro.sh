@@ -36,7 +36,7 @@ chanList="#fs-qe #network-qe #kernel-qe-sti"
 fschan="#fs-qe"
 
 kgitDir=/home/yjh/ws/code.repo
-DVLIST="7 8 9"
+DVLIST="7 8 9 10"
 prefix=.latest.distro
 debug=$1
 
