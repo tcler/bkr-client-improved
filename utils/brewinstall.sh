@@ -615,10 +615,11 @@ if [[ -n "$kernelpath" ]]; then
 fi
 
 _reboot=no
-if ls *.$(arch).rpm 2>/dev/null|grep -E '^kernel-(redhat|rt-|64k-)?(debug-)?[0-9]'; then
+# need to check current kernel match default kernel, default kernel match target installed kernel.
+default_kernel_index=$(grubby --info=DEFAULT | grep index | sed 's/index=//')
+current_kernel_index=$(grubby --info="/boot/vmlinuz-$(uname -r)" | grep index | sed 's/index=//')
+if ls *.$(arch).rpm 2>/dev/null|grep -E "${kernelpath}" && [[ ${default_kernel_index} -ne ${current_kernel_index} ]]; then
 	[[ "$KREBOOT" = yes ]] && _reboot=yes
 fi
-if grep -E -w 'rtk|64k' <<<"${builds[*]}"; then
-	[[ "$KREBOOT" = yes ]] && _reboot=yes
-fi
+
 [[ $_reboot = yes ]] && reboot || exit 0
