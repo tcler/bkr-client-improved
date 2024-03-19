@@ -65,6 +65,7 @@ set CommonOptionList {
 				--hr cpu_count>=4
 				--hr memory>=4096
 				--hr labcontroller=lab-01.rhts.eng.pek2.redhat.com
+				--hr cpu.flags~%avx2%
 				--hr device:type=STORAGE,driver=nvme
 				--hr disk.phys_sector_size=4096,unit=bytes
 				--hr key_value:key=CPUVENDOR,op==,value=\$Vendor  #same as --kv CPUVENDOR=\$Vendor
