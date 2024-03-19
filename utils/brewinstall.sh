@@ -197,17 +197,24 @@ rpmFilter() {
 		#echo "[rpmFilter] _check: $url" >&2
 		file=${url##*/}
 		reject=0
-		for pat in "${rfs[@]}"; do _match $pattype "$file" "$pat" && { reject=1; break; }; done
-		[[ "$reject" = 1 ]] && continue
-		for pat in "${nrfs[@]}"; do _match $pattype "$file" "$pat" || { reject=1; break; }; done
-		[[ "$reject" = 1 ]] && continue
+		# we didn't consider to filter any userspace packages
+		if [[ "${file}" =~ ^kernel* ]]; then
+			for pat in "${rfs[@]}"; do _match $pattype "$file" "$pat" && { reject=1; break; }; done
+			[[ "$reject" = 1 ]] && continue
+			for pat in "${nrfs[@]}"; do _match $pattype "$file" "$pat" || { reject=1; break; }; done
+			[[ "$reject" = 1 ]] && continue
 
-		accept=1; [[ ${#afs[@]} > 0 ]] && accept=0
-		for pat in "${afs[@]}"; do _match $pattype "$file" "$pat" && { accept=1; break; }; done
-		[[ "$accept" = 1 ]] && {
-			echo -e "\E[01;36m[rpmFilter] accept: $url\E[0m" >&2
+			accept=1; [[ ${#afs[@]} > 0 ]] && accept=0
+			for pat in "${afs[@]}"; do _match $pattype "$file" "$pat" && { accept=1; break; }; done
+			[[ "$accept" = 1 ]] && {
+				echo -e "\E[01;36m[rpmFilter] accept: $url\E[0m" >&2
+				echo "$url"
+			}
+		else
+			echo "${file} didn't belong ^kernel* package, will install!" >&2
+			echo -e "\E[01;36m accept: $url\E[0m" >&2
 			echo "$url"
-		}
+		fi
 	done
 }
 
