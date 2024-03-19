@@ -618,7 +618,7 @@ _reboot=no
 # need to check current kernel match default kernel, default kernel match target installed kernel.
 default_kernel_index=$(grubby --info=DEFAULT | grep index | sed 's/index=//')
 current_kernel_index=$(grubby --info="/boot/vmlinuz-$(uname -r)" | grep index | sed 's/index=//')
-if rpm -qlp *.$(arch).rpm 2>/dev/null|grep -E "${kernelpath}" && [[ ${default_kernel_index} -ne ${current_kernel_index} ]]; then
+if [[ ${default_kernel_index} -ne ${current_kernel_index} ]]; then
 	[[ "$KREBOOT" = yes ]] && _reboot=yes
 fi
 
