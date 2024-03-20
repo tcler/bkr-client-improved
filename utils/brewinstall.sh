@@ -196,6 +196,13 @@ rpmFilter() {
 	while read url; do
 		#echo "[rpmFilter] _check: $url" >&2
 		file=${url##*/}
+		# we didn't consider to filter any userspace packages
+		if ! [[ "${file}" =~ ^kernel* ]]; then
+			echo "${file} didn't belong ^kernel* package, will install!" >&2
+			echo -e "\E[01;36m accept: $url\E[0m" >&2
+			echo "$url"
+			continue
+		fi
 		reject=0
 		for pat in "${rfs[@]}"; do _match $pattype "$file" "$pat" && { reject=1; break; }; done
 		[[ "$reject" = 1 ]] && continue
@@ -349,6 +356,7 @@ archList=($(arch) noarch)
 archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
 for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 
+# if parameter as 'rtk kernel-rt-xxx', we assume you need target kernel is 'kernel-rt-xxx'
 if grep -E -w 'kernel-rt' <<<"${builds[*]}"; then
 	run "yum --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*"
 elif grep -E -w 'rtk' <<<"${builds[*]}"; then
@@ -533,7 +541,7 @@ if [[ $buildcnt -gt 0 ]]; then
 		exit 1
 	}
 else
-	INSTALL_TYPE=nothing
+	# just check if any kernel key existed.
 	if ! grep -E -w 'rtk|64k|kernel' <<<"${builds[*]}"; then
 		exit 0
 	fi
@@ -551,19 +559,6 @@ ls -1 *.rpm | grep -q ^kernel-rt && {
 rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 
 case $INSTALL_TYPE in
-nothing)
-	if grep -E -w 'rtk' <<<"${builds[*]}"; then
-		if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
-			run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt*" -
-		fi
-	elif grep -E -w '64k' <<<"${builds[*]}"; then
-		if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
-			run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k*" -
-		else
-			run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k* --exclude=kernel-64k-debug*" -
-		fi
-	fi
-	;;
 rpms)
 	run "rpm -Uvh --force --nodeps $rpmfiles" -
 	;;
@@ -578,6 +573,19 @@ rpm)
 		run "rpm -Uvh --force --nodeps $rpmfiles" - ||
 		for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
 esac
+
+# to aviod install debug kernel failed when 'rtk -debugk ${userspace_pakcages}'
+if grep -E -w 'rtk' <<<"${builds[*]}"; then
+	if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt*" -
+	fi
+elif grep -E -w '64k' <<<"${builds[*]}"; then
+	if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k*" -
+	else
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k* --exclude=kernel-64k-debug*" -
+	fi
+fi
 
 #mount /boot if not yet
 mountpoint /boot || mount /boot
