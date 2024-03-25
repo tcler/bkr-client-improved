@@ -1100,8 +1100,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							params ! {
 								if {$uri == ""} {param name=_FETCH_URL value=no -}
 								foreach taskparam $taskparams {
-									if [string match _task* $taskparam] {continue}
-									if [string match _opts=* $taskparam] {continue}
+									if [regexp {^(_task|_opts|_desc)} $taskparam] continue
 									lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
 									# use "mh-" prefix to set different value for multihost
 									if [regexp {^mh-} $pname] {
@@ -1141,10 +1140,12 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_position=*] _ _task_position
 						if {$_task_position ne ""} { set insert [lindex [split $_task_position ,] $R] }
 						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _opts=*] _ _opts
+						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _desc=*] _ _desc
 
 						if {$insert in {1 y yes}} {
 							lassign [gettask_uri_and_opts $name] uri _uopts
-							set opts " ${tasksDesc}${_opts} ${task-fetch-opts} ${_uopts}"
+							if {![info exist _desc]} { set _desc ${tasksDesc} }
+							set opts " ${_desc}${_opts} ${task-fetch-opts} ${_uopts}"
 							if {$uri == ""} { set opts {} }
 							task name=$name${opts} role=$_role ${kpchgsParam} ! {
 								if {$_fetch_url ne "disable"} {
@@ -1153,8 +1154,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								params ! {
 									if {$uri == ""} {param name=_FETCH_URL value=no -}
 									foreach taskparam $taskparams {
-										if [string match _task* $taskparam] {continue}
-										if [string match _opts=* $taskparam] {continue}
+										if [regexp {^(_task|_opts|_desc)} $taskparam] continue
 										lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
 										# use "mh-" prefix to set different value for multihost
 										if [regexp {^mh-} $pname] {
@@ -1247,8 +1247,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							params ! {
 								if {$uri == ""} {param name=_FETCH_URL value=no -}
 								foreach taskparam $taskparams {
-									if [string match _task* $taskparam] {continue}
-									if [string match _opts=* $taskparam] {continue}
+									if [regexp {^(_task|_opts|_desc)} $taskparam] continue
 									lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
 									# use "mh-" prefix to set different value for multihost
 									if [regexp {^mh-} $pname] {

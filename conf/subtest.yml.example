@@ -31,6 +31,7 @@ attr: {archin: x86_64}, param: ['VAR=value,with,comma', VAR2=value with space], 
 attr: {level: Tier3, ssched: yes.longtime}, param: [var=value, x=y], setup: [--kernel-options=x=y, --keyvalue=x=y]
 
 param: [PROTO=tcp, NFS_VER=4.2]
+param: [_desc=rdma test], setup: [--hr=rdma]
 
 param: [PROTO=udp, NFS_VER=3], setup: ['--opt=arg,with,comma', --topo=multihost.1.2, --fips]
 
