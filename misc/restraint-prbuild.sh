@@ -124,6 +124,8 @@ ntarballName=${newTopdir}-${_infix/./-}.tar.gz
 echo -e "\033[1;34m{INFO} generate the tarball(${ntarballName}) that will be included in srpm\033[0m"
 rm -rf $newTopdir && mv -T $oldTopdir $newTopdir
 tar zcf ${ntarballName} ${newTopdir}
+pwd
+ls -l ${ntarballName}
 
 #gen relInfix and update Release value in spec file
 relInfix=${_infix}
