@@ -92,8 +92,10 @@ spec_repodir=~/Restraint-prbuild-${_infix}
 [[ -d "$spec_repodir" ]] || cp -r $_spec_repodir $spec_repodir
 
 #__main__
-(cd $spec_repodir || exit 1 && git checkout .
-git pull --rebase && git checkout $target
+(cd $spec_repodir || exit 1
+rm -f restraint.spec && git checkout .
+git pull --rebase && git checkout $target || exit $?
+git status
 tarballName=${PrjName}-${_infix/./-}.tgz
 
 #download PR tarball
