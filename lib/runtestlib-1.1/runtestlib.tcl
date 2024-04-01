@@ -208,7 +208,7 @@ proc ::runtestlib::expandDistro {distroStr} {
 			if {$d eq "7"} {
 				set pat {RHEL-7.9-updates-[0-9]{8}\.[0-9]+}
 			} else {
-				set pat [string map "$d RHEL-$d.\[0-9]+.\[0-9]+(-\[0-9]{8}\.\[0-9]+)?" $d]
+				set pat "RHEL-$d.\[0-9]+(\.\[0-9]+)?-\[0-9]{8}\.\[0-9]+"
 			}
 			set d [exec bash -c "distro-compose -dlist|grep -E '$pat'|head -1; :"]
 		} elseif [regexp -- {^(alt-)?[0-9]} $d] { set d [exec bash -c "getLatestRHEL $d; :"] }
