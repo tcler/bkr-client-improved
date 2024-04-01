@@ -768,7 +768,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							hostname op=like value=$MACHINE -
 						} else {
 							if {[string equal ${ARCH} "x86_64"] && [string match {RHEL-1[0-9]*} ${DISTRO}]} {
-								lappend hrs cpu.flags~avx2
+								lappend hrs cpu.flags~avx2 cpu_count>=4
 							}
 							lappend hrs not:kv-DISKSPACE>=10000000
 							lappend hrs not:cpu_count>=256
