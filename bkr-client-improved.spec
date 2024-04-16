@@ -69,11 +69,7 @@ chmod u+s /usr/local/bin/trms-service.sh
 /usr/local/bin/errata2distro_and_pkg
 /usr/local/bin/errataInfo
 /usr/local/bin/fix_nfsvers
-/usr/local/bin/getDefaultIp
-/usr/local/bin/getDefaultNic
-/usr/local/bin/getIp
 /usr/local/bin/getLatestRHEL
-/usr/local/bin/_getNicIp.sh
 /usr/local/bin/installBrewPkg
 /usr/local/bin/install-docker-ce.sh
 /usr/local/bin/ircmsg.sh
