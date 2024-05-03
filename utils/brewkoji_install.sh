@@ -25,6 +25,7 @@ installBrew2() {
 	"
 
 	local verx=$(rpm -E %rhel)
+	[[ "$verx" = 10 ]] && verx=9  #fixme after rhel-10/rel-eng/RCMTOOLS available
 
 	pushd /etc/yum.repos.d
 	baseUrl=http://download.devel.redhat.com/rhel-$verx
