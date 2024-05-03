@@ -197,9 +197,9 @@ rpmFilter() {
 		#echo "[rpmFilter] _check: $url" >&2
 		file=${url##*/}
 		# we didn't consider to filter any userspace packages
-		if ! [[ "${file}" =~ ^kernel* ]]; then
+		if [[ "${url}" != */kernel/* ]]; then
 			echo "${file} didn't belong ^kernel* package, will install!" >&2
-			echo -e "\E[01;36m accept: $url\E[0m" >&2
+			echo -e "\E[01;36m userspace accept: $url\E[0m" >&2
 			echo "$url"
 			continue
 		fi
