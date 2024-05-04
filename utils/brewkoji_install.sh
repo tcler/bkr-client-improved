@@ -25,7 +25,6 @@ installBrew2() {
 	"
 
 	local verx=$(rpm -E %rhel)
-	[[ "$verx" = 10 ]] && verx=9  #fixme after rhel-10/rel-eng/RCMTOOLS available
 
 	pushd /etc/yum.repos.d
 	baseUrl=http://download.devel.redhat.com/rhel-$verx
@@ -38,9 +37,9 @@ installBrew2() {
 			type=Workstation
 			pkglist='koji brewkoji'
 			;;
-		8|9)
+		8|9|10)
 			type=BaseOS
-			pkglist='brewkoji python3-pycurl'
+			pkglist='python3-brewkoji brewkoji python3-pycurl'
 			;;
 		esac
 		repourl=$baseUrl/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-$verx/compose/$type/$(uname -m)/os
@@ -52,10 +51,26 @@ installBrew2() {
 		gpgcheck=0
 		EOF
 		yum install --setopt=sslverify=0 -y $pkglist || rm rcm-tools-*.repo
-		[[ $verx -ge 8 ]] && { rpm -ivh --force --nodeps \
-		    https://kojipkgs.fedoraproject.org/packages/koji/1.29.0/1.el${verx}/noarch/koji-1.29.0-1.el${verx}.noarch.rpm \
-		    https://kojipkgs.fedoraproject.org/packages/koji/1.29.0/1.el${verx}/noarch/python3-koji-1.29.0-1.el${verx}.noarch.rpm
+
+		#fixme: remove this if branch after rhel-10/rcmtools is available
+		if [[ "$verx" = 10 ]]; then
+			urlpath=${baseUrl/rhel-10/rhel-9}/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-9/compose/BaseOS/x86_64/os/Packages
+			rpm -ivh --force --nodeps \
+				${urlpath}/{python3-brewkoji-1.31-1.el9.noarch.rpm,brewkoji-1.31-1.el9.noarch.rpm}
+		fi
+
+		#install kojo
+		[[ $verx -ge 8 ]] && {
+			_verx=$verx
+			#fixme: remove this line after rhel-10/rcmtools is available
+			[[ "$verx" = 10 ]] && _verx=9
+			urlpath=https://kojipkgs.fedoraproject.org/packages/koji/1.34.0/3.el${_verx}/noarch
+			rpm -ivh --force --nodeps \
+				${urlpath}/{koji-1.34.0-3.el${_verx}.noarch.rpm,python3-koji-1.34.0-3.el${_verx}.noarch.rpm}
 		}
+
+		#fixme: remove this line after rhel-10/rcmtools is available
+		[[ "$verx" = 10 ]] && cp -rf /usr/lib/python3.9/site-packages/* /usr/lib/python3.12/site-packages/.
 	elif [[ $(rpm -E %fedora) != %fedora ]]; then
 		curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
 		yum install --setopt=sslverify=0 -y koji brewkoji || rm rcm-tools-*.repo
