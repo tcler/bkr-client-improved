@@ -7,8 +7,10 @@ rtype=rel-eng
 rtype=nightly
 verx=$(rpm -E %rhel)
 case $verx in
-8|9)
+8|9|10)
 	buildrootUrl=http://$downhostname/rhel-$verx/$rtype/BUILDROOT-$verx/latest-BUILDROOT-$verx-RHEL-$verx/compose/Buildroot/$(arch)/os/
+	[[ $verx = 10 ]] &&
+		buildrootUrl=http://$downhostname/rhel-$verx/nightly/BUILDROOT-10-Public-Beta/latest-BUILDROOT-10-RHEL-10/compose/Buildroot/$(arch)/os/
 	cat <<-EOF >/etc/yum.repos.d/beaker-buildroot.repo
 	[beaker-buildroot]
 	name=beaker-buildroot
