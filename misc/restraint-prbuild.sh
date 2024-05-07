@@ -21,7 +21,7 @@ _requires_cmds rhpkg brew || exit 2
 
 ## argparse
 Usage() {
-	echo "Usage: $P <prID|commitID|master> [target: beaker-harness-rhel-\$N|eng-fedora-\$N] [--arches=<arch,list|all>] [--prj=tcler/restraint] [-n|--dry]"
+	echo "Usage: $P <prID|commitID|master> [target: beaker-harness-rhel-\$N|eng-fedora-\$N] [--arches=<arch,list|all>] [--prj=tcler/nrestraint] [-n|--dry] [-v|--version \$VER]"
 	echo "Args and Options:"
 	echo "  \$1            a {PR(pull request) ID} or {commit ID(sha)} or {master}"
 	echo "  \$2            the build target name: beaker-harness-rhel-\$N|eng-fedora-\$N  #default:beaker-harness-rhel-9"
@@ -29,17 +29,20 @@ Usage() {
 	echo "  -a,--arches:  comma seperated arch list: aarch64,ppc64le  #default is x86_64, 'all' means all availables"
 	echo "  -p,--prj:     build from fork: anotherUser/newReponame"
 	echo "  -n,--dry:     only download tarball and create srpm but don't realy submmit the build"
+	echo "  -v,--version: specific version-release, e.g: 0.4.5-6"
 	echo -e "\nExamples:"
 	echo "  $P 303"
 	echo "  $P 303 beaker-harness-rhel-7"
 	echo "  $P 73ad3be eng-fedora-40 -a ppc64le,s390x"
-	echo "  $P master -p tcler/restraint -a all"
+	echo "  $P master -p tcler/nrestraint -a all"
+	echo "  $P master -p tcler/nrestraint -a all --version 0.5.0-2"
 }
-_at=`getopt -o ha:p:n \
+_at=`getopt -o ha:p:nv: \
 	--long help \
 	--long arch: --long arches: \
 	--long prj: \
 	--long dry \
+	--long version: \
     -a -n '$P' -- "$@"`
 eval set -- "$_at"
 
@@ -49,6 +52,7 @@ while true; do
 	-a|--arch*)     arches="$2"; shift 2;;
 	-p|--prj)       prjPath="$2"; fork=${prjPath%%/*}; shift 2;;
 	-n|--dry)       dryRun="yes"; shift 1;;
+	-v|--version)   read Version Release <<<"${2/-/ }"; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -113,8 +117,14 @@ oldTopdir=$(tar taf $tarballName | sed -rn "1{s|/$||; p; q}")
 tar -C . -zxf ${tarballName} --warning=no-timestamp
 cp $oldTopdir/restraint.spec .
 
+if [[ -n "$Version" ]]; then
+	#awk -v ver=$Version -i inplace '/Version:/{$2=ver}{print}' restraint.spec
+	sed -ri "s/^(Version:[[:space:]]+).*$/\1$Version/" restraint.spec
+fi
+
 #get version info from restraint.spec
 #and gen new topdir-name that must be restraint-${ver}
+grep -e Version: -e Release: -e Source0: restraint.spec | GREP_COLORS='ms=34' grep --color=always . >&2
 ver=$(awk '/Version:/{print $2}' restraint.spec)
 newTopdir=restraint-${ver}
 
@@ -132,8 +142,10 @@ ls -l ${ntarballName}
 #gen relInfix and update Release value in spec file
 relInfix=${_infix}
 [[ $_type = pr ]] && { _coID=${oldTopdir/*-/}; relInfix=${_infix}.${_coID}; }
+[[ -n "$Release" ]] && sed -ri "/Release:/{s/\<([^[:space:]%]+)%/${Release}%/}" restraint.spec
 sed -ri -e "/Release:/{s/%/.${relInfix:-wrongInfix.}&/}" \
 	-e "/Source0:/{s|/[^/]+$|/${ntarballName}|}" restraint.spec
+grep -e Version: -e Release: -e Source0: restraint.spec | GREP_COLORS='ms=34' grep --color=always . >&2
 
 #gen srpm and submit scratch-build
 rm -f *.rpm
