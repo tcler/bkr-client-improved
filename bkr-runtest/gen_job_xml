@@ -163,7 +163,7 @@ set fetch_test_from_url yes
 array set taskFetchUrl {}
 set taskname2urlOpts {}
 set task-fetch-opts {}
-set kpchgs {no}
+set kpchgs {yes}
 set kpchgsParam {}
 if [info exist Opt(fetch-url)] {
 	foreach _url $Opt(fetch-url) {
@@ -184,8 +184,8 @@ if [info exist Opt(fetch-url)] {
 if [info exist Opt(fetch-opts)] {
 	set task-fetch-opts " $Opt(fetch-opts)"
 	set task-fetch-opts [regsub {abort[^ ,]*,?} ${task-fetch-opts} {/}]
-	if [string match {*keepchanges*} ${task-fetch-opts}] {
-		set kpchgs "yes"
+	if [string match {*keepchanges=no*} ${task-fetch-opts}] {
+		set kpchgs "no"
 	}
 }
 if [info exist Opt(keepchanges)] {
