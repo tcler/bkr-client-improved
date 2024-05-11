@@ -895,7 +895,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					watchdog panic=$WATCHDOG_PANIC -
 				}
 
-				# tasks nodes
+				### tasks nodes
+				## gen insert-tasks list
 				set insertTasks [list]
 
 				# distro build
@@ -1077,6 +1078,70 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					lappend insertTasks {*}$Opt(insert-task)
 				}
 
+				## gen append-tasks list
+				set appendTasks [list]
+				if [info exist Opt(append-task)] {
+					lappend appendTasks {*}$Opt(append-task)
+				}
+
+				# --kcov --gcov task
+				if [info exist Opt(kcov)] {
+					lappend appendTasks "/kernel/kcov/end KILLTIMEOVERRIDE=345600"
+					lappend appendTasks "/kernel/kcov/finalize"
+					#lappend appendTasks "/kernel/kcov/finalize NFS_SHARE=$NFS_SHARE TASKNAME=$TASKNAME"
+				}
+				if [info exist Opt(gcov)] {
+					lappend appendTasks "/kernel/kcov/gcov-userspace-end PACKAGE_NAME=$Opt(gcov)"
+				}
+
+				# command in the end of the recipe
+				if [info exist Opt(cmd-end)] {
+					foreach cmd $Opt(cmd-end) {
+						lappend appendTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
+					}
+				}
+
+				# --reserve-if-fail
+				if [info exist Opt(reserve-if-fail)] {
+					set ReserveTime {356400}
+					if {[string length $Opt(reserve-if-fail)] > 0} {
+						set ReserveTime $Opt(reserve-if-fail)
+					}
+					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime} RESERVE_IF_FAIL=1"
+				}
+				# --reserve
+				if [info exist Opt(reserve)] {
+					set ReserveTime {356400}
+					if {[string length $Opt(reserve)] > 0} {
+						set ReserveTime $Opt(reserve)
+					}
+					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime}"
+				}
+
+				# prefetch all testcases
+				set testUriList [list]
+				if {[info exist Opt(keepchanges)] || [info exist Opt(nrestraint)]} {
+					foreach _task [concat ${insertTasks} ${TaskList} ${appendTasks}] {
+						set _fetch_url yes
+						set taskname [lindex $_task 0]
+						set taskparams [lrange $_task 1 end]
+						set tasknamespace /[lrange [file split $taskname] 1 1]
+						regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_url
+						if {$_fetch_url ne "disable"} {
+							lappend testUriList "$tasknamespace"
+						}
+					}
+					foreach tasknamespace [lsort -unique $testUriList] {
+						lassign [gettask_uri_and_opts $tasknamespace] uri _uopts
+						if {$uri ne ""} {
+							task name=$tasknamespace ! {
+								fetchtag $uri
+							}
+						}
+					}
+				}
+
+				# gen tasks nodes
 				foreach taskb $insertTasks {
 					set taskname [lindex $taskb 0]
 					set taskparams [lrange $taskb 1 end]
@@ -1181,45 +1246,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						}
 						incr iter
 					}
-				}
-
-				set appendTasks [list]
-				if [info exist Opt(append-task)] {
-					lappend appendTasks {*}$Opt(append-task)
-				}
-
-				# --kcov --gcov task
-				if [info exist Opt(kcov)] {
-					lappend appendTasks "/kernel/kcov/end KILLTIMEOVERRIDE=345600"
-					lappend appendTasks "/kernel/kcov/finalize"
-					#lappend appendTasks "/kernel/kcov/finalize NFS_SHARE=$NFS_SHARE TASKNAME=$TASKNAME"
-				}
-				if [info exist Opt(gcov)] {
-					lappend appendTasks "/kernel/kcov/gcov-userspace-end PACKAGE_NAME=$Opt(gcov)"
-				}
-
-				# command in the end of the recipe
-				if [info exist Opt(cmd-end)] {
-					foreach cmd $Opt(cmd-end) {
-						lappend appendTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
-					}
-				}
-
-				# --reserve-if-fail
-				if [info exist Opt(reserve-if-fail)] {
-					set ReserveTime {356400}
-					if {[string length $Opt(reserve-if-fail)] > 0} {
-						set ReserveTime $Opt(reserve-if-fail)
-					}
-					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime} RESERVE_IF_FAIL=1"
-				}
-				# --reserve
-				if [info exist Opt(reserve)] {
-					set ReserveTime {356400}
-					if {[string length $Opt(reserve)] > 0} {
-						set ReserveTime $Opt(reserve)
-					}
-					lappend appendTasks "/distribution/reservesys RESERVETIME=${ReserveTime}"
 				}
 
 				foreach taska $appendTasks {
