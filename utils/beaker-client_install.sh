@@ -9,7 +9,7 @@ if grep -E -q ^NAME=.?Fedora /etc/os-release; then
 	[beaker-client]
 	name=Beaker Client - Fedora$releasever
 	baseurl=http://download.lab.bos.redhat.com/beakerrepos/client/Fedora$releasever/
-	baseurl=http://download.devel.redhat.com/beakerrepos/client/Fedora$releasever
+	baseurl=https://beaker-project.org/yum/client/Fedora$releasever
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
@@ -19,7 +19,7 @@ if grep -E -q ^NAME=.?Fedora /etc/os-release; then
 	cat <<-'EOF' >/etc/yum.repos.d/beaker-harness.repo
 	[beaker-harness]
 	name=Beaker harness - Fedora$releasever
-	baseurl=https://download.devel.redhat.com/beakerrepos/harness/Fedora$releasever/
+	baseurl=https://beaker-project.org/yum/harness/Fedora$releasever/
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
@@ -30,6 +30,7 @@ else
 	[beaker-client]
 	name=Beaker Client - RedHatEnterpriseLinux$releasever
 	baseurl=http://download.lab.bos.redhat.com/beakerrepos/client/RedHatEnterpriseLinux$releasever/
+	baseurl=https://beaker-project.org/yum/client/RedHatEnterpriseLinux$releasever
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
@@ -39,7 +40,7 @@ else
 	cat <<-EOF >/etc/yum.repos.d/beaker-harness.repo
 	[beaker-harness]
 	name=Beaker harness - RedHatEnterpriseLinux$verx
-	baseurl=https://download.devel.redhat.com/beakerrepos/harness/RedHatEnterpriseLinux$verx/
+	baseurl=https://beaker-project.org/yum/harness/RedHatEnterpriseLinux$verx/
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
