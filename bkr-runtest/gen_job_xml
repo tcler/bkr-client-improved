@@ -1136,6 +1136,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						if {$uri ne ""} {
 							task name=$tasknamespace ! {
 								fetchtag $uri
+								params ! {
+									param name=_fetch_opts value=timeo=1800 -
+								}
 							}
 						}
 					}
