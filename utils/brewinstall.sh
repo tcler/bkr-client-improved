@@ -557,22 +557,23 @@ ls -1 *.rpm | grep -q ^kernel-rt && {
 }
 
 rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
-
-case $INSTALL_TYPE in
-rpms)
-	run "rpm -Uvh --force --nodeps $rpmfiles" -
-	;;
-yum)
-	run "yum install -y --nogpgcheck --setopt=keepcache=1 $rpmfiles" -
-	;;
-rpm)
-	for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
-	;;
-*)
-	run "yum install -y --nogpgcheck --setopt=keepcache=1 $rpmfiles" - ||
-		run "rpm -Uvh --force --nodeps $rpmfiles" - ||
+if [[ -n ${rpmfiles} ]]; then
+	case $INSTALL_TYPE in
+	rpms)
+		run "rpm -Uvh --force --nodeps $rpmfiles" -
+		;;
+	yum)
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 $rpmfiles" -
+		;;
+	rpm)
 		for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
-esac
+		;;
+	*)
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 $rpmfiles" - ||
+			run "rpm -Uvh --force --nodeps $rpmfiles" - ||
+			for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
+	esac
+fi
 
 # to aviod install debug kernel failed when 'rtk -debugk ${userspace_pakcages}'
 if grep -E -w 'rtk' <<<"${builds[*]}"; then
