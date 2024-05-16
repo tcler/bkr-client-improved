@@ -557,7 +557,7 @@ ls -1 *.rpm | grep -q ^kernel-rt && {
 }
 
 rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
-if [[ -n ${rpmfiles} ]]; then
+if [[ -n ${rpmfiles} ]] && [[ $buildcnt -gt 0 ]]; then
 	case $INSTALL_TYPE in
 	rpms)
 		run "rpm -Uvh --force --nodeps $rpmfiles" -
@@ -573,6 +573,8 @@ if [[ -n ${rpmfiles} ]]; then
 			run "rpm -Uvh --force --nodeps $rpmfiles" - ||
 			for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
 	esac
+else
+	report_result "download rpms failed" FAIL
 fi
 
 # to aviod install debug kernel failed when 'rtk -debugk ${userspace_pakcages}'
