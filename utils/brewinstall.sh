@@ -573,6 +573,8 @@ if [[ -n ${rpmfiles} ]] && [[ $buildcnt -gt 0 ]]; then
 			run "rpm -Uvh --force --nodeps $rpmfiles" - ||
 			for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
 	esac
+elif [[ -z ${rpmfiles} ]] && [[ $buildcnt -eq 0 ]]; then
+	report_result "No need use yum/rpm install" PASS
 else
 	report_result "download rpms failed" FAIL
 fi
