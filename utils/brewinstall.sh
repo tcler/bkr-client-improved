@@ -627,6 +627,12 @@ if [[ -n "$kernelpath" ]]; then
 	}
 fi
 
+if grubby --info=DEFAULT|grep -q 'kernel=.*+rt'; then
+	if [[ -d /sys/firmware/efi ]] && ! grep -q efi=runtime /proc/cmdline; then
+		  run "grubby --update-kernel=$(grubby --default-kernel) --args=efi=runtime"
+	fi
+fi
+
 _reboot=no
 # need to check current kernel match default kernel, default kernel match target installed kernel.
 default_kernel_index=$(grubby --info=DEFAULT | grep index | sed 's/index=//')
