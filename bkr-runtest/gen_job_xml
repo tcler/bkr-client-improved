@@ -1002,7 +1002,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					append brewBuildList "${_build} "
 				}
 				if {[llength $brewBuildList] > 0} {
-					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList}"
+					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList} AVC_ERROR=+no_avc_check"
 				}
 
 				# --kdump task
