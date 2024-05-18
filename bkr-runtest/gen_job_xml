@@ -58,7 +58,7 @@ proc json2dict {txt} {
   return $result
 }
 
-proc nrestraint-repo {distro} {
+proc get_nrestraint_repo {distro} {
 	if [regexp -nocase -- {^RHEL-[0-9]+.*} $distro] {
 		set osver "[regsub {^(RHEL-[0-9]+).*$} $distro {\1}]"
 	}
@@ -78,11 +78,6 @@ if [file exists $::runtestConfPrivate] { source $::runtestConfPrivate }
 set defaultOSInstaller /distribution/check-install
 if {![info exist OSInstaller]} {
 	set OSInstaller $defaultOSInstaller
-}
-
-if [info exist Opt(nrestraint)] { unset Opt(nrestraint) }
-if [info exist Opt(restraint-repo)] {
-	set Opt(nrestraint) yes
 }
 
 set OptionList {
@@ -158,8 +153,12 @@ if [info exist Opt(help)] {
 	exit 0
 }
 
-if [info exist Opt(restraint-repo)] {
-	set restraintrepo "$Opt(restraint-repo)"
+set nrestraint no
+if [info exist Opt(nrestraint)] { set nrestraint yes }
+if {![info exist Opt(nrestraint-repo)] && [info exist Opt(restraint-repo)]} { set Opt(nrestraint-repo) "$Opt(restraint-repo)" }
+if [info exist Opt(nrestraint-repo)] {
+	set nrestraint yes
+	set restraintrepo "$Opt(nrestraint-repo)"
 }
 
 set fetch_test_from_url yes
@@ -835,8 +834,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					}
 				}
 				repos ! {
-					if {[info exist Opt(nrestraint)] && ${restraintrepo} eq {}} {
-						set restraintrepo [nrestraint-repo $DISTRO]
+					if {${nrestraint} eq "yes" && ${restraintrepo} eq {}} {
+						set restraintrepo [get_nrestraint_repo $DISTRO]
 					}
 					if {${restraintrepo} ne {}} {
 						repo name=restraint "url=${restraintrepo}" -
@@ -1123,7 +1122,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 				# prefetch all testcases
 				set testUriList [list]
-				if {[info exist Opt(keepchanges)] || [info exist Opt(nrestraint)]} {
+				if {[info exist Opt(keepchanges)] || $nrestraint eq "yes"} {
 					foreach _task [concat ${insertTasks} ${TaskList} ${appendTasks}] {
 						set _fetch_url yes
 						set taskname [lindex $_task 0]
