@@ -79,8 +79,11 @@ set defaultOSInstaller /distribution/check-install
 if {![info exist OSInstaller]} {
 	set OSInstaller $defaultOSInstaller
 }
-set newbh "no"
-if [info exist Opt(nrestraint)] {set newbh "yes"}
+
+if [info exist Opt(nrestraint)] { unset Opt(nrestraint) }
+if [info exist Opt(restraint-repo)] {
+	set Opt(nrestraint) yes
+}
 
 set OptionList {
   "  Options:" {
