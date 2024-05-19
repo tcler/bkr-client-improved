@@ -112,7 +112,7 @@ _install_task() {
 	fi
 
 	#skip if required task in same repo and has been there
-	if [[ "$url" = "$URL" && "$taskrepo" = "$TASK_REPO" && "$REPO_PATH" != "$repopath" ]]; then
+	if [[ "$url" = "$URL" && "$taskrepo" = "$TASK_REPO" && "$(readlink -f $REPO_PATH)" != "$(readlink -f $repopath)" ]]; then
 		local_fpath="$REPO_PATH/$rpath"
 		if [[ -d "$local_fpath" ]]; then
 			if [[ ! -f "$fpath/.url" ]]; then
