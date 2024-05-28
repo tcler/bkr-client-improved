@@ -55,6 +55,7 @@ installBrew2() {
 		#fixme: remove this if branch after rhel-10/rcmtools is available
 		if [[ "$verx" = 10 ]]; then
 			urlpath=${baseUrl/rhel-10/rhel-9}/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-9/compose/BaseOS/x86_64/os/Packages
+			yum install -y python3-requests
 			rpm -ivh --force --nodeps \
 				${urlpath}/{python3-brewkoji-1.31-1.el9.noarch.rpm,brewkoji-1.31-1.el9.noarch.rpm}
 		fi
