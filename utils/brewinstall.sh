@@ -370,6 +370,8 @@ fi
 # Download packges
 depthLevel=${DEPTH_LEVEL:-2}
 buildcnt=${#builds[@]}
+# use to check repo installed
+INSTALL_KERNEL=0
 for build in "${builds[@]}"; do
 	[[ "$build" = -* ]] && { continue; }
 
@@ -466,6 +468,7 @@ for build in "${builds[@]}"; do
 		run "umount $nfsmp" -
 	elif [[ "$build" =~ ^repo: || "$build" = *s3.upshift.redhat.com/DH-PROD-CKI/internal/*/*.?basearch ]]; then
 		if getUrlListByRepo ${build#repo:} | grep -q kernel-; then
+			((INSTALL_KERNEL++))
 			bROpts=("${kROpts[@]}")
 		fi
 		download_pkgs_from_repo ${build#repo:}
@@ -474,6 +477,7 @@ for build in "${builds[@]}"; do
 			if [[ $url = *.rpm ]]; then
 				run "curl -O -L $url" 0  "download-${url##*/}"
 			else
+				((INSTALL_KERNEL++))
 				if getUrlListByUrl ${build#repo:} | grep -q kernel-; then
 					bROpts=("${kROpts[@]}")
 				fi
@@ -610,9 +614,10 @@ if grep -E -w 'rtk' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+rt|\.rt.*' | $grepOpt "$dbgpat" | head -1)
 elif grep -E -w '64k' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+64k|\.64k.*' | $grepOpt "$dbgpat" | head -1)
-elif grep -E '(^| )kernel-' <<<"${builds[*]}"; then
+elif grep -E '(^| )kernel-' <<<"${builds[*]}" || [[ ${INSTALL_KERNEL} -ge 0 ]]; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}| $grepOpt "$dbgpat" | head -1)
 fi
+
 
 run "ls /boot/vmlinuz-*$(uname -m)* -tl ${lsOpt:--u}"
 
