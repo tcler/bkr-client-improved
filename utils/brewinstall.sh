@@ -610,7 +610,7 @@ if grep -E -w 'rtk' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+rt|\.rt.*' | $grepOpt "$dbgpat" | head -1)
 elif grep -E -w '64k' <<<"${builds[*]}"; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+64k|\.64k.*' | $grepOpt "$dbgpat" | head -1)
-elif grep -E '(^| )kernel-' <<<"${builds[*]}"; then
+elif rpm -qlp *.rpm | grep ^/boot/vmlinuz-; then
 	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}| $grepOpt "$dbgpat" | head -1)
 fi
 
