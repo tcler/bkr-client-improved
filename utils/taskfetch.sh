@@ -52,7 +52,17 @@ _get_task_requires() {
 	local _fpath=$1
 	pushd "$_fpath" &>/dev/null
 	local _reponame=$(get_taskname .|awk -F/ '{if ($2 != "CoreOS") {print $2} else {print $3}}')
-	{ test -f Makefile && sed -nr '/^.*"(Rhts|Repo)?Requires:\s*([^"]+)".*$/{s//\2/;s/\s+/\n/g;p}' Makefile |
+	{
+	if [[ -f metadata ]]; then
+	  _reponame=$(awk -F'[=/ ]+' '/^name/{if ($2 != "CoreOS") {print $2} else {print $3}}' metadata);
+	  awk -v head=$_reponame -F'[=;]' '/^(task|orepo|repo)Requires= *[^ ]+/ {
+		for (i=2;i<=NF;i++) {
+			if ($i == "") continue
+			if ($i ~ "^/") print substr($i,2); else print head"/"$i
+		}
+	  }' metadata;
+	elif test -f Makefile; then
+	  sed -nr '/^.*"(Rhts|Repo)?Requires:\s*([^"]+)".*$/{s//\2/;s/\s+/\n/g;p}' Makefile |
 		sort -u | awk -v repon=$_reponame '
 		match($0,/^library\(([^\/]+)\/(.+)\)$/,M) { print(M[1] "/Library/" M[2]); next }
 		match($0,/^test\(\/?(.+)\)$/,M) { print(M[1]); next }
@@ -62,13 +72,7 @@ _get_task_requires() {
 		match($0,/^(.+)-CoreOS-(.+)$/,M) { m1=M[1]; m2=M[2]; sub(m1 "-","",m2); print(m1 "/" gensub("-","?","g",m2)); next }
 		match($0,/^.+\//) { print repon"/"$0; next }
 		'
-
-	  _reponame=$(awk -F'[=/ ]+' '/^name/{if ($2 != "CoreOS") {print $2} else {print $3}}' metadata);
-	  awk -v head=$_reponame -F'[=;]' '/^(task|orepo|repo)Requires= *[^ ]+/ {
-		for (i=2;i<=NF;i++) {
-			if ($i ~ "^/") print substr($i,2); else print head"/"$i
-		}
-	  }' metadata;
+	fi
 	} 2>/dev/null | sort -u | xargs
 	popd &>/dev/null
 }
