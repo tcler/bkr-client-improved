@@ -128,7 +128,7 @@ if {[info exist Opt(opt-alias)] && $Opt(opt-alias) != ""} {
 	if [file isfile ${option-alias-path}] {
 		set aliasf ${option-alias-path}
 	} else {
-		exec bash -c "curl -Ls --noproxy '*' ${option-alias-path} -o ${aliasf}"
+		exec bash -c "curl -Lks --noproxy '*' ${option-alias-path} -o ${aliasf}"
 	}
 	source ${aliasf}
 	set idx [lindex [lsearch -all -regexp $ARGV {-(opt|hr)-alias(=.*)?$}] end]
