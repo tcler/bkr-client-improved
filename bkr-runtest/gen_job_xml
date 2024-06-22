@@ -1134,7 +1134,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							}
 						}
 						set _ksfContent "%post --log=/root/ks-fetch-uri.log\n"
-						append _ksfContent "curl -Lks --retry 64 --retry-delay 2 -o /bin/extract.sh http://download.devel.redhat.com/qa/rhts/lookaside/kiss-vm-ns/utils/extract.sh\nchmod +x /bin/extract.sh\n"
+						append _ksfContent "yum install -y bzip2 xz
+							curl -Lks --retry 64 --retry-delay 2 -o /bin/extract.sh http://download.devel.redhat.com/qa/rhts/lookaside/kiss-vm-ns/utils/extract.sh\nchmod +x /bin/extract.sh\n"
 						foreach tasknamespace [lsort -unique $testUriList] {
 							lassign [gettask_uri_and_opts $tasknamespace] uri _uopts
 							if {$uri ne ""} {
