@@ -281,6 +281,20 @@ download_rpms_from_url() {
 		rpmFilter "${bROpts[@]}" "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 }
 
+need_reboot() {
+	local _reboot=1
+	# need to check current kernel match default kernel, default kernel match target installed kernel.
+	default_kernel_index=$(grubby --info=DEFAULT | grep index | sed 's/index=//')
+	current_kernel_index=$(grubby --info="/boot/vmlinuz-$(uname -r)" | grep index | sed 's/index=//')
+	# if kernel use rpm install, it may remove original kernel.
+	if [[ -z ${current_kernel_index} ]]; then
+		[[ "$KREBOOT" = yes ]] && _reboot=0
+	elif [[ ${default_kernel_index} -ne ${current_kernel_index} ]]; then
+		[[ "$KREBOOT" = yes ]] && _reboot=0
+	fi
+	return $_reboot
+}
+
 # parse options
 builds=()
 for arg; do
@@ -491,6 +505,8 @@ for build in "${builds[@]}"; do
 			curknvr=kernel-$(uname -r)
 			if [[ "${build}" = ${curknvr%.*} && "$FLAG" != debugkernel && ! "${builds[*]}" =~ rtk|64k ]]; then
 				report_result "kernel($build) has been installed" PASS
+				_kpath=$(rpm -ql ${build} ${build/kernel/kernel-core} |& grep ^/boot/vmlinuz-)
+				[[ -n "$_kpath" ]] && run "grubby --set-default=$_kpath"
 				let buildcnt--
 				continue
 			fi
@@ -633,15 +649,4 @@ if grubby --info=DEFAULT|grep -q 'kernel=.*+rt'; then
 	fi
 fi
 
-_reboot=no
-# need to check current kernel match default kernel, default kernel match target installed kernel.
-default_kernel_index=$(grubby --info=DEFAULT | grep index | sed 's/index=//')
-current_kernel_index=$(grubby --info="/boot/vmlinuz-$(uname -r)" | grep index | sed 's/index=//')
-# if kernel use rpm install, it may remove original kernel.
-if [[ -z ${current_kernel_index} ]]; then
-	[[ "$KREBOOT" = yes ]] && _reboot=yes
-elif [[ ${default_kernel_index} -ne ${current_kernel_index} ]]; then
-	[[ "$KREBOOT" = yes ]] && _reboot=yes
-fi
-
-[[ $_reboot = yes ]] && reboot || exit 0
+need_reboot && reboot || exit 0
