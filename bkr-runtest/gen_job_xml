@@ -1143,7 +1143,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 								set fname [file tail [dict get $duri path]]
 								set rpath "[dict get $duri host]/[file dirname [dict get $duri path]]"
 								set _cmd "curl -Lk --retry 64 --retry-delay 2 -O $uri --create-dirs --output-dir /var/cache/nrestraint/fetch-uri/$rpath"
-								set _cmd2 "extract.sh /var/cache/nrestraint/fetch-uri/$rpath/$fname /mnt/tests $fname"
+								set _cmd2 "extract.sh /var/cache/nrestraint/fetch-uri/$rpath/$fname /mnt/tests $fname; touch /mnt/tests/$fname/fetch.done"
 								append _ksfContent "_cmd='${_cmd}'\necho '{run} \$_cmd'\n\$_cmd\n"
 								append _ksfContent "_cmd2='${_cmd2}'\necho '{run} \$_cmd2'\n\$_cmd2\n"
 							}
