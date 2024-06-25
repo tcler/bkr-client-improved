@@ -382,6 +382,8 @@ elif grep -E -w 'rtk' <<<"${builds[*]}"; then
 fi
 
 # Download packges
+workdir=/var/cache/mybrewinstall
+[[ "$ONLY_DOWNLOAD" != yes ]] && { rm -rf $workdir; mkdir -p $workdir; cd $workdir; }
 depthLevel=${DEPTH_LEVEL:-2}
 buildcnt=${#builds[@]}
 for build in "${builds[@]}"; do
