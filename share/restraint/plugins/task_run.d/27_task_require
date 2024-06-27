@@ -11,6 +11,7 @@ _logf=/tmp/${0##*/}.log
 _install_requirements() {
 	hash -r && command -v taskfetch.sh || {
 		local _downloadurl=http://download.devel.redhat.com/qa/rhts/lookaside
+		local _downloadurl=http://fs-qe.usersys.redhat.com/ftp/pub/lookaside
 		local _urls="$_downloadurl/bkr-client-improved/utils/taskfetch.sh"
 		(cd /usr/bin && for _url in $_urls; do curl -Ls --retry 64 --retry-delay 2 -O $_url && chmod +x ${_url##*/}; done)
 	}

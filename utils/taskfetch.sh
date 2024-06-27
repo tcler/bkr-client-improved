@@ -28,6 +28,7 @@ _install_requirements() {
 		yum --setopt=strict=0 install -y $_pkgs &>>${_logf:-/dev/null}
 
 	local _downloadurl=http://download.devel.redhat.com/qa/rhts/lookaside
+	local _downloadurl=http://fs-qe.usersys.redhat.com/ftp/pub/lookaside
 	local _urls=()
 	hash -r
 	command -v curl-download.sh || _urls+=($_downloadurl/kiss-vm-ns/utils/curl-download.sh)
