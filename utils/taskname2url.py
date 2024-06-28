@@ -15,6 +15,7 @@ taskdict = {}
 skiprepo = "no"
 conf_str = ""
 confUrl = "http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/conf/fetch-url.ini"
+confUrl = "http://fs-qe.usersys.redhat.com/ftp/pub/lookaside/bkr-client-improved/conf/fetch-url.ini"
 defaultConfList = ["/etc/beaker/fetch-url.ini", "/etc/fetch-url.ini"]
 confList = []
 for arg in sys.argv[1:]:
