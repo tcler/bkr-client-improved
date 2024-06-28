@@ -2,6 +2,7 @@
 #author jiyin@redhat.com
 
 dburl=http://download.devel.redhat.com/qa/rhts/lookaside/distro-rpmsdata
+dburl=http://fs-qe.usersys.redhat.com/ftp/pub/lookaside/distro-rpmsdata
 dbroot=/var/cache/distroInfoDB/rpmsdata
 
 Pkg=
