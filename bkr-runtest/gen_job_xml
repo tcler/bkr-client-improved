@@ -267,7 +267,7 @@ if [info exist Opt(noavc)] { lappend GlobalParam "AVC_ERROR=+no_avc_check" }
 if [info exist Opt(task-fetch-url)] { lappend GlobalParam "TASK_URIS=$Opt(task-fetch-url)" }
 if [info exist Opt(fetch-url)] { lappend GlobalParam "REPO_URLS=$Opt(fetch-url)" }
 if [regexp -- {cat .*>.*/27_task_require} ${ksfContent}] {
-	lappend GlobalParam "OVER_WRITE_RPM=yes"
+	lappend GlobalParam "OVER_WRITE_RPM="
 }
 if [regexp -- {cat .*>.*/28_exit0} ${ksfContent}] {
 	lappend GlobalParam "DRYRUN=yes"
