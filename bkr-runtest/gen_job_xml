@@ -67,7 +67,7 @@ proc get_nrestraint_repo {distro} {
 		set osver "[regsub {^(fedora)-([0-9]+).*$} $distro {\1\2}]"
 	}
 	#return "http://download.devel.redhat.com/qa/rhts/lookaside/beaker-harness-active/[string tolower $osver]"
-	return "http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/beaker-harness-active/[string tolower $osver]"
+	return "http://fs-qe.usersys.redhat.com/ftp/pub/lookaside/beaker-harness-active/[string tolower $osver]"
 }
 
 # global var
@@ -249,8 +249,10 @@ if [info exist Opt(norun)] {
 	append ksfContent {
 	%post
 	downhostname=download.devel.redhat.com
+	downhostname=fs-qe.usersys.redhat.com
 	_rpath=share/restraint/plugins/task_run.d
 	_path=qa/rhts/lookaside/bkr-client-improved/$_rpath
+	_path=ftp/pub/lookaside/bkr-client-improved/$_rpath
 	pushd /usr/$_rpath
 		curl -Lks -O http://$downhostname/$_path/28_exit0
 		chmod a+x *
