@@ -1128,8 +1128,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 							set taskname [lindex $_task 0]
 							set taskparams [lrange $_task 1 end]
 							set tasknamespace /[lrange [file split $taskname] 1 1]
+							lassign [gettask_uri_and_opts $taskname] uri _uopts
 							regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_url
-							if {$_fetch_url ne "disable"} {
+							if {$_fetch_url ne "disable" && $uri ne ""} {
 								lappend testUriList "$tasknamespace"
 							}
 						}
