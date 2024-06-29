@@ -1147,13 +1147,18 @@ curl -Lks --retry 64 --retry-delay 2 -o /bin/curl-download.sh http://fs-qe.users
 								set fname [file tail [dict get $duri path]]
 								set rpath "[dict get $duri host]/[file dirname [dict get $duri path]]"
 								set downloaddir "/var/cache/nrestraint/fetch-uri/$rpath"
-								set _cmd "mkdir -p $downloaddir; curl-download.sh $downloaddir $uri"
-								set _cmd2 "extract.sh $downloaddir/$fname /mnt/tests/$rpath $fname; touch /mnt/tests/$rpath/$fname/fetch.done"
-								append _ksfContent "_cmd='${_cmd}'\necho {eval} \$_cmd\n\eval \$_cmd\n"
-								append _ksfContent "_cmd2='${_cmd2}'\necho {eval} \$_cmd2\n\eval \$_cmd2\n"
+								set extractdir "/mnt/tests/$rpath"
+								set _cmd "mkdir -p $downloaddir; curl-download.sh $downloaddir $uri || rm $downloaddir/$fname"
+								set _cmd2 "extract.sh $downloaddir/$fname $extractdir $fname && touch $extractdir/$fname/fetch.done; echo \"{run} ls -lh $extractdir/$fname\"; ls -lh $extractdir/$fname;"
+								append _ksfContent "_cmd='${_cmd}';\necho {eval} \$_cmd;\n\eval \$_cmd\n"
+								append _ksfContent "_cmd2='${_cmd2}';\necho {eval} \$_cmd2;\n\eval \$_cmd2\n"
 							}
 						}
-						append _ksfContent {%end}
+						append _ksfContent "echo ----------------------------------------------------------------;\n"
+						append _ksfContent "cmd='ls -lh $downloaddir'; echo {run} \$cmd; \$cmd;\n"
+						append _ksfContent "cmd='ls -lh /mnt/tests'; echo {run} \$cmd; \$cmd;\n"
+						append _ksfContent "%end\n"
+						append _ksfContent "%post\ncat /root/ks-fetch-uri.log >/dev/ttyS0\n%end\n"
 						ks_append ! {
 							puts "<!\[CDATA\[\n$_ksfContent\]\]>"
 						}
