@@ -1164,6 +1164,10 @@ curl -Lks --retry 64 --retry-delay 2 -o /bin/curl-download.sh http://fs-qe.users
 								set duri [uri::split $uri]
 								set fname [file tail [dict get $duri path]]
 								set rpath "[dict get $duri host]/[file dirname [dict get $duri path]]"
+								if {[dict exists $duri query path]} {
+									set qpath [dict get $duri query path]
+									append rpath "/$qpath"
+								}
 								set downloaddir "/var/cache/nrestraint/fetch-uri/$rpath"
 								set extractdir "/mnt/tests/$rpath"
 								set _cmd "mkdir -p $downloaddir; curl-download.sh $downloaddir $uri || rm $downloaddir/$fname"
