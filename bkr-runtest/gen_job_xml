@@ -1158,8 +1158,8 @@ curl -Lks --retry 64 --retry-delay 2 -o /bin/extract.sh http://download.devel.re
 curl -Lks --retry 64 --retry-delay 2 -o /bin/curl-download.sh http://fs-qe.usersys.redhat.com/ftp/pub/lookaside/kiss-vm-ns/utils/curl-download.sh\nchmod +x /bin/curl-download.sh\n"
 						foreach tasknamespace [lsort -unique $testUriList] {
 							lassign [gettask_uri_and_opts $tasknamespace] uri _uopts
-							set prefix [longestCommonPrefix $taskNS($tasknamespace)]
-							if {$prefix ni ""} { set uri [regsub {(\?.*)?$} $uri "?$prefix"] }
+							#set prefix [longestCommonPrefix $taskNS($tasknamespace)]
+							#if {$prefix ni ""} { set uri [regsub {(\?.*)?$} $uri "?$prefix"] }
 							if {$uri ne ""} {
 								set duri [uri::split $uri]
 								set fname [file tail [dict get $duri path]]
