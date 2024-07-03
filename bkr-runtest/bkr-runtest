@@ -141,7 +141,9 @@ if {$Distro == ""} {
 # Get the test list
 set _TestList {}
 set TestList {}
-if [info exist Opt(task)] { lappend _TestList {*}$Opt(task) }
+if [info exist Opt(task)] {
+	lappend _TestList {*}$Opt(task)
+}
 set TestListFile {}
 if {[llength $TestArgList]==0 && ![istty stdin]} {lappend TestArgList -}
 if {[llength $TestArgList]==0 && $_TestList == {}} {
@@ -188,8 +190,8 @@ foreach test $_TestList {
 	if [string match "{*}" $test] { set test {*}$test }
 	regsub -line {^-} $test {} test
 	set test [string trim $test]
-	if [regexp {^/[^: ]+$} $test] { set test "${test}: {}" }
-	if [regexp {^/[^: ]+ ([^= \}]+=.*)+$} $test] {
+	if [regexp {^/[^ ]+$} $test] { set test "${test}: {}" }
+	if [regexp {^/[^ ]+ ([^= \}]+=.*)+$} $test] {
 		set tname [lindex $test 0]
 		set paramlist {}
 		foreach param [lrange $test 1 end] {
