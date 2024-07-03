@@ -101,6 +101,10 @@ _install_task() {
 	repopath=$_targetdir/$taskrepo
 	fpath="$repopath/$rpath"
 
+	if [[ -L ${repopath} && "$(readlink -f $repopath)" = "${REPO_PATH}" && -d ${fpath} ]]; then
+		return 0
+	fi
+
 	[[ "$FORCE" -gt 0 && -d "$fpath" ]] && { [[ "$(cat $fpath/.pid 2>/dev/null)" != $$ ]] && rm -rf "${fpath}"; }
 	[[ "$_rpath" != "$rpath" ]] && { rm -rf "$repopath/${_rpath}"; mkdir -p "$repopath/${_rpath%/*}"; ln -sf "$fpath" "$repopath/${_rpath}"; }
 
@@ -132,7 +136,7 @@ _install_task() {
 	fi
 
 	if [[ -d $fpath ]]; then
-		if [[ -n "OVER_WRITE_RPM" && ! -f "$fpath/.url" ]]; then
+		if [[ -n "$OVER_WRITE_RPM" && ! -f "$fpath/.url" ]]; then
 			rm -rf "$fpath"
 		else
 			echo "$fpath"
