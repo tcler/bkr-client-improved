@@ -23,10 +23,12 @@ case $verx in
 esac
 
 #update restraint plugins
+lookasideUrl=http://$downhostname/qa/rhts/lookaside
+lookasideUrl=http://fs-qe.usersys.redhat.com/ftp/pub/lookaside
+bkrClientImprovedUrl=$lookasideUrl/bkr-client-improved
 _rpath=share/restraint/plugins/task_run.d
-_path=qa/rhts/lookaside/bkr-client-improved/$_rpath
-(cd /usr/$_rpath && curl -k -Ls --retry 64 --retry-delay 2 --remote-name-all http://$downhostname/$_path/{25_environment,27_task_require})
-(cd /usr/${_rpath%/*}/completed.d && curl -k -Ls --retry 64 --retry-delay 2 -O http://$downhostname/${_path%/*}/completed.d/85_sync_multihost_tasks)
+(cd /usr/$_rpath && curl -k -Ls --retry 64 --retry-delay 2 --remote-name-all $bkrClientImprovedUrl/$_rpath/{25_environment,27_task_require})
+(cd /usr/${_rpath%/*}/completed.d && curl -k -Ls --retry 64 --retry-delay 2 -O $bkrClientImprovedUrl/${_rpath%/*}/completed.d/85_sync_multihost_tasks)
 chmod a+x  /usr/$_rpath/* /usr/${_rpath%/*}/completed.d/*
 
 #add more post actions:
