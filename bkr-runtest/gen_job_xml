@@ -115,7 +115,7 @@ proc getDefaultNVR {_distro} {
 }
 
 proc longestCommonPrefix {paths} {
-	set chan [open {|sed -e {$!{N;s/^\(.*\).*\n\1.*$/\1\n\1/;D;}}} r+]
+	set chan [open {|sed -e {$!{N;s/^\(.*\).*\n\1.*$/\1\n\1/;D;}} -e {/^$/d}} r+]
 	puts $chan $paths
 	flush $chan
 	chan close $chan write
@@ -1162,34 +1162,52 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						puts "<!\[CDATA\[\n$ksfContent\]\]>"
 					}
 
-					set testUriList [list]
+					set testRepoList [list]
 					if {[info exist Opt(keepchanges)] || $nrestraint eq "yes"} {
+						array set repoUrls {}
+						array set repoRpaths {}
 						foreach _task [concat ${insertTasks} ${TaskList} ${appendTasks}] {
 							set _fetch_url yes
 							set taskname [lindex $_task 0]
 							lassign [split ${taskname} {@}] taskname inUri
 							set taskparams [lrange $_task 1 end]
-							set tasknamespace /[lrange [file split $taskname] 1 1]
+							set testRepo /[lrange [file split $taskname] 1 1]
 							set testPath [regsub {^/?[^/]+/} $taskname {}]
 							lassign [gettask_uri_and_opts $taskname $inUri] uri _uopts
 							regexp {^[^=]+=(.*)$} [lsearch -inline $taskparams _task_fetch_from_*=*] _ _fetch_url
 							if {$_fetch_url ne "disable" && $uri ne ""} {
-								lappend testUriList "$tasknamespace"
-								if {![info exist taskNS($tasknamespace)]} {
-									set taskNS($tasknamespace) "$testPath"
+								if {![regexp "${testRepo}@" ${taskname2urlOpts}]} {
+									set rurl [regsub {#.*$} ${uri} {}]
+									if {![info exist repoUrls($testRepo)]} {
+										set repoUrls($testRepo) "$rurl"
+									} else {
+										append repoUrls($testRepo) "\n$rurl"
+									}
+								}
+								lappend testRepoList "$testRepo"
+								if {![info exist repoRpaths($testRepo)]} {
+									set repoRpaths($testRepo) "$testPath"
 								} else {
-									append  taskNS($tasknamespace) "\n$testPath"
+									append repoRpaths($testRepo) "\n$testPath"
 								}
 							}
 						}
+						foreach {repo urls} [array get repoUrls] {
+							set _prefix [longestCommonPrefix $repoUrls($repo)]
+							if {$_prefix ni ""} { append taskname2urlOpts "-repo=${repo}@${_prefix}" }
+						}
+
 						set _ksfContent "%post --log=/root/ks-fetch-uri.log\n"
 						append _ksfContent "yum install -y bzip2 xz
 command -v curl-download.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/curl-download.sh http://fs-qe.usersys.redhat.com/ftp/pub/lookaside/kiss-vm-ns/utils/curl-download.sh; chmod +x /bin/curl-download.sh; }
 command -v extract.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/extract.sh http://download.devel.redhat.com/qa/rhts/lookaside/kiss-vm-ns/utils/extract.sh; chmod +x /bin/extract.sh; }\n"
-						foreach tasknamespace [lsort -unique $testUriList] {
-							lassign [gettask_uri_and_opts $tasknamespace ""] uri _uopts
-							#set prefix [longestCommonPrefix $taskNS($tasknamespace)]
-							#if {$prefix ni ""} { set uri [regsub {(\?.*)?$} $uri "?$prefix"] }
+						foreach taskrepo [lsort -unique $testRepoList] {
+							lassign [gettask_uri_and_opts $taskrepo ""] uri _uopts
+							if {![info exist Opt(noautopath)]} {
+								set prefix [longestCommonPrefix $repoRpaths($taskrepo)]
+								regsub -line {/$} $prefix {} prefix
+								if {$prefix ni ""} { set uri [regsub {(\?.*)?$} $uri "?path=$prefix"] }
+							}
 							if {$uri ne ""} {
 								append _ksfContent "#$uri\n"
 								set duri [uri::split $uri]

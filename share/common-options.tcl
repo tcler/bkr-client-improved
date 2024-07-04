@@ -23,6 +23,7 @@ set CommonOptionList {
 	nrestraint		{arg n	help {use restraint devel build}}
 	nrestraint-repo		{arg y	help {restraint repo relace default value}}
 	restraint-repo		{arg y	link {nrestraint-repo}  hide y}
+	noautopath		{arg n	link {don't auto generate ?path= param to download url}}
 	norun			{arg n	help {only download task without running it}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
 	job-owner		{arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
