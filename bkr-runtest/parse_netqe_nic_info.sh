@@ -176,7 +176,7 @@ done
 	NIC_INFO=/tmp/nic_info
 	NIC_INFO_URL=http://pkgs.devel.redhat.com/cgit/tests/kernel/plain/networking/inventory/nic_info
 	NIC_INFO_URL=https://gitlab.cee.redhat.com/kernel-qe/kernel/raw/master/networking/inventory/nic_info
-	curl -Ls $NIC_INFO_URL -o $NIC_INFO
+	curl -Lks $NIC_INFO_URL -o $NIC_INFO
 }
 
 set -o pipefail
