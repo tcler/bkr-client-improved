@@ -121,7 +121,7 @@ proc longestCommonPrefix {paths} {
 	chan close $chan write
 	set buf [read $chan]
 	close $chan
-	return $buf
+	return [string trim $buf]
 }
 proc queryStringToDict {query} {
 	set qdict {}
@@ -1210,7 +1210,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						}
 						foreach {repo urls} [array get repoUrls] {
 							set _prefix [longestCommonPrefix $repoUrls($repo)]
-							if {$_prefix ni ""} { append taskname2urlOpts "-repo=${repo}@${_prefix}" }
+							if {$_prefix ni ""} { append taskname2urlOpts " -repo=${repo}@${_prefix}" }
 						}
 
 						set _ksfContent "%post --log=/root/ks-fetch-uri.log\n"
