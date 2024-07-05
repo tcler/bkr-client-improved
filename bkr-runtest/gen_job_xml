@@ -247,6 +247,9 @@ if [info exist Opt(task-fetch-url)] {
 }
 
 proc gettask_uri_and_opts {taskname inuri} {
+	set _uri {}
+	set _autopath "no"
+	if {[info exists ::Opt(autopath)]} { set _autopath "yes" }
 	if {$inuri ne ""} {
 		set taskname [regsub {^/+} $taskname {/}]
 		set inuri "[regsub {#( |$)} $inuri {\1}]"
@@ -260,12 +263,19 @@ proc gettask_uri_and_opts {taskname inuri} {
 		if [regexp -- {.*#\.\.( |$)} ${inuri}] {
 			set inuri "[regsub {#\.\.} $inuri [regsub {^/+} "#$taskname" {}]]"
 		}
-		return $inuri
+		set _uri $inuri
+		if [regexp -- {\?path=} ${inuri}] { set _autopath "no" }
 	} elseif [info exist ::taskFetchUrl($taskname)] {
-		return $::taskFetchUrl($taskname)
+		set _uri $::taskFetchUrl($taskname)
 	} else {
-		return [exec bash -c "taskname2url.py $taskname $::taskname2urlOpts 2>/dev/null || :"]
+		set _uri [exec bash -c "taskname2url.py $taskname $::taskname2urlOpts 2>/dev/null || :"]
 	}
+	if {$_autopath == "yes"} {
+		set pathQuery "?path=[regsub {^/*[^/]+/} $taskname {}]"
+		set _uri [regsub {\?path=[^#]*} $_uri {}]
+		set _uri [regsub {#} $_uri "$pathQuery#"]
+	}
+	return $_uri
 }
 proc fetchtag {uri} {
 	if {$uri != ""} {
@@ -1166,7 +1176,13 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 					if {[info exist Opt(keepchanges)] || $nrestraint eq "yes"} {
 						array set repoUrls {}
 						array set repoRpaths {}
-						foreach _task [concat ${insertTasks} ${TaskList} ${appendTasks}] {
+						set taskList [list]
+						if {[info exists ::Opt(autopath)]} {
+							set taskList [concat ${TaskList} ${appendTasks}]
+						} else {
+							set taskList [concat ${insertTasks} ${TaskList} ${appendTasks}]
+						}
+						foreach _task $taskList {
 							set _fetch_url yes
 							set taskname [lindex $_task 0]
 							lassign [split ${taskname} {@}] taskname inUri
@@ -1203,11 +1219,9 @@ command -v curl-download.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/cu
 command -v extract.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/extract.sh http://download.devel.redhat.com/qa/rhts/lookaside/kiss-vm-ns/utils/extract.sh; chmod +x /bin/extract.sh; }\n"
 						foreach taskrepo [lsort -unique $testRepoList] {
 							lassign [gettask_uri_and_opts $taskrepo ""] uri _uopts
-							if {![info exist Opt(noautopath)]} {
-								set prefix [longestCommonPrefix $repoRpaths($taskrepo)]
-								regsub -line {/$} $prefix {} prefix
-								if {$prefix ni ""} { set uri [regsub {(\?.*)?$} $uri "?path=$prefix"] }
-							}
+							set prefix [longestCommonPrefix $repoRpaths($taskrepo)]
+							regsub -line {/$} $prefix {} prefix
+							if {$prefix ni ""} { set uri [regsub {(\?.*)?$} $uri "?path=$prefix"] }
 							if {$uri ne ""} {
 								append _ksfContent "#$uri\n"
 								set duri [uri::split $uri]
