@@ -1219,9 +1219,14 @@ command -v curl-download.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/cu
 command -v extract.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/extract.sh http://download.devel.redhat.com/qa/rhts/lookaside/kiss-vm-ns/utils/extract.sh; chmod +x /bin/extract.sh; }\n"
 						foreach taskrepo [lsort -unique $testRepoList] {
 							lassign [gettask_uri_and_opts $taskrepo ""] uri _uopts
-							set prefix [longestCommonPrefix $repoRpaths($taskrepo)]
-							regsub -line {/$} $prefix {} prefix
-							if {$prefix ni ""} { set uri [regsub {(\?.*)?$} $uri "?path=$prefix"] }
+							if {[info exists ::Opt(autopath)]} {
+								set prefix [longestCommonPrefix $repoRpaths($taskrepo)]
+								regsub -line {/$} $prefix {} prefix
+								if {$prefix ni ""} { set uri [regsub {(\?.*)?$} $uri "?path=$prefix"] }
+							}
+							if {![string match {*gitlab*} $uri]} {
+								set uri [regsub {(\?.*)?$} $uri {}]
+							}
 							if {$uri ne ""} {
 								append _ksfContent "#$uri\n"
 								set duri [uri::split $uri]
