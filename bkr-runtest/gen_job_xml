@@ -1210,7 +1210,10 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						}
 						foreach {repo urls} [array get repoUrls] {
 							set _prefix [longestCommonPrefix $repoUrls($repo)]
-							if {$_prefix ni ""} { append taskname2urlOpts " -repo=${repo}@${_prefix}" }
+							if [string match {*?path=} $_prefix] {
+								append taskname2urlOpts " -repo=${repo}@${_prefix}"
+							} else {
+							}
 						}
 
 						set _ksfContent "%post --log=/root/ks-fetch-uri.log\n"
