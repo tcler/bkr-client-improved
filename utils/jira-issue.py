@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+#ref: https://community.atlassian.com/t5/Jira-questions/how-to-get-customfield-value-in-python-jira-api/qaq-p/1166668
+#`-> Thanks Rafael Pinto Sperafico
 
 from __future__ import annotations
 import os, sys
