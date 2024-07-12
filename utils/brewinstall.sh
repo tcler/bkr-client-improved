@@ -410,7 +410,7 @@ for build in "${builds[@]}"; do
 			_pattern="kernel-${ver}-${rel/*./*.}*"
 		fi
 		build=$($KOJI list-builds --pattern=$_pattern --state=COMPLETE  --quiet 2>/dev/null |
-			sort -Vr | awk "\$1 ~ /-[-.0-9]+\.${rel/*./}[^.]*$/"'{print $1; exit}')
+			sort -Vr | awk "\$1 ~ /-[-.0-9rc]+\.${rel/*./}[^.]*$/"'{print $1; exit}')
 	elif [[ "$build" = latest-* ]]; then
 		pkg=${build#latest-}
 		run install_brew -
