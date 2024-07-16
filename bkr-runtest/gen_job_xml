@@ -1178,7 +1178,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 						array set repoRpaths {}
 						set taskList [list]
 						if {[info exists ::Opt(autopath)]} {
-							set taskList [concat ${TaskList} ${appendTasks}]
+							set taskList [concat ${insertTasks} ${TaskList} ${appendTasks}]
 						} else {
 							set taskList [concat ${insertTasks} ${TaskList} ${appendTasks}]
 						}
