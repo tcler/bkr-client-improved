@@ -98,7 +98,7 @@ install_brew() {
 
 getUrlListByUrl() {
 	local purl=$1
-	curl -Ls ${purl} | sed -rn '/.*>(.*.rpm)<.*/{s//\1/;p}' | xargs -I@ echo "$purl@"
+	curl -Ls ${purl} | sed -rn '/.*(>|href=")(.*.rpm)(<|").*/{s//\2/;p}' | xargs -I@ echo "$purl@"
 }
 
 getUrlListByRepo() {
