@@ -57,31 +57,11 @@ if (_task == None):
     exit(1)
 
 def curl2str(url):
-    httpcode = 0
     ret = ""
-    if 'pycurl' not in sys.modules:
-        import pycurl
-    if 'BytesIO' not in sys.modules:
-        from io import BytesIO
-    buf = BytesIO()
-    curl = pycurl.Curl()
-    curl.setopt(curl.URL, url)
-    curl.setopt(pycurl.FOLLOWLOCATION, 1)
-    curl.setopt(curl.WRITEDATA, buf)
-    try:
-        curl.perform()
-        if 200 == curl.getinfo(pycurl.HTTP_CODE):
-            ret = buf.getvalue().decode('utf8')
-    except pycurl.error as e:
-        message = e
-        if (debug > 0):
-            print(f"[ERROR] curl.perform error: {e}", file=sys.stderr)
-        pass
-        buf.seek(0)
-        buf.truncate()
-    if (debug > 0):
-        print(f"[ERROR] httpcode: {curl.getinfo(pycurl.HTTP_CODE)}, url: {url}", file=sys.stderr)
-    curl.close()
+    if 'subprocess' not in sys.modules:
+        import subprocess
+    out = subprocess.run(['curl', '-Lksf', url], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    ret = out.stdout.decode('utf-8')
     return ret
 
 for file in defaultConfList:

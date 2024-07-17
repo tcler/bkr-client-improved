@@ -17,13 +17,11 @@ _install_requirements() {
 		while ps axf|grep -v "^ *$$ "|grep -q 'taskfetch.sh  *--install-dep[s]'; do sleep 2; done
 		return 0
 	fi
-	local _pycurl=python3-pycurl
 	[[ $(rpm -E %rhel) = 7 ]] && {
 		yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
 		sed -i -e /skip_if_unavailable/d -e '/enabled=1/askip_if_unavailable=1' /etc/yum.repos.d/epel.repo
-		_pycurl=python36-pycurl
 	}
-	local _pkgs="python3 $_pycurl bzip2 gzip zip xz restraint-rhts breakerlib"
+	local _pkgs="python3 bzip2 gzip zip xz restraint-rhts breakerlib"
 	_pkgs=$(rpm -q $_pkgs > >(awk '/not.installed/{print $2}')) ||
 		yum --setopt=strict=0 install -y $_pkgs &>>${_logf:-/dev/null}
 
