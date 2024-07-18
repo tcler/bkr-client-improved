@@ -21,7 +21,7 @@ _install_requirements() {
 		yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
 		sed -i -e /skip_if_unavailable/d -e '/enabled=1/askip_if_unavailable=1' /etc/yum.repos.d/epel.repo
 	}
-	local _pkgs="python3 bzip2 gzip zip xz restraint-rhts breakerlib"
+	local _pkgs="python3 bzip2 gzip zip xz restraint-rhts beakerlib"
 	_pkgs=$(rpm -q $_pkgs > >(awk '/not.installed/{print $2}')) ||
 		yum --setopt=strict=0 install -y $_pkgs &>>${_logf:-/dev/null}
 
