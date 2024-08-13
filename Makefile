@@ -7,6 +7,7 @@ _confdir=/etc/bkr-client-improved
 completion_path=/usr/share/bash-completion/completions
 
 HTTP_PROXY := $(shell grep -q redhat.com /etc/resolv.conf && echo "squid.redhat.com:8080")
+IGN := $(shell rm -f ~/bin/distro-compose ~/bin/brewinstall.sh)
 
 install install_runtest: _isroot _rh_intranet yqinstall install_kiss_vm_ns
 	@if [[ $$(rpm -E %rhel) != "%rhel" ]]; then \
