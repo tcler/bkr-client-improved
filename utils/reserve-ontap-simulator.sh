@@ -18,12 +18,13 @@ while true; do
 	esac
 done
 
+LOOKASIDE_BASE_URL=${LOOKASIDE:-http://download.devel.redhat.com/qa/rhts/lookaside}
 HostDistro=${HostDistro:-RHEL-8.6.0}
 KissVMUrl=https://github.com/tcler/kiss-vm-ns
 ImageFile=vsim-netapp-DOT9.9.1-cm_nodar.ova
 LicenseFile=CMode_licenses_9.9.1.txt
-ImageUrl=http://download.devel.redhat.com/qa/rhts/lookaside/Netapp-Simulator/$ImageFile
-LicenseUrl=http://download.devel.redhat.com/qa/rhts/lookaside/Netapp-Simulator/$LicenseFile
+ImageUrl=${LOOKASIDE_BASE_URL}/Netapp-Simulator/$ImageFile
+LicenseUrl=${LOOKASIDE_BASE_URL}/Netapp-Simulator/$LicenseFile
 script=ontap-simulator-two-node.sh
 [[ -n "$1" ]] && script=ontap-simulator-single-node.sh
 submitlog=$(runtest --random ${HostDistro} "--cmd=git clone $KissVMUrl; sudo make -C kiss-vm-ns; sudo vm prepare; curl -o $ImageFile -L $ImageUrl; curl -o $LicenseFile -L $LicenseUrl; git clone https://github.com/tcler/ontap-simulator-in-kvm; bash ontap-simulator-in-kvm/$script --image=$ImageFile --license-file=$LicenseFile" -hr=memory\>=16384 --hr=kv-DISKSPACE\>=500000)

@@ -6,6 +6,10 @@
 import configparser
 import io,os,sys,re
 
+if os.environ.get('LOOKASIDE'):
+    LOOKASIDE_BASE_URL = os.environ['LOOKASIDE']
+else:
+    LOOKASIDE_BASE_URL = "http://download.devel.redhat.com/qa/rhts/lookaside"
 usage = f"Usage: {sys.argv[0]} <taskname> [[/path/to/config|url]..] [-h] [-repo=rname@url] [-task=task@uri] [-skiprepo] [-d|-debug]"
 task, _task = None, None
 conf = None
@@ -14,8 +18,7 @@ repodict = {}
 taskdict = {}
 skiprepo = "no"
 conf_str = ""
-confUrl = "http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved/conf/fetch-url.ini"
-confUrl = "http://fs-qe.usersys.redhat.com/ftp/pub/lookaside/bkr-client-improved/conf/fetch-url.ini"
+confUrl = f"{LOOKASIDE_BASE_URL}/bkr-client-improved/conf/fetch-url.ini"
 defaultConfList = ["/etc/beaker/fetch-url.ini", "/etc/fetch-url.ini"]
 confList = []
 for arg in sys.argv[1:]:

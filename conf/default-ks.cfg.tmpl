@@ -1,6 +1,7 @@
 %post --log=/root/my-ks-post.log
 
 downhostname=download.devel.redhat.com
+LOOKASIDE=${LOOKASIDE:-http://$downhostname/qa/rhts/lookaside}
 
 #generate buildroot repo
 rtype=rel-eng
@@ -23,9 +24,8 @@ case $verx in
 esac
 
 #update restraint plugins
-lookasideUrl=http://$downhostname/qa/rhts/lookaside
-lookasideUrl=http://fs-qe.usersys.redhat.com/ftp/pub/lookaside
-bkrClientImprovedUrl=$lookasideUrl/bkr-client-improved
+LOOKASIDE_BASE_URL=$LOOKASIDE
+bkrClientImprovedUrl=${LOOKASIDE_BASE_URL}/bkr-client-improved
 _rpath=share/restraint/plugins/task_run.d
 (cd /usr/$_rpath && curl -k -Ls --retry 64 --retry-delay 2 --remote-name-all $bkrClientImprovedUrl/$_rpath/{25_environment,27_task_require})
 (cd /usr/${_rpath%/*}/completed.d && curl -k -Ls --retry 64 --retry-delay 2 -O $bkrClientImprovedUrl/${_rpath%/*}/completed.d/85_sync_multihost_tasks)

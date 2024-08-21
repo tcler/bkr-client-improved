@@ -1,8 +1,8 @@
 #!/bin/bash
 #author jiyin@redhat.com
 
-dburl=http://download.devel.redhat.com/qa/rhts/lookaside/distro-rpmsdata
-dburl=http://fs-qe.usersys.redhat.com/ftp/pub/lookaside/distro-rpmsdata
+LOOKASIDE_BASE_URL=${LOOKASIDE:-http://download.devel.redhat.com/qa/rhts/lookaside}
+dburl=${LOOKASIDE_BASE_URL}/distro-rpmsdata
 dbroot=/var/cache/distroInfoDB/rpmsdata
 
 Pkg=

@@ -26,6 +26,11 @@ declaretags watchdog
 declaretags task params param
 set dummytask /distribution/utils/dummy
 set restraintrepo {}
+set LOOKASIDE_BASE_URL $::env(LOOKASIDE)
+if {$LOOKASIDE_BASE_URL == ""} {
+	#set LOOKASIDE_BASE_URL "http://fs-qe.usersys.redhat.com/ftp/pub/lookaside"
+	set LOOKASIDE_BASE_URL "http://download.devel.redhat.com/qa/rhts/lookaside"
+}
 
 if {[info commands lmap] == ""} {
 	proc lmap args {
@@ -66,8 +71,7 @@ proc get_nrestraint_repo {distro} {
 	if [regexp -nocase -- {^fedora-[0-9]+.*} $distro] {
 		set osver "[regsub {^(fedora)-([0-9]+).*$} $distro {\1\2}]"
 	}
-	#return "http://download.devel.redhat.com/qa/rhts/lookaside/beaker-harness-active/[string tolower $osver]"
-	return "http://fs-qe.usersys.redhat.com/ftp/pub/lookaside/beaker-harness-active/[string tolower $osver]"
+	return "${LOOKASIDE_BASE_URL}/beaker-harness-active/[string tolower $osver]"
 }
 
 # global var
@@ -297,13 +301,10 @@ if [file isfile $Opt(ksf)] {
 if [info exist Opt(norun)] {
 	append ksfContent {
 	%post
-	downhostname=download.devel.redhat.com
-	downhostname=fs-qe.usersys.redhat.com
 	_rpath=share/restraint/plugins/task_run.d
-	_path=qa/rhts/lookaside/bkr-client-improved/$_rpath
-	_path=ftp/pub/lookaside/bkr-client-improved/$_rpath
+	_path_url=${LOOKASIDE_BASE_URL}/bkr-client-improved/$_rpath
 	pushd /usr/$_rpath
-		curl -Lks -O http://$downhostname/$_path/28_exit0
+		curl -Lks -O ${_path_url}/28_exit0
 		chmod a+x *
 	popd
 	%end
@@ -1215,8 +1216,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner $jobCtl {
 
 						set _ksfContent "%post --log=/root/ks-fetch-uri.log\n"
 						append _ksfContent "yum install -y bzip2 xz
-command -v curl-download.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/curl-download.sh http://fs-qe.usersys.redhat.com/ftp/pub/lookaside/kiss-vm-ns/utils/curl-download.sh; chmod +x /bin/curl-download.sh; }
-command -v extract.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/extract.sh http://download.devel.redhat.com/qa/rhts/lookaside/kiss-vm-ns/utils/extract.sh; chmod +x /bin/extract.sh; }\n"
+command -v curl-download.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/curl-download.sh ${LOOKASIDE_BASE_URL}/kiss-vm-ns/utils/curl-download.sh; chmod +x /bin/curl-download.sh; }
+command -v extract.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/extract.sh ${LOOKASIDE_BASE_URL}/kiss-vm-ns/utils/extract.sh; chmod +x /bin/extract.sh; }\n"
 						foreach taskrepo [lsort -unique $testRepoList] {
 							lassign [gettask_uri_and_opts $taskrepo ""] uri _uopts
 							if {[info exists ::Opt(autopath)]} {

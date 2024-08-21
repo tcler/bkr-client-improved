@@ -76,9 +76,11 @@ EOF
 	exit
 }
 
+LOOKASIDE_BASE_URL=${LOOKASIDE:-http://download.devel.redhat.com/qa/rhts/lookaside}
+
 is_rh_intranet && {
 	Intranet=yes
-	bkrDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
+	bkrDownloadUrl=${LOOKASIDE_BASE_URL}/bkr-client-improved
 }
 
 install_brew() {

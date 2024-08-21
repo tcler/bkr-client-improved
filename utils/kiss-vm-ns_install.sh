@@ -3,9 +3,10 @@
 
 is_rh_intranet() { host ipa.redhat.com &>/dev/null; }
 is_rh_intranet() { grep -q redhat.com /etc/resolv.conf; }
+LOOKASIDE_BASE_URL=${LOOKASIDE:-http://download.devel.redhat.com/qa/rhts/lookaside}
 
 if is_rh_intranet; then
-	KISS_URL=http://download.devel.redhat.com/qa/rhts/lookaside/kiss-vm-ns.tgz
+	KISS_URL=${LOOKASIDE_BASE_URL}/kiss-vm-ns.tgz
 	curl -k -Ls $KISS_URL | tar zxf -;
 	make -C kiss-vm-ns; rm -rf kiss-vm-ns;
 else

@@ -11,6 +11,7 @@ switchroot "$@"
 _targetdir=/mnt/tests
 _downloaddir=/mnt/download
 _logf=/tmp/${0##*/}.log
+LOOKASIDE_BASE_URL=${LOOKASIDE:-http://download.devel.redhat.com/qa/rhts/lookaside}
 
 _install_requirements() {
 	if ps axf|grep -v "^ *$$ "|grep -q 'taskfetch.sh  *--install-dep[s]'; then
@@ -25,16 +26,14 @@ _install_requirements() {
 	_pkgs=$(rpm -q $_pkgs > >(awk '/not.installed/{print $2}')) ||
 		yum --setopt=strict=0 install -y $_pkgs &>>${_logf:-/dev/null}
 
-	local _downloadurl=http://download.devel.redhat.com/qa/rhts/lookaside
-	local _downloadurl=http://fs-qe.usersys.redhat.com/ftp/pub/lookaside
 	local _urls=()
 	hash -r
-	command -v curl-download.sh || _urls+=($_downloadurl/kiss-vm-ns/utils/curl-download.sh)
-	command -v extract.sh       || _urls+=($_downloadurl/kiss-vm-ns/utils/extract.sh)
-	command -v taskname2url.py  || _urls+=($_downloadurl/bkr-client-improved/utils/taskname2url.py)
+	command -v curl-download.sh || _urls+=(${LOOKASIDE_BASE_URL}/kiss-vm-ns/utils/curl-download.sh)
+	command -v extract.sh       || _urls+=(${LOOKASIDE_BASE_URL}/kiss-vm-ns/utils/extract.sh)
+	command -v taskname2url.py  || _urls+=(${LOOKASIDE_BASE_URL}/bkr-client-improved/utils/taskname2url.py)
 	(cd /usr/bin && for _url in "${_urls[@]}"; do curl -Ls --retry 64 --retry-delay 2 -O $_url; chmod +x ${_url##*/}; done)
 
-	local _dburl=$_downloadurl/bkr-client-improved/conf/fetch-url.ini
+	local _dburl=${LOOKASIDE_BASE_URL}/bkr-client-improved/conf/fetch-url.ini
 	[[ -f /etc/${_dburl##*/} ]] || (cd /etc && curl -Ls --retry 64 --retry-delay 2 -O ${_dburl})
 }
 

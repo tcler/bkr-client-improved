@@ -1,13 +1,14 @@
 #!/bin/bash
 #author jiyin@redhat.com
 
+LOOKASIDE_BASE_URL=${LOOKASIDE:-http://download.devel.redhat.com/qa/rhts/lookaside}
 baseDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
 
 is_rh_intranet() { host ipa.redhat.com &>/dev/null; }
 
 is_rh_intranet && {
 	Intranet=yes
-	baseDownloadUrl=http://download.devel.redhat.com/qa/rhts/lookaside/bkr-client-improved
+	baseDownloadUrl=${LOOKASIDE_BASE_URL}/bkr-client-improved
 }
 
 # install brew
