@@ -83,6 +83,7 @@ puts "\[limitSubmitJobs\]: -> | bkr-runtest -n- $distro - ${alone} ${_rgset} --r
 }
 
 proc updateJobTask {jobid distro_rgset} {
+	if {$jobid == ""} { return 1 }
 	set XML [getXML $jobid]
 	set doc [dom parse $XML]
 	set root [$doc documentElement]
