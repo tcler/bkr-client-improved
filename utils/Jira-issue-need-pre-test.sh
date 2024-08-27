@@ -40,7 +40,7 @@ for issue in ${preTestIssues}; do
 		rhelVersion=${rhelVersion#*-}
 		component=$(echo "${issueInfo}" | sed -rn "/BEGIN components/,/END components/{/^.*name='([^']+)'.*$/{s//\\1/;p}}")
 		component=${component// /}; [[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
-		echo -e "${issue}  $qacontact  ${rhelVersion}  #${component}  [$summary]"
+		echo -e "${issue}  $qacontact  ${rhelVersion}  #${component}  [$summary] \n\`- https://issues.redhat.com/browse/${issue}"
 		for repo in $repos; do
 			dbgkOpt=
 			[[ $repo = *_debug* ]] && dbgkOpt+=' -debugk'
@@ -48,7 +48,7 @@ for issue in ${preTestIssues}; do
 			echo -e "\t$repo$dbgkOpt"
 		done
 	else
-		echo -e "${issue}  $qacontact  ${rhelVersion}  #${component}  [$summary]"
+		echo -e "${issue}  $qacontact  ${rhelVersion}  #${component}  [$summary] \n\`- https://issues.redhat.com/browse/${issue}"
 		echo -e "\t#No MR-build-repo found, maybe a user-space package. https://issues.redhat.com/browse/${issue}"
 		fixedBuild=$(echo "${issueInfo}" | sed -rn "/BEGIN Fixed.in.Build/,/END Fixed.in.Build/{/(BEGIN|END) /d;p}")
 		echo -e "\tFixed.in.Build: $fixedBuild"

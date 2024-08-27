@@ -21,7 +21,7 @@ IssuesNeedVerify=$(jira issue list --plain --no-truncate --no-headers --columns 
 [[ ${#IssuesNeedVerify[@]} -gt 0 ]] &&
 	echo -e $'\E[0;33;44m'"{get-issue-info-by} jira-issue.py \${issue} Summary 'Fixed in Build' fixVersions components 'QA Contact'" $'\E[0m'>&2
 for issue in ${IssuesNeedVerify}; do
-	echo "$issue"
+	echo "${issue} - https://issues.redhat.com/browse/${issue}"
 	issueInfo=$(jira-issue.py "${issue}" Summary 'Fixed in Build' fixVersions components 'QA Contact')
 	summary=$(echo "${issueInfo}" | sed -rn "/BEGIN Summary/,/END Summary/{/(BEGIN|END) /d;p}")
 	qacontact=$(echo "${issueInfo}" | sed -rn "/BEGIN QA.Con/,/END QA.Con/{/(BEGIN|END) /d;p}")
