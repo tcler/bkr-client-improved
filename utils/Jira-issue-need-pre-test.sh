@@ -17,7 +17,7 @@ set -- "${_args[@]}"
 fsusers="yieli yoyang jiyin xzhou zlang xifeng kunwan bxue fs-qe"
 maillist() { local list; for u; do list+="\"$u@redhat.com\", "; done; echo -n "${list%, }"; }
 users=${*};
-if [[ "$users" = all ]]; then
+if [[ "$users" = fs || "$users" = all ]]; then
 	users=$(maillist $fsusers)
 elif [[ -n "$users" ]]; then
 	users=$(maillist $users)

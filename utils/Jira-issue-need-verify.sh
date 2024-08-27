@@ -7,11 +7,13 @@ command -v jira &>/dev/null || {
 
 fsusers="yieli yoyang jiyin xzhou zlang xifeng kunwan bxue fs-qe"
 maillist() { local list; for u; do list+="\"$u@redhat.com\", "; done; echo -n "${list%, }"; }
-users=${*:-all}
-if [[ "$users" = all ]]; then
+users=${*}
+if [[ "$users" = fs || "$users" = all ]]; then
 	users=$(maillist $fsusers)
-else
+elif [[ -n "$users" ]]; then
 	users=$(maillist $users)
+else
+	users=me
 fi
 IssuesNeedVerify=$(jira issue list --plain --no-truncate --no-headers --columns KEY \
 	-q"issueFunction in issueFieldMatch('project = RHEL AND status = Integration AND \"QA Contact\" in (currentUser(), ${users})', 'customfield_12318450', '.{3,}')")
