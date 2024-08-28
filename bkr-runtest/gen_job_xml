@@ -26,10 +26,10 @@ declaretags watchdog
 declaretags task params param
 set dummytask /distribution/utils/dummy
 set restraintrepo {}
-set LOOKASIDE_BASE_URL $::env(LOOKASIDE)
-if {$LOOKASIDE_BASE_URL == ""} {
-	#set LOOKASIDE_BASE_URL "http://fs-qe.usersys.redhat.com/ftp/pub/lookaside"
-	set LOOKASIDE_BASE_URL "http://download.devel.redhat.com/qa/rhts/lookaside"
+#set LOOKASIDE_BASE_URL "http://fs-qe.usersys.redhat.com/ftp/pub/lookaside"
+set LOOKASIDE_BASE_URL "http://download.devel.redhat.com/qa/rhts/lookaside"
+if {[info exists ::env(LOOKASIDE)] && $::env(LOOKASIDE) != ""} {
+	set LOOKASIDE_BASE_URL $::env(LOOKASIDE)
 }
 
 if {[info commands lmap] == ""} {
