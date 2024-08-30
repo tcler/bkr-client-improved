@@ -71,7 +71,7 @@ proc get_nrestraint_repo {distro} {
 	if [regexp -nocase -- {^fedora-[0-9]+.*} $distro] {
 		set osver "[regsub {^(fedora)-([0-9]+).*$} $distro {\1\2}]"
 	}
-	return "${LOOKASIDE_BASE_URL}/beaker-harness-active/[string tolower $osver]"
+	return "${::LOOKASIDE_BASE_URL}/beaker-harness-active/[string tolower $osver]"
 }
 
 # global var
