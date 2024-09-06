@@ -50,7 +50,7 @@ run() {
 Usage() {
 	cat <<-EOF
 	Usage:
-	 $P <[brew_scratch_build_id] | [lstk|rtk|upk|brew_build_name] | [url]> [-koji] [-debugk] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch] [-R= +R= -A=]
+	 $P <[brew_scratch_build_id] | [lstk|upk|rtk|brew_build_name] | [url]> [-koji] [-debugk|-rtk|-64k] [-noreboot] [-depthLevel=\${N:-2}] [-debuginfo] [-onlydebuginfo] [-onlydownload] [-arch=\$arch] [-R= +R= -A=]
 
 	Example:
 	 $P 23822847  # brew/koji scratch build id
@@ -317,6 +317,7 @@ for arg; do
 	-rpm)            INSTALL_TYPE=rpm;;
 	-arch=*)         _ARCH=${arg/*=/};;
 	-h)              Usage; exit;;
+	-rtk|-64k)       builds+=(${arg#-});;
 	-*)              echo "{WARN} unkown option '${arg}'";;
 	*)
 			builds+=($arg)
@@ -328,6 +329,9 @@ for arg; do
 		;;
 	esac
 done
+
+#uniq array builds
+IFS=" " read -r -a builds <<< "$(echo "${builds[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
 
 #common Reject Filter Options
 if [[ "$FLAG" = debugkernel ]]; then
