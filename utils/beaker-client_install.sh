@@ -83,7 +83,7 @@ cat <<-'EOF' >/etc/krb5.conf
   dns_lookup_realm = true
   dns_lookup_kdc = true
   rdns = false
-  dns_canonicalize_hostname = true
+  dns_canonicalize_hostname = false
   ticket_lifetime = 24h
   forwardable = true
   udp_preference_limit = 0
