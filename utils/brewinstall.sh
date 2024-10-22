@@ -449,6 +449,7 @@ for build in "${builds[@]}"; do
 			_buildname=$(awk -v IGNORECASE=1 '/^build:/ {print $2}' ${KOJI}_buildinfo.txt)
 		}
 
+		[[ -z "$_buildname" ]] && grep /kernel-[0-9].*rpm buildArch.txt && _buildname=kernel-
 		[[ "$_buildname" = kernel-* ]] && {
 			bROpts=("${kROpts[@]}")
 		}
