@@ -17,6 +17,10 @@ else
 fi
 IssuesNeedVerify=$(jira issue list --plain --no-truncate --no-headers --columns KEY \
 	-q"issueFunction in issueFieldMatch('project = RHEL AND status = Integration AND \"QA Contact\" in (currentUser(), ${users})', 'customfield_12318450', '.{3,}')")
+[[ $? != 0 && -z "$IssuesNeedVerify" ]] && {
+	echo "[WARN] getting issues fail, if you updated system version, might need re-install jira-cli:" >&2
+	echo "  pip install jiracli keyring ipython  #keyring,ipython is required by jirashell" >&2
+}
 
 [[ ${#IssuesNeedVerify[@]} -gt 0 ]] &&
 	echo -e $'\E[0;33;44m'"{get-issue-info-by} jira-issue.py \${issue} Summary 'Fixed in Build' fixVersions components 'QA Contact'" $'\E[0m'>&2
