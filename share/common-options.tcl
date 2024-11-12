@@ -27,6 +27,7 @@ set CommonOptionList {
 	norun			{arg n	help {only download task without running it}}
 	cc			{arg m	help {Notify additional e-mail address on job completion}}
 	job-owner		{arg y	help {Submit job on behalf of USERNAME (submitting user must be a submission delegate for job owner)}}
+	group-owner		{arg y	help {Submit job on behalf of GROUP(user must belong to this group)}}
 	{wb whiteboard}		{arg y	help {Set the whiteboard for this job}}
 	repo			{arg m	help {Configure repo at <URL> in the kickstart for installation}}
 	repo-post		{arg m	help {Configure repo at <URL> as part of kickstart %post execution}}
