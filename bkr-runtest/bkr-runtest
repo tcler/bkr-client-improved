@@ -341,10 +341,6 @@ if [info exist jobOwner] {
 	set SubcmdOpt [linsert $SubcmdOpt 0 "-job-owner=$jobOwner"]
 }
 
-if [info exist groupOwner] {
-	set SubcmdOpt [linsert $SubcmdOpt 0 "-group-owner=$groupOwner"]
-}
-
 if [info exist hostRequireAlias] {
 	if ![regexp -- {.*-(opt|hr)-alias-file=.*} $SubcmdOpt] {
 		set SubcmdOpt [linsert $SubcmdOpt 0 "-opt-alias-file=$hostRequireAlias"]
