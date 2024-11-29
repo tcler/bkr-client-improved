@@ -118,8 +118,8 @@ read dbfile2 run2 <<<"${runs[1]/::/ }"
 	read dbfile1 run1 <<<"${runs[1]/::/ }"
 	read dbfile2 run2 <<<"${runs[0]/::/ }"
 }
-resf1=.${run1//[ \'\/]/_}.$$.1.res
-resf2=.${run2//[ \'\/]/_}.$$.2.res
+resf1=.$$.1.res
+resf2=.$$.2.res
 
 trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT
 sigproc() {
@@ -162,7 +162,9 @@ else
 			awk "BEGIN{RS=\"\"} /$id/" $f | sed '/^http/d' >${f%.res}/$id
 		done
 		taskurl=$(grep $id ${resf1} ${resf2} -A2|sed -n -e 's/^\.[a-z0-9-]*__//' -e '/http/{s/_.[0-9]*.[12].res-/\n  /;p}')
+		# results diff
 		if ! cmp -s ${resf1%.res}/$id ${resf2%.res}/$id; then
+			# (Fail|Warn|Abort|Panic)
 			if grep -E -q '^  (F|W|A|P)' ${resf2%.res}/$id; then
 				diffres=$(diff -pNur ${resf1%.res}/$id ${resf2%.res}/$id)
 				# ignore avc failures
@@ -172,21 +174,22 @@ else
 				if grep -E -q '^\+[^+].*(Warn|Fail|Panic|Abort)$' <<<"$diffres"; then
 					if [[ "$short" != "yes" ]]; then
 						echo -e "\n#Test result different, and has New Fail"
-						sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
+						sed -n '2{s/^/=== /;p;q}' ${resf2%.res}/$id
 						echo -e "$taskurl\n."
 						echo "$diffres"
 					else
-						sed -n '2{s/^/- /;p;q}' ${resf1%.res}/$id
+						sed -n '2{s/^/- /;p;q}' ${resf2%.res}/$id
 					fi
 				else
 					if [[ "$short" != "yes" ]]; then
 						echo -e "\n#Test result different, but no New Fail"
-						sed -n '2{s/^/=== /;p;q}' ${resf1%.res}/$id
+						sed -n '2{s/^/=== /;p;q}' ${resf2%.res}/$id
 						echo -e "$taskurl\n."
 						echo "$diffres"
 					fi
 				fi
 			fi
+		# results same
 		elif grep -E -q '^  (F|W|A|P)' ${resf1%.res}/$id; then
 			if [[ "$short" != "yes" ]]; then
 				echo -e "\n#Test result same, but Fail:"
