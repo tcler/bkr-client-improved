@@ -39,7 +39,7 @@ done | sort -k3
 
 echo -e "\nPre-Verified:"
 preVerifiedIssues=$(jira issue list --plain --no-truncate --no-headers --columns KEY  \
-	-q"project = RHEL AND 'Preliminary Testing' = PASS AND status = Integration AND status CHANGED DURING (startOfWeek(), endOfweek()) AND 'QA Contact' in (${users})")
+	-q"project = RHEL AND 'Preliminary Testing' = PASS AND (status = 'In Progress' OR status = Integration AND status CHANGED DURING (startOfWeek(), endOfweek())) AND 'QA Contact' in (${users})")
 for issue in ${preVerifiedIssues}; do
 	issueInfo=$(jira-issue.py "${issue}" Summary fixVersions components 'QA Contact')
 	summary=$(echo "${issueInfo}" | sed -rn "/BEGIN Summary/,/END Summary/{/(BEGIN|END) /d;p}")
