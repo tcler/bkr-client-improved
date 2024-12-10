@@ -123,10 +123,8 @@ if [[ -z "$RSTRNT_NOPLUGINS" ]]; then
 			done
 		EOF
 		chmod +x $binpath/{testmark,testwaitfor}
-		ln -sf $binpath/testmark $binpath/rhts_sync_set
-		ln -sf $binpath/testmark $binpath/rhts-sync-set
-		ln -sf $binpath/testwaitfor $binpath/rhts_sync_block
-		ln -sf $binpath/testwaitfor $binpath/rhts-sync-block
+		ln -sf $binpath/testmark $binpath/rstrnt-sync-set
+		ln -sf $binpath/testwaitfor $binpath/rstrnt-sync-block
 	fi
 fi
 
