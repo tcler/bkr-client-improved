@@ -20,6 +20,21 @@ if [ -z "$RSTRNT_OSMAJOR" ]; then
         RSTRNT_OSMAJOR=$(cat /etc/redhat-release | sed -e 's/\(.*\)release\s\([0-9]*\).*/\1\2/; s/\s//g')
 fi
 
+## from rhts-environment.sh. //needed by beakerlib
+if [ -z "$OUTPUTFILE" ]; then
+	export OUTPUTFILE=`mktemp /mnt/testarea/tmp.XXXXXX`
+fi
+
+# Set well-known logname so users can easily find
+# current tasks log file.  This well-known file is also
+# used by the local watchdog to upload the log
+# of the current task.
+if [ -h /mnt/testarea/current.log ]; then
+	ln -sf $OUTPUTFILE /mnt/testarea/current.log
+else
+	ln -s $OUTPUTFILE /mnt/testarea/current.log
+fi
+
 # see: https://restraint.readthedocs.io/en/latest/remove_rhts.html#legacy-rhts-task-environment-variables
 # if restraint runs in un-compatable mode, and we still use old ENV name
 if [[ -n "$RSTRNT_JOBID" && -z "$JOBID" ]]; then
