@@ -21,7 +21,7 @@ is_available_url() {
 }
 is_rh_intranet() { host ipa.redhat.com &>/dev/null; }
 
-[[ function = "$(type -t report_result)" ]] || report_result() {  echo "$@"; }
+[[ function = "$(type -t rstrnt-report-result)" ]] || report_result() {  echo "$@"; }
 
 P=${0##*/}
 KOJI=brew
@@ -40,7 +40,7 @@ run() {
 	eval $cmdline
 	ret=$?
 	[[ $expect_ret != - && $expect_ret != $ret ]] && {
-		report_result "$comment" FAIL
+		rstrnt-report-result "$comment" FAIL
 		let retcode++
 	}
 
@@ -513,7 +513,7 @@ for build in "${builds[@]}"; do
 		if [[ "$ONLY_DOWNLOAD" != yes && -z "$DEBUG_INFO_OPT" ]]; then
 			curknvr=kernel-$(uname -r)
 			if [[ "${build}" = ${curknvr%.*} && "$FLAG" != debugkernel && ! "${builds[*]}" =~ rtk|64k ]]; then
-				report_result "kernel($build) has been installed" PASS
+				rstrnt-report-result "kernel($build) has been installed" PASS
 				_kpath=$(rpm -ql ${build} ${build/kernel/kernel-core} |& grep ^/boot/vmlinuz-)
 				[[ -n "$_kpath" ]] && run "grubby --set-default=$_kpath"
 				let buildcnt--
@@ -521,7 +521,7 @@ for build in "${builds[@]}"; do
 			fi
 
 			if rpm -q ${build} 2>/dev/null && [[ "$FLAG" != debugkernel && ! "${builds[*]}" =~ rtk|64k ]]; then
-				report_result "build($build) has been installed" PASS
+				rstrnt-report-result "build($build) has been installed" PASS
 				let buildcnt--
 				continue
 			fi
@@ -562,7 +562,7 @@ run "ls -lh"
 if [[ $buildcnt -gt 0 ]]; then
 	run "ls -lh *.rpm"
 	[ $? != 0 ] && {
-		report_result download-rpms FAIL
+		rstrnt-report-result download-rpms FAIL
 		exit 1
 	}
 else
@@ -599,9 +599,9 @@ if [[ -n ${rpmfiles} ]] && [[ $buildcnt -gt 0 ]]; then
 			for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
 	esac
 elif [[ -z ${rpmfiles} ]] && [[ $buildcnt -eq 0 ]]; then
-	report_result "No need use yum/rpm install" PASS
+	rstrnt-report-result "No need use yum/rpm install" PASS
 else
-	report_result "download rpms failed" FAIL
+	rstrnt-report-result "download rpms failed" FAIL
 fi
 
 # to aviod install debug kernel failed when 'rtk -debugk ${userspace_pakcages}'
