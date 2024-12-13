@@ -299,7 +299,8 @@ need_reboot() {
 
 # parse options
 builds=()
-for arg; do
+for Arg; do
+ for arg in ${Arg//;/ }; do
 	case "$arg" in
 	-koji)           KOJI=koji;;
 	-debuginfo)      DEBUG_INFO_OPT=--debuginfo; DEBUG_INFO=yes;;
@@ -328,6 +329,7 @@ for arg; do
 			fi
 		;;
 	esac
+ done
 done
 
 #uniq array builds
