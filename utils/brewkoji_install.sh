@@ -4,7 +4,7 @@
 P=$0; [[ $0 = /* ]] && P=${0##*/}
 switchroot() {
 	[[ $(id -u) != 0 ]] && {
-		echo -e "{WARN} $P need root permission, switch to:\n  sudo $P $@" | GREP_COLORS='ms=1;30' grep --color=always . >&2
+		echo -e "{WARN} $P need root permission, switch to:\n  sudo $P $@" | GREP_COLORS='ms=1;4' grep --color=always . >&2
 		exec sudo $P "$@"
 	}
 }
