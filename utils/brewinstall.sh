@@ -489,7 +489,7 @@ for build in "${builds[@]}"; do
 				run "cp -f $nfsmp/$exportdir/*.${a}.rpm ."
 		done
 		run "umount $nfsmp" -
-	elif [[ "$build" =~ ^repo: || "$build" = *s3.upshift.redhat.com/DH-PROD-CKI/internal/*/*.?basearch ]]; then
+	elif [[ "$build" =~ ^repo: || "$build" =~ http.*/arr-cki-prod-(internal|trusted)-artifacts/ ]]; then
 		if getUrlListByRepo ${build#repo:} | grep -q kernel-; then
 			bROpts=("${kROpts[@]}")
 		fi
