@@ -9,6 +9,7 @@ _args=()
 for arg; do
 	case $arg in
 	-h|h|help)  echo "Usage: $0 [krb5_id ...]"; exit 0;;
+	-w*)  week=${arg#-w}; week=${week#=}w;;
 	*)  _args+=("$arg");;
 	esac
 done
@@ -28,7 +29,7 @@ fi
 echo -e "{debug} users: $users" >&2
 echo -e "Reported:"
 reportedIssues=$(jira issue list --plain --no-truncate --no-headers --columns KEY  \
-	-q"project = RHEL AND created >= startOfWeek() and created < endOfWeek() AND reporter in (${users})")
+	-q"project = RHEL AND created >= startOfWeek($week) and created < endOfWeek($week) AND reporter in (${users})")
 for issue in ${reportedIssues}; do
 	issueInfo=$(jira-issue.py "${issue}" Summary versions components Reporter)
 	summary=$(echo "${issueInfo}" | sed -rn "/BEGIN Summary/,/END Summary/{/(BEGIN|END) /d;p}")
@@ -39,7 +40,7 @@ done | sort -k3
 
 echo -e "\nPre-Verified:"
 preVerifiedIssues=$(jira issue list --plain --no-truncate --no-headers --columns KEY  \
-	-q"project = RHEL AND 'Preliminary Testing' = PASS AND (status = 'In Progress' OR status = Integration AND status CHANGED DURING (startOfWeek(), endOfweek())) AND 'QA Contact' in (${users})")
+	-q"project = RHEL AND 'Preliminary Testing' = PASS AND (status = 'In Progress' OR status = Integration AND status CHANGED DURING (startOfWeek($week), endOfweek($week))) AND 'QA Contact' in (${users})")
 for issue in ${preVerifiedIssues}; do
 	issueInfo=$(jira-issue.py "${issue}" Summary fixVersions components 'QA Contact')
 	summary=$(echo "${issueInfo}" | sed -rn "/BEGIN Summary/,/END Summary/{/(BEGIN|END) /d;p}")
@@ -51,7 +52,7 @@ done | sort -k3
 
 echo -e "\nVerified:"
 verifiedIssues=$(jira issue list --plain --no-truncate --no-headers --columns KEY  \
-	-q"project = RHEL AND status = 'Release Pending' AND status CHANGED DURING (startOfWeek(), endOfweek()) AND 'QA Contact' in (${users})")
+	-q"project = RHEL AND status = 'Release Pending' AND status CHANGED DURING (startOfWeek($week), endOfweek($week)) AND 'QA Contact' in (${users})")
 for issue in ${verifiedIssues}; do
 	issueInfo=$(jira-issue.py "${issue}" Summary fixVersions components 'QA Contact')
 	summary=$(echo "${issueInfo}" | sed -rn "/BEGIN Summary/,/END Summary/{/(BEGIN|END) /d;p}")

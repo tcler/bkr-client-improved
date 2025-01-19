@@ -155,10 +155,7 @@ case $P in
 	;;
 *)
 	testcase "$User" $from $to $repos
-	echo "reported bug:"
-	bug_report "$User" $from $to|sed 's/^/\t/'
-	echo
-	echo "verified bug:"
-	bug_verify "$User" $from $to|sed 's/^/\t/'
+	[[ -n "${Weekago}" ]] && weekOpt=-w=-${Weekago}
+	Jira-work-log.sh ${weekOpt}
 	;;
 esac
