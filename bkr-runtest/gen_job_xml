@@ -915,7 +915,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 
 				if {[info exist Opt(reserve-if-fail)]} { set WATCHDOG_PANIC ignore }
-				if {[info exist Opt(WATCHDOG_PANIC)]} {
+				if {[info exist WATCHDOG_PANIC]} {
 					watchdog panic=$WATCHDOG_PANIC -
 				}
 
