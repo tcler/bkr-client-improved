@@ -45,17 +45,17 @@ set CommonOptionList {
 				--DR="distro_arch=x86_64"
 				}}
 	family			{arg m	help {Use latest distro of this FAMILY for job, eg. "RedHatEnterpriseLinux6",
-                                same as --dr=distro_family=\$FAMILY}}
+                                same as --dr=distro_family=$FAMILY}}
 	tag			{arg m	help {Use latest distro tagged with TAG(default: RTT_ACCEPTED),
-				same as --dr=distro_tag=\$TAG
+				same as --dr=distro_tag=$TAG
 				Commonly used labels for test looks like:
 				 RTT_ACCEPTED,RTT_ACCEPTED_PRIMARY,RTT_PASSED,RTT_PASSED_PRIMARY
 				 DevelPhaseExit-1.0,Alpha-1.0,Beta-1.0,Snapshot-1.0,RC-1.0,RELEASED ...
 }}
-	distro			{arg y	help {Use named distro for job, same as --dr=distro_name=\$DISTRO}}
+	distro			{arg y	help {Use named distro for job, same as --dr=distro_name=$DISTRO}}
 	distrot			{arg y	help {define distro template for multihost test, eg: --distrot=6,6,%D)}}
-	{variant v}		{arg m	help {Specify the distro variant, same as --dr=distro_variant=\$VARIANT}}
-	arch			{arg y	help {Specify the distroRequire.disro_arch and hostRequire.arch, same as: --dr=distro_arch=\$ARCH --hr=arch=\$ARCH
+	{variant v}		{arg m	help {Specify the distro variant, same as --dr=distro_variant=$VARIANT}}
+	arch			{arg y	help {Specify the distroRequire.disro_arch and hostRequire.arch, same as: --dr=distro_arch=$ARCH --hr=arch=$ARCH
 				--arch=s390x           #means that test machine[s] is/are s390x
 				--arch=x86_64,aarch64  #means that the multi-host test with different arch machine
 				}}
@@ -76,7 +76,7 @@ set CommonOptionList {
 				--hr kv-CPUMODEL=%Broadwell%
 				--hr device:type=STORAGE,driver=nvme
 				--hr disk.phys_sector_size=4096,unit=bytes
-				--hr key_value:key=CPUVENDOR,op==,value=\$Vendor  #same as --kv CPUVENDOR=\$Vendor
+				--hr key_value:key=CPUVENDOR,op==,value=$Vendor  #same as --kv CPUVENDOR=$Vendor
 				--hr 'kv-DISKSPACE>=60000'      #same as --kv 'DISKSPACE>=60000'
 				--hr kv-CPUVENDOR~%AMD%         #~%AMD%  =AuthenticAMD
 				--hr 'system.numanodes>=4'      #same as --sr 'numanodes>=4'
@@ -153,13 +153,13 @@ set CommonOptionList {
 				e.g: --kpatch=kernel-5.14.0-284.18.1.el9_2,kpatch-patch-5_14_0-284_18_1-1-6.el9_2
 				e.g: --kpatch=kernel-5.14.0-284.18.1.el9_2,kpatch-patch-5_14_0-284_18_1-1-6.el9_2,$kpatch_url}}
 	{Brew B Scratch}	{arg m  help {Install brew built or 3rd party pkg[s] by using /distribution/brew-build-install, can use multiple times
-				e.g: --Brew=\$brew_scratch_build_id              #install according brew scratch build id
-				e.g: --Brew=\$brew_build_name                    #install according brew build name
-				e.g: --Brew=nfs:\$nfsserver:/path/to/rpms/a.rpm  #install specified rpm from nfs
-				e.g: --Brew=nfs:\$nfsserver:/path/to/rpms/       #install all rpms in nfs share
-				e.g: --Brew=repo:\$reponame,baseurl              #install all rpms in yum repo \$reponame
-				e.g: --Brew=https://host/path/to/rpms/b.rpm      #install specified rpm from https/http/ftp
-				e.g: --Brew=https://host/path/to/rpms/           #install all rpms in web path https/http/ftp
+				e.g: --Brew=$brew_scratch_build_id              #install according brew scratch build id
+				e.g: --Brew=$brew_build_name                    #install according brew build name
+				e.g: --Brew=nfs:$nfsserver:/path/to/rpms/a.rpm  #install specified rpm from nfs
+				e.g: --Brew=nfs:$nfsserver:/path/to/rpms/       #install all rpms in nfs share
+				e.g: --Brew=repo:[$reponame,]baseurl            #install all rpms in yum repo $reponame
+				e.g: --Brew=https://host/path/to/rpms/b.rpm     #install specified rpm from https/http/ftp
+				e.g: --Brew=https://host/path/to/rpms/          #install all rpms in web path https/http/ftp
 				e.g: --Brew=lstdtk             #install latest brew dt kernel
 				e.g: --Brew=lstk               #install latest brew release kernel
 				e.g: --Brew=upk                #install latest brew upstream kernel
