@@ -21,7 +21,7 @@ is_available_url() {
 }
 is_rh_intranet() { host ipa.redhat.com &>/dev/null; }
 
-[[ function = "$(type -t rstrnt-report-result)" ]] || report_result() {  echo "$@"; }
+[[ function = "$(type -t rstrnt-report-result)" ]] || rstrnt-report-result() {  echo "$@"; }
 
 P=${0##*/}
 KOJI=brew
@@ -490,6 +490,9 @@ for build in "${builds[@]}"; do
 		done
 		run "umount $nfsmp" -
 	elif [[ "$build" =~ ^repo: || "$build" =~ http.*/arr-cki-prod-(internal|trusted)-artifacts/ ]]; then
+		if [[ "$build" =~ http.*/arr-cki-prod-(internal|trusted)-artifacts/index.html ]]; then
+			build=${build/index.html?prefix=/}  #convert from view url to repo url
+		fi
 		if getUrlListByRepo ${build#repo:} | grep -q kernel-; then
 			bROpts=("${kROpts[@]}")
 		fi
