@@ -1,11 +1,11 @@
 #!/bin/bash
 #author jiyin@redhat.com
 
-P=$0; [[ $0 = /* ]] && P=${0##*/}
 switchroot() {
+	local P=$0 SH=; [[ $0 = /* ]] && P=${0##*/}; [[ -e $P && ! -x $P ]] && SH=$SHELL
 	[[ $(id -u) != 0 ]] && {
-		echo -e "{WARN} $P need root permission, switch to:\n  sudo $P $@" | GREP_COLORS='ms=1;4' grep --color=always . >&2
-		exec sudo $P "$@"
+		echo -e "\E[1;4m{WARN} $P need root permission, switch to:\n  sudo $SH $P $@\E[0m"
+		exec sudo $SH $P "$@"
 	}
 }
 switchroot "$@"

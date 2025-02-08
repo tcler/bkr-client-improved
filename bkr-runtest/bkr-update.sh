@@ -2,11 +2,16 @@
 
 { #avoid crush self running
 
-P=$0; [[ $0 = /* ]] && P=${0##*/}
 switchroot() {
+	local P=$0 SH=; [[ -x $0 && $0 = /* ]] && command -v ${0##*/} &>/dev/null && P=${0##*/}; [[ ! -f $P || ! -x $P ]] && SH=$SHELL
 	[[ $(id -u) != 0 ]] && {
-		echo -e "{WARN} $P need root permission, switch to:\n  sudo $P $@" | GREP_COLORS='ms=1;4' grep --color=always . >&2
-		exec sudo $P "$@"
+		if [[ "${SHELL##*/}" = $P ]]; then
+			echo -e "\E[1;31m{WARN} $P need root permission, please add sudo before $P\E[0m" >&2
+			exit
+		else
+			echo -e "\E[1;4m{WARN} $P need root permission, switch to:\n  sudo $SH $P $@\E[0m" >&2
+			exec sudo $SH $P "$@"
+		fi
 	}
 }
 switchroot "$@"
