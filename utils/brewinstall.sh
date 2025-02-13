@@ -199,7 +199,7 @@ rpmFilter() {
 		#echo "[rpmFilter] _check: $url" >&2
 		file=${url##*/}
 		# we didn't consider to filter any userspace packages
-		if [[ "${url}" = *://* && ! "$url" =~ /kernel/|/kernel-[^/]*\.rpm ]] || [[ "${url}" = "${file}" && "${file}" != kernel* ]]; then
+		if [[ "${url}" = *://* && ! "$url" =~ /kernel/|(%2F|/)kernel-[^/]*\.rpm ]] || [[ "${url}" = "${file}" && "${file}" != kernel* ]]; then
 			echo -e "\E[01;36m ${file} didn't belong ^kernel* package, will install!\E[0m" >&2
 			echo -e "\E[01;36m userspace accept: $url\E[0m" >&2
 			echo "$url"
@@ -245,12 +245,13 @@ buildname2url() {
 }
 
 _curl_download() {
-	local url=$1 ourl=
-	curl -L -k $url -O || {
+	local url=$1 ourl= curlOOpt=-O
+	[[ $url = *%2F* ]] && curlOOpt="-o ${url##*%2F}"
+	curl -L -k $url $curlOOpt || {
 		ourl=$url
 		url=$(curl -Ls -o /dev/null -w %{url_effective} $ourl)
 		if [[ "$url" != "$ourl" ]]; then
-			curl -L -k $url -O
+			curl -L -k $url $curlOOpt
 		fi
 	}
 }
@@ -258,6 +259,11 @@ _curl_download() {
 batch_download() {
 	local dtype=
 	[[ "$1" = -p ]] && dtype=parallel
+	if command -v wget2 &>/dev/null; then
+		cat | xargs wget2
+		exit $?
+	fi
+
 	if [[ "$dtype" = parallel ]]; then
 		while read url; do
 			echo "_curl_download $url &"
@@ -489,6 +495,15 @@ for build in "${builds[@]}"; do
 				run "cp -f $nfsmp/$exportdir/*.${a}.rpm ."
 		done
 		run "umount $nfsmp" -
+	#kernel MR-build before syncing to jira creating repo
+	#https://s3.amazonaws.com/arr-cki-prod-trusted-artifacts/trusted-artifacts/1668684123/build_x86_64/9123445672/index.html
+	elif [[ "$build" =~ http.*/arr-cki-prod-(internal|trusted)-artifacts/[^/]+/[0-9]+/build_[^/]*/[0-9]+/index.html ]]; then
+		urls=$(curl -Ls $build | grep -Eo [a-z]+-[^/]*kernel-[^/]*.rpm | sort -u | sed 's;^;https://s3.amazonaws.com/arr-cki-prod-trusted-artifacts/;')
+		if echo "$urls" | grep -q kernel-; then
+			bROpts=("${kROpts[@]}")
+		fi
+		time batch_download -p < <(echo "$urls" |
+			rpmFilter "${bROpts[@]}" "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 	elif [[ "$build" =~ ^repo: || "$build" =~ http.*/arr-cki-prod-(internal|trusted)-artifacts/ ]]; then
 		if [[ "$build" =~ http.*/arr-cki-prod-(internal|trusted)-artifacts/index.html ]]; then
 			build=${build/index.html?prefix=/}  #convert from view url to repo url
