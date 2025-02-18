@@ -6,6 +6,7 @@ P=$0; [[ $0 = /* ]] && P=${0##*/}
 User=restraint-harness
 PrjName=restraint
 PrjPath=${User}/${PrjName}
+curdir=$PWD
 
 _requires_cmds() {
 	local cmd= rc=0
@@ -55,7 +56,7 @@ while true; do
 	-p|--prj)       prjPath="$2"; fork=${prjPath%%/*}; shift 2;;
 	-n|--dry)       dryRun="yes"; shift 1;;
 	-v|--version)   read Version Release <<<"${2/-/ }"; shift 2;;
-	--download)     DOWNLOAD=yes; downloaddir="${2:-.}"; shift 2;;
+	--download)     DOWNLOAD=yes; downloaddir="${2}"; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -183,7 +184,7 @@ else
 	#fixme: if want create a permenant yum repo for test section
 	echo -e "\033[1;34m{INFO} restraint PR($prcoID) build success, see you in test section\033[0m"
 	if [[ "$DOWNLOAD" = yes ]]; then
-		(cd ${downloaddir}; brewinstall.sh -downloadonly -arch=all $brewTaskID)
+		(cd "$curdir/${downloaddir}"; brewinstall.sh -downloadonly -arch=all $brewTaskID)
 	else
 		echo -e "{INFO} you can download the build rpms by:"
 		echo -e "  brewinstall.sh -downloadonly -arch=all $brewTaskID"
