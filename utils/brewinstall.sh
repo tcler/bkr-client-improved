@@ -9,7 +9,9 @@ switchroot() {
 		exec sudo $SH $P "$@"
 	}
 }
-switchroot "$@"
+if ! [[ "$*" = *-downloadonly* || "$*" = *-onlydownload* ]]; then
+	switchroot "$@"
+fi
 
 LANG=C
 bkrDownloadUrl=https://raw.githubusercontent.com/tcler/bkr-client-improved/master
@@ -95,7 +97,10 @@ install_brew() {
 			exit 1
 		}
 	}
-	which brew
+	which brew || {
+		echo "{ERROR} command brew is required but not found." >&2
+		exit 2
+	}
 }
 
 getUrlListByUrl() {
