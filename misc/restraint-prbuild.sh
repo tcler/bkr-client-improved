@@ -21,7 +21,7 @@ _requires_cmds rhpkg brew || exit 2
 
 ## argparse
 Usage() {
-	echo "Usage: $P <prID|commitID|master> [target: beaker-harness-rhel-\$N|eng-fedora-\$N] [--arches=<arch,list|all>] [--prj=tcler/nrestraint] [-n|--dry] [-v|--version \$VER]"
+	echo "Usage: $P <prID|commitID|master> [target: beaker-harness-rhel-\$N|eng-fedora-\$N] [--arches=<arch,list|all>] [--prj=tcler/nrestraint] [-n|--dry] [-v|--version \$VER] [--download[=targetdir]]"
 	echo "Args and Options:"
 	echo "  \$1            a {PR(pull request) ID} or {commit ID(sha)} or {master}"
 	echo "  \$2            the build target name: beaker-harness-rhel-\$N|eng-fedora-\$N  #default:beaker-harness-rhel-9"
@@ -29,13 +29,14 @@ Usage() {
 	echo "  -a,--arches:  comma seperated arch list: aarch64,ppc64le  #default is x86_64, 'all' means all availables"
 	echo "  -p,--prj:     build from fork: anotherUser/newReponame"
 	echo "  -n,--dry:     only download tarball and create srpm but don't realy submmit the build"
-	echo "  -v,--version: specific version-release, e.g: 0.4.5-6"
+	echo "  -v,--version: specific version-release, e.g: 0.5.2-1"
+	echo "  --download[=dir]:   download the rpms after build finish"
 	echo -e "\nExamples:"
 	echo "  $P 303"
-	echo "  $P 303 beaker-harness-rhel-7"
+	echo "  $P 303 beaker-harness-rhel-8"
 	echo "  $P 73ad3be eng-fedora-40 -a ppc64le,s390x"
-	echo "  $P master -p tcler/nrestraint -a all"
-	echo "  $P master -p tcler/nrestraint -a all --version 0.5.0-2"
+	echo "  $P master -p tcler/nrestraint -a all eng-fedora-42 --version 0.5.2-1"
+	echo "  $P master -p tcler/nrestraint -a all beaker-harness-rhel-9 --version 0.5.2-1 --download=rhel-9"
 }
 _at=`getopt -o ha:p:nv: \
 	--long help \
@@ -43,6 +44,7 @@ _at=`getopt -o ha:p:nv: \
 	--long prj: \
 	--long dry \
 	--long version: \
+	--long download:: \
     -a -n '$P' -- "$@"`
 eval set -- "$_at"
 
@@ -53,6 +55,7 @@ while true; do
 	-p|--prj)       prjPath="$2"; fork=${prjPath%%/*}; shift 2;;
 	-n|--dry)       dryRun="yes"; shift 1;;
 	-v|--version)   read Version Release <<<"${2/-/ }"; shift 2;;
+	--download)     DOWNLOAD=yes; downloaddir="${2:-.}"; shift 2;;
 	--) shift; break;;
 	esac
 done
@@ -179,5 +182,11 @@ if [[ "$buildStat" != closed ]]; then
 else
 	#fixme: if want create a permenant yum repo for test section
 	echo -e "\033[1;34m{INFO} restraint PR($prcoID) build success, see you in test section\033[0m"
+	if [[ "$DOWNLOAD" = yes ]]; then
+		(cd ${downloaddir}; brewinstall.sh -downloadonly -arch=all $brewTaskID)
+	else
+		echo -e "{INFO} you can download the build rpms by:"
+		echo -e "  brewinstall.sh -downloadonly -arch=all $brewTaskID"
+	fi
 fi
 )
