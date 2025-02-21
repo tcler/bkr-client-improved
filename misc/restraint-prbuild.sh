@@ -172,8 +172,12 @@ rhpkg scratch-build --srpm $srpmfile $archOpt |& tee build-screen.log
 #get build state
 prBuildInfoFile=/tmp/rstrnt-prbuild-${_infix}-${target}.info
 brewTaskID=$(awk '/Created task:/{print $NF}' build-screen.log)
-brew taskinfo -r $brewTaskID |& tee $prBuildInfoFile
-buildStat=$(awk '/^State:/{print $NF}' $prBuildInfoFile)
+while :; do
+	brew taskinfo -r $brewTaskID &>$prBuildInfoFile
+	buildStat=$(awk '/^State:/{print $NF}' $prBuildInfoFile)
+	[[ "$buildStat" != open ]] && break || sleep 8
+done
+
 if [[ "$buildStat" != closed ]]; then
 	cat <<-LOG >&2
 	{Error} restraint PR($prcoID) build failed. see:
