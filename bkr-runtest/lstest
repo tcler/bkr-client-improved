@@ -251,7 +251,7 @@ _caseInfo() {
 			[restraint]
 			entry_point=$ep
 			softDependencies=$(sed -nr '/^.*Requires:\s*([^"()]+)$/{s//\1/;s/ +/\n/g;p}' $metafile |
-				grep -E -v -e '^kernel-kernel-|^(.+)-CoreOS-\1-|/' -e '^$' | sort -u | paste -s -d\; -)
+				grep -E -v -e '^kernel-kernel-|^(.+)-CoreOS-\1-|/' -e '^[[:space:]]*$' | sort -u | paste -s -d\; -)
 			repoRequires=$(echo "$requires"|grep -v ^/ | paste -s -d\; -)
 			orepoRequires=$(echo "$requires"|grep ^/ | paste -s -d\; -)
 			max_time=${Attr[time]}
