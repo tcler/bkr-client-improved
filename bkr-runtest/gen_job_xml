@@ -288,6 +288,10 @@ proc fetchtag {uri} {
 }
 
 set default-ksf "/etc/beaker/default-ks.cfg"
+if {[info exist Opt(bootc)]} {
+	set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
+	if {[string length $Opt(bootc)] == 0} { set Opt(bootc) "latest-10.0" }
+}
 set ksfContent {}
 if {![info exist Opt(ksf)] || $Opt(ksf) == ""} {
 	set Opt(ksf) ${default-ksf}
@@ -398,6 +402,11 @@ if {[llength $DISTRO_L] == 0 && [llength $FAMILY_L] == 0} {
 	puts stderr "Warning: no distro specified, use --distro= or --family= option"
 	Usage stderr
 	exit 1
+}
+
+if {[info exist Opt(bootc)]} {
+	set DISTRO_L {Fedora-41}
+	set DISTRO_L {RHEL-9.5.0}
 }
 
 #fixme: deprecated, remove
@@ -827,6 +836,14 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 						if {[string length $MACHINE] > 0} {
 							hostname op=like value=$MACHINE -
 						} else {
+							if {[string equal ${ARCH} "x86_64"]} {
+								if {[string match {RHEL-1[0-9]*} "${DISTRO}"]} { set amd64v3 yes }
+								if {[info exist Opt(bootc)] && [string match {latest-1[0-9]*} "${Opt(bootc)}"]} { set amd64v3 yes }
+
+								if {[info exist amd64v3]} {
+									lappend hrs kv-CPUFLAGS=avx2 kv-CPUFLAGS=bmi2 kv-CPUFLAGS=f16c kv-CPUFLAGS~fma% kv-CPUFLAGS~abm% kv-CPUFLAGS~movbe% kv-CPUFLAGS~xsave%
+								}
+							}
 							lappend hrs not:kv-DISKSPACE>=10000000
 							lappend hrs not:cpu_count>=256
 							lappend hrs not:memory>=500000
@@ -925,6 +942,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 
 				# distro build
 				set distroBuild $DISTRO
+				if {[info exist Opt(bootc)]} {
+					set distroBuild $Opt(bootc)
+				}
 				if [string match family* $DISTRO] {
 					if {[info exist DistroPattern] && $DistroPattern != ""} {
 						set distroBuild [exec bash -c "bkr distro-trees-list --arch $ARCH --family $_FAMILY --name $DistroPattern --limit=1 | awk '/Name:/{print \$2}'"]
@@ -934,8 +954,13 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 
 				# distro install
-				if {[string length $distroBuild] > 1} {
+				if {[string length $distroBuild] > 1 && ![info exist Opt(bootc)]} {
 					lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
+				}
+
+				#bootc-mode
+				if {[info exist Opt(bootc)]} {
+					lappend insertTasks "/network-qe/bootc-beaker/switch-to-rhel DISTRO_BUILD=$distroBuild BOOTC_TO=$Opt(bootc) KILLTIMEOVERRIDE=345600"
 				}
 
 				# command before kernelinstall

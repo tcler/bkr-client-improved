@@ -25,8 +25,10 @@ install install_runtest: _isroot _rh_intranet yqinstall install_kiss_vm_ns
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
 	mkdir -p $(_confdir) && cp -f conf/*.example conf/fetch-url.ini $(_confdir)/.
 	@cp conf/default-ks.cfg.tmpl $(_confdir)/default-ks.cfg
+	@cp conf/default-bootc-mode-ks.cfg.tmpl $(_confdir)/default-bootc-mode-ks.cfg
 	test -d /etc/beaker && ln -sf $(_confdir)/fetch-url.ini /etc/beaker/fetch-url.ini
 	test -d /etc/beaker && ln -sf $(_confdir)/default-ks.cfg /etc/beaker/default-ks.cfg
+	test -d /etc/beaker && ln -sf $(_confdir)/default-bootc-mode-ks.cfg /etc/beaker/default-bootc-mode-ks.cfg
 	test -f $(_confdir)/bkr-runtest.conf || cp $(_confdir)/bkr-runtest.conf{.example,}
 	test -f $(_confdir)/bkr-autorun.conf || cp $(_confdir)/bkr-autorun.conf{.example,}
 	sed -i -e '/[Ff]etchUrl/d' -e 's/defaultOSInstaller/OSInstaller/g' $(_confdir)/bkr-runtest.conf

@@ -1,0 +1,22 @@
+#ostreecontainer --url images.paas.redhat.com/bootc/rhel-bootc:latest-9.6
+ostreecontainer --url quay.io/rh-ee-xudu/rhel/rhel9.5-boot:raw
+#ostreecontainer --url quay.io/fedora/fedora-bootc:41
+
+%post --log=/root/my-bootc-mode-ks-post.log
+
+downhostname=download.devel.redhat.com
+LOOKASIDE=${LOOKASIDE:-http://$downhostname/qa/rhts/lookaside}
+vrun() { { echo -e "\n{$(date +%F_%T) run} $*"; "$@"; } &> >(tee -a /dev/ttyS0 2>/dev/null); }
+
+vrun cat /etc/os-release
+vrun bootc status
+vrun rpm -q restraint
+pass=redhatp@ss
+echo -e "${pass}\n${pass}" | passwd --stdin $(id -nu)
+vrun pwd
+vrun env
+
+#fixme add nrestraint repo
+curl -ksfL https://gitlab.cee.redhat.com/kernel-qe/networking/network-qe/-/snippets/9205/raw/main/enable-image-mode-testing.sh | bash
+
+%end
