@@ -220,6 +220,10 @@ if [info exist Opt(fetch-opts)] {
 		set kpchgs "no"
 	}
 }
+if [info exist Opt(offkeepchanges)] {
+	set kpchgs "no"
+	unset -nocomplain Opt(keepchanges)
+}
 if [info exist Opt(keepchanges)] {
 	set kpchgs {yes}
 	if ![string match {*keepchanges*} ${task-fetch-opts}] {

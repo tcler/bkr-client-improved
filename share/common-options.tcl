@@ -20,6 +20,7 @@ set CommonOptionList {
 				}}
 	bootc			{arg o	help {bootc mode. --bootc[=TAG]; for TAG see also: skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc}}
 	keepchanges		{arg n	help {see: https://restraint.readthedocs.io/en/latest/jobs.html#keeping-your-task-changes-intact}}
+	offkeepchanges		{arg n	help {see: https://restraint.readthedocs.io/en/latest/jobs.html#keeping-your-task-changes-intact}}
 	fetch-opts		{arg y	help {task fetch options, e.g: "retry=8 timeo=32 abort-fetch-fail"}}
 	nrestraint		{arg n	help {use restraint devel build}}
 	nrestraint-repo		{arg y	help {restraint repo relace default value}}
