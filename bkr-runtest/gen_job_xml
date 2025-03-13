@@ -835,15 +835,18 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 						}
 					}
 				}
+
+				set distroBuild $DISTRO
+				if {[info exist Opt(bootc)]} {
+					set distroBuild $Opt(bootc)
+				}
 				hostRequires ! {
 					and ! {
 						if {[string length $MACHINE] > 0} {
 							hostname op=like value=$MACHINE -
 						} else {
 							if {[string equal ${ARCH} "x86_64"]} {
-								if {[string match {RHEL-1[0-9]*} "${DISTRO}"]} { set amd64v3 yes }
-								if {[info exist Opt(bootc)] && [string match {latest-1[0-9]*} "${Opt(bootc)}"]} { set amd64v3 yes }
-
+								if {[regexp {(RHEL|latest)-1[0-9].*} $distroBuild]} { set amd64v3 yes }
 								if {[info exist amd64v3]} {
 									lappend hrs kv-CPUFLAGS=avx2 kv-CPUFLAGS=bmi2 kv-CPUFLAGS=f16c kv-CPUFLAGS~fma% kv-CPUFLAGS~abm% kv-CPUFLAGS~movbe% kv-CPUFLAGS~xsave%
 								}
@@ -945,10 +948,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				set insertTasks [list]
 
 				# distro build
-				set distroBuild $DISTRO
-				if {[info exist Opt(bootc)]} {
-					set distroBuild $Opt(bootc)
-				}
 				if [string match family* $DISTRO] {
 					if {[info exist DistroPattern] && $DistroPattern != ""} {
 						set distroBuild [exec bash -c "bkr distro-trees-list --arch $ARCH --family $_FAMILY --name $DistroPattern --limit=1 | awk '/Name:/{print \$2}'"]
