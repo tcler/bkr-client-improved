@@ -12,6 +12,13 @@ _targetdir=/mnt/tests
 _downloaddir=/mnt/download
 _logf=/tmp/${0##*/}.log
 LOOKASIDE_BASE_URL=${LOOKASIDE:-http://download.devel.redhat.com/qa/rhts/lookaside}
+if stat /run/ostree-booted > /dev/null 2>&1; then
+	pkgInstall="rpm-ostree -A --assumeyes --idempotent --allow-inactive install"
+	pkgUnInstall="rpm-ostree uninstall"
+else
+	pkgInstall="yum -y install --setopt=strict=0"
+	pkgUnInstall="yum -y remove"
+fi
 
 _install_requirements() {
 	if ps axf|grep -v "^ *$$ "|grep -q 'taskfetch.sh  *--install-dep[s]'; then
@@ -19,12 +26,12 @@ _install_requirements() {
 		return 0
 	fi
 	[[ $(rpm -E %rhel) = 7 ]] && {
-		yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
+		$pkgInstall https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
 		sed -i -e /skip_if_unavailable/d -e '/enabled=1/askip_if_unavailable=1' /etc/yum.repos.d/epel.repo
 	}
 	local _pkgs="python3 bzip2 gzip zip xz restraint-rhts beakerlib"
 	_pkgs=$(rpm -q $_pkgs > >(awk '/not.installed/{print $2}')) ||
-		yum --setopt=strict=0 install -y $_pkgs &>>${_logf:-/dev/null}
+		$pkgInstall $_pkgs &>>${_logf:-/dev/null}
 
 	local _urls=()
 	hash -r
@@ -170,8 +177,8 @@ _install_task() {
 	echo "${INDENT}{debug} install pkg dependencies of /$_task($fpath)" >&2
 	pkgs=$(_get_package_requires $fpath)
 	[[ -n "$pkgs" ]] && {
-		echo "${INDENT}{run} yum --setopt=strict=0 install -y $pkgs &>>${_logf:-/dev/null}" >&2
-		yum --setopt=strict=0 install -y $pkgs &>>${_logf:-/dev/null}
+		echo "${INDENT}{run} $pkgInstall $pkgs &>>${_logf:-/dev/null}" >&2
+		$pkgInstall $pkgs &>>${_logf:-/dev/null}
 	}
 	echo $fpath
 	return 0
