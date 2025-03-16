@@ -522,6 +522,34 @@ if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 
 if [info exist Opt(ks-meta)] { append recipe_ks_meta " " {*}$Opt(ks-meta) }
 set ksAppend {}
+
+if {[info exist Opt(bootc-direct)]} {
+	set param_count [llength $Opt(bootc-direct)]
+	if {$param_count == 0} {
+		set Opt(bootc-direct) "images.paas.redhat.com/bootc/rhel-bootc:latest-10.0"
+		set Opt(port-script) "https://gitlab.cee.redhat.com/kernel-qe/networking/network-qe/-/snippets/9205/raw/main/enable-image-mode-testing.sh"
+	} elseif {$param_count == 1} {
+		set Opt(port-script) "https://gitlab.cee.redhat.com/kernel-qe/networking/network-qe/-/snippets/9205/raw/main/enable-image-mode-testing.sh"
+	} elseif {$param_count == 2} {
+		lassign $Opt(bootc-direct) bootc_value port_script_value
+		set Opt(bootc-direct) $bootc_value
+		set Opt(port-script) $port_script_value
+	}
+	append ksAppend "\nostreecontainer --url $Opt(bootc-direct)"
+	append ksAppend "\n%post --log=/root/my-bootc-mode-ks-post.log"
+	append ksAppend "\ncurl -ksfL $Opt(port-script) | bash"
+	append ksAppend "\n%end"
+}
+#set upstreamUrl git://git.app.eng.bos.redhat.com/linux.git
+#	set upstreamBranch master
+#	set upstreamTag HEAD
+#	if {$Opt(upstream) != ""} {
+#		lassign [split $Opt(upstream) { @}] url_branch tag
+#		lassign [split $url_branch "#"] url branch
+#		if {[string trim $url] != ""} {set upstreamUrl $url}
+#		if {[string trim $branch] != ""} {set upstreamBranch $branch}
+#		if {[string trim $tag] != ""} {set upstreamTag $tag}
+#	}
 if [info exist Opt(ks-pkgs)] {
 	append ksAppend "\n%packages --ignoremissing"
 	foreach ks $Opt(ks-pkgs) { append ksAppend "\n[string map {" " "\n"} $ks]" }
