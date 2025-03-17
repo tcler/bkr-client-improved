@@ -532,16 +532,6 @@ if {[info exist Opt(bootc-direct)]} {
 	}
 	append ksAppend "\nostreecontainer --url $Opt(bootc-direct)"
 }
-#set upstreamUrl git://git.app.eng.bos.redhat.com/linux.git
-#	set upstreamBranch master
-#	set upstreamTag HEAD
-#	if {$Opt(upstream) != ""} {
-#		lassign [split $Opt(upstream) { @}] url_branch tag
-#		lassign [split $url_branch "#"] url branch
-#		if {[string trim $url] != ""} {set upstreamUrl $url}
-#		if {[string trim $branch] != ""} {set upstreamBranch $branch}
-#		if {[string trim $tag] != ""} {set upstreamTag $tag}
-#	}
 if [info exist Opt(ks-pkgs)] {
 	append ksAppend "\n%packages --ignoremissing"
 	foreach ks $Opt(ks-pkgs) { append ksAppend "\n[string map {" " "\n"} $ks]" }
