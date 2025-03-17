@@ -19,8 +19,7 @@ set CommonOptionList {
 				--task-fetch-url /distribution/kernelinstall@   #means disable fetch-url for this task
 				}}
 	bootc			{arg o	help {bootc mode. --bootc[=TAG]; for TAG see also: skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc}}
-	bootc-direct	{arg o	help {self image. --bootc-direct["image_url post-script"];default image_url is images.paas.redhat.com/bootc/rhel-bootc:latest-10.0
-	default post-script is https://gitlab.cee.redhat.com/kernel-qe/networking/network-qe/-/snippets/9205/raw/main/enable-image-mode-testing.sh }}
+	bootc-direct	{arg o	help {self image. --bootc-direct["image_url post-script"];default image_url is images.paas.redhat.com/bootc/rhel-bootc:latest-10.0}}
 	keepchanges		{arg n	help {see: https://restraint.readthedocs.io/en/latest/jobs.html#keeping-your-task-changes-intact}}
 	offkeepchanges		{arg n	help {see: https://restraint.readthedocs.io/en/latest/jobs.html#keeping-your-task-changes-intact}}
 	fetch-opts		{arg y	help {task fetch options, e.g: "retry=8 timeo=32 abort-fetch-fail"}}
