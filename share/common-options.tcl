@@ -18,7 +18,20 @@ set CommonOptionList {
 				--task-fetch-url /kernel/fs/nfs/base@http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz   #the '#relative path' could be omitted
 				--task-fetch-url /distribution/kernelinstall@   #means disable fetch-url for this task
 				}}
-	bootc			{arg o	help {bootc mode. --bootc[=TAG]; for TAG see also: skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc}}
+	bootc			{arg o	help {bootc mode. --bootc[=TAG[,pkgs=,bpkgs=,cmdlurl=,springboard=]];
+				for TAG see also: skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc
+				pkgs=, bpkgs=, cmdlurl= are used to tell Containerfile generator install pkgs and run a script from url
+				springboard= is used to replace the default springboard image
+				--bootc=RHEL-9.6.0-20250316.8
+				--bootc=latest-10.0,pkgs=expect/tmux/wireshark
+				--bootc=latest-10.1,pkgs=expect/nfs-utils,bpkgs=$mr_build_repo,cmdlurl=http://x.y.z/a/b/c/my.sh
+				--bootc=latest-9.6,springboard=images.paas.redhat.com/bootc/rhel-bootc:latest-9.6
+				}}
+	bootc-direct		{arg y	help {bootc mode. --bootc-direct=image_url; deploy user's own bootc image directly
+				--bootc-direct=quay.io/user/image-mode-rhel9.6-beaker
+
+				Note: or please use --ksf=/path/to/your/own/ks-append-file, if --bootc,--bootc-direct cannot santisify your requirement
+				}}
 	keepchanges		{arg n	help {see: https://restraint.readthedocs.io/en/latest/jobs.html#keeping-your-task-changes-intact}}
 	offkeepchanges		{arg n	help {see: https://restraint.readthedocs.io/en/latest/jobs.html#keeping-your-task-changes-intact}}
 	fetch-opts		{arg y	help {task fetch options, e.g: "retry=8 timeo=32 abort-fetch-fail"}}

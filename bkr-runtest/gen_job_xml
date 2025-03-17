@@ -292,10 +292,36 @@ proc fetchtag {uri} {
 }
 
 set default-ksf "/etc/beaker/default-ks.cfg"
+if {[info exist Opt(bootc-direct)]} {
+	if {[string length $Opt(bootc-direct)] == 0} {
+		puts stderr "{Error}: a image url is required by option --bootc-direct"
+		exit 1
+	}
+	unset -nocomplain Opt(bootc)
+	set default-ksf "/dev/null"
+}
 if {[info exist Opt(bootc)]} {
 	set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
 	if {[string length $Opt(bootc)] == 0} { set Opt(bootc) "latest-10.0" }
+	set bootcattrs [split $Opt(bootc) ","]
+	set Opt(bootc) [lindex $bootcattrs 0]
+
+	set ContainerfileParams [lrange $bootcattrs 1 end]
+	lassign [lrepeat 3 ""] ContainerPkgs ContainerBPkgs ContainerScriptUrl
+	foreach cparam $ContainerfileParams {
+		if [regexp -- {^pkgs?=} $cparam] {
+			set ContainerPkgs [regsub -expanded {^pkgs?=} $cparam {}]
+			set ContainerPkgs [string map {"/" " "} $ContainerPkgs]
+		} elseif [regexp -- {^bpkgs?=} $cparam] {
+			set ContainerBPkgs [regsub -expanded {^bpkgs?=} $cparam {}]
+		} elseif [regexp -- {^(cmdl?|script)url=} $cparam] {
+			set ContainerScriptUrl [regsub -expanded {^(cmdl?|script)url=} $cparam {}]
+		} elseif [regexp -- {^springboard.*=} $cparam] {
+			set SpringBoardImageUrl [regsub -expanded {^springboard.*=} $cparam {}]
+		}
+	}
 }
+
 set ksfContent {}
 if {![info exist Opt(ksf)] || $Opt(ksf) == ""} {
 	set Opt(ksf) ${default-ksf}
@@ -304,6 +330,9 @@ if [file isfile $Opt(ksf)] {
 	if {![catch {set fp [open $Opt(ksf)]} err]} {
 		set ksfContent [read $fp]
 		close $fp
+	}
+	if [info exist SpringBoardImageUrl] {
+		regsub -line {\nostreecontainer --url [^\n]*\n} $ksfContent "\nostreecontainer --url $SpringBoardImageUrl\n" ksfContent
 	}
 }
 if [info exist Opt(norun)] {
@@ -522,6 +551,9 @@ if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 
 if [info exist Opt(ks-meta)] { append recipe_ks_meta " " {*}$Opt(ks-meta) }
 set ksAppend {}
+if {[info exist Opt(bootc-direct)]} {
+	append ksAppend "ostreecontainer --url $Opt(bootc-direct)\n"
+}
 if [info exist Opt(ks-pkgs)] {
 	append ksAppend "\n%packages --ignoremissing"
 	foreach ks $Opt(ks-pkgs) { append ksAppend "\n[string map {" " "\n"} $ks]" }
@@ -963,7 +995,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 
 				#bootc-mode
 				if {[info exist Opt(bootc)]} {
-					lappend insertTasks "/network-qe/bootc-beaker/switch-to-rhel DISTRO_BUILD=$distroBuild BOOTC_TO=$Opt(bootc) KILLTIMEOVERRIDE=345600"
+					lappend insertTasks "/network-qe/bootc-beaker/switch-to-rhel DISTRO_BUILD=$distroBuild BOOTC_TO=$Opt(bootc) {PKGS=$ContainerPkgs} {BPKGS=$ContainerBPkgs} {ScriptUrl=$ContainerScriptUrl} KILLTIMEOVERRIDE=345600"
 				}
 
 				# command before kernelinstall
