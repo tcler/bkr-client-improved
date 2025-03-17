@@ -18,13 +18,12 @@ set CommonOptionList {
 				--task-fetch-url /kernel/fs/nfs/base@http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz   #the '#relative path' could be omitted
 				--task-fetch-url /distribution/kernelinstall@   #means disable fetch-url for this task
 				}}
-	bootc			{arg o	help {bootc mode. --bootc[=TAG[,pkgs=,bpkgs=,cmdlurl=,springboard=]];
+	bootc			{arg o	help {bootc mode. --bootc[=TAG[,cmdlurl=,springboard=]];
 				for TAG see also: skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc
-				pkgs=, bpkgs=, cmdlurl= are used to tell Containerfile generator install pkgs and run a script from url
+				cmdlurl= is used to passthrough a script-url to Containerfile generator for doing some customize op
 				springboard= is used to replace the default springboard image
 				--bootc=RHEL-9.6.0-20250316.8
-				--bootc=latest-10.0,pkgs=expect/tmux/wireshark
-				--bootc=latest-10.1,pkgs=expect/nfs-utils,bpkgs=$mr_build_repo,cmdlurl=http://x.y.z/a/b/c/my.sh
+				--bootc=latest-10.0,cmdlurl=http://x.y.z/a/b/c/my.sh
 				--bootc=latest-9.6,springboard=images.paas.redhat.com/bootc/rhel-bootc:latest-9.6
 				}}
 	bootc-direct		{arg y	help {bootc mode. --bootc-direct=image_url; deploy user's own bootc image directly
