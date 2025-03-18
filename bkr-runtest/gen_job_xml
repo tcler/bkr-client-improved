@@ -984,6 +984,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 
 				# distro install
+				if ![info exist distroBuild] { set distroBuild {} }
 				if {[string length $distroBuild] > 1 && ![info exist Opt(bootc)]} {
 					lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
 				}
