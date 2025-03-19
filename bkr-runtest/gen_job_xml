@@ -1307,7 +1307,7 @@ command -v extract.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/extract.
 								set downloaddir "/var/cache/nrestraint/fetch-uri/$rpath"
 								set extractdir "/mnt/tests/$orig_rpath"
 								set _cmd "mkdir -p $downloaddir; curl-download.sh $downloaddir $uri || rm $downloaddir/$fname"
-								set _cmd2 "extract.sh $downloaddir/$fname $extractdir $fname; echo \"{run} ls -lh $extractdir/$fname\"; ls -lh $extractdir/$fname;"
+								set _cmd2 "extract.sh $downloaddir/$fname $extractdir $fname && touch $extractdir/$fname/fetch.done; echo \"{run} ls -lh $extractdir/$fname\"; ls -lh $extractdir/$fname;"
 								append _ksfContent "_cmd='${_cmd}';\necho {eval} \$_cmd;\n\eval \$_cmd\n"
 								append _ksfContent "_cmd2='${_cmd2}';\necho {eval} \$_cmd2;\n\eval \$_cmd2\n"
 								append _ksfContent "cmd='ls -lh $downloaddir'; echo {run} \$cmd; \$cmd;\n"
