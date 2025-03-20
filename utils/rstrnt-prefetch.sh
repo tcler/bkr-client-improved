@@ -2,7 +2,6 @@
 
 fetch_url() {
 	local uri=$1
-	[[ "$uri" = *gitlab ]] && uri=$(echo "$uri"|sed -r 's/(\?.*)?$//')
 	if [[ -n "$uri" ]]; then
 		echo "{debug} processing '$uri'" >&2
 		local urifields=$(parseurl.sh "$uri")
@@ -32,6 +31,7 @@ fetch_url() {
 	fi
 }
 
-for url; do
+urls=$(for url; do read _url fragment <<<"${url/\#/ }"; echo $_url; done | sort -u)
+for url in $urls; do
 	fetch_url "$url"
 done
