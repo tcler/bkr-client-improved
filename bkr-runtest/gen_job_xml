@@ -1278,9 +1278,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 						}
 
 						set _ksfContent "%post --log=/root/ks-fetch-uri.log\n"
-						append _ksfContent "yum install -y bzip2 xz
-command -v curl-download.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/curl-download.sh ${LOOKASIDE_BASE_URL}/kiss-vm-ns/utils/curl-download.sh; chmod +x /bin/curl-download.sh; }
-command -v extract.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/extract.sh ${LOOKASIDE_BASE_URL}/kiss-vm-ns/utils/extract.sh; chmod +x /bin/extract.sh; }\n"
+						append _ksfContent "yum install -y bzip2 xz\n"
 						foreach taskrepo [lsort -unique $testRepoList] {
 							lassign [gettask_uri_and_opts $taskrepo ""] uri _uopts
 							if {[info exists ::Opt(autopath)]} {
@@ -1292,25 +1290,8 @@ command -v extract.sh || { curl -Lks --retry 64 --retry-delay 2 -o /bin/extract.
 								set uri [regsub {(\?.*)?$} $uri {}]
 							}
 							if {$uri ne ""} {
-								append _ksfContent "#$uri\n"
-								set duri [uri::split $uri]
-								set host [dict get $duri host]
-								set path [dict get $duri path]
-								set fname [file tail $path]
-								set rpath "$host/[file dirname $path]"
-								set orig_rpath $rpath
-								set dquery [queryStringToDict [dict get $duri query]]
-								if {[dict exists $dquery path]} {
-									set qpath [dict get $dquery path]
-									append rpath "/$qpath"
-								}
-								set downloaddir "/var/cache/nrestraint/fetch-uri/$rpath"
-								set extractdir "/mnt/tests/$orig_rpath"
-								set _cmd "mkdir -p $downloaddir; curl-download.sh $downloaddir $uri || rm $downloaddir/$fname"
-								set _cmd2 "extract.sh $downloaddir/$fname $extractdir $fname && touch $extractdir/$fname/fetch.done; echo \"{run} ls -lh $extractdir/$fname\"; ls -lh $extractdir/$fname;"
-								append _ksfContent "_cmd='${_cmd}';\necho {eval} \$_cmd;\n\eval \$_cmd\n"
-								append _ksfContent "_cmd2='${_cmd2}';\necho {eval} \$_cmd2;\n\eval \$_cmd2\n"
-								append _ksfContent "cmd='ls -lh $downloaddir'; echo {run} \$cmd; \$cmd;\n"
+								append _ksfContent "echo {run} rstrnt-prefetch.sh $uri\n"
+								append _ksfContent "rstrnt-prefetch.sh $uri\n"
 								append _ksfContent "echo ----------------------------------------------------------------;\n"
 							}
 						}

@@ -462,6 +462,9 @@ foreach {tkey tvalue} [array get TestGroup] {
 				} else {
 					lmap h $hostlist {exec sed -i /$h/d $env(HOME)/.ssh/known_hosts >@stdout 2>@stderr}
 					lmap h $hostlist {exec ssh root@$h {pkill rstrnt-sync; rm -rf /tmp/testmark /var/lib/restraint/rstrnt_events; pstree -pA "$(ps axf|awk '/bash.-l..usr.share.restrain[t]/{print $1}')" | grep -o '([0-9]\+)' | sed 's/[()]//g' | xargs kill -9 2>/dev/null||:} 2> /dev/null}
+					set urls [exec sed -nr {/.*<fetch.url="(.*)" *\/>/{s//\1/;p}} $xmlf]
+					puts "{debug} urls: $urls"
+					lmap h $hostlist "exec -ignorestderr ssh root@\$h {rstrnt-prefetch.sh $urls || :}"
 					puts "{debug} restraint -v --timeout 30 --job $xmlf $hostOpt"
 					exec bash -c "restraint -v --timeout 30 --job $xmlf $hostOpt || :" >@stdout 2>@stderr
 				}
