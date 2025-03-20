@@ -14,26 +14,25 @@ installBrew2() {
 	#https://mojo.redhat.com/docs/DOC-1024827
 	#https://docs.engineering.redhat.com/display/RCMDOC/RCM+Tools+Release+Guide
 	urls="
-	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-server.repo
-	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-client.repo
-	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-6-workstation.repo
 	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-server.repo
 	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-client.repo
 	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-7-workstation.repo
 	curl -L -O http://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-8-baseos.repo
-	curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
+	curl -L -O https://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-9-baseos.repo
+	curl -L -O https://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-rhel-10-baseos.repo
+	curl -L -O https://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-fedora.repo
 	"
 
 	local verx=$(rpm -E %rhel)
 
 	pushd /etc/yum.repos.d
-	baseUrl=http://download.devel.redhat.com/rhel-$verx
+	baseUrl=http://download.devel.redhat.com/rel-eng
 	curl -L $baseUrl -s | grep -q 404 &&
-		baseUrl=http://download.eng.pek2.redhat.com/rhel-$verx
+		baseUrl=http://download.eng.pek2.redhat.com/rel-eng
 	if [[ $(rpm -E %rhel) != %rhel ]]; then
 		case $verx in
 		# https://docs.engineering.redhat.com/pages/viewpage.action?spaceKey=RCMDOC&title=RCM+Tools+Release+Guide
-		[67])
+		[7])
 			type=Workstation
 			pkglist='koji brewkoji'
 			;;
@@ -42,7 +41,7 @@ installBrew2() {
 			pkglist='python3-brewkoji brewkoji python3-pycurl'
 			;;
 		esac
-		repourl=$baseUrl/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-$verx/compose/$type/$(uname -m)/os
+		repourl=$baseUrl/RCMTOOLS/latest-RCMTOOLS-2-RHEL-$verx/compose/$type/$(uname -m)/os
 		cat <<-EOF >/etc/yum.repos.d/rcm-tools-2.repo
 		[rcm-tools]
 		name=RCM TOOLS 2
@@ -50,30 +49,31 @@ installBrew2() {
 		enabled=1
 		gpgcheck=0
 		EOF
-		yum install --setopt=sslverify=0 -y $pkglist || rm rcm-tools-*.repo
+		if ! yum install --setopt=sslverify=0 --disablerepo=* --enablerepo=rcm-tools -y $pkglist ;then
+			rm rcm-tools-*.repo
+			#fixme: remove this if branch after rhel-10/rcmtools is available
+			if [[ "$verx" = 10 ]]; then
+				urlpath=${baseUrl/rhel-10/rhel-9}/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-9/compose/BaseOS/x86_64/os/Packages
+				yum install -y python3-requests
+				rpm -ivh --force --nodeps \
+					${urlpath}/{python3-brewkoji-1.31-1.el9.noarch.rpm,brewkoji-1.31-1.el9.noarch.rpm}
+			fi
 
-		#fixme: remove this if branch after rhel-10/rcmtools is available
-		if [[ "$verx" = 10 ]]; then
-			urlpath=${baseUrl/rhel-10/rhel-9}/rel-eng/RCMTOOLS/latest-RCMTOOLS-2-RHEL-9/compose/BaseOS/x86_64/os/Packages
-			yum install -y python3-requests
-			rpm -ivh --force --nodeps \
-				${urlpath}/{python3-brewkoji-1.31-1.el9.noarch.rpm,brewkoji-1.31-1.el9.noarch.rpm}
-		fi
+			#install kojo
+			[[ $verx -ge 8 ]] && {
+				_verx=$verx
+				#fixme: remove this line after rhel-10/rcmtools is available
+				[[ "$verx" = 10 ]] && _verx=9
+				urlpath=https://kojipkgs.fedoraproject.org/packages/koji/1.34.0/3.el${_verx}/noarch
+				rpm -ivh --force --nodeps \
+					${urlpath}/{koji-1.34.0-3.el${_verx}.noarch.rpm,python3-koji-1.34.0-3.el${_verx}.noarch.rpm}
+			}
 
-		#install kojo
-		[[ $verx -ge 8 ]] && {
-			_verx=$verx
 			#fixme: remove this line after rhel-10/rcmtools is available
-			[[ "$verx" = 10 ]] && _verx=9
-			urlpath=https://kojipkgs.fedoraproject.org/packages/koji/1.34.0/3.el${_verx}/noarch
-			rpm -ivh --force --nodeps \
-				${urlpath}/{koji-1.34.0-3.el${_verx}.noarch.rpm,python3-koji-1.34.0-3.el${_verx}.noarch.rpm}
-		}
-
-		#fixme: remove this line after rhel-10/rcmtools is available
-		[[ "$verx" = 10 ]] && cp -rf /usr/lib/python3.9/site-packages/* /usr/lib/python3.12/site-packages/.
+			[[ "$verx" = 10 ]] && cp -rf /usr/lib/python3.9/site-packages/* /usr/lib/python3.12/site-packages/.
+		fi
 	elif [[ $(rpm -E %fedora) != %fedora ]]; then
-		curl -L -O http://download.devel.redhat.com/rel-eng/internal/rcm-tools-fedora.repo
+		curl -L -O https://download.devel.redhat.com/rel-eng/RCMTOOLS/rcm-tools-fedora.repo
 		yum install --setopt=sslverify=0 -y koji brewkoji || rm rcm-tools-*.repo
 	fi
 	popd
