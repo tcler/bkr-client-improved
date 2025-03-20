@@ -299,6 +299,7 @@ if {[info exist Opt(bootc-direct)]} {
 	}
 	unset -nocomplain Opt(bootc)
 	set default-ksf "/dev/null"
+	set bootc-mode yes
 }
 if {[info exist Opt(bootc)]} {
 	set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
@@ -315,6 +316,7 @@ if {[info exist Opt(bootc)]} {
 			set SpringBoardImageUrl [regsub -expanded {^springboard.*=} $cparam {}]
 		}
 	}
+	set bootc-mode yes
 }
 
 set ksfContent {}
@@ -1080,7 +1082,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					lappend params KERNELARGVARIANT=up KERNELARGNAME=kernel KERNELARGVERSION=[string map {"kernel-" {}} $knvr] KPATCHNVR=$kpnvr KPATCHURL=$kpurl
 					lappend insertTasks "/distribution/kpatchinstall $params"
 				}
-				if {[llength $brewBuildList] > 0} {
+				if {[llength $brewBuildList] > 0 && ![info exist bootc-mode]} {
 					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList} AVC_ERROR=+no_avc_check"
 				}
 
