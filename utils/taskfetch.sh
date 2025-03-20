@@ -37,7 +37,9 @@ _install_requirements() {
 	hash -r
 	command -v curl-download.sh || _urls+=(${LOOKASIDE_BASE_URL}/kiss-vm-ns/utils/curl-download.sh)
 	command -v extract.sh       || _urls+=(${LOOKASIDE_BASE_URL}/kiss-vm-ns/utils/extract.sh)
+	command -v parseurl.sh      || _urls+=(${LOOKASIDE_BASE_URL}/kiss-vm-ns/utils/parseurl.sh)
 	command -v taskname2url.py  || _urls+=(${LOOKASIDE_BASE_URL}/bkr-client-improved/utils/taskname2url.py)
+	command -v rstrnt-prefetch.sh || _urls+=(${LOOKASIDE_BASE_URL}/bkr-client-improved/utils/rstrnt-prefetch.sh)
 	(cd /usr/bin && for _url in "${_urls[@]}"; do curl -Ls --retry 64 --retry-delay 2 -O $_url; chmod +x ${_url##*/}; done)
 
 	local _dburl=${LOOKASIDE_BASE_URL}/bkr-client-improved/conf/fetch-url.ini
