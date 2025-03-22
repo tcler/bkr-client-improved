@@ -167,11 +167,11 @@ arches=${arches:-x86_64}
 [[ "${arches,,}" != all ]] && archOpt="--arches ${arches//,/ }"
 echo -e "\033[1;34m{DEBUG} run: rhpkg scratch-build --srpm $srpmfile $archOpt\033[0m";
 [[ "$dryRun" = yes ]] && exit 0
-rhpkg scratch-build --srpm $srpmfile $archOpt |& tee build-screen.log
+buildScreenLog=$(rhpkg scratch-build --srpm $srpmfile $archOpt |& tee /dev/tty)
 
 #get build state
 prBuildInfoFile=/tmp/rstrnt-prbuild-${_infix}-${target}.info
-brewTaskID=$(awk '/Created task:/{print $NF}' build-screen.log)
+brewTaskID=$(awk '/Created task:/{print $NF}' <<<"$buildScreenLog")
 while :; do
 	brew taskinfo -r $brewTaskID &>$prBuildInfoFile
 	buildStat=$(awk '/^State:/{print $NF}' $prBuildInfoFile)
