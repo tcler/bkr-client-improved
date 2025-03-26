@@ -1292,8 +1292,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 								set uri [regsub {(\?.*)?$} $uri {}]
 							}
 							if {$uri ne ""} {
-								append _ksfContent "echo {run} rstrnt-prefetch.sh $uri\n"
-								append _ksfContent "rstrnt-prefetch.sh $uri\n"
+								append _ksfContent "echo {run} rstrnt-prefetch.sh -fetch.done.mark $uri\n"
+								append _ksfContent "rstrnt-prefetch.sh -fetch.done.mark $uri\n"
 								append _ksfContent "echo ----------------------------------------------------------------;\n"
 							}
 						}
