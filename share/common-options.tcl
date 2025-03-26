@@ -21,7 +21,7 @@ set CommonOptionList {
 	bootc			{arg o	help {bootc mode. --bootc[=TAG[,cmdlurl=,springboard=]];
 				for TAG see also: skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc
 				cmdlurl= is used to passthrough a script-url to Containerfile generator for doing some customize op
-				springboard= is used to replace the default springboard image
+				springboard= is used to replace the default springboard image, if sprintboard=no intend switch from package mode
 				--bootc=RHEL-9.6.0-20250316.8
 				--bootc=latest-10.0,cmdlurl=http://x.y.z/a/b/c/my.sh
 				--bootc=latest-9.6,springboard=images.paas.redhat.com/bootc/rhel-bootc:latest-9.6

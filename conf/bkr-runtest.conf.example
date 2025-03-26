@@ -27,3 +27,5 @@ set WB_FORMAT {[%T] [%P@%D %H:%N] %C%S/%s %G%O}
 #set Harness beah # or restraint
 
 set OSInstaller /distribution/check-install
+#set defaultSwitch2BootcFromImageModeTask /network-qe/bootc-beaker/switch-to-rhel
+#set defaultSwitch2BootcFromPkgModeTask /kernel-qe/networking/netqe_switch_to_rhel
