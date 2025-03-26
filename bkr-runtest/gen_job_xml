@@ -305,7 +305,7 @@ if {[info exist Opt(bootc-direct)]} {
 	}
 	unset -nocomplain Opt(bootc)
 	set default-ksf "/dev/null"
-	set bootc-mode yes
+	set bootc-mode fromImageModeDirect
 }
 if {[info exist Opt(bootc)]} {
 	set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
@@ -314,6 +314,7 @@ if {[info exist Opt(bootc)]} {
 	set Opt(bootc) [lindex $bootcattrs 0]
 	lassign [lrepeat 3 ""] ContainerPkgs ContainerBPkgs ContainerScriptUrl
 
+	set bootc-mode fromImageMode
 	set ContainerfileParams [lrange $bootcattrs 1 end]
 	foreach cparam $ContainerfileParams {
 		if [regexp -- {^(cmdl?|script)url=} $cparam] {
@@ -325,10 +326,10 @@ if {[info exist Opt(bootc)]} {
 					set Switch2BootcTask $defaultSwitch2BootcFromPkgModeTask
 				}
 				set default-ksf "/dev/null"
+				set bootc-mode fromPkgMode
 			}
 		}
 	}
-	set bootc-mode yes
 }
 if {![info exist Switch2BootcTask]} {
 	set Switch2BootcTask $defaultSwitch2BootcFromImageModeTask
@@ -449,7 +450,7 @@ if {[llength $DISTRO_L] == 0 && [llength $FAMILY_L] == 0} {
 	exit 1
 }
 
-if {[info exist Opt(bootc)]} {
+if {[info exist bootc-mode] && ${bootc-mode} == "fromImageMode"} {
 	set DISTRO_L {Fedora-41}
 	set DISTRO_L {RHEL-9.5.0}
 }
