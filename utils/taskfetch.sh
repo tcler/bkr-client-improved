@@ -123,7 +123,7 @@ _install_task() {
 	if [[ -L ${repopath} && "$(readlink -f $repopath)" = "${REPO_PATH}" && -d ${fpath} ]]; then
 		echo "${INDENT}{debug} install pkg dependencies of /$_task($fpath)" >&2
 		_install_pkg_requires $fpath
-		echo $fpath
+		[[ ${#INDENT} -le 16 ]] && echo $fpath || echo "{Warn} dependency chain too long, check if there is loop dependence" >&2
 		return 0
 	fi
 
