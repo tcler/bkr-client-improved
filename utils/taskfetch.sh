@@ -89,7 +89,7 @@ _get_package_requires() {
 	pushd "$_fpath" &>/dev/null
 	{
 	if [[ -f metadata ]]; then
-		sed -rn '/^ *(soft)?dependencies/I{s/.*=//; s/\;/ /; p}' metadata
+		sed -rn '/^ *(soft)?dependencies/I{s/.*=//; s/\;/ /g; p}' metadata
 	elif test -f Makefile; then
 		sed -nr '/^.*"Requires:\s*([^"()]+)" .*$/{s//\1/;s/ +/\n/g;p}' Makefile |
 		grep -E -v '^kernel-kernel-|^(.+)-CoreOS-\1-|^/';
