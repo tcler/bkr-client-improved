@@ -87,10 +87,23 @@ _get_task_requires() {
 _get_package_requires() {
 	local _fpath=$1
 	pushd "$_fpath" &>/dev/null
-	{ sed -nr '/^.*"Requires:\s*([^"()]+)" .*$/{s//\1/;s/ +/\n/g;p}' $_fpath/Makefile |
+	{
+	if [[ -f metadata ]]; then
+		sed -rn '/^ *(soft)?dependencies/I{s/.*=//; s/\;/ /; p}' metadata
+	elif test -f Makefile; then
+		sed -nr '/^.*"Requires:\s*([^"()]+)" .*$/{s//\1/;s/ +/\n/g;p}' Makefile |
 		grep -E -v '^kernel-kernel-|^(.+)-CoreOS-\1-|^/';
+	fi
 	} 2>/dev/null | sort -u | xargs
 	popd &>/dev/null
+}
+_install_pkg_requires() {
+	local pkgs=$(_get_package_requires $fpath)
+	pkgs=$(rpm -q $pkgs 2>/dev/null | awk '/is.not.installed/{print $2}')
+	[[ -n "$pkgs" ]] && {
+		echo "${INDENT}{run} $pkgInstall $pkgs &>>${_logf:-/dev/null}" >&2
+		$pkgInstall $pkgs &>>${_logf:-/dev/null}
+	}
 }
 
 _install_task() {
@@ -108,6 +121,9 @@ _install_task() {
 	fpath="$repopath/$rpath"
 
 	if [[ -L ${repopath} && "$(readlink -f $repopath)" = "${REPO_PATH}" && -d ${fpath} ]]; then
+		echo "${INDENT}{debug} install pkg dependencies of /$_task($fpath)" >&2
+		_install_pkg_requires $fpath
+		echo $fpath
 		return 0
 	fi
 
@@ -177,11 +193,7 @@ _install_task() {
 	echo -n "$url" >$fpath/.url
 	echo -n "$$" >$fpath/.pid
 	echo "${INDENT}{debug} install pkg dependencies of /$_task($fpath)" >&2
-	pkgs=$(_get_package_requires $fpath)
-	[[ -n "$pkgs" ]] && {
-		echo "${INDENT}{run} $pkgInstall $pkgs &>>${_logf:-/dev/null}" >&2
-		$pkgInstall $pkgs &>>${_logf:-/dev/null}
-	}
+	_install_pkg_requires $fpath
 	echo $fpath
 	return 0
 }
