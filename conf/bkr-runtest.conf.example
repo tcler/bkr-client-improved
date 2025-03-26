@@ -28,4 +28,4 @@ set WB_FORMAT {[%T] [%P@%D %H:%N] %C%S/%s %G%O}
 
 set OSInstaller /distribution/check-install
 #set defaultSwitch2BootcFromImageModeTask /network-qe/bootc-beaker/switch-to-rhel
-#set defaultSwitch2BootcFromPkgModeTask /kernel-qe/networking/netqe_switch_to_rhel
+#set defaultSwitch2BootcFromPkgModeTask /network-qe/bootc-beaker/switch-pkg-to-image-mode

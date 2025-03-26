@@ -88,7 +88,7 @@ if {![info exist defaultSwitch2BootcFromImageModeTask]} {
 	set defaultSwitch2BootcFromImageModeTask /network-qe/bootc-beaker/switch-to-rhel
 }
 if {![info exist defaultSwitch2BootcFromPkgModeTask]} {
-	set defaultSwitch2BootcFromPkgModeTask /kernel-qe/networking/netqe_switch_to_rhel
+	set defaultSwitch2BootcFromPkgModeTask /network-qe/bootc-beaker/switch-pkg-to-image-mode
 }
 
 set OptionList {
