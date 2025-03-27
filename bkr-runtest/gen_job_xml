@@ -308,27 +308,32 @@ if {[info exist Opt(bootc-direct)]} {
 	set bootc-mode fromImageModeDirect
 }
 if {[info exist Opt(bootc)]} {
+	set bootc-mode fromImageMode
 	set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
+	set bootcparams [split $Opt(bootc) ","]
+	set Opt(bootc) ""
 	if {[string length $Opt(bootc)] == 0} { set Opt(bootc) "latest-10.0" }
-	set bootcattrs [split $Opt(bootc) ","]
-	set Opt(bootc) [lindex $bootcattrs 0]
 	lassign [lrepeat 3 ""] ContainerPkgs ContainerBPkgs ContainerScriptUrl
 
-	set bootc-mode fromImageMode
-	set ContainerfileParams [lrange $bootcattrs 1 end]
-	foreach cparam $ContainerfileParams {
+	foreach cparam $bootcparams {
 		if [regexp -- {^(cmdl?|script)url=} $cparam] {
 			set ContainerScriptUrl [regsub -expanded {^(cmdl?|script)url=} $cparam {}]
 		} elseif [regexp -- {^springboard.*=} $cparam] {
 			set SpringBoardImageUrl [regsub -expanded {^springboard.*=} $cparam {}]
 			if {$SpringBoardImageUrl == "no"} {
-				if {![info exist Switch2BootcTask]} {
-					set Switch2BootcTask $defaultSwitch2BootcFromPkgModeTask
-				}
-				set default-ksf "/dev/null"
 				set bootc-mode fromPkgMode
 			}
+		} elseif {$cparam == "frompkg"} {
+			set bootc-mode fromPkgMode
+		} elseif [regexp -- {^(RHEL|latest)} $cparam] {
+			set Opt(bootc) $cparam
 		}
+	}
+	if {${bootc-mode} == "fromPkgMode"} {
+		if {![info exist Switch2BootcTask]} {
+			set Switch2BootcTask $defaultSwitch2BootcFromPkgModeTask
+		}
+		set default-ksf "/dev/null"
 	}
 }
 if {![info exist Switch2BootcTask]} {

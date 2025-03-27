@@ -18,13 +18,15 @@ set CommonOptionList {
 				--task-fetch-url /kernel/fs/nfs/base@http://fs-qe.usersys.redhat.com/ftp/pub/jiyin/kernel-test.tgz   #the '#relative path' could be omitted
 				--task-fetch-url /distribution/kernelinstall@   #means disable fetch-url for this task
 				}}
-	bootc			{arg o	help {bootc mode. --bootc[=TAG[,cmdlurl=,springboard=]];
+	bootc			{arg o	help {bootc mode. --bootc[=TAG|cmdlurl=<$url [params]>|frompkg|springboard=<$url>];
 				for TAG see also: skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc
-				cmdlurl= is used to passthrough a script-url to Containerfile generator for doing some customize op
-				springboard= is used to replace the default springboard image, if sprintboard=no intend switch from package mode
-				--bootc=RHEL-9.6.0-20250316.8
+				cmdlurl=: is used to passthrough a script-url to Containerfile generator for doing some customize op
+				springboard=: is used to replace the default springboard image, if sprintboard=no intend switch from package mode
+				frompkg: intend switch from package mode
 				--bootc=latest-10.0,cmdlurl=http://x.y.z/a/b/c/my.sh
+				--bootc="latest-10.0,cmdlurl=http://x.y.z/a/b/c/my2nd.sh param1 param2"
 				--bootc=latest-9.6,springboard=images.paas.redhat.com/bootc/rhel-bootc:latest-9.6
+				--bootc=RHEL-9.6.0-20250325.8,frompkg
 				}}
 	bootc-direct		{arg y	help {bootc mode. --bootc-direct=image_url; deploy user's own bootc image directly
 				--bootc-direct=quay.io/user/image-mode-rhel9.6-beaker
