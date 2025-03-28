@@ -29,3 +29,4 @@ set WB_FORMAT {[%T] [%P@%D %H:%N] %C%S/%s %G%O}
 set OSInstaller /distribution/check-install
 #set defaultSwitch2BootcFromImageModeTask /network-qe/bootc-beaker/switch-to-rhel
 #set defaultSwitch2BootcFromPkgModeTask /network-qe/bootc-beaker/switch-pkg-to-image-mode
+#set defaultImageTag latest-9.6

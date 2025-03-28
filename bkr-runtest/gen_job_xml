@@ -90,6 +90,9 @@ if {![info exist defaultSwitch2BootcFromImageModeTask]} {
 if {![info exist defaultSwitch2BootcFromPkgModeTask]} {
 	set defaultSwitch2BootcFromPkgModeTask /network-qe/bootc-beaker/switch-pkg-to-image-mode
 }
+if {![info exist defaultImageTag]} {
+	set defaultImageTag {latest-9.6}
+}
 
 set OptionList {
   "  Options:" {
@@ -312,7 +315,7 @@ if {[info exist Opt(bootc)]} {
 	set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
 	set bootcparams [split $Opt(bootc) ","]
 	set Opt(bootc) ""
-	if {[string length $Opt(bootc)] == 0} { set Opt(bootc) "latest-10.0" }
+	if {[string length $Opt(bootc)] == 0} { set Opt(bootc) "$defaultImageTag" }
 	lassign [lrepeat 3 ""] ContainerPkgs ContainerBPkgs ContainerScriptUrl
 
 	foreach cparam $bootcparams {
