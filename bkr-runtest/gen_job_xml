@@ -300,6 +300,7 @@ proc fetchtag {uri} {
 	}
 }
 
+set bootc-mode no
 set default-ksf "/etc/beaker/default-ks.cfg"
 if {[info exist Opt(bootc-direct)]} {
 	if {[string length $Opt(bootc-direct)] == 0} {
@@ -458,7 +459,7 @@ if {[llength $DISTRO_L] == 0 && [llength $FAMILY_L] == 0} {
 	exit 1
 }
 
-if {[info exist bootc-mode] && ${bootc-mode} == "fromImageMode"} {
+if {${bootc-mode} == "fromImageMode"} {
 	set DISTRO_L {Fedora-41}
 	set DISTRO_L {RHEL-9.5.0}
 }
@@ -1106,7 +1107,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					lappend params KERNELARGVARIANT=up KERNELARGNAME=kernel KERNELARGVERSION=[string map {"kernel-" {}} $knvr] KPATCHNVR=$kpnvr KPATCHURL=$kpurl
 					lappend insertTasks "/distribution/kpatchinstall $params"
 				}
-				if {[llength $brewBuildList] > 0 && ![info exist bootc-mode]} {
+				if {[llength $brewBuildList] > 0 && ${bootc-mode} == "no"} {
 					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList} AVC_ERROR=+no_avc_check"
 				}
 
@@ -1260,7 +1261,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					}
 
 					set testRepoList [list]
-					if {[info exist Opt(keepchanges)] || $nrestraint eq "yes"} {
+					if {![string match fromImage* ${bootc-mode}] && ([info exist Opt(keepchanges)] || $nrestraint eq "yes")} {
 						array set repoUrls {}
 						array set repoRpaths {}
 						set taskList [list]
