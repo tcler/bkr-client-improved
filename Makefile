@@ -16,7 +16,7 @@ install install_runtest: _isroot _rh_intranet yqinstall install_kiss_vm_ns
 	  fi; \
 	fi
 	@./utils/beaker-client_install.sh
-	@yum install -y restraint-rhts restraint-client $$(yum -h|grep -o .--allowerasing)
+	@yum install -y restraint-rhts restraint-client --allowerasing
 	@rpm -q expect >/dev/null || yum install -y expect #package that in default RHEL repo
 	@yum install -y tcllib #epel
 	@yum install -y tdom || yum-install-from-fedora.sh tdom || :
@@ -60,8 +60,9 @@ install_robot: _isroot install_runtest _install_require
 _install_web: _isroot _web_require
 	#install webfront
 	[ -d /opt/wub2 ] || { \
-	yum install -y svn nmap-ncat &>/dev/null; \
-	svn export https://github.com/tcler/wub/trunk /opt/wub2 >/dev/null; }
+		yum install -y nmap-ncat &>/dev/null; \
+		https_proxy=$(HTTP_PROXY) curl -Lskf https://github.com/tcler/wub/archive/refs/heads/master.tar.gz | \
+		tar -C /opt -zxf - && mv -T /opt/wub-master /opt/wub2; }
 	cd bkr-test-robot/www2; for f in *; do rm -fr /opt/wub2/docroot/$$f; done
 	cp -rf -d bkr-test-robot/www2/* /opt/wub2/docroot/.
 	cd /opt/wub2; sed -e 's;redirect /wub/;redirect /trms/;' \
@@ -87,7 +88,18 @@ _rh_intranet:
 _isroot:
 	@test `id -u` = 0 || { echo "[Warn] need root permission" >&2; exit 1; }
 
-_web_require:
+_firewall:
+	 - { firewall-cmd --permanent --add-port=8080/tcp; \
+	 	firewall-cmd --permanent --add-service=http; \
+	 	firewall-cmd --permanent --add-service=https; \
+	 	firewall-cmd --permanent --add-service=ftp; \
+	 	firewall-cmd --reload; }
+	 - { firewall-cmd --permanent --add-service=nfs; \
+	 	firewall-cmd --permanent --add-service=mountd; \
+	 	firewall-cmd --permanent --add-service=rpc-bind; \
+	 	firewall-cmd --reload; }
+
+_web_require: _firewall
 	@test `rpm -E %fedora` != %fedora || test `rpm -E '%rhel'` -ge 8 || \
 		{ echo "[Warn] only support Fedora and RHEL-8+" >&2; exit 1; }
 
