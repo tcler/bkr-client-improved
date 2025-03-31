@@ -300,9 +300,10 @@ proc fetchtag {uri} {
 	}
 }
 
-set PART_MPS ""
 set bootc-mode no
 set default-ksf "/etc/beaker/default-ks.cfg"
+set PART_MPS ""
+set REPOS ""
 if {[info exist Opt(bootc-direct)]} {
 	if {[string length $Opt(bootc-direct)] == 0} {
 		puts stderr "{Error}: a image url is required by option --bootc-direct"
@@ -978,6 +979,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 						set i 0
 						foreach url $Opt(repo) {
 							repo name=myrepo_[incr i] url=$url -
+							append REPOS "${url},"
 						}
 					}
 				}
@@ -1034,7 +1036,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				if {[info exist Opt(bootc)]} {
 					if {[llength $brewBuildList] > 0} { set ContainerBPkgs $brewBuildList }
 					if [info exist Opt(packages)] { set ContainerPkgs [split $Opt(packages) ",/ "] }
-					lappend insertTasks "$Switch2BootcTask DISTRO_BUILD=$distroBuild BOOTC_TO=$Opt(bootc) {PKGS=$ContainerPkgs} {BPKGS=$ContainerBPkgs} {ScriptUrl=$ContainerScriptUrl} PART_MPS=$PART_MPS KILLTIMEOVERRIDE=345600"
+					lappend insertTasks "$Switch2BootcTask DISTRO_BUILD=$distroBuild BOOTC_TO=$Opt(bootc) {PKGS=$ContainerPkgs} {BPKGS=$ContainerBPkgs} {ScriptUrl=$ContainerScriptUrl} PART_MPS=$PART_MPS REPOS=$REPOS KILLTIMEOVERRIDE=345600"
 				}
 
 				# command before kernelinstall
