@@ -27,8 +27,7 @@ installBrew2() {
 
 	pushd /etc/yum.repos.d
 	baseUrl=http://download.devel.redhat.com/rel-eng
-	curl -L $baseUrl -s | grep -q 404 &&
-		baseUrl=http://download.eng.pek2.redhat.com/rel-eng
+	curl -L $baseUrl -s | grep -q 404 && baseUrl=http://download.eng.pek2.redhat.com/rel-eng
 	if [[ $(rpm -E %rhel) != %rhel ]]; then
 		case $verx in
 		# https://docs.engineering.redhat.com/pages/viewpage.action?spaceKey=RCMDOC&title=RCM+Tools+Release+Guide
@@ -47,9 +46,16 @@ installBrew2() {
 		name=RCM TOOLS 2
 		baseurl=$repourl
 		enabled=1
+		skip_if_unavailable=1
 		gpgcheck=0
 		EOF
-		if ! yum install --setopt=sslverify=0 --disablerepo=* --enablerepo=rcm-tools -y $pkglist ;then
+		# python3.12dist, python3-requests-gssapi need by other repo
+		if [[ $verx == 10 ]]; then
+			local disanblerepo=''
+		else
+			local disanblerepo='--disablerepo=*'
+		fi
+		if ! yum install --setopt=sslverify=0 ${disanblerepo} --enablerepo=rcm-tools -y $pkglist ;then
 			rm rcm-tools-*.repo
 			#fixme: remove this if branch after rhel-10/rcmtools is available
 			if [[ "$verx" = 10 ]]; then
@@ -90,6 +96,8 @@ which brew &>/dev/null || {
 	OSV=$(rpm -E %rhel)
 	if ! grep -E -q '^!?epel' < <(yum repolist 2>/dev/null); then
 		[[ "$OSV" != "%rhel" ]] && yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-${OSV}.noarch.rpm 2>/dev/null
+		[[ -f /etc/yum.repos.d/epel.repo ]] && sed -i -e '/^\s*skip_if_unavailable\s*=/d' -e '/^\s*enabled\s*=\s*1\s*$/a skip_if_unavailable=1'  /etc/yum.repos.d/epel.repo
+		[[ -f /etc/yum.repos.d/epel-testing.repo ]] && sed -i -e '/^\s*skip_if_unavailable\s*=/d' -e '/^\s*enabled\s*=\s*1\s*$/a skip_if_unavailable=1'  /etc/yum.repos.d/epel-testing.repo
 	fi
 	yum --setopt=strict=0 --setopt=sslverify=0 install -y koji python3-koji python3-pycurl brewkoji
 }
