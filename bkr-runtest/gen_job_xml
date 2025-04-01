@@ -978,7 +978,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					if [info exist Opt(repo)] {
 						set i 0
 						foreach url $Opt(repo) {
-							repo name=myrepo_[incr i] url=$url -
+							if {"${bootc-mode}" == "no"} {
+								repo name=myrepo_[incr i] url=$url -
+							}
 							append REPOS "${url},"
 						}
 					}
