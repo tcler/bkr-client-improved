@@ -1022,6 +1022,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
 				}
 
+				if ![info exist NVR] { set NVR {} }
 				set brewBuildList ""
 				if {[info exist Opt(dbgk)] && $NVR in {"" "{}"}} {
 					append brewBuildList "-debugk "
@@ -1049,7 +1050,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 
 				# kernelinstall
-				if ![info exist NVR] { set NVR {} }
 				if [llength $NVR_L] {
 					set NVR [lindex $NVR_L 0]
 					if {$NVR in {"" "{}"}} {
