@@ -97,6 +97,19 @@ _get_package_requires() {
 	} 2>/dev/null | sort -u | xargs
 	popd &>/dev/null
 }
+_wait_rpmostree_idle() {
+	stat /run/ostree-booted &>/dev/null || return 0
+	local timeout=60
+	while ((timeout)); do
+		if [[ $(rpm-ostree status -b| grep -i state | awk '{print $2}') != 'idle' ]]; then
+			sleep 1
+			((timeout--))
+		else
+			rpm-ostree status -b
+			break
+		fi
+	done
+}
 _install_pkg_requires() {
 	local pkgs=$(_get_package_requires $fpath)
 	pkgs=$(rpm -q $pkgs 2>/dev/null | awk '/is.not.installed/{print $2}')
@@ -104,6 +117,25 @@ _install_pkg_requires() {
 		echo "${INDENT}{run} $pkgInstall $pkgs &>>${_logf:-/dev/null}" >&2
 		$pkgInstall $pkgs &>>${_logf:-/dev/null}
 	}
+	#check first
+	pkgs=$(rpm -q $pkgs 2>/dev/null | awk '/is.not.installed/{print $2}')
+	if [[ -n "$pkgs" ]]; then
+		for pkgNotFound in $(tail ${_logf} | sed -n '/error: Packages not found:/{s///; s/,/ /g;p}'); do
+			pkgs=$(echo "$pkgs"|grep -v "^${pkgNotFound}$")
+		done
+		echo "${INDENT}{run} $pkgInstall $pkgs again &>>${_logf:-/dev/null}" >&2
+		_wait_rpmostree_idle
+		$pkgInstall $pkgs &>>${_logf:-/dev/null}
+	fi
+	#check second
+	pkgs=$(rpm -q $pkgs 2>/dev/null | awk '/is.not.installed/{print $2}')
+	if [[ -n "$pkgs" ]]; then
+		for pkg in $pkgs; do
+			echo "${INDENT}{run} $pkgInstall $pkg &>>${_logf:-/dev/null}" >&2
+			_wait_rpmostree_idle
+			$pkgInstall $pkg &>>${_logf:-/dev/null}
+		done
+	fi
 }
 
 _install_task() {
