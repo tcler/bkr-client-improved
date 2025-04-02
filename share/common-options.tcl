@@ -27,6 +27,7 @@ set CommonOptionList {
 				--bootc="latest-10.0,cmdlurl=http://x.y.z/a/b/c/my2nd.sh param1 param2"
 				--bootc=latest-9.6,springboard=images.paas.redhat.com/bootc/rhel-bootc:latest-9.6
 				--bootc=RHEL-9.6.0-20250325.8,frompkg
+				--bootc=frompkg,RHEL-9.6.0-20250325.8
 				}}
 	bootc-direct		{arg y	help {bootc mode. --bootc-direct=image_url; deploy user's own bootc image directly
 				--bootc-direct=quay.io/user/image-mode-rhel9.6-beaker
@@ -176,7 +177,6 @@ set CommonOptionList {
 				e.g: --Brew=repo:[$reponame,]baseurl            #install all rpms in yum repo $reponame
 				e.g: --Brew=https://host/path/to/rpms/b.rpm     #install specified rpm from https/http/ftp
 				e.g: --Brew=https://host/path/to/rpms/          #install all rpms in web path https/http/ftp
-				e.g: --Brew=lstdtk             #install latest brew dt kernel
 				e.g: --Brew=lstk               #install latest brew release kernel
 				e.g: --Brew=upk                #install latest brew upstream kernel
 				e.g: --Brew=$build -debugk     #install debug kernel if it's a kernel build
