@@ -42,10 +42,16 @@ _install_requirements() {
 	command -v parseurl.sh      || _urls+=(${LOOKASIDE_BASE_URL}/kiss-vm-ns/utils/parseurl.sh)
 	command -v taskname2url.py  || _urls+=(${LOOKASIDE_BASE_URL}/bkr-client-improved/utils/taskname2url.py)
 	command -v rstrnt-prefetch.sh || _urls+=(${LOOKASIDE_BASE_URL}/bkr-client-improved/utils/rstrnt-prefetch.sh)
-	(cd /usr/bin && for _url in "${_urls[@]}"; do curl -Ls --retry 64 --retry-delay 2 -O $_url; chmod +x ${_url##*/}; done)
+	(
+		cd /usr/bin &&
+		for _url in "${_urls[@]}"; do
+			while ! test -f ${_url##*/}; do curl -Ls --retry 64 --retry-delay 2 -O $_url; done
+			chmod +x ${_url##*/};
+		done
+	)
 
 	local _dburl=${LOOKASIDE_BASE_URL}/bkr-client-improved/conf/fetch-url.ini
-	[[ -f /etc/${_dburl##*/} ]] || (cd /etc && curl -Ls --retry 64 --retry-delay 2 -O ${_dburl})
+	while ! test -f /etc/${_dburl##*/}; do (cd /etc && curl -Ls --retry 64 --retry-delay 2 -O ${_dburl}); done
 }
 
 get_taskname() {
@@ -127,7 +133,7 @@ _install_pkg_requires() {
 	#check first
 	pkgs=$(rpm -q $pkgs 2>/dev/null | awk '/is.not.installed/{print $2}')
 	if [[ -n "$pkgs" ]]; then
-		for pkgNotFound in $(tail ${_logf} | sed -n '/error: Packages not found:/{s///; s/,/ /g;p}'); do
+		for pkgNotFound in $(sed -n '/error: Packages not found:/{s///; s/,/ /g;p}' ${_logf:-/dev/null}); do
 			pkgs=$(echo "$pkgs"|grep -v "^${pkgNotFound}$")
 		done
 		echo "${INDENT}{run} $pkgInstall $pkgs again &>>${_logf:-/dev/null}" >&2
