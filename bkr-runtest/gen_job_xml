@@ -74,6 +74,10 @@ proc get_nrestraint_repo {distro} {
 	return "${::LOOKASIDE_BASE_URL}/beaker-harness-active/[string tolower $osver]"
 }
 
+proc arch_suffix {arch} {
+	return [string map {x86_64 amd64 aarch64 arm64} $arch]
+}
+
 # global var
 array set Opt {}
 array set InvalidOpt {}
@@ -345,11 +349,14 @@ if {![info exist Switch2BootcTask]} {
 	set Switch2BootcTask $defaultSwitch2BootcFromImageModeTask
 }
 if {[info exist bootcTo]} {
-	if {[string length $bootcTo] == 0} { set bootcTo "$defaultImageTag" }
-	puts stderr "{debug}: replace DISTRO with compose-id of bootcTo:$bootcTo"
-	if [string match {latest*} $bootcTo] {
-		set cmdl "skopeo inspect docker://images.paas.redhat.com/bootc/rhel-bootc:$bootcTo | jq -r '.Labels\[\"redhat.compose-id\"\]'"
-		set bootcTo [exec bash -c $cmdl]
+	if {[string length $bootcTo] == 0} {
+		set bootcTo "followDistro"
+	} else {
+		puts stderr "{debug}: replace DISTRO with compose-id of bootcTo:$bootcTo"
+		if [string match {latest*} $bootcTo] {
+			set cmdl "skopeo inspect docker://images.paas.redhat.com/bootc/rhel-bootc:$bootcTo | jq -r '.Labels\[\"redhat.compose-id\"\]'"
+			set bootcTo [exec bash -c $cmdl]
+		}
 	}
 }
 
@@ -466,11 +473,6 @@ if {[llength $DISTRO_L] == 0 && [llength $FAMILY_L] == 0} {
 	puts stderr "Warning: no distro specified, use --distro= or --family= option"
 	Usage stderr
 	exit 1
-}
-
-if {${bootc-mode} == "fromImageMode"} {
-	set DISTRO_L {Fedora-41}
-	set DISTRO_L {RHEL-9.5.0}
 }
 
 #fixme: deprecated, remove
@@ -809,7 +811,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 
 				if {[string length $DISTRO] > 1} {
-				if {${bootc-mode} == "fromPkgMode" && [info exist bootcTo]} { set DISTRO $bootcTo }
+				if {${bootc-mode} ni {"no" "fromImageModeDirect"}} {
+					if {$bootcTo == "followDistro"} { set bootcTo ${DISTRO}-[arch_suffix ${ARCH}] } else { set DISTRO $bootcTo }
+				}
 				distroRequires ! {
 					and ! {
 						if [llength $VARIANT_L] {
@@ -905,9 +909,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 
 				set distroBuild $DISTRO
-				if {[info exist bootcTo]} {
-					set distroBuild $bootcTo
-				}
 				hostRequires ! {
 					and ! {
 						if {[string length $MACHINE] > 0} {

@@ -132,7 +132,11 @@ if [regexp -- {^RH[A-Z]{2}-[0-9]{4}:[0-9]+} $Distro] {
 }
 
 #If Distro is short format
-set Distro [expandDistro $Distro]
+set bootc ""
+if [regexp -- {--bootc} $ForwardOpt] {
+	set bootc "yes"
+}
+set Distro [expandDistro $Distro $bootc]
 if {$Distro == ""} {
 	puts stderr "\[$prog\] Err: distro value is emtpy, please use a valid value. or 's' for restraint Standalone mode"
 	exit 1
@@ -407,7 +411,7 @@ foreach {tkey tvalue} [array get TestGroup] {
 		set testDistro [regsub {.*--?distro=([^ ]+).*} $gset {\1}]
 		set gset [regsub -- {--?distro=([^ ]+)} $gset {}]
 		set gset [regsub -all -- {--?nvr=([^ ]+)} $gset {}]
-		set testDistro [expandDistro $testDistro]
+		set testDistro [expandDistro $testDistro $bootc]
 	}
 
 	set hostOpt {}

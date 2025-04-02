@@ -21,13 +21,14 @@ set CommonOptionList {
 	bootc			{arg o	help {bootc mode. --bootc[=TAG|cmdlurl=<$url [params]>|frompkg|springboard=<$url>];
 				for TAG see also: skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc
 				cmdlurl=: is used to passthrough a script-url to Containerfile generator for doing some customize op
-				springboard=: is used to replace the default springboard image, if sprintboard=no intend switch from package mode
+				springboard=: is used to replace the default springboard image
 				frompkg: intend switch from package mode
-				--bootc=latest-10.0,cmdlurl=http://x.y.z/a/b/c/my.sh
-				--bootc="latest-10.0,cmdlurl=http://x.y.z/a/b/c/my2nd.sh param1 param2"
 				--bootc=latest-9.6,springboard=images.paas.redhat.com/bootc/rhel-bootc:latest-9.6
-				--bootc=RHEL-9.6.0-20250325.8,frompkg
+				--bootc=latest-10.0,cmdlurl=http://x.y.z/a/b/c/my.sh
+				--bootc=frompkg,latest-10.0,"cmdlurl=http://x.y.z/a/b/c/my2nd.sh param1 param2"
 				--bootc=frompkg,RHEL-9.6.0-20250325.8
+				--bootc=frompkg  #if the TAG is missing, will generate according DISTRO pattern. must match result of:
+					skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc
 				}}
 	bootc-direct		{arg y	help {bootc mode. --bootc-direct=image_url; deploy user's own bootc image directly
 				--bootc-direct=quay.io/user/image-mode-rhel9.6-beaker

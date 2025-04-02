@@ -194,7 +194,7 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 	return $WB
 }
 
-proc ::runtestlib::expandDistro {distroStr} {
+proc ::runtestlib::expandDistro {distroStr bootc} {
 	if {$distroStr == ""} {
 		return ""
 	}
@@ -202,17 +202,31 @@ proc ::runtestlib::expandDistro {distroStr} {
 	#If distroStr is short format
 	lappend distrol {*}[split $distroStr ", "]
 	set distronl {}
-	foreach d $distrol {
-		if [regexp -- {^[0-9]+n$} $d] {
-			set d [string map {n {}} $d]
-			if {$d eq "7"} {
-				set pat {RHEL-7.9-updates-[0-9]{8}\.[0-9]+}
-			} else {
-				set pat "RHEL-$d.\[0-9]+(\.\[0-9]+)?-\[0-9]{8}\.\[0-9]+"
+	if {$bootc == "yes"} {
+		foreach d $distrol {
+			if [regexp -- {^[0-9.]+n?$} $d] {
+				set d [string map {n {}} $d]
+				set get_tag_cmd "skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc | jq -r .Tags\[\] | grep RHEL-$d | tail -1 || :"
+				set bootcTo [exec bash -c $get_tag_cmd]
+				set get_compose_cmd "skopeo inspect docker://images.paas.redhat.com/bootc/rhel-bootc:$bootcTo | jq -r '.Labels\[\"redhat.compose-id\"\]' || :"
+				set d [exec bash -c $get_compose_cmd]
+				if {$d == ""} { set d {followImageTag}}
 			}
-			set d [exec bash -c "distro-compose -dlist|grep -E '$pat'|head -1; :"]
-		} elseif [regexp -- {^(alt-)?[0-9]} $d] { set d [exec bash -c "getLatestRHEL $d; :"] }
-		lappend distronl ${d}
+			lappend distronl ${d}
+		}
+	} else {
+		foreach d $distrol {
+			if [regexp -- {^[0-9]+n$} $d] {
+				set d [string map {n {}} $d]
+				if {$d eq "7"} {
+					set pat {RHEL-7.9-updates-[0-9]{8}\.[0-9]+}
+				} else {
+					set pat "RHEL-$d.\[0-9]+(\.\[0-9]+)?-\[0-9]{8}\.\[0-9]+"
+				}
+				set d [exec bash -c "distro-compose -dlist|grep -E '$pat'|head -1; :"]
+			} elseif [regexp -- {^(alt-)?[0-9]} $d] { set d [exec bash -c "getLatestRHEL $d; :"] }
+			lappend distronl ${d}
+		}
 	}
 	set distroStr [join $distronl ,]
 	return $distroStr
