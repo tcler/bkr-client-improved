@@ -314,11 +314,10 @@ if {[info exist Opt(bootc-direct)]} {
 	set bootc-mode fromImageModeDirect
 }
 if {[info exist Opt(bootc)]} {
+	set bootcTo ""
 	set bootc-mode fromImageMode
 	set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
 	set bootcparams [split $Opt(bootc) ","]
-	set Opt(bootc) ""
-	if {[string length $Opt(bootc)] == 0} { set Opt(bootc) "$defaultImageTag" }
 	lassign [lrepeat 3 ""] ContainerPkgs ContainerBPkgs ContainerScriptUrl
 
 	foreach cparam $bootcparams {
@@ -332,7 +331,7 @@ if {[info exist Opt(bootc)]} {
 		} elseif {$cparam == "frompkg"} {
 			set bootc-mode fromPkgMode
 		} elseif [regexp -- {^(RHEL|latest)} $cparam] {
-			set Opt(bootc) $cparam
+			set bootcTo $cparam
 		}
 	}
 	if {${bootc-mode} == "fromPkgMode"} {
@@ -344,6 +343,14 @@ if {[info exist Opt(bootc)]} {
 }
 if {![info exist Switch2BootcTask]} {
 	set Switch2BootcTask $defaultSwitch2BootcFromImageModeTask
+}
+if {[info exist bootcTo]} {
+	if {[string length $bootcTo] == 0} { set bootcTo "$defaultImageTag" }
+	puts stderr "{debug}: replace DISTRO with compose-id of bootcTo:$bootcTo"
+	if [string match {latest*} $bootcTo] {
+		set cmdl "skopeo inspect docker://images.paas.redhat.com/bootc/rhel-bootc:$bootcTo | jq -r '.Labels\[\"redhat.compose-id\"\]'"
+		set bootcTo [exec bash -c $cmdl]
+	}
 }
 
 set ksfContent {}
@@ -802,6 +809,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 
 				if {[string length $DISTRO] > 1} {
+				if {${bootc-mode} == "fromPkgMode" && [info exist bootcTo]} { set DISTRO $bootcTo }
 				distroRequires ! {
 					and ! {
 						if [llength $VARIANT_L] {
@@ -897,8 +905,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 
 				set distroBuild $DISTRO
-				if {[info exist Opt(bootc)]} {
-					set distroBuild $Opt(bootc)
+				if {[info exist bootcTo]} {
+					set distroBuild $bootcTo
 				}
 				hostRequires ! {
 					and ! {
@@ -1025,7 +1033,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 
 				# distro install
 				if ![info exist distroBuild] { set distroBuild {} }
-				if {[string length $distroBuild] > 1 && ![info exist Opt(bootc)]} {
+				if {[string length $distroBuild] > 1 && ![info exist bootcTo]} {
 					lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
 				}
 
@@ -1043,10 +1051,10 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					append brewBuildList "${_build} "
 				}
 				#bootc-mode
-				if {[info exist Opt(bootc)]} {
+				if {[info exist bootcTo]} {
 					if {[llength $brewBuildList] > 0} { set ContainerBPkgs $brewBuildList }
 					if [info exist Opt(packages)] { set ContainerPkgs [split $Opt(packages) ",/ "] }
-					lappend insertTasks "$Switch2BootcTask DISTRO_BUILD=$distroBuild BOOTC_TO=$Opt(bootc) {PKGS=$ContainerPkgs} {BPKGS=$ContainerBPkgs} {ScriptUrl=$ContainerScriptUrl} PART_MPS=$PART_MPS REPOS=$REPOS KILLTIMEOVERRIDE=345600"
+					lappend insertTasks "$Switch2BootcTask DISTRO_BUILD=$distroBuild BOOTC_TO=$bootcTo {PKGS=$ContainerPkgs} {BPKGS=$ContainerBPkgs} {ScriptUrl=$ContainerScriptUrl} PART_MPS=$PART_MPS REPOS=$REPOS KILLTIMEOVERRIDE=345600"
 				}
 
 				# command before kernelinstall
