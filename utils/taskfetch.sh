@@ -30,8 +30,10 @@ _install_requirements() {
 		sed -i -e /skip_if_unavailable/d -e '/enabled=1/askip_if_unavailable=1' /etc/yum.repos.d/epel.repo
 	}
 	local _pkgs="python3 bzip2 gzip zip xz expect man-db restraint-rhts beakerlib"
-	_pkgs=$(rpm -q $_pkgs > >(awk '/not.installed/{print $2}')) ||
+	_pkgs=$(rpm -q $_pkgs > >(awk '/not.installed/{print $2}')) || {
+		_wait_rpmostree_idle
 		$pkgInstall $_pkgs &>>${_logf:-/dev/null}
+	}
 
 	local _urls=()
 	hash -r
@@ -98,23 +100,28 @@ _get_package_requires() {
 	popd &>/dev/null
 }
 _wait_rpmostree_idle() {
-	stat /run/ostree-booted &>/dev/null || return 0
-	local timeout=60
+	if ! stat /run/ostree-booted &>/dev/null; then
+		return 0
+	else
+		echo "{debug} waiting rpm-ostree status idle ..."
+	fi
+	local timeout=300
 	while ((timeout)); do
-		if [[ $(rpm-ostree status -b| grep -i state | awk '{print $2}') != 'idle' ]]; then
+		if [[ $(rpm-ostree status -b | grep -i state | awk '{print $2}') != 'idle' ]]; then
 			sleep 1
 			((timeout--))
 		else
 			rpm-ostree status -b
 			break
 		fi
-	done
+	done &>>${_logf:-/dev/null}
 }
 _install_pkg_requires() {
 	local pkgs=$(_get_package_requires $fpath)
 	pkgs=$(rpm -q $pkgs 2>/dev/null | awk '/is.not.installed/{print $2}')
 	[[ -n "$pkgs" ]] && {
 		echo "${INDENT}{run} $pkgInstall $pkgs &>>${_logf:-/dev/null}" >&2
+		_wait_rpmostree_idle
 		$pkgInstall $pkgs &>>${_logf:-/dev/null}
 	}
 	#check first
