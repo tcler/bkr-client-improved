@@ -575,9 +575,13 @@ if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 
 if [info exist Opt(ks-meta)] { append recipe_ks_meta " " {*}$Opt(ks-meta) }
 set ksAppend {}
-if {[info exist Opt(bootc-direct)]} {
+if {${bootc-mode} == "fromImageModeDirect"} {
 	append ksAppend "ostreecontainer --url $Opt(bootc-direct)\n"
+} elseif {${bootc-mode} == "fromPkgMode"} {
+	#workaround for grub2 install failure on xfs part sometimes
+	append ksAppend "part /boot --fstype=ext4\n"
 }
+
 if [info exist Opt(ks-pkgs)] {
 	append ksAppend "\n%packages --ignoremissing"
 	foreach ks $Opt(ks-pkgs) { append ksAppend "\n[string map {" " "\n"} $ks]" }
@@ -986,6 +990,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					}
 				}
 				partitions ! {
+					if {${bootc-mode} == "fromPkgMode"} {
+						lappend Opt(part) {fs=ext4 name=/var/nfsshare size=5 type=part}
+					}
 					if [info exist Opt(part)] {
 						foreach part $Opt(part) {
 							append PART_MPS [regsub {.*name=([^ ]+).*} $part {\1}],
