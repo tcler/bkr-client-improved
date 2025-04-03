@@ -13,27 +13,55 @@ _downloaddir=/mnt/download
 _logf=/tmp/${0##*/}.log
 LOOKASIDE_BASE_URL=${LOOKASIDE:-http://download.devel.redhat.com/qa/rhts/lookaside}
 if stat /run/ostree-booted > /dev/null 2>&1; then
-	pkgInstall="rpm-ostree -A --assumeyes --idempotent --allow-inactive install"
-	pkgUnInstall="rpm-ostree uninstall"
+	pkgInstallCmd="rpm-ostree -A --assumeyes --idempotent --allow-inactive install"
+	pkgUnInstallCmd="rpm-ostree uninstall"
 else
-	pkgInstall="yum -y install --setopt=strict=0"
-	pkgUnInstall="yum -y remove"
+	pkgInstallCmd="yum -y install --setopt=strict=0"
+	pkgUnInstallCmd="yum -y remove"
 fi
 
+_wait_rpmostree_idle() {
+	if ! stat /run/ostree-booted &>/dev/null; then
+		return 0
+	else
+		echo "{debug} waiting rpm-ostree status idle ..." &>>${_logf:-/dev/null}
+	fi
+	local timeout=300
+	while ((timeout)); do
+		if [[ $(rpm-ostree status -b | grep -i state | awk '{print $2}') != 'idle' ]]; then
+			sleep 1
+			((timeout--))
+		else
+			rpm-ostree status -b
+			break
+		fi
+	done &>>${_logf:-/dev/null}
+}
+_get_uninstalled_pkgs() {
+	local _pkgs="$*"
+	_wait_rpmostree_idle
+	rpm -q $_pkgs &> >(awk '/is.not.installed/{print $2}')
+}
+_pkg_install() {
+	local _pkgs="$*"
+	_pkgs=$(_get_uninstalled_pkgs $_pkgs)
+	if [[ -n "$pkgs" ]]; then
+		echo "${INDENT}{run} $pkgInstallCmd ${_pkgs//$'\n'/ } &>>${_logf:-/dev/null}" >&2
+		_wait_rpmostree_idle
+		$pkgInstallCmd $_pkgs
+	fi
+}
 _install_requirements() {
 	if ps axf|grep -v "^ *$$ "|grep -q 'taskfetch.sh  *--install-dep[s]'; then
 		while ps axf|grep -v "^ *$$ "|grep -q 'taskfetch.sh  *--install-dep[s]'; do sleep 2; done
 		return 0
 	fi
 	[[ $(rpm -E %rhel) = 7 ]] && {
-		$pkgInstall https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
+		_pkg_install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
 		sed -i -e /skip_if_unavailable/d -e '/enabled=1/askip_if_unavailable=1' /etc/yum.repos.d/epel.repo
 	}
 	local _pkgs="python3 bzip2 gzip zip xz expect man-db restraint-rhts beakerlib"
-	_pkgs=$(rpm -q $_pkgs > >(awk '/not.installed/{print $2}')) || {
-		_wait_rpmostree_idle
-		$pkgInstall $_pkgs &>>${_logf:-/dev/null}
-	}
+	_pkg_install $_pkgs &>>${_logf:-/dev/null}
 
 	local _urls=()
 	hash -r
@@ -105,48 +133,23 @@ _get_package_requires() {
 	} 2>/dev/null | sort -u | xargs
 	popd &>/dev/null
 }
-_wait_rpmostree_idle() {
-	if ! stat /run/ostree-booted &>/dev/null; then
-		return 0
-	else
-		echo "{debug} waiting rpm-ostree status idle ..."
-	fi
-	local timeout=300
-	while ((timeout)); do
-		if [[ $(rpm-ostree status -b | grep -i state | awk '{print $2}') != 'idle' ]]; then
-			sleep 1
-			((timeout--))
-		else
-			rpm-ostree status -b
-			break
-		fi
-	done &>>${_logf:-/dev/null}
-}
 _install_pkg_requires() {
 	local pkgs=$(_get_package_requires $fpath)
-	pkgs=$(rpm -q $pkgs 2>/dev/null | awk '/is.not.installed/{print $2}')
-	[[ -n "$pkgs" ]] && {
-		echo "${INDENT}{run} $pkgInstall $pkgs &>>${_logf:-/dev/null}" >&2
-		_wait_rpmostree_idle
-		$pkgInstall $pkgs &>>${_logf:-/dev/null}
-	}
+	_pkg_install $pkgs &>>${_logf:-/dev/null}
+
 	#check first
-	pkgs=$(rpm -q $pkgs 2>/dev/null | awk '/is.not.installed/{print $2}')
-	if [[ -n "$pkgs" ]]; then
+	local apkgs=$(_get_uninstalled_pkgs $pkgs)
+	if [[ -n "$apkgs" ]]; then
 		for pkgNotFound in $(sed -n '/error: Packages not found:/{s///; s/,/ /g;p}' ${_logf:-/dev/null}); do
-			pkgs=$(echo "$pkgs"|grep -v "^${pkgNotFound}$")
+			apkgs=$(echo "$apkgs"|grep -v "^${pkgNotFound}$")
 		done
-		echo "${INDENT}{run} $pkgInstall $pkgs again &>>${_logf:-/dev/null}" >&2
-		_wait_rpmostree_idle
-		$pkgInstall $pkgs &>>${_logf:-/dev/null}
+		_pkg_install $apkgs &>>${_logf:-/dev/null}
 	fi
 	#check second
-	pkgs=$(rpm -q $pkgs 2>/dev/null | awk '/is.not.installed/{print $2}')
-	if [[ -n "$pkgs" ]]; then
-		for pkg in $pkgs; do
-			echo "${INDENT}{run} $pkgInstall $pkg &>>${_logf:-/dev/null}" >&2
-			_wait_rpmostree_idle
-			$pkgInstall $pkg &>>${_logf:-/dev/null}
+	local bapkgs=$(_get_uninstalled_pkgs $apkgs)
+	if [[ -n "$bpkgs" ]]; then
+		for pkg in $bpkgs; do
+			_pkg_install $pkg &>>${_logf:-/dev/null}
 		done
 	fi
 }
