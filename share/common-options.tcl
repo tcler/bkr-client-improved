@@ -2,7 +2,8 @@
 set CommonOptionList {
 
   "\n  Options for job configuration:" {
-	harness			{arg y	help {specify alternative harness, available value: beah|restraint; default: restraint}}
+	harness			{arg y	hide y help {specify alternative harness, available value: beah|restraint; default: restraint}}
+	standalone		{arg n	hide y help {run restraint in standalone mode}}
 	{fetch-url}		{arg m	help {specify restraint fetch url. e.g:
 				--fetch-url kernel@https://gitlab.cee.redhat.com/kernel-qe/kernel/-/archive/master/kernel-master.tar.bz2
 				--fetch-url kernel@https://github.com/User/Repo/archive/refs/heads/master.tar.gz

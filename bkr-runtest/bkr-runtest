@@ -138,8 +138,12 @@ if [regexp -- {--bootc} $ForwardOpt] {
 }
 set Distro [expandDistro $Distro $bootc]
 if {$Distro == ""} {
-	puts stderr "\[$prog\] Err: distro value is emtpy, please use a valid value. or 's' for restraint Standalone mode"
-	exit 1
+	if ![info exist Opt(host)] {
+		puts stderr "\[$prog\] Err: distro value is empty, please use a valid value. or 's' for restraint Standalone mode"
+		exit 1
+	} else {
+		set Distro noneed
+	}
 }
 
 # Get the test list
@@ -151,13 +155,16 @@ if [info exist Opt(task)] {
 set TestListFile {}
 if {[llength $TestArgList]==0 && ![istty stdin]} {lappend TestArgList -}
 if {[llength $TestArgList]==0 && $_TestList == {}} {
-	if {$prog != "bkr-reservesys"} {
-		puts stderr "\[$prog\] *Remind*: No test specified, will reserve host($Distro) for you"
-	}
-	if ![regexp -- {--reserve} $ForwardOpt] {
-		lappend _TestList {/distribution/reservesys: {attr: {pkg: distribution, time: 12h, ssched: no, type: Functioal}}}
+	if {[regexp -- {--reserve} $ForwardOpt] || $prog == "bkr-reservesys"} {
+		#do nothing
 	} else {
-		lappend _TestList {/distribution/utils/dummy: {attr: {pkg: distribution}}}
+		if ![info exist Opt(host)] {
+			puts stderr "\[$prog\] *Remind*: No test specified, will reserve host($Distro) for you"
+			lappend _TestList {/distribution/reservesys: {attr: {pkg: distribution, time: 12h, ssched: no, type: Functioal}}}
+		} else {
+			puts stderr "\[$prog\] *Remind*: No test specified, add dummy task for you"
+			lappend _TestList {/distribution/utils/dummy: {attr: {pkg: distribution}}}
+		}
 	}
 } else {
 	if {$prog == "bkr-reservesys"} {
@@ -417,9 +424,9 @@ foreach {tkey tvalue} [array get TestGroup] {
 	set hostOpt {}
 	set hostParamOpt {}
 	if {[info exist Opt(host)]} {
+		lappend SubcmdOpt {--standalone}
 		foreach e $Opt(host) {lappend hostlist {*}[split $e ", "]}
 		set xmlf "job-[join $hostlist ,].xml"
-		set testDistro s
 		set i 0
 		set hostOpt [lmap h $hostlist {incr i; set _ "--host=$i=root@$h"}]
 		if [regexp -- {topo=singleHost} $gset] {

@@ -205,18 +205,23 @@ proc ::runtestlib::expandDistro {distroStr bootc} {
 	if {$bootc == "yes"} {
 		foreach d $distrol {
 			if [regexp -- {^[0-9.]+n?$} $d] {
+				puts stderr "{debug} expanding DISTRO pattern: $d ..."
 				set d [string map {n {}} $d]
 				set get_tag_cmd "skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc | jq -r .Tags\[\] | grep RHEL-$d | tail -1 || :"
 				set bootcTo [exec bash -c $get_tag_cmd]
 				set get_compose_cmd "skopeo inspect docker://images.paas.redhat.com/bootc/rhel-bootc:$bootcTo | jq -r '.Labels\[\"redhat.compose-id\"\]' || :"
 				set d [exec bash -c $get_compose_cmd]
-				if {$d == ""} { set d {followImageTag}}
+				if {$d == ""} {
+					puts stderr "{warn} expanding DISTRO pattern: $d fail"
+					set d {followImageTag}
+				}
 			}
 			lappend distronl ${d}
 		}
 	} else {
 		foreach d $distrol {
 			if [regexp -- {^[0-9]+n$} $d] {
+				puts stderr "{debug} expanding DISTRO pattern: $d ..."
 				set d [string map {n {}} $d]
 				if {$d eq "7"} {
 					set pat {RHEL-7.9-updates-[0-9]{8}\.[0-9]+}
