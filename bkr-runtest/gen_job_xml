@@ -1410,6 +1410,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					foreach task ${TaskList} {
 						set name [lindex $task 0]
 						lassign [split ${name} {@}] name inUri
+						if {$name == "/donothing"} continue
 						set taskparams [lrange $task 1 end]
 						set insert 1
 						lassign [list $role "" enable ""] _role _roleval _fetch_url _task_position
