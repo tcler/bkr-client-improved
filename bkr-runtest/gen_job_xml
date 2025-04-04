@@ -354,7 +354,7 @@ if {[info exist bootcTo]} {
 	} else {
 		puts stderr "{debug}: replace DISTRO with compose-id of bootcTo:$bootcTo"
 		if [string match {latest*} $bootcTo] {
-			set cmdl "skopeo inspect docker://images.paas.redhat.com/bootc/rhel-bootc:$bootcTo | jq -r '.Labels\[\"redhat.compose-id\"\]'"
+			set cmdl "skopeo --retry-times 16 inspect docker://images.paas.redhat.com/bootc/rhel-bootc:$bootcTo | jq -r '.Labels\[\"redhat.compose-id\"\]'"
 			set bootcTo [exec bash -c $cmdl]
 		}
 	}

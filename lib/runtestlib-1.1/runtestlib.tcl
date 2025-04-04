@@ -207,9 +207,9 @@ proc ::runtestlib::expandDistro {distroStr bootc} {
 			if [regexp -- {^[0-9.]+n?$} $d] {
 				puts stderr "{debug} expanding DISTRO pattern: $d ..."
 				set d [string map {n {}} $d]
-				set get_tag_cmd "skopeo list-tags docker://images.paas.redhat.com/bootc/rhel-bootc | jq -r .Tags\[\] | grep RHEL-$d | tail -1 || :"
+				set get_tag_cmd "skopeo list-tags --retry-times 16 docker://images.paas.redhat.com/bootc/rhel-bootc | jq -r .Tags\[\] | grep RHEL-$d | tail -1 || :"
 				set bootcTo [exec bash -c $get_tag_cmd]
-				set get_compose_cmd "skopeo inspect docker://images.paas.redhat.com/bootc/rhel-bootc:$bootcTo | jq -r '.Labels\[\"redhat.compose-id\"\]' || :"
+				set get_compose_cmd "skopeo inspect --retry-times 16 docker://images.paas.redhat.com/bootc/rhel-bootc:$bootcTo | jq -r '.Labels\[\"redhat.compose-id\"\]' || :"
 				set d [exec bash -c $get_compose_cmd]
 				if {$d == ""} {
 					puts stderr "{warn} expanding DISTRO pattern: $d fail"
