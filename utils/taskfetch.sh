@@ -13,8 +13,8 @@ _downloaddir=/mnt/download
 _logf=/tmp/${0##*/}.log
 LOOKASIDE_BASE_URL=${LOOKASIDE:-http://download.devel.redhat.com/qa/rhts/lookaside}
 if stat /run/ostree-booted > /dev/null 2>&1; then
-	pkgInstallCmd="rpm-ostree -A --assumeyes --idempotent --allow-inactive install"
-	pkgUnInstallCmd="rpm-ostree uninstall"
+	pkgInstallCmd="dnf -y --transient install --setopt=strict=0"
+	pkgUnInstallCmd="dnf -y --transient remove"
 else
 	pkgInstallCmd="yum -y install --setopt=strict=0"
 	pkgUnInstallCmd="yum -y remove"
