@@ -410,7 +410,9 @@ set _lfamily {}
 set _ltag {RTT_ACCEPTED}
 if [info exist Opt(distro)] {
 	if [info exist Opt(distrot)] {
-		set Opt(distro) [string map "%D $Opt(distro)" [expandDistro $Opt(distrot)]]
+		set _bootc ""
+		if {${bootc-mode} ni "no"} { set _bootc "yes" }
+		set Opt(distro) [string map "%D $Opt(distro)" [expandDistro $Opt(distrot) ${_bootc}]]
 	}
 	foreach e $Opt(distro) {lappend _ldistro {*}[split $e ", "]}
 	set prev {}

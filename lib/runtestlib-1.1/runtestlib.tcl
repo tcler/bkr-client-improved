@@ -194,7 +194,7 @@ proc ::runtestlib::genWhiteboard {distro testkey testList format {comment ""}} {
 	return $WB
 }
 
-proc ::runtestlib::expandDistro {distroStr bootc} {
+proc ::runtestlib::expandDistro {distroStr {bootc "no"}} {
 	if {$distroStr == ""} {
 		return ""
 	}

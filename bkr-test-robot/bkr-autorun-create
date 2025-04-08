@@ -94,8 +94,10 @@ if [info exist Opt(d)] {
 }
 
 # Get distro and gset info
+set bootc ""
 set Distro [lindex $Args 0]
-set Distro [expandDistro $Distro]   ;#If Distro is short format
+if [regexp -- {--bootc} $ForwardOpt] { set bootc "yes"; }
+set Distro [expandDistro $Distro $bootc]   ;#If Distro is short format
 set Gset {}
 foreach e $SubcmdOpt {
 	lappend Gset [regsub {^--} $e {-}]
