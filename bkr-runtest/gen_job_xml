@@ -593,7 +593,7 @@ if {${bootc-mode} == "fromImageModeDirect"} {
 	append ksAppend "part /boot --fstype=ext4\n"
 }
 
-if [info exist Opt(ks-pkgs)] {
+if {[info exist Opt(ks-pkgs)]} {
 	append ksAppend "\n%packages --ignoremissing"
 	foreach ks $Opt(ks-pkgs) { append ksAppend "\n[string map {" " "\n"} $ks]" }
 	append ksAppend "\n%end"
@@ -804,7 +804,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				if [info exist Opt(random)] {set pick "true"}
 				doTag autopick random=$pick -
 
-				if [info exist Opt(packages)] {
+				if {[info exist Opt(packages)] && ${bootc-mode} == "no"} {
 					doTag packages ! {
 						foreach pkg [split $Opt(packages) ",/ "] {
 							doTag package name=$pkg -
