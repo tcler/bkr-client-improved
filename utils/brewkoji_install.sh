@@ -99,7 +99,7 @@ which brew &>/dev/null || {
 		[[ -f /etc/yum.repos.d/epel.repo ]] && sed -i -e '/^\s*skip_if_unavailable\s*=/d' -e '/^\s*enabled\s*=\s*1\s*$/a skip_if_unavailable=1'  /etc/yum.repos.d/epel.repo
 		[[ -f /etc/yum.repos.d/epel-testing.repo ]] && sed -i -e '/^\s*skip_if_unavailable\s*=/d' -e '/^\s*enabled\s*=\s*1\s*$/a skip_if_unavailable=1'  /etc/yum.repos.d/epel-testing.repo
 	fi
-	yum --setopt=strict=0 --setopt=sslverify=0 install -y koji python3-koji python3-pycurl brewkoji
+	yum --setopt=strict=0 --setopt=sslverify=0 install -y koji python3-koji python3-pycurl brewkoji coreutils
 }
 which brew &>/dev/null || installBrew2
 which brew &>/dev/null || yum install --setopt=sslverify=0 -y bash-completion-brew
