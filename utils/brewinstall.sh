@@ -29,7 +29,7 @@ P=${0##*/}
 KOJI=brew
 KREBOOT=yes
 INSTALL_TYPE=undefine
-
+INSTALL_BOOTC=
 retcode=0
 prompt="[${KOJI}-install]"
 run() {
@@ -69,6 +69,7 @@ Usage() {
 	 $P kernel-4.18.0-148.el8 -onlydebuginfo    # install -debuginfo pkg of kernel-4.18.0-148.el8
 	 $P -onlydownload [other option] <args>     # only download rpms and exit
 	 $P -onlydownload -arch=src,noarch kernel-4.18.0-148.el8  # only download src and noarch package of build kernel-4.18.0-148.el8
+	 $P -bootc [other option] <args>            # only use in containerfile, bootc image only receive only one kernel
 EOF
 }
 
@@ -308,6 +309,13 @@ need_reboot() {
 	return $_reboot
 }
 
+clean_old_kernel()
+{
+	run "dnf remove -y 'kernel*' 'kernel-*' '*-kernel*' || : " -
+	run "rpm -qa | grep -i kernel | xargs rpm -e --nodeps || :" -
+	sync -f
+}
+
 # parse options
 builds=()
 for Arg; do
@@ -330,6 +338,7 @@ for Arg; do
 	-arch=*)         _ARCH=${arg/*=/};;
 	-h)              Usage; exit;;
 	-rtk|-64k)       builds+=(${arg#-});;
+	-bootc)          INSTALL_BOOTC=yes;;
 	-*)              echo "{WARN} unkown option '${arg}'";;
 	*)
 			builds+=($arg)
@@ -390,6 +399,7 @@ archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
 for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 
 # if parameter as 'rtk kernel-rt-xxx', we assume you need target kernel is 'kernel-rt-xxx'
+[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 if grep -E -w 'kernel-rt' <<<"${builds[*]}"; then
 	run "yum --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*"
 elif grep -E -w 'rtk' <<<"${builds[*]}"; then
@@ -414,11 +424,13 @@ for build in "${builds[@]}"; do
 	elif [[ "$build" = upk ]]; then
 		run install_brew -
 		KOJI=koji
+		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 		build=$($KOJI list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet |
 			sort -Vr | awk '{print $1; exit}')
 	elif [[ "$build" = lstk ]]; then
 		run install_brew -
 		KOJI=brew
+		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 		if [[ "$(rpm -E %rhel)" != %rhel && "$(uname -r)" = *eln* ]]; then
 			_vr=$(yum provides kernel-core | awk -v RS= '/BaseOS/{print $NF}')
 			read ver rel < <(echo "$_vr"|sed -r 's/^([0-9]+.[0-9]+.[0-9]+)-(.*)$/\1 \2/')
@@ -433,6 +445,7 @@ for build in "${builds[@]}"; do
 	elif [[ "$build" = latest-* ]]; then
 		pkg=${build#latest-}
 		run install_brew -
+		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 		read ver rel < <(rpm -q --qf '%{version} %{release}\n' kernel-$(uname -r))
 		build=$($KOJI list-builds --pattern=$pkg-*-${rel/*./*.} --state=COMPLETE --after=$(date -d"now-1024 days" +%F)  --quiet 2>/dev/null |
 			sort -Vr | awk '{print $1; exit}')
@@ -464,6 +477,7 @@ for build in "${builds[@]}"; do
 
 		[[ -z "$_buildname" ]] && grep /kernel-[0-9].*rpm buildArch.txt && _buildname=kernel-
 		[[ "$_buildname" = kernel-* ]] && {
+			[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 			bROpts=("${kROpts[@]}")
 		}
 
@@ -505,6 +519,7 @@ for build in "${builds[@]}"; do
 	elif [[ "$build" =~ http.*/arr-cki-prod-(internal|trusted)-artifacts/[^/]+/[0-9]+/build_[^/]*/[0-9]+/index.html ]]; then
 		urls=$(curl -Ls $build | grep -Eo [a-z]+-[^/]*kernel-[^/]*.rpm | sort -u | sed 's;^;https://s3.amazonaws.com/arr-cki-prod-trusted-artifacts/;')
 		if echo "$urls" | grep -q kernel-; then
+			[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 			bROpts=("${kROpts[@]}")
 		fi
 		time batch_download -p < <(echo "$urls" |
@@ -514,6 +529,7 @@ for build in "${builds[@]}"; do
 			build=${build/index.html?prefix=/}  #convert from view url to repo url
 		fi
 		if getUrlListByRepo ${build#repo:} | grep -q kernel-; then
+			[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 			bROpts=("${kROpts[@]}")
 		fi
 		download_pkgs_from_repo ${build#repo:}
@@ -529,6 +545,9 @@ for build in "${builds[@]}"; do
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
+		if grep -q kenrel- ./ && [[ ${INSTALL_BOOTC} == 'yes' ]]; then
+			clean_old_kernel
+		fi
 	else
 		nbuild=$($KOJI list-builds --pattern=${build} --state=COMPLETE --quiet 2>/dev/null | sort -Vr | awk '{print $1; exit}')
 		if [[ -z "$nbuild" ]]; then
@@ -540,7 +559,7 @@ for build in "${builds[@]}"; do
 			if [[ "${build}" = ${curknvr%.*} && "$FLAG" != debugkernel && ! "${builds[*]}" =~ rtk|64k ]]; then
 				rstrnt-report-result "kernel($build) has been installed" PASS
 				_kpath=$(rpm -ql ${build} ${build/kernel/kernel-core} |& grep ^/boot/vmlinuz-)
-				[[ -n "$_kpath" ]] && run "grubby --set-default=$_kpath"
+				[[ -n "$_kpath" ]] && [[ -z "${INSTALL_BOOTC}" ]] && run "grubby --set-default=$_kpath"
 				let buildcnt--
 				continue
 			fi
@@ -555,6 +574,7 @@ for build in "${builds[@]}"; do
 		run install_brew -
 		buildname=$build
 		[[ "$buildname" = kernel-* ]] && {
+			[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 			bROpts=("${kROpts[@]}")
 		}
 		urls=$(buildname2url $buildname)
@@ -603,7 +623,7 @@ fi
 
 #install possible dependencies
 ls -1 *.rpm | grep -q ^kernel-rt && {
-	run "yum --setopt=strict=0 install -y @RT @NFV" -
+	run "yum --setopt=strict=0 install -y @RT @NFV --exclude=kernel-rt-*" -
 }
 
 rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
@@ -632,54 +652,61 @@ fi
 # to aviod install debug kernel failed when 'rtk -debugk ${userspace_pakcages}'
 if grep -E -w 'rtk' <<<"${builds[*]}"; then
 	if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
+		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt*" -
 	fi
 elif grep -E -w '64k' <<<"${builds[*]}"; then
 	if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
+		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k*" -
 	else
+		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k* --exclude=kernel-64k-debug*" -
 	fi
 fi
 
-#mount /boot if not yet
-mountpoint /boot || mount /boot
-
-rpm -q grubby || yum install -y grubby
-run "grubby --default-kernel"
-if ls --help|grep -q time:.birth; then
-	lsOpt='--time=birth'
+if [[ ${INSTALL_BOOTC} == 'yes' ]]; then
+	kver=$(cd /usr/lib/modules && echo *); run "dracut -f /usr/lib/modules/$kver/initramfs.img $kver" -
 else
-	touch -m -a $(rpm -qlp *.rpm | grep ^/boot) 2> /dev/null
-	sync -f
-fi
+	#mount /boot if not yet
+	mountpoint /boot || mount /boot
 
-dbgpat="(.?debug|[+-]debug)"
-[[ "$FLAG" =~ debugkernel ]] && { grepOpt='grep -E'; } || { grepOpt='grep -Ev'; }
-if grep -E -w 'rtk' <<<"${builds[*]}"; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+rt|\.rt.*' | $grepOpt "$dbgpat" | head -1)
-elif grep -E -w '64k' <<<"${builds[*]}"; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+64k|\.64k.*' | $grepOpt "$dbgpat" | head -1)
-elif rpm -qlp *.rpm | grep ^/boot/vmlinuz-; then
-	kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}| $grepOpt "$dbgpat" | head -1)
-fi
+	rpm -q grubby || yum install -y grubby
+	run "grubby --default-kernel"
+	if ls --help|grep -q time:.birth; then
+		lsOpt='--time=birth'
+	else
+		touch -m -a $(rpm -qlp *.rpm | grep ^/boot) 2> /dev/null
+		sync -f
+	fi
 
-run "ls /boot/vmlinuz-*$(uname -m)* -tl ${lsOpt:--u}"
+	dbgpat="(.?debug|[+-]debug)"
+	[[ "$FLAG" =~ debugkernel ]] && { grepOpt='grep -E'; } || { grepOpt='grep -Ev'; }
+	if grep -E -w 'rtk' <<<"${builds[*]}"; then
+		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+rt|\.rt.*' | $grepOpt "$dbgpat" | head -1)
+	elif grep -E -w '64k' <<<"${builds[*]}"; then
+		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+64k|\.64k.*' | $grepOpt "$dbgpat" | head -1)
+	elif rpm -qlp *.rpm | grep ^/boot/vmlinuz-; then
+		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}| $grepOpt "$dbgpat" | head -1)
+	fi
 
-if [[ -n "$kernelpath" ]]; then
-	# If the target kernel behind the current kernel, kernel scripts may not be run normally.
-	run "grubby --set-default=$kernelpath" || {
-		if [[ $(ls *.$(arch).rpm | wc -l) -ne 0 ]]; then
-			run "yum reinstall -y --nogpgcheck --setopt=keepcache=1 *.rpm" - ||
-			  run "rpm -Uvh --force --nodeps *.rpm" - ||
-			  for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
+	run "ls /boot/vmlinuz-*$(uname -m)* -tl ${lsOpt:--u}"
+
+	if [[ -n "$kernelpath" ]]; then
+		# If the target kernel behind the current kernel, kernel scripts may not be run normally.
+		run "grubby --set-default=$kernelpath" || {
+			if [[ $(ls *.$(arch).rpm | wc -l) -ne 0 ]]; then
+				run "yum reinstall -y --nogpgcheck --setopt=keepcache=1 *.rpm" - ||
+				  run "rpm -Uvh --force --nodeps *.rpm" - ||
+				  for rpm in *.rpm; do run "rpm -Uvh --force --nodeps $rpm" -; done
+			fi
+		}
+	fi
+
+	if grubby --info=DEFAULT|grep -q 'kernel=.*+rt'; then
+		if [[ -d /sys/firmware/efi ]] && ! grep -q efi=runtime /proc/cmdline; then
+			  run "grubby --update-kernel=$(grubby --default-kernel) --args=efi=runtime"
 		fi
-	}
-fi
-
-if grubby --info=DEFAULT|grep -q 'kernel=.*+rt'; then
-	if [[ -d /sys/firmware/efi ]] && ! grep -q efi=runtime /proc/cmdline; then
-		  run "grubby --update-kernel=$(grubby --default-kernel) --args=efi=runtime"
 	fi
 fi
 
