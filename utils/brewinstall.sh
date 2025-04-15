@@ -395,7 +395,7 @@ fi
 
 archList=($(arch) noarch)
 [[ -n "$_ARCH" ]] && archList=(${_ARCH//,/ })
-archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')e
+archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
 for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 
 # if parameter as 'rtk kernel-rt-xxx', we assume you need target kernel is 'kernel-rt-xxx'
