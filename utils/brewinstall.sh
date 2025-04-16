@@ -666,7 +666,7 @@ elif grep -E -w '64k' <<<"${builds[*]}"; then
 fi
 
 if [[ ${INSTALL_BOOTC} == 'yes' ]]; then
-	kver=$(cd /usr/lib/modules && echo *); run "dracut -f /usr/lib/modules/$kver/initramfs.img $kver" -
+	kver=$(ls /usr/lib/modules -t1 --time=birth | head -1); run "dracut -f /usr/lib/modules/$kver/initramfs.img $kver" -
 else
 	#mount /boot if not yet
 	mountpoint /boot || mount /boot
