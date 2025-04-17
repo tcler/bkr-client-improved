@@ -113,7 +113,7 @@ proc Usage {{out "stdout"}} {
 	puts $out "Usage: $::argv0 --distro=<DISTRO> \[options\]"
 	puts $out "Generates a Beaker job XML file, like `bkr workflow-simple`, but have many improvements and unofficial options"
 	puts $out "Example:  gen_job_xml --distro RHEL-6.6 --task=/distribution/reservesys --arch=x86_64"
-	puts $out "Example:  gen_job_xml --family RedHatEnterpriseLinux7 -F test.list --nvr=kernel-x.y.z-abc.el7 --dbgk\n"
+	puts $out "Example:  gen_job_xml --family RedHatEnterpriseLinux7 -F test.list --Brew=kernel-x.y.z-abc.el7 --dbgk\n"
 	getUsage $::OptionList $out
 }
 
@@ -1041,6 +1041,14 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
 				}
 
+				# kernel nvr option
+				if [llength $NVR_L] {
+					set NVR [lindex $NVR_L 0]
+					if {$NVR in {"" "{}"}} {
+						set NVR [getDefaultNVR $DISTRO]
+					}
+					set NVR_L [lrange $NVR_L 1 end]
+				}
 				if ![info exist NVR] { set NVR {} }
 				set brewBuildList ""
 				if {[info exist Opt(dbgk)] && $NVR in {"" "{}"}} {
@@ -1066,15 +1074,6 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					foreach cmd $Opt(cmdb) {
 						lappend insertTasks "/distribution/command {CMDS_TO_RUN=$cmd}"
 					}
-				}
-
-				# kernelinstall
-				if [llength $NVR_L] {
-					set NVR [lindex $NVR_L 0]
-					if {$NVR in {"" "{}"}} {
-						set NVR [getDefaultNVR $DISTRO]
-					}
-					set NVR_L [lrange $NVR_L 1 end]
 				}
 
 				# pkg install

@@ -79,7 +79,7 @@ proc Usage {{detail n}} {
 }
 proc Usage_bkr_reserve {{detail n}} {
 	puts "Usage0: $::prog \[-n\] <distro\[,distro,...\]> \[gen_job_xml options\] "
-	puts "Example: $::prog RHEL-6.6 --arch=x86_64 --kdump --nvr=kernel-2.6.32-570.el6"
+	puts "Example: $::prog RHEL-6.6 --arch=x86_64 --kdump --Brew=kernel-2.6.32-570.el6"
 	puts ""
 	if {$detail != "n"} {
 		getUsage $::OptionList
@@ -127,7 +127,7 @@ if [info exist Opt(distro)] {
 if [regexp -- {^RH[A-Z]{2}-[0-9]{4}:[0-9]+} $Distro] {
 	lassign [exec errata2distro_and_pkg $Distro] Distro pkgBuild
 	set pkgOpt {--install}
-	if [regexp -- {^kernel-} $pkgBuild] {set pkgOpt {--nvr}}
+	if [regexp -- {^kernel-} $pkgBuild] {set pkgOpt {--Brew}}
 	lappend SubcmdOpt $pkgOpt=$pkgBuild
 }
 
@@ -421,7 +421,6 @@ foreach {tkey tvalue} [array get TestGroup] {
 	if [regexp -- {--?distro=} $gset] {
 		set testDistro [regsub {.*--?distro=([^ ]+).*} $gset {\1}]
 		set gset [regsub -- {--?distro=([^ ]+)} $gset {}]
-		set gset [regsub -all -- {--?nvr=([^ ]+)} $gset {}]
 		set testDistro [expandDistro $testDistro $bootc]
 	}
 
