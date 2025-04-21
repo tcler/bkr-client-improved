@@ -22,6 +22,7 @@ case $verx in
 	EOF
 	;;
 esac
+[[ $verx = 8 ]] && yum install -y python36
 
 #update restraint plugins
 LOOKASIDE_BASE_URL=$LOOKASIDE
