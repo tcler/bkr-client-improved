@@ -1066,7 +1066,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				if {[info exist bootcTo]} {
 					if {[llength $brewBuildList] > 0} { set ContainerBPkgs $brewBuildList }
 					if [info exist Opt(packages)] { set ContainerPkgs [split $Opt(packages) ",/ "] }
-					lappend insertTasks "$Switch2BootcTask DISTRO_BUILD=$distroBuild BOOTC_TO=$bootcTo {PKGS=$ContainerPkgs} {BPKGS=$ContainerBPkgs} {ScriptUrl=$ContainerScriptUrl} PART_MPS=$PART_MPS REPOS=$REPOS KILLTIMEOVERRIDE=345600"
+					lappend insertTasks "$Switch2BootcTask DISTRO_BUILD=$distroBuild BOOTC_TO=$bootcTo {PKGS=$ContainerPkgs} {BPKGS=$ContainerBPkgs} {ScriptUrl=$ContainerScriptUrl} {PART_MPS=$PART_MPS} {REPOS=$REPOS} {KOPTS=$KOPTS} KILLTIMEOVERRIDE=345600"
 				}
 
 				# command before kernelinstall
