@@ -56,11 +56,13 @@ _install_requirements() {
 		while ps axf|grep -v "^ *$$ "|grep -q 'taskfetch.sh  *--install-dep[s]'; do sleep 2; done
 		return 0
 	fi
+	local py3pkg=python3
 	[[ $(rpm -E %rhel) = 7 ]] && {
 		_pkg_install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &>>${_logf:-/dev/null}
 		sed -i -e /skip_if_unavailable/d -e '/enabled=1/askip_if_unavailable=1' /etc/yum.repos.d/epel.repo
 	}
-	local _pkgs="python3 bzip2 gzip zip xz expect man-db restraint-rhts beakerlib"
+	[[ $(rpm -E %rhel) = 8 ]] && py3pkg=python36
+	local _pkgs="$py3pkg bzip2 gzip zip xz expect man-db restraint-rhts beakerlib"
 	_pkg_install $_pkgs &>>${_logf:-/dev/null}
 
 	local _urls=()
