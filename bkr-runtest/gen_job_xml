@@ -319,7 +319,7 @@ if {[info exist Opt(bootc-direct)]} {
 }
 if {[info exist Opt(bootc)]} {
 	set bootcTo ""
-	set bootc-mode fromImageMode
+	set bootc-mode fromPkgMode
 	set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
 	set bootcparams [split $Opt(bootc) ","]
 	lassign [lrepeat 3 ""] ContainerPkgs ContainerBPkgs ContainerScriptUrl
@@ -327,13 +327,13 @@ if {[info exist Opt(bootc)]} {
 	foreach cparam $bootcparams {
 		if [regexp -- {^(cmdl?|script)url=} $cparam] {
 			set ContainerScriptUrl [regsub -expanded {^(cmdl?|script)url=} $cparam {}]
+		} elseif {$cparam == "fromimg"} {
+			set bootc-mode fromImageMode
 		} elseif [regexp -- {^springboard.*=} $cparam] {
 			set SpringBoardImageUrl [regsub -expanded {^springboard.*=} $cparam {}]
 			if {$SpringBoardImageUrl == "no"} {
-				set bootc-mode fromPkgMode
+				unset SpringBoardImageUrl
 			}
-		} elseif {$cparam == "frompkg"} {
-			set bootc-mode fromPkgMode
 		} elseif [regexp -- {^(RHEL|latest)} $cparam] {
 			set bootcTo $cparam
 		}
@@ -369,7 +369,7 @@ if [file isfile $Opt(ksf)] {
 		set ksfContent [read $fp]
 		close $fp
 	}
-	if {[info exist SpringBoardImageUrl] && $SpringBoardImageUrl != "no"} {
+	if {[info exist SpringBoardImageUrl]} {
 		regsub -line {\nostreecontainer --url [^\n]*\n} $ksfContent "\nostreecontainer --url $SpringBoardImageUrl\n" ksfContent
 	}
 }
