@@ -21,7 +21,7 @@ set USER root
 set SERVER [lindex $argv 0]
 set sshOpt [lrange $argv 1 end]
 
-spawn bash -c "TERM=xterm ssh -Y $sshOpt -l $USER $SERVER \
+spawn bash -c "TERM=xterm ssh $sshOpt -l $USER $SERVER \
 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
 
 expect {
