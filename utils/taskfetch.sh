@@ -52,8 +52,10 @@ _pkg_install() {
 	fi
 }
 _install_requirements() {
-	if ps axf|grep -v "^ *$$ "|grep -q 'taskfetch.sh  *--install-dep[s]'; then
-		while ps axf|grep -v "^ *$$ "|grep -q 'taskfetch.sh  *--install-dep[s]'; do sleep 2; done
+	local lockf=/tmp/taskfetch-install-requirements.lock
+	command -v lockfile &>/dev/null || yum install procmail -y
+	if ! lockfile -1 -r 1 $lockf; then
+		while [[ -f $lockf ]]; do sleep 1; done
 		return 0
 	fi
 	local py3pkg=python3
@@ -82,6 +84,7 @@ _install_requirements() {
 
 	local _dburl=${LOOKASIDE_BASE_URL}/bkr-client-improved/conf/fetch-url.ini
 	while ! test -f /etc/${_dburl##*/}; do (cd /etc && curl -Ls --retry 64 --retry-delay 2 -O ${_dburl}); done
+	rm -f $lockf
 }
 
 get_taskname() {
