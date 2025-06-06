@@ -78,6 +78,7 @@ _install_require: _isroot _rh_intranet
 	@rpm -q sqlite-tcl >/dev/null || { yum install -y sqlite-tcl; exit 0; } #package that in default RHEL repo
 
 _rh_intranet:
+	@command -v host &>/dev/null || yum install bind-utils -y
 	@if ! host download.devel.redhat.com &>/dev/null; then \
 		tar -C / -zxf conf/rh-cert.tgz; update-ca-trust; \
 		tar -C / -zxf conf/rh-nm-openvpn-profiles.tgz; nmcli c r; \
