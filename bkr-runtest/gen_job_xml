@@ -454,7 +454,7 @@ if [info exist Opt(tag)] {
 }
 
 if [info exist Opt(upstream)] {
-	set upstreamUrl git://git.app.eng.bos.redhat.com/linux.git
+	set upstreamUrl https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
 	set upstreamBranch master
 	set upstreamTag HEAD
 	if {$Opt(upstream) != ""} {
@@ -1112,7 +1112,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 				if {[info exist Opt(upstream)] || $UP != ""} {
 					set params [list]
-					lappend params KERNEL_GIT_REPO=$upstreamUrl KERNEL_GIT_BRANCH=$upstreamBranch KERNEL_GIT_COMMIT=$upstreamTag ABORT_IF_FAIL=1
+					lappend params KERNEL_GIT_REPO=$upstreamUrl KERNEL_GIT_BRANCH=$upstreamBranch KERNEL_GIT_COMMIT=$upstreamTag GIT_CLONE_OPTION=--depth=1 ABORT_IF_FAIL=1
 					if [info exist Opt(upstream-use-clone)] {
 						lappend params USE_GIT_CLONE=1 GIT_CLONE_OPTION=$Opt(upstream-use-clone)
 					}
