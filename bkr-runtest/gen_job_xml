@@ -352,7 +352,6 @@ if {[info exist bootcTo]} {
 	if {[string length $bootcTo] == 0} {
 		set bootcTo "followDistro"
 	} else {
-		puts stderr "{debug}: replace DISTRO with compose-id of bootcTo:$bootcTo"
 		if [string match {latest*} $bootcTo] {
 			set cmdl "skopeo inspect --retry-times 16 docker://images.paas.redhat.com/bootc/rhel-bootc:$bootcTo | jq -r '.Labels\[\"redhat.compose-id\"\]'"
 			set bootcTo [exec bash -c $cmdl]
@@ -813,7 +812,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 
 				if {[info exist bootcTo] && ${bootc-mode} ni {"fromImageModeDirect"}} {
-					if {$bootcTo == "followDistro"} { set bootcTo ${DISTRO}-[arch_suffix ${ARCH}] } else { set DISTRO $bootcTo }
+					if {$bootcTo == "followDistro"} { set bootcTo ${DISTRO}-[arch_suffix ${ARCH}] }
 				}
 				if ![info exist Opt(standalone)] {
 				distroRequires ! {
