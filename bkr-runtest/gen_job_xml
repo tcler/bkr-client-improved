@@ -743,6 +743,14 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 		set FAMILY {}
 		set TAG {}
 		set R {0};	# Role index
+		if {${bootc-mode} == "fromPkgMode"} {
+			lappend Opt(part) {fs=ext4 name=/var/nfsshare size=5 type=part}
+		}
+		if [info exist Opt(part)] {
+			foreach part $Opt(part) {
+				append PART_MPS [regsub {.*name=([^ ]+).*} $part {\1}],
+				}
+		}
 		foreach role ${ROLE_LIST} {
 			if [llength $DISTRO_L] {
 				set DISTRO [lindex $DISTRO_L 0]
@@ -1001,12 +1009,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					}
 				}
 				partitions ! {
-					if {${bootc-mode} == "fromPkgMode"} {
-						lappend Opt(part) {fs=ext4 name=/var/nfsshare size=5 type=part}
-					}
 					if [info exist Opt(part)] {
 						foreach part $Opt(part) {
-							append PART_MPS [regsub {.*name=([^ ]+).*} $part {\1}],
 							partition {*}$part -
 						}
 					}
