@@ -26,15 +26,16 @@ _bkr_runtest()
             COMPREPLY=( $( compgen -W "$opts" -- "$cur" ) )
         fi
 
-        if [[ $prev == --retention-tag ]]; then
+        if [[ $prev == --priority ]]; then
+            retentions="Low Medium Normal High Urgent"
+            COMPREPLY=( $(compgen -W "$retentions" -- "$cur") )
+        elif [[ $prev == --retention-tag ]]; then
             retentions="scratch 60days 120days active active+1 audit"
             COMPREPLY=( $(compgen -W "$retentions" -- "$cur") )
-        fi
-        if [[ $prev == --product ]]; then
+        elif [[ $prev == --product ]]; then
             products='cpe:/o:redhat:enterprise_linux:$x:$y'
             COMPREPLY=( $(compgen -W "$products" -- "$cur") )
-        fi
-        if [[ $prev == --ksf ]]; then
+        elif [[ $prev == --ksf ]]; then
             _filedir
         fi
     fi

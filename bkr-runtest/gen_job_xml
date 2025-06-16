@@ -360,6 +360,10 @@ if {[info exist bootcTo]} {
 	}
 }
 
+if {![info exist Opt(priority)]} {
+	set  Opt(priority) "Normal"
+}
+
 set ksfContent {}
 if {![info exist Opt(ksf)] || $Opt(ksf) == ""} {
 	set Opt(ksf) ${default-ksf}
@@ -736,7 +740,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 			}
 		}
 	}
-	recipeSet priority=Normal ! {
+	recipeSet priority=$Opt(priority) ! {
 		set SystemType "Machine"
 		set VARIANT {}
 		set DISTRO {}

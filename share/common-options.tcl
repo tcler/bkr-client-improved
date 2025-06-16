@@ -2,6 +2,7 @@
 set CommonOptionList {
 
   "\n  Options for job configuration:" {
+	priority		{arg y	help {Request PRIORITY for job (Low, Medium, Normal, High, Urgent)}}
 	harness			{arg y	hide y help {specify alternative harness, available value: beah|restraint; default: restraint}}
 	standalone		{arg n	hide y help {run restraint in standalone mode}}
 	{fetch-url}		{arg m	help {specify restraint fetch url. e.g:
