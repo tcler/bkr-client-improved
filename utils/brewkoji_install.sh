@@ -38,6 +38,9 @@ installBrew2() {
 		8|9|10)
 			type=BaseOS
 			pkglist='python3-brewkoji brewkoji python3-pycurl'
+			# come from AppStream
+			rpm -q python3-requests-gssapi || yum install --setopt=sslverify=0 -y python3-requests-gssapi
+			rpm -q python3-gssapi || yum install --setopt=sslverify=0 -y python3-gssapi
 			;;
 		esac
 		repourl=$baseUrl/RCMTOOLS/latest-RCMTOOLS-2-RHEL-$verx/compose/$type/$(uname -m)/os
