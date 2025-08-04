@@ -312,7 +312,7 @@ need_reboot() {
 clean_old_kernel()
 {
 	run "dnf remove -y 'kernel*' 'kernel-*' '*-kernel*' || : " -
-	run "rpm -qa | grep -i kernel | xargs rpm -e --nodeps || :" -
+	run "rpm -qa | grep -i ^kernel | xargs -I {} rpm -e --nodeps {} || :" -
 	sync -f
 }
 
@@ -399,11 +399,12 @@ archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
 for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 
 # if parameter as 'rtk kernel-rt-xxx', we assume you need target kernel is 'kernel-rt-xxx'
-[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 if grep -E -w 'kernel-rt' <<<"${builds[*]}"; then
+	[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 	run "yum --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*"
 elif grep -E -w 'rtk' <<<"${builds[*]}"; then
-	if grep -E -w 'kernel' <<<"${builds[*]}"; then
+	[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
+	if grep -E -w 'kernel' <<<"${builds[*]}" || [[ "$FLAG" = debugkernel ]]; then
 		run "yum --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*"
 	else
 		run "yum --setopt=strict=0 install @RT @NFV -y"
@@ -653,12 +654,12 @@ fi
 if grep -E -w 'rtk' <<<"${builds[*]}"; then
 	if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
 		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt*" -
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-debug*" -
 	fi
 elif grep -E -w '64k' <<<"${builds[*]}"; then
 	if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
 		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k*" -
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k-debug*" -
 	else
 		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k* --exclude=kernel-64k-debug*" -
@@ -666,7 +667,13 @@ elif grep -E -w '64k' <<<"${builds[*]}"; then
 fi
 
 if [[ ${INSTALL_BOOTC} == 'yes' ]]; then
-	kver=$(ls /usr/lib/modules -t1 --time=birth | head -1); run "dracut -f /usr/lib/modules/$kver/initramfs.img $kver" -
+	kver=$(ls /usr/lib/modules -t1 --time=birth | head -1)
+	cat > /usr/lib/dracut/dracut.conf.d/50-nfsv4.conf <<-'EOF'
+	add_dracutmodules+=" nfs network "
+	install_items+=" /sbin/mount.nfs4 /etc/nfsmount.conf "
+	add_drivers+=" sunrpc nfsv4 rpcsec_gss_krb5 "
+	EOF
+	run "dracut -f /usr/lib/modules/$kver/initramfs.img $kver" -
 else
 	#mount /boot if not yet
 	mountpoint /boot || mount /boot
