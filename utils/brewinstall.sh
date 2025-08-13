@@ -311,7 +311,7 @@ need_reboot() {
 
 clean_old_kernel()
 {
-	run "dnf remove -y 'kernel*' 'kernel-*' '*-kernel*' || : " -
+	run "dnf remove --noautoremove -y 'kernel*' 'kernel-*' '*-kernel*' || : " -
 	run "rpm -qa | grep -i ^kernel | xargs -I {} rpm -e --nodeps {} || :" -
 	sync -f
 }
