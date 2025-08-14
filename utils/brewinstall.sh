@@ -326,7 +326,7 @@ for Arg; do
 	-onlydebuginfo)  DEBUG_INFO_OPT=--debuginfo; ONLY_DEBUG_INFO=yes; KREBOOT=no;;
 	-onlydownload|-downloadonly) ONLY_DOWNLOAD=yes;;
 	-downloadall)    DOWNLOAD_ALL=yes; ONLY_DOWNLOAD=yes;;
-	-debug|-debugk*) FLAG=debugkernel;;
+	-debugk*) FLAG=debugkernel;;
 	-noreboot*)      KREBOOT=no;;
 	-A*)             AcceptOpts+=("${arg/-A=/-A}");;
 	-R*)             RejectOpts+=("${arg/-R=/-R}");;
@@ -408,6 +408,26 @@ elif grep -E -w 'rtk' <<<"${builds[*]}"; then
 		run "yum --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*"
 	else
 		run "yum --setopt=strict=0 install @RT @NFV -y"
+	fi
+fi
+
+# to aviod install debug kernel failed when 'rtk -debugk ${userspace_pakcages}'
+if grep -E -w 'rtk' <<<"${builds[*]}"; then
+	if [[ "$FLAG" == debugkernel ]]; then
+		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-debug --exclude=kernel-rt-debuginfo" -
+	fi
+	if [[ "$FLAG" == debugkernel ]] && [[ -n "${DEBUG_INFO_OPT}" ]]; then
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-debuginfo --exclude=kernel-rt-debug" -
+	fi
+elif grep -E -w '64k' <<<"${builds[*]}"; then
+	if [[ "$FLAG" == debugkernel ]];then
+		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k-debug --exclude=kernel-64k-debuginfo" -
+	fi
+	if [[ "$FLAG" == debugkernel ]] && [[ -n "${DEBUG_INFO_OPT}" ]]; then
+		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k-debuginfo --exclude=kernel-64k-debug" -
 	fi
 fi
 
@@ -648,22 +668,6 @@ elif [[ -z ${rpmfiles} ]] && [[ $buildcnt -eq 0 ]]; then
 	rstrnt-report-result "No need use yum/rpm install" PASS
 else
 	rstrnt-report-result "download rpms failed" FAIL
-fi
-
-# to aviod install debug kernel failed when 'rtk -debugk ${userspace_pakcages}'
-if grep -E -w 'rtk' <<<"${builds[*]}"; then
-	if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
-		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-debug*" -
-	fi
-elif grep -E -w '64k' <<<"${builds[*]}"; then
-	if [[ "$FLAG" == debugkernel ]] || [[ -n "${DEBUG_INFO_OPT}" ]]; then
-		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k-debug*" -
-	else
-		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k* --exclude=kernel-64k-debug*" -
-	fi
 fi
 
 if [[ ${INSTALL_BOOTC} == 'yes' ]]; then
