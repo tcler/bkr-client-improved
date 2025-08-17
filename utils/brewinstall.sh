@@ -518,7 +518,8 @@ for build in "${builds[@]}"; do
 			is_available_url $downloadServerUrl && {
 				finalUrl=$(curl -Ls -o /dev/null -w %{url_effective} $downloadServerUrl)
 				download_rpms_from_url $finalUrl
-				find */ -name '*.rpm' | xargs -i mv {} ./
+				#find . -mindepth 2 -type f -name "*.rpm" -exec sh -c 'mv "$@" ./' sh {} +
+				find . -mindepth 2 -type f -name "*.rpm" -print0 | xargs -0 mv -t ./ 
 			}
 		}
 	elif [[ "$build" =~ ^nfs: ]]; then
@@ -563,7 +564,7 @@ for build in "${builds[@]}"; do
 					bROpts=("${kROpts[@]}")
 				fi
 				download_rpms_from_url $url
-				find */ -name '*.rpm' | xargs -i mv {} ./
+				find . -mindepth 2 -type f -name "*.rpm" -print0 | xargs -0 mv -t ./ 
 			fi
 		done
 		if grep -q kenrel- ./ && [[ ${INSTALL_BOOTC} == 'yes' ]]; then
@@ -603,7 +604,7 @@ for build in "${builds[@]}"; do
 			which wget &>/dev/null || yum install -y wget
 			for url in $urls; do
 				download_rpms_from_url $url
-				find */ -name '*.rpm' | xargs -i mv {} ./
+				find . -mindepth 2 -type f -name "*.rpm" -print0 | xargs -0 mv -t ./ 
 			done
 		else
 			for a in "${archList[@]}"; do
@@ -722,3 +723,4 @@ else
 fi
 
 need_reboot && reboot || exit 0
+
