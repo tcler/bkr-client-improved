@@ -163,6 +163,60 @@ set bkrurl https://beaker.engineering.redhat.com
 set aliasf alias.tcl
 set ARGV $::argv
 getOptions $OptionList $ARGV Opt InvalidOpt NotOptions
+
+# Defining mutually exclusive option groups
+set mutual_exclusive_groups {
+	{bootc-direct packages}
+	{bootc-direct bootc}
+	{bootc-direct Brew}
+	{bootc-direct brew}
+}
+
+proc check_mutual_exclusive_options {mutual_exclusive_groups} {
+	global Opt
+	foreach group $mutual_exclusive_groups {
+		set count 0
+		foreach opt $group {
+			if {[info exist Opt($opt)]} {
+				incr count
+			}
+		}
+		if {$count > 1} {
+			puts stderr "Error: The following options are mutually exclusive: [join $group {, }]"
+			exit 1
+		}
+	}
+}
+
+proc check_mutual_exclusive_values {option value_patterns} {
+	if {![info exist ::Opt($option)]} {
+		return
+	}
+
+	set values [split $::Opt($option) ","]
+	set found_patterns {}
+
+	foreach pattern $value_patterns {
+		foreach value $values {
+			if {[string match $pattern $value]} {
+				lappend found_patterns $pattern
+				break
+			}
+		}
+	}
+
+	if {[llength $found_patterns] > 1} {
+		puts stderr "Error: The following values are mutually exclusive within the --$option option: [join $found_patterns {, }]"
+		exit 1
+	}
+}
+# check options can't appear at the same time
+check_mutual_exclusive_options $mutual_exclusive_groups
+
+# check options's value can't appear at the same time
+check_mutual_exclusive_values bootc {fromimg TAGS=*}
+check_mutual_exclusive_values bootc {springboard=* TAGS=*}
+
 if {[info exist Opt(opt-alias)] && $Opt(opt-alias) != ""} {
 	set alias $Opt(opt-alias)
 	if {[info exist Opt(opt-alias-file)] && $Opt(opt-alias-file) != ""} {
@@ -303,60 +357,124 @@ proc fetchtag {uri} {
 		doTag fetch "url=${uri}" -
 	}
 }
-
-set bootc-mode no
+# default bootc_mode setting, use for initial value.
+# values: ''(empty value), no(change from bootc mode), fromImageModeDirect, fromPkgMode, fromimg
+set bootc_mode no
+# save multiple bootc tags or urls depend on which value on current ROLE
+# need initial on bootc or bootc-direct bootcToList {}
+#save multiple bootc mode on different machines, value come from bootc_mode
+set bootc_mode_list {}
 set default-ksf "/etc/beaker/default-ks.cfg"
 set PART_MPS ""
 set REPOS ""
+set ROLE_LIST {}
+if [info exist Opt(topo)] {
+	if ![regexp -nocase {single} $Opt(topo)] {
+		lassign [regsub -all {[^0-9]+} $Opt(topo) " "] Opt(servers) Opt(clients)
+		if {$Opt(servers) == ""} {set Opt(servers) 1}
+		if {$Opt(clients) == ""} {set Opt(clients) 1}
+	}
+}
+if {[info exist Opt(servers)] && $Opt(servers) != 0} { lappend ROLE_LIST {*}[lrepeat $Opt(servers) SERVERS] }
+if {[info exist Opt(clients)] && $Opt(clients) != 0} { lappend ROLE_LIST {*}[lrepeat $Opt(clients) CLIENTS] }
+if {[llength $ROLE_LIST] == 0} { set ROLE_LIST STANDALONE }
+
 if {[info exist Opt(bootc-direct)]} {
 	if {[string length $Opt(bootc-direct)] == 0} {
 		puts stderr "{Error}: a image url is required by option --bootc-direct"
 		exit 1
 	}
-	unset -nocomplain Opt(bootc)
+	set bootc_mode fromImageModeDirect
 	set default-ksf "/dev/null"
-	set bootc-mode fromImageModeDirect
+	set bootc_direct_list [split $Opt(bootc-direct) ","]
+	set num_machines [llength $ROLE_LIST]
+	set num_urls [llength $bootc_direct_list]
+
+	#If there is only one URL, use the same URL for all machines
+	if {$num_urls == 1 && $num_machines > 1} {
+		set bootc_direct_list [lrepeat $num_machines [lindex $bootc_direct_list 0]]
+	} elseif {$num_urls != $num_machines} {
+		puts stderr "{Error}: number of bootc-direct URLs ($num_urls) does not match number of machines ($num_machines)"
+		exit 1
+	}
+	set bootc_mode_list [lrepeat $num_machines "fromImageModeDirect"]
+	set bootcToList $bootc_direct_list
 }
+
 if {[info exist Opt(bootc)]} {
-	set bootcTo ""
-	set bootc-mode fromPkgMode
-	set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
+
 	set bootcparams [split $Opt(bootc) ","]
 	lassign [lrepeat 3 ""] ContainerPkgs ContainerBPkgs ContainerScriptUrl
 
-	foreach cparam $bootcparams {
-		if [regexp -- {^(cmdl?|script)url=} $cparam] {
-			set ContainerScriptUrl [regsub -expanded {^(cmdl?|script)url=} $cparam {}]
-		} elseif {$cparam == "fromimg"} {
-			set bootc-mode fromImageMode
-		} elseif [regexp -- {^springboard.*=} $cparam] {
-			set SpringBoardImageUrl [regsub -expanded {^springboard.*=} $cparam {}]
-			if {$SpringBoardImageUrl == "no"} {
-				unset SpringBoardImageUrl
+	set has_tags_keyword 0
+	foreach bootc_param $Opt(bootc) {
+		if {[string match "TAGS=*" $bootc_param]} {
+			set has_tags_keyword 1
+			break
+		}
+	}
+
+	# Deal with TAGS situation
+	if {$has_tags_keyword} {
+		set bootc_mode "fromPkgMode"
+		foreach bootc_param $Opt(bootc) {
+			if {[string match "TAGS=*" $bootc_param]} {
+				#extract context after TAGS
+				set tags_str [ string range $bootc_param 5 end]
+				#Split tags by comma
+				set raw_tags [split $tags_str ","]
+				#check raw_tags belong a distro
+				foreach tag $raw_tags {
+					if {$tag eq "_"} {
+						# a special tag means didn't using bootc
+						lappend bootc_mode_list "no"
+						lappend bootcToList ""
+					} elseif {$tag eq ""} {
+						lappend bootc_mode_list "fromPkgMode"
+						lappend bootcToList "followDistro"
+					} elseif {[regexp -- {^(RHEL|latest)} $tag]} {
+						lappend bootc_mode_list "fromPkgMode"
+						lappend bootcToList "$tag"
+					}
+				}
+				# Check if the number of bootcToList matches the number of machines
+				if {[llength $bootcToList] != [llength $ROLE_LIST]} {
+					puts stderr "Error: Number of bootc tags ([llength $bootcToList]) does not match number of machines ([llength $ROLE_LIST])"
+					exit 1
+				}
 			}
-		} elseif [regexp -- {^(RHEL|latest)} $cparam] {
-			set bootcTo $cparam
+			foreach cparam $bootcparams {
+				if [regexp -- {^(cmdl?|script)url=} $cparam] {
+					set ContainerScriptUrl [regsub -expanded {^(cmdl?|script)url=} $cparam {}]
+				} elseif {$cparam == "fromimg"} {
+					puts stderr "Error: in TAGS scenario currently didn't support with fromimg"
+					exit 1
+				} elseif [regexp -- {^springboard.*=} $cparam] {
+					puts stderr "Error: in TAGS scenario currently didn't support with springboard"
+					exit 1
+				}
+			}
 		}
-	}
-	if {${bootc-mode} == "fromPkgMode"} {
-		if {![info exist Switch2BootcTask]} {
-			set Switch2BootcTask $defaultSwitch2BootcFromPkgModeTask
-		}
-		set default-ksf "/dev/null"
-	}
-}
-if {![info exist Switch2BootcTask]} {
-	set Switch2BootcTask $defaultSwitch2BootcFromImageModeTask
-}
-if {[info exist bootcTo]} {
-	if {[string length $bootcTo] == 0} {
-		set bootcTo "followDistro"
 	} else {
-		puts stderr "{debug}: replace DISTRO with compose-id of bootcTo:$bootcTo"
-		if [string match {latest*} $bootcTo] {
-			set cmdl "skopeo inspect --retry-times 16 docker://images.paas.redhat.com/bootc/rhel-bootc:$bootcTo | jq -r '.Labels\[\"redhat.compose-id\"\]'"
-			set bootcTo [exec bash -c $cmdl]
+		set bootc_mode "fromPkgMode"
+		set bootcTo "followDistro"
+		foreach cparam $bootcparams {
+			if [regexp -- {^(cmdl?|script)url=} $cparam] {
+				set ContainerScriptUrl [regsub -expanded {^(cmdl?|script)url=} $cparam {}]
+			} elseif {$cparam == "fromimg"} {
+				set bootc_mode fromImageMode
+				set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
+			} elseif [regexp -- {^springboard.*=} $cparam] {
+				set SpringBoardImageUrl [regsub -expanded {^springboard.*=} $cparam {}]
+				if {$SpringBoardImageUrl == "no"} {
+					unset SpringBoardImageUrl
+				}
+			} elseif [regexp -- {^(RHEL|latest)} $cparam] {
+				set bootcTo $cparam
+			}
 		}
+		set bootcToList [lrepeat [llength $ROLE_LIST] $bootcTo]
+		set bootc_mode_list [lrepeat [llength $ROLE_LIST] $bootc_mode]
 	}
 }
 
@@ -364,32 +482,76 @@ if {![info exist Opt(priority)]} {
 	set  Opt(priority) "Normal"
 }
 
-set ksfContent {}
-if {![info exist Opt(ksf)] || $Opt(ksf) == ""} {
-	set Opt(ksf) ${default-ksf}
-}
-if [file isfile $Opt(ksf)] {
-	if {![catch {set fp [open $Opt(ksf)]} err]} {
-		set ksfContent [read $fp]
-		close $fp
+# Initialize the array to store the KS content of each ROLE
+array set roleKsfContents {}
+array set roleBootcKsAppends {}
+set R 0
+foreach role ${ROLE_LIST} {
+	# The bootc parameters passed to different roles need to be processed separately
+	set current_bootcTo ""
+	set current_bootc_mode ""
+	if {[info exist bootcToList]} {
+		set current_bootcTo [lindex $bootcToList $R]
+		set current_bootc_mode [lindex $bootc_mode_list $R]
 	}
-	if {[info exist SpringBoardImageUrl]} {
-		regsub -line {\nostreecontainer --url [^\n]*\n} $ksfContent "\nostreecontainer --url $SpringBoardImageUrl\n" ksfContent
+
+	set role_bootc_ksAppend {}
+	if {$current_bootc_mode == "fromPkgMode"} {
+		set Switch2BootcTask $defaultSwitch2BootcFromPkgModeTask
+		set default-ksf "/dev/null"
+		append role_bootc_ksAppend "part /boot --fstype=ext4\n"
+	} elseif {$current_bootc_mode == "fromImageMode"} {
+		set Switch2BootcTask $defaultSwitch2BootcFromImageModeTask
+		set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
+	} elseif {${current_bootc_mode} == "fromImageModeDirect"} {
+		set current_bootc_direct [lindex $bootc_direct_list $R]
+		if {$current_bootc_direct != "_"} {
+			append role_bootc_ksAppend "ostreecontainer --url $current_bootc_direct\n"
+		}
+		set default-ksf "/dev/null"
+	} else {
+		set Switch2BootcTask ""
+		set default-ksf "/etc/beaker/default-ks.cfg"
 	}
-}
-if [info exist Opt(norun)] {
-	append ksfContent {
-	%post
-	_rpath=share/restraint/plugins/task_run.d
-	_path_url=${LOOKASIDE_BASE_URL}/bkr-client-improved/$_rpath
-	pushd /usr/$_rpath
-		curl -Lks -O ${_path_url}/28_exit0
-		chmod a+x *
-	popd
-	%end
+
+	# read self define ksAppend
+	set ksfPath ${default-ksf}
+	if {[info exist Opt(ksf)] && $Opt(ksf) != ""} {
+		set ksfPath $Opt(ksf)
 	}
-	if ![info exist Opt(reserve)] { set Opt(reserve) 356400 }
+
+	set ksfContent {}
+	if [file isfile $ksfPath] {
+		if {![catch {set fp [open $ksfPath]} err]} {
+			set ksfContent [read $fp]
+			close $fp
+		}
+		if {[info exist SpringBoardImageUrl]} {
+			regsub -line {\nostreecontainer --url [^\n]*\n} $ksfContent "\nostreecontainer --url $SpringBoardImageUrl\n" ksfContent
+		}
+	}
+
+	if [info exist Opt(norun)] {
+		append ksfContent {
+		%post
+		_rpath=share/restraint/plugins/task_run.d
+		_path_url=${LOOKASIDE_BASE_URL}/bkr-client-improved/$_rpath
+		pushd /usr/$_rpath
+			curl -Lks -O ${_path_url}/28_exit0
+			chmod a+x *
+		popd
+		%end
+		}
+		if ![info exist Opt(reserve)] { set Opt(reserve) 356400 }
+	}
+
+	# Store the KS content of the current ROLE
+	set roleKsfContents($R) $ksfContent
+	set roleBootcKsAppends($R) $role_bootc_ksAppend
+
+	set R [ expr $R + 1 ]
 }
+set R 0
 
 # process --param= option
 set GlobalParam {}
@@ -397,11 +559,30 @@ if [info exist Opt(param)] { lappend GlobalParam {*}$Opt(param) }
 if [info exist Opt(noavc)] { lappend GlobalParam "AVC_ERROR=+no_avc_check" }
 if [info exist Opt(task-fetch-url)] { lappend GlobalParam "TASK_URIS=$Opt(task-fetch-url)" }
 if [info exist Opt(fetch-url)] { lappend GlobalParam "REPO_URLS=$Opt(fetch-url)" }
-if [regexp -- {cat .*>.*/27_task_require} ${ksfContent}] {
-	lappend GlobalParam "OVER_WRITE_RPM="
-}
-if [regexp -- {cat .*>.*/28_exit0} ${ksfContent}] {
-	lappend GlobalParam "DRYRUN=yes"
+# Check the KS content of all ROLEs and set global parameters
+set overWriteRpmSet false
+set dryRunSet false
+
+for {set i 0} {$i < [llength $ROLE_LIST]} {incr i} {
+	set ksfContent $roleKsfContents($i)
+
+	if {!$overWriteRpmSet && [regexp -- {cat .*>.*/27_task_require} $ksfContent]} {
+		puts stderr "DEBUG: Found /27_task_require in KS content for role $i, setting OVER_WRITE_RPM"
+		lappend GlobalParam "OVER_WRITE_RPM="
+		set overWriteRpmSet true
+	}
+
+	if {!$dryRunSet && [regexp -- {cat .*>.*/28_exit0} $ksfContent]} {
+		puts stderr "DEBUG: Found /28_exit0 in KS content for role $i, setting DRYRUN=yes"
+		lappend GlobalParam "DRYRUN=yes"
+		set dryRunSet true
+	}
+
+	# If both parameters have been set, you can exit the loop early
+	if {$overWriteRpmSet && $dryRunSet} {
+		puts stderr "DEBUG: Both OVER_WRITE_RPM and DRYRUN set, stopping KS content check"
+		break
+	}
 }
 if [info exist Opt(maxtime)] { lappend GlobalParam "KILLTIMEOVERRIDE=$Opt(maxtime)" }
 
@@ -415,7 +596,7 @@ set _ltag {RTT_ACCEPTED}
 if [info exist Opt(distro)] {
 	if [info exist Opt(distrot)] {
 		set _bootc ""
-		if {${bootc-mode} ni "no"} { set _bootc "yes" }
+		if {${bootc_mode} ni "no"} { set _bootc "yes" }
 		set Opt(distro) [string map "%D $Opt(distro)" [expandDistro $Opt(distrot) ${_bootc}]]
 	}
 	foreach e $Opt(distro) {lappend _ldistro {*}[split $e ", "]}
@@ -432,6 +613,54 @@ if [info exist Opt(distro)] {
 		}
 	}
 }
+
+#Deal with followDistro on bootc
+if {[info exist bootcToList]} {
+	set new_bootcToList {}
+	set distro_index 0
+	foreach tag $bootcToList {
+		# got the DISTRO of current ROLE
+		if {$tag eq "followDistro"} {
+			if {$distro_index < [llength $DISTRO_L]} {
+				set distro [lindex $DISTRO_L $distro_index]
+			} else {
+				# If DISTRO_L is not long enough, assign the last distro to reminder servers.
+				set distro [lindex $DISTRO_L end]
+				puts stderr "{debug}: DISTRO is not long enough tags, assign $distro to reminder servers"
+			}
+			# Din't support family with bootc
+			if {[string match family* $distro]} {
+				# If it is in family format, it needs to be converted to a specific distro
+				puts stderr "{ERROR}: bootc didn't support with --distro family* please check!!!"
+				exit 1
+			}
+			lappend new_bootcToList $distro
+		} else {
+			lappend new_bootcToList $tag
+		}
+		incr distro_index
+	}
+	set bootcToList $new_bootcToList
+}
+# For the latest tag, convert to the specific compose ID
+if {[info exist bootcToList]} {
+	set new_bootcToList {}
+	foreach tag $bootcToList {
+		if {$tag != ""} {
+			puts stderr "{debug}: replace DISTRO with compose-id of current_bootcTo:$tag"
+			if {[string match {latest*} $tag]} {
+				set cmdl "skopeo inspect --retry-times 16 docker://images.paas.redhat.com/bootc/rhel-bootc:$tag | jq -r '.Labels\[\"redhat.compose-id\"\]'"
+				if {[catch {set tag [exec bash -c $cmdl]} error]} {
+					puts stderr "Error: failed to get compose-id for tag $tag: $error"
+					exit 1
+				}
+			}
+		}
+		lappend new_bootcToList $tag
+	}
+	set bootcToList $new_bootcToList
+}
+
 if [info exist Opt(family)] {
 	foreach e $Opt(family) {lappend _lfamily {*}[split $e ", "]}
 	set prev {}
@@ -590,12 +819,6 @@ if {$harness in {r re res rest restr restra restrai restrain restraint rst}} {
 
 if [info exist Opt(ks-meta)] { append recipe_ks_meta " " {*}$Opt(ks-meta) }
 set ksAppend {}
-if {${bootc-mode} == "fromImageModeDirect"} {
-	append ksAppend "ostreecontainer --url $Opt(bootc-direct)\n"
-} elseif {${bootc-mode} == "fromPkgMode"} {
-	#workaround for grub2 install failure on xfs part sometimes
-	append ksAppend "part /boot --fstype=ext4\n"
-}
 
 if {[info exist Opt(ks-pkgs)]} {
 	append ksAppend "\n%packages --ignoremissing"
@@ -616,18 +839,6 @@ if [info exist Opt(ks-pre)] {
 
 #https://projects.engineering.redhat.com/browse/BKR-4998
 append recipe_ks_meta " disabled_root_access"
-
-set ROLE_LIST {}
-if [info exist Opt(topo)] {
-	if ![regexp -nocase {single} $Opt(topo)] {
-		lassign [regsub -all {[^0-9]+} $Opt(topo) " "] Opt(servers) Opt(clients)
-		if {$Opt(servers) == ""} {set Opt(servers) 1}
-		if {$Opt(clients) == ""} {set Opt(clients) 1}
-	}
-}
-if {[info exist Opt(servers)] && $Opt(servers) != 0} { lappend ROLE_LIST {*}[lrepeat $Opt(servers) SERVERS] }
-if {[info exist Opt(clients)] && $Opt(clients) != 0} { lappend ROLE_LIST {*}[lrepeat $Opt(clients) CLIENTS] }
-if {[llength $ROLE_LIST] == 0} { set ROLE_LIST STANDALONE }
 
 # handle network-qe private NIC machines
 set netqe_nic_opts {pciid driver model speed match unmatch num}
@@ -732,6 +943,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 		set Time [clock format [clock seconds] -format %Y-%m-%d~%H:%M]
 		set Opt(wb) "\[$Time\] $DISTRO_L \\[llength $TaskList]/[file tail [lindex [lindex $TaskList 0] 0]],... arch=$ARCH_L "
 	}
+
 	whiteboard $wbCtl "<!\[CDATA\[$Opt(wb)]]>"
 	notify $notifyCtl {
 		if [info exist Opt(cc)] {
@@ -747,15 +959,41 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 		set FAMILY {}
 		set TAG {}
 		set R {0};	# Role index
-		if {${bootc-mode} == "fromPkgMode"} {
-			lappend Opt(part) {fs=ext4 name=/var/nfsshare size=5 type=part}
-		}
-		if [info exist Opt(part)] {
-			foreach part $Opt(part) {
-				append PART_MPS [regsub {.*name=([^ ]+).*} $part {\1}],
-				}
-		}
 		foreach role ${ROLE_LIST} {
+			set current_bootcTo ""
+			set current_bootc_mode ""
+			if {[info exist bootcToList]} {
+				set current_bootcTo [lindex $bootcToList $R]
+				set current_bootc_mode [lindex $bootc_mode_list $R]
+			}
+			if {$current_bootc_mode == "fromPkgMode"} {
+				set Switch2BootcTask $defaultSwitch2BootcFromPkgModeTask
+			} elseif {$current_bootc_mode == "fromImageMode"} {
+				set Switch2BootcTask $defaultSwitch2BootcFromImageModeTask
+			} elseif {${current_bootc_mode} == "fromImageModeDirect"} {
+				set current_bootc_direct [lindex $bootc_direct_list $R]
+			} else {
+				set Switch2BootcTask ""
+			}
+			set ksfContent $roleKsfContents($R)
+			set role_bootc_ksAppend $roleBootcKsAppends($R)
+			# use for bootc tasks
+			set PART_MPS ""
+			# use as normal tasks
+			set partList ""
+			if {${current_bootc_mode} eq "fromPkgMode"} {
+				lappend partList {fs=ext4 name=/var/nfsshare size=5 type=part}
+			}
+			# below check also effected the # partitions ! 
+			if [info exist Opt(part)] {
+				foreach part $Opt(part) {
+					lappend partList $part
+				}
+			}
+			foreach part $partList {
+				append PART_MPS [regsub {.*name=([^ ]+).*} $part {\1}],
+			}
+
 			if [llength $DISTRO_L] {
 				set DISTRO [lindex $DISTRO_L 0]
 				set DISTRO_L [lrange $DISTRO_L 1 end]
@@ -816,16 +1054,20 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				if [info exist Opt(random)] {set pick "true"}
 				doTag autopick random=$pick -
 
-				if {[info exist Opt(packages)] && ${bootc-mode} == "no"} {
-					doTag packages ! {
-						foreach pkg [split $Opt(packages) ",/ "] {
-							doTag package name=$pkg -
+				if {[info exist Opt(packages)]} {
+					if { ${current_bootc_mode} == "no" || ${current_bootc_mode} == "" } {
+						doTag packages ! {
+							foreach pkg [split $Opt(packages) ",/ "] {
+								doTag package name=$pkg -
+							}
 						}
 					}
 				}
 
-				if {[info exist bootcTo] && ${bootc-mode} ni {"fromImageModeDirect"}} {
-					if {$bootcTo == "followDistro"} { set bootcTo ${DISTRO}-[arch_suffix ${ARCH}] } else { set DISTRO $bootcTo }
+				if {${current_bootc_mode} ne "no" && ${current_bootc_mode} ne "fromImageModeDirect"} {
+					if {$current_bootcTo != "" && $current_bootcTo != "followDistro"} {
+						set DISTRO $current_bootcTo
+					}
 				}
 				if ![info exist Opt(standalone)] {
 				distroRequires ! {
@@ -996,16 +1238,23 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					}
 				}
 				repos ! {
-					if {${nrestraint} eq "yes" && ${restraintrepo} eq {}} {
-						set restraintrepo [get_nrestraint_repo $DISTRO]
+					set REPOS ""
+					if {${nrestraint} eq "yes"} {
+						if {${restraintrepo} eq {}} {
+							set current_restraintrepo [get_nrestraint_repo $DISTRO]
+						} else {
+							set current_restraintrepo ${restraintrepo}
+						}
+					} else {
+						set current_restraintrepo {}
 					}
-					if {${restraintrepo} ne {}} {
-						repo name=restraint "url=${restraintrepo}" -
+					if {${current_restraintrepo} ne {}} {
+						repo name=restraint "url=${current_restraintrepo}" -
 					}
 					if [info exist Opt(repo)] {
 						set i 0
 						foreach url $Opt(repo) {
-							if {"${bootc-mode}" == "no"} {
+							if {"${current_bootc_mode}" == "no" || "${current_bootc_mode}" == "" } {
 								repo name=myrepo_[incr i] url=$url -
 							}
 							append REPOS "${url},"
@@ -1013,8 +1262,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					}
 				}
 				partitions ! {
-					if [info exist Opt(part)] {
-						foreach part $Opt(part) {
+					if [info exist partList] {
+						#set partList $Opt(part)
+						foreach part $partList {
 							partition {*}$part -
 						}
 					}
@@ -1042,14 +1292,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 						set distroBuild [exec bash -c "bkr distro-trees-list --arch $ARCH --family $_FAMILY --limit=1 | awk '/Name:/{print \$2}'"]
 					}
 				}
-
-				# distro install
-				if ![info exist distroBuild] { set distroBuild {} }
-				if {[string length $distroBuild] > 1 && ![info exist bootcTo]} {
-					lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
-				}
-
 				# kernel nvr option
+
 				if [llength $NVR_L] {
 					set NVR [lindex $NVR_L 0]
 					if {$NVR in {"" "{}"}} {
@@ -1070,11 +1314,22 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					if {$_build == ""} {set _build "vim"}
 					append brewBuildList "${_build} "
 				}
-				#bootc-mode
-				if {[info exist bootcTo]} {
-					if {[llength $brewBuildList] > 0} { set ContainerBPkgs $brewBuildList }
-					if [info exist Opt(packages)] { set ContainerPkgs [split $Opt(packages) ",/ "] }
-					lappend insertTasks "$Switch2BootcTask DISTRO_BUILD=$distroBuild BOOTC_TO=$bootcTo {PKGS=$ContainerPkgs} {BPKGS=$ContainerBPkgs} {ScriptUrl=$ContainerScriptUrl} {PART_MPS=$PART_MPS} {REPOS=$REPOS} {KOPTS=$KOPTS} KILLTIMEOVERRIDE=345600"
+				# distro install
+				if ![info exist distroBuild] { set distroBuild {} }
+				# if current_bootc_mode equal "", means runtest didn't receive --bootc
+				if {[string length $distroBuild] > 1 && (${current_bootc_mode} eq "" || ${current_bootc_mode} eq "fromImageModeDirect")} {
+					lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
+				} elseif { ${current_bootc_mode} eq "no" && [llength $brewBuildList] == 0 } {
+					lappend insertTasks "$OSInstaller DISTRO_BUILD=$distroBuild"
+				}
+
+				#bootc_mode
+				if {[info exist bootcToList]} {
+					if {$current_bootc_mode ne "no" && $current_bootc_mode ne "fromImageModeDirect" && $current_bootc_mode ne ""} {
+						if {[llength $brewBuildList] > 0} { set ContainerBPkgs $brewBuildList }
+						if [info exist Opt(packages)] { set ContainerPkgs [split $Opt(packages) ",/ "] }
+						lappend insertTasks "$Switch2BootcTask DISTRO_BUILD=$distroBuild BOOTC_TO=$current_bootcTo {PKGS=$ContainerPkgs} {BPKGS=$ContainerBPkgs} {ScriptUrl=$ContainerScriptUrl} {PART_MPS=$PART_MPS} {REPOS=$REPOS} {KOPTS=$KOPTS} KILLTIMEOVERRIDE=345600"
+					}
 				}
 
 				# command before kernelinstall
@@ -1139,7 +1394,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					lappend params KERNELARGVARIANT=up KERNELARGNAME=kernel KERNELARGVERSION=[string map {"kernel-" {}} $knvr] KPATCHNVR=$kpnvr KPATCHURL=$kpurl
 					lappend insertTasks "/distribution/kpatchinstall $params"
 				}
-				if {[llength $brewBuildList] > 0 && ${bootc-mode} == "no"} {
+				if {[llength $brewBuildList] > 0 && (${current_bootc_mode} == "no" || ${current_bootc_mode} == "")} {
 					lappend insertTasks "/distribution/brew-build-install {BUILDID=$brewBuildList} AVC_ERROR=+no_avc_check"
 				}
 
@@ -1281,7 +1536,11 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 							puts -nonewline {]]>}
 						}
 					}
-
+					if {$role_bootc_ksAppend != ""} {
+						ks_append ! {
+							puts "<!\[CDATA\[\n$role_bootc_ksAppend\]\]>"
+						}
+					}
 					if {$ksAppend != ""} {
 						ks_append ! {
 							puts "<!\[CDATA\[\n$ksAppend\]\]>"
@@ -1293,7 +1552,8 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					}
 
 					set testRepoList [list]
-					if {![string match fromImage* ${bootc-mode}] && ([info exist Opt(keepchanges)] || $nrestraint eq "yes")} {
+					# Modify the condition judgment: when current_bootc_direct is "_", prefetching is also required
+					if {(![string match fromImage* ${current_bootc_mode}] || (${current_bootc_mode} == "fromImageModeDirect" && ${current_bootc_direct} == "_")) && ([info exist Opt(keepchanges)] || $nrestraint eq "yes")} {
 						array set repoUrls {}
 						array set repoRpaths {}
 						set taskList [list]
@@ -1335,7 +1595,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 							} else {
 							}
 						}
-
+						set _ksfContent ""
 						set _ksfContent "%post --log=/root/ks-fetch-uri.log\n"
 						append _ksfContent "yum install -y bzip2 xz\n"
 						foreach taskrepo [lsort -unique $testRepoList] {
@@ -1443,6 +1703,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 									if {$uri == ""} {param name=_FETCH_URL value=no -}
 									foreach taskparam $taskparams {
 										if [regexp {^(_task|_desc)} $taskparam] continue
+										if [regexp {^DISTRO_BUILD=} $taskparam] continue
 										lassign [regsub {(^[^=]*)=(.*)} $taskparam {\1 {\2}}] pname pvalue
 										# use "mh-" prefix to set different value for multihost
 										if [regexp {^mh-} $pname] {
