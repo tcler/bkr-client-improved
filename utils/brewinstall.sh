@@ -309,11 +309,58 @@ need_reboot() {
 	return $_reboot
 }
 
-clean_old_kernel()
-{
+clean_old_kernel() {
 	run "dnf remove --noautoremove -y 'kernel*' 'kernel-*' '*-kernel*' || : " -
 	run "rpm -qa | grep -i ^kernel | xargs -I {} rpm -e --nodeps {} || :" -
 	sync -f
+}
+
+kernel_type_guess() {
+	local urls="${*}"; urls="${urls// /$'\n'}"
+	if ! grep -q kernel-core <<<"${urls}"; then
+		if grep -q kernel-debug-core <<<"${urls}"; then
+			FLAG=debugkernel
+		elif grep -q kernel-rt-debug-core <<<"${urls}"; then
+			FLAG=debugkernel
+			builds+=(rtk)
+		elif grep -q kernel-rt-core <<<"${urls}"; then
+			builds+=(rtk)
+		fi
+	fi
+}
+
+gen_rpmfilter_options() {
+	RejectOpts=()
+	AcceptOpts=()
+	autoAcceptOpts=()
+	autoRejectOpts=()
+
+	#common Reject Filter Options
+	if [[ "$FLAG" = debugkernel ]]; then
+		autoRejectOpts+=(+R*debug-*.rpm)
+	else
+		autoRejectOpts+=(-R*debug-*.rpm)
+	fi
+	if [[ "$DEBUG_INFO" != yes && "$ONLY_DEBUG_INFO" != yes ]]; then
+		autoRejectOpts+=(-R*debuginfo*.rpm)
+	fi
+	if [[ "$ONLY_DEBUG_INFO" = yes ]]; then
+		autoRejectOpts+=(+R*debuginfo*.rpm)
+	fi
+
+	#kernel Reject Filter Options
+	if ! grep -E -w 'rtk|kernel-rt|64k|kernel-64k' <<<"${builds[*]}"; then
+		kROpts+=(-Rkernel-rt*.rpm -Rkernel-64k*.rpm)
+	elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
+		kROpts+=(-Rkernel-rt*.rpm +Rkernel-64k*.rpm)
+	elif ! grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
+		kROpts+=(-Rkernel-64k*.rpm +Rkernel-rt*.rpm)
+	fi
+	# selftest, tools, devel will used in network-qe team
+	# kernel-uki-virt - contains the Unified Kernel Image (UKI) of the RHEL kernel.
+	! grep -q -w doc <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-doc-*.rpm)
+
+	for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 }
 
 # parse options
@@ -355,31 +402,6 @@ done
 #uniq array builds
 IFS=" " read -r -a builds <<< "$(echo "${builds[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
 
-#common Reject Filter Options
-if [[ "$FLAG" = debugkernel ]]; then
-	autoRejectOpts+=(+R*debug-*.rpm)
-else
-	autoRejectOpts+=(-R*debug-*.rpm)
-fi
-if [[ "$DEBUG_INFO" != yes && "$ONLY_DEBUG_INFO" != yes ]]; then
-	autoRejectOpts+=(-R*debuginfo*.rpm)
-fi
-if [[ "$ONLY_DEBUG_INFO" = yes ]]; then
-	autoRejectOpts+=(+R*debuginfo*.rpm)
-fi
-
-#kernel Reject Filter Options
-if ! grep -E -w 'rtk|kernel-rt|64k|kernel-64k' <<<"${builds[*]}"; then
-	kROpts+=(-Rkernel-rt*.rpm -Rkernel-64k*.rpm)
-elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
-	kROpts+=(-Rkernel-rt*.rpm +Rkernel-64k*.rpm)
-elif ! grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
-	kROpts+=(-Rkernel-64k*.rpm +Rkernel-rt*.rpm)
-fi
-# selftest, tools, devel will used in network-qe team
-# kernel-uki-virt - contains the Unified Kernel Image (UKI) of the RHEL kernel.
-! grep -q -w doc <<<"${RejectOpts[*]} ${AcceptOpts[*]}" && autoRejectOpts+=(-R*-doc-*.rpm)
-
 # fix ssl certificate verify failed
 # https://certs.corp.redhat.com/ https://docs.google.com/spreadsheets/d/1g0FN13NPnC38GsyWG0aAJ0v8FljNDlqTTa35ap7N46w/edit#gid=0
 (cd /etc/pki/ca-trust/source/anchors && curl -Ls --remote-name-all https://certs.corp.redhat.com/{2022-IT-Root-CA.pem,2015-IT-Root-CA.pem,ipa.crt,mtls-ca-validators,RH-IT-Root-CA.crt} && update-ca-trust)
@@ -396,7 +418,6 @@ fi
 archList=($(arch) noarch)
 [[ -n "$_ARCH" ]] && archList=(${_ARCH//,/ })
 archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
-for a in "${archList[@]}"; do autoAcceptOpts+=("-A*.${a}.rpm"); done
 
 # if parameter as 'rtk kernel-rt-xxx', we assume you need target kernel is 'kernel-rt-xxx'
 if grep -E -w 'kernel-rt' <<<"${builds[*]}"; then
@@ -506,12 +527,15 @@ for build in "${builds[@]}"; do
 		if [[ "$KOJI" = koji ]]; then
 			urllist=$(sed -r '/\/?mnt.koji.(.*\.rpm)(|.*)$/s;;\1;' buildArch.txt)
 		fi
+
+		gen_rpmfilter_options
 		urllist=$(echo "$urllist" | rpmFilter "${bROpts[@]}" "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 		for url in $urllist; do
 			run "curl -O -L $downloadBaseUrl/$url" 0  "download-${url##*/}"
 		done
 
 		#try download rpms from brew download server
+		gen_rpmfilter_options
 		[[ -z "$urllist" && "$KOJI" = brew ]] && {
 			owner=$(awk '/^Owner:/{print $2}' ${KOJI}_taskinfo.txt)
 			downloadServerUrl=$downloadBaseUrl/brewroot/scratch/$owner/task_$taskid
@@ -538,20 +562,29 @@ for build in "${builds[@]}"; do
 	#kernel MR-build before syncing to jira creating repo
 	#https://s3.amazonaws.com/arr-cki-prod-trusted-artifacts/trusted-artifacts/1668684123/build_x86_64/9123445672/index.html
 	elif [[ "$build" =~ http.*/arr-cki-prod-(internal|trusted)-artifacts/[^/]+/[0-9]+/build_[^/]*/[0-9]+/index.html ]]; then
-		urls=$(curl -Ls $build | grep -Eo [a-z]+-[^/]*kernel-[^/]*.rpm | sort -u | sed 's;^;https://s3.amazonaws.com/arr-cki-prod-trusted-artifacts/;')
-		if echo "$urls" | grep -q kernel-; then
+		_urls=$(curl -Ls $build | grep -Eo [a-z]+-[^/]*kernel-[^/]*.rpm | sort -u | sed 's;^;https://s3.amazonaws.com/arr-cki-prod-trusted-artifacts/;')
+		if echo "${_urls}" | grep -q kernel-; then
 			[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
+			kernel_type_guess ${_urls}
+			gen_rpmfilter_options
 			bROpts=("${kROpts[@]}")
+		else
+			gen_rpmfilter_options
 		fi
-		time batch_download -p < <(echo "$urls" |
+		time batch_download -p < <(echo "${_urls}" |
 			rpmFilter "${bROpts[@]}" "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 	elif [[ "$build" =~ ^repo: || "$build" =~ http.*/arr-cki-prod-(internal|trusted)-artifacts/ ]]; then
 		if [[ "$build" =~ http.*/arr-cki-prod-(internal|trusted)-artifacts/index.html ]]; then
 			build=${build/index.html?prefix=/}  #convert from view url to repo url
 		fi
-		if getUrlListByRepo ${build#repo:} | grep -q kernel-; then
+		_urls=$(getUrlListByRepo ${build#repo:})
+		if echo "${_urls}" | grep -q kernel-; then
 			[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
+			kernel_type_guess ${_urls}
+			gen_rpmfilter_options
 			bROpts=("${kROpts[@]}")
+		else
+			gen_rpmfilter_options
 		fi
 		download_pkgs_from_repo ${build#repo:}
 	elif [[ "$build" =~ ^(ftp|http|https):// ]]; then
@@ -559,8 +592,13 @@ for build in "${builds[@]}"; do
 			if [[ $url = *.rpm ]]; then
 				run "curl -O -L $url" 0  "download-${url##*/}"
 			else
-				if getUrlListByUrl ${build#repo:} | grep -q kernel-; then
+				_urls=$(getUrlListByUrl ${build})
+				if echo "${_urls}" | grep -q kernel-; then
+					kernel_type_guess ${_urls}
+					gen_rpmfilter_options
 					bROpts=("${kROpts[@]}")
+				else
+					gen_rpmfilter_options
 				fi
 				download_rpms_from_url $url
 				find */ -name '*.rpm' | xargs -i mv {} ./
@@ -594,6 +632,7 @@ for build in "${builds[@]}"; do
 
 		run install_brew -
 		buildname=$build
+		gen_rpmfilter_options
 		[[ "$buildname" = kernel-* ]] && {
 			[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 			bROpts=("${kROpts[@]}")
