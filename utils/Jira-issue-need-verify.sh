@@ -13,10 +13,10 @@ if [[ "$users" = fs || "$users" = all ]]; then
 elif [[ -n "$users" ]]; then
 	users=$(maillist $users)
 else
-	users=me
+	users='currentUser()'
 fi
 IssuesNeedVerify=$(jira issue list --plain --no-truncate --no-headers --columns KEY \
-	-q"issueFunction in issueFieldMatch('project = RHEL AND status = Integration AND \"QA Contact\" in (currentUser(), ${users})', 'customfield_12318450', '.{3,}')")
+	-q"issueFunction in issueFieldMatch('project = RHEL AND status = Integration AND \"QA Contact\" in (${users})', 'customfield_12318450', '.{3,}')")
 [[ $? != 0 && -z "$IssuesNeedVerify" ]] && {
 	echo "[WARN] getting issues fail, if you updated system version, might need re-install jira-cli:" >&2
 	echo "  pip install jiracli keyring ipython  #keyring,ipython is required by jirashell" >&2

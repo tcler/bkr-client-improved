@@ -22,11 +22,11 @@ if [[ "$users" = fs || "$users" = all ]]; then
 elif [[ -n "$users" ]]; then
 	users=$(maillist $users)
 else
-	users=me
+	users='currentUser()'
 fi
 [[ -z "$preTestIssues" ]] && {
 	preTestIssues=$(jira issue list --plain --no-truncate --no-headers --columns KEY \
-		-q"project = RHEL and 'Preliminary Testing' = Requested and 'QA Contact' in (currentUser(), ${users})")
+		-q"project = RHEL and 'Preliminary Testing' = Requested and 'QA Contact' in (${users})")
 }
 
 issue-info.sh ${preTestIssues}
