@@ -8,7 +8,6 @@ if grep -E -q ^NAME=.?Fedora /etc/os-release; then
 	cat <<-'EOF' >/etc/yum.repos.d/beaker-client.repo
 	[beaker-client]
 	name=Beaker Client - Fedora$releasever
-	baseurl=http://download.lab.bos.redhat.com/beakerrepos/client/Fedora$releasever/
 	baseurl=http://download.devel.redhat.com/beakerrepos/client/Fedora$releasever
 	enabled=1
 	gpgcheck=0
@@ -29,7 +28,7 @@ else
 	cat <<-'EOF' >/etc/yum.repos.d/beaker-client.repo
 	[beaker-client]
 	name=Beaker Client - RedHatEnterpriseLinux$releasever
-	baseurl=http://download.lab.bos.redhat.com/beakerrepos/client/RedHatEnterpriseLinux$releasever/
+	baseurl=http://download.devel.redhat.com/beakerrepos/client/RedHatEnterpriseLinux$releasever/
 	enabled=1
 	gpgcheck=0
 	skip_if_unavailable=1
