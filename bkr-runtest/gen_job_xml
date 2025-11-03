@@ -1165,7 +1165,13 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 
 				set distroBuild $DISTRO
-				hostRequires ! {
+				set forceMachine {}
+				if [string match force* $MACHINE] {
+					set MACHINE [string range $MACHINE 6 end]
+					set forceMachine "force=$MACHINE"
+				}
+
+				hostRequires $forceMachine ! {
 					and ! {
 						if {[string length $MACHINE] > 0} {
 							hostname op=like value=$MACHINE -
