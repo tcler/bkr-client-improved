@@ -114,7 +114,7 @@ set CommonOptionList {
 	{sr sysrequire}		{arg m	help {Additional <hostRequires><and><system/> for job, same as '--hr=system.key=value' example: --sr numanodes=4}}
 	{opt-alias hr-alias}		{arg y	help {alias of long and changeable options combination}}
 	{opt-alias-file hr-alias-file}		{arg y	help {opt-alias will search alias in this file}}
-	machine			{arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1}}
+	machine			{arg m	help {Require the machine for job, set comma-separated values for multi-host, example: --machine=SERVER1,CLIENT1, the specified machine can be prefixed with 'force:' to enforce use of the machine}}
 	systype			{arg m	help {Require system of TYPE for job (Machine, Prototype, Laptop, ..) default: Machine}}
 	ormachine		{arg m	help {Use comma-separated values to set a machine pool, example: --ormachine=HOST1,HOST2,HOST3}}
 	random                  {arg n  help {autopick type}}
