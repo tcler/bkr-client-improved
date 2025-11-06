@@ -1166,7 +1166,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 
 				set distroBuild $DISTRO
 				set forceMachine {}
-				if [string match force* $MACHINE] {
+				if [string match force:* $MACHINE] {
 					set MACHINE [string range $MACHINE 6 end]
 					set forceMachine "force=$MACHINE"
 				}
