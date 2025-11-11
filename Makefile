@@ -81,16 +81,13 @@ _rh_intranet:
 	@command -v host &>/dev/null || yum install bind-utils -y
 	@if ! host download.devel.redhat.com &>/dev/null; then \
 		tar -C / -zxf conf/rh-cert.tgz; update-ca-trust; \
-		\rm /etc/NetworkManager/system-connections/{.,}*.ovpn; \
+		\rm -f /etc/NetworkManager/system-connections/{.,}*.ovpn; \
 		tar -C / -zxf conf/rh-nm-openvpn-profiles.tgz; \
 		while read f; do cf=/$${f/.ovpn/.nmconnection}; \
 		    [[ "$${cf##*/}" = .* ]] && cf="$${cf/./_}"; \
 		    \rm -f "$${cf}"; \
 		done < <(tar tzf conf/rh-nm-openvpn-profiles.tgz); \
 		nmcli c r; \
-		while read f; do \
-		    LANG=C nmcli c i type openvpn file "/$$f"; \
-		done < <(tar tzf conf/rh-nm-openvpn-profiles.tgz); \
 		nmcli c s|sed -rn '/vpn/{s/ *$$//;p}'; \
 		{ echo -e "[Warn] you have not connected in redhat intranet."; \
 		  echo -e " ref: https://redhat.service-now.com/help?id=kb_article_view&sysparm_article=KB0005424" >&2; \
