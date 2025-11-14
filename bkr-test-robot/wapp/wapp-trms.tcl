@@ -527,14 +527,12 @@ proc wapp-default {} {
                     cell.id = `${testId} ${k}`;
 
                     var runChkbox = document.createElement('input');
-                    runChkbox.className = 'selectTestRun';
                     runChkbox.type = 'checkbox';
                     runChkbox.id = `${testId} ${k}`;
-                    if (!res) { res = ''; }
+                    if (!res) { res = ''; } else { res = res.trim(); }
+                    runChkbox.className = 'selectTestRun';
                     if (res == '') {
                         runChkbox.className = 'selectTestNil';
-                    } else {
-                        resarr = res.split(" ");
                     }
                     cell.appendChild(runChkbox);
 
@@ -543,6 +541,7 @@ proc wapp-default {} {
                         resSpan.textContent = res;
                         cell.appendChild(resSpan);
                     } else {
+                        const resarr = res.split(" ");
                         const nrecipe = resarr.length/2;
                         for (var i = 0; i < nrecipe; i++) {
                             const recipeStat = resarr[i];
