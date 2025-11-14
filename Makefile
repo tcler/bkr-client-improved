@@ -58,18 +58,9 @@ install_robot: _isroot install_runtest _install_require
 	cd bkr-test-robot; for f in *; do [ -d $$f ] && continue; cp -fd $$f $(_bin)/$$f; done
 
 _install_web: _isroot _web_require
-	#install webfront
-	[ -d /opt/wub2 ] || { \
-		yum install -y nmap-ncat &>/dev/null; \
-		https_proxy=$(HTTP_PROXY) curl -Lskf https://github.com/tcler/wub/archive/refs/heads/master.tar.gz | \
-		tar -C /opt -zxf - && mv -T /opt/wub-master /opt/wub2; }
-	cd bkr-test-robot/www2; for f in *; do rm -fr /opt/wub2/docroot/$$f; done
-	cp -rf -d bkr-test-robot/www2/* /opt/wub2/docroot/.
-	cd /opt/wub2; sed -e 's;redirect /wub/;redirect /trms/;' \
-		-e 's;^/wub/ ;/trms/ ;' \
-		site.config >site-trms.config
-	@chmod o+w /opt/wub2/CA
-	@chmod u+s /usr/local/bin/trms-service.sh
+	#install wapp-trms
+	cp -f bkr-test-robot/wapp/wapp.tcl /usr/local/lib/.
+	cp -f bkr-test-robot/wapp/wapp-trms{,-resjson}.tcl /usr/local/libexec/.
 
 _install_require: _isroot _rh_intranet
 	@sed -i '/^Defaults *secure_path/{/.usr.local.bin/! {s; *$$;:$(_bin);}}' /etc/sudoers
@@ -98,7 +89,7 @@ _isroot:
 	@test `id -u` = 0 || { echo "[Warn] need root permission" >&2; exit 1; }
 
 _firewall:
-	 - { firewall-cmd --permanent --add-port=8080/tcp; \
+	 - { firewall-cmd --permanent --add-port={8080,9090}/tcp; \
 	 	firewall-cmd --permanent --add-service=http; \
 	 	firewall-cmd --permanent --add-service=https; \
 	 	firewall-cmd --permanent --add-service=ftp; \
@@ -109,8 +100,8 @@ _firewall:
 	 	firewall-cmd --reload; }
 
 _web_require: _firewall
-	@test `rpm -E %fedora` != %fedora || test `rpm -E '%rhel'` -ge 8 || \
-		{ echo "[Warn] only support Fedora and RHEL-8+" >&2; exit 1; }
+	@test `rpm -E %fedora` != %fedora || test `rpm -E '%rhel'` -ge 9 || \
+		{ echo "[Warn] only support Fedora and RHEL-9+" >&2; exit 1; }
 
 rpm: _isroot
 	./build_rpm.sh
