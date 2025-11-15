@@ -46,6 +46,32 @@ proc wapp-default {} {
             color: white;
         }
 
+        div.controlPanelCall {
+            position: fixed;
+            z-index: 99;
+            top: 144pt;
+            left: 0pt;
+            background-color: #454;
+            background-color: #CD7F32;
+            filter:alpha(Opacity=80); -moz-opacity:0.8; opacity: 0.8;
+            border: solid 3px;
+            border-color: #D9D919;
+            border-color: #cd7f32;
+        }
+        div.controlPanel {
+            position: fixed;
+            z-index: -1;
+            display: none;
+            top: 144pt;
+            left: 0pt;
+            background-color: #454;
+            background-color: #CD7F32;
+            filter:alpha(Opacity=96); -moz-opacity:0.96; opacity: 0.96;
+            border: solid 3px;
+            border-color: #D9D919;
+            border-color: #cd7f32;
+        }
+
         .container {
             padding: 5px;
             width: 99%;
@@ -219,6 +245,19 @@ proc wapp-default {} {
     </div>
 
     <div class="container">
+        <div class="controlPanelCall" onmouseover="controlPanelSwitch(1);">
+            V<br>V<br>V
+        </div>
+        <div class="controlPanel" id="cpanel" onmouseover="controlPanelSwitch(1);" onmouseout="controlPanelSwitch(0);">
+            <span style="font-weight:bold; color: #bfb;"> TRMS Control Pannel </span>
+            <br/>
+            <input type="button" value="Delete" onclick="delList();"/>
+            <input type="button" value="[Re]Run" onclick="reSubmitList();"/>
+            <input type="button" value="Clone" onclick="cloneToNewRun();"/>
+            <br>
+            <input type="button" value="Delete Test Cases" onclick="delTestCase();"/>
+        </div>
+
         <div class="controls">
             <form class="query-form" id="queryForm">
             <fieldset class="fieldset" id="queryFieldset">
@@ -317,6 +356,145 @@ proc wapp-default {} {
             div.style.zIndex = "-1";
             div.style.display = "none";
         }
+
+	var cpanelTO;
+	function controlPanelSwitch(on) {
+		var obj = document.getElementById('cpanel')
+		if (on == 1) {
+			obj.style.zIndex = "100";
+			obj.style.display = "block";
+			clearTimeout(cpanelTO);
+		} else {
+			cpanelTO = setTimeout(function() {
+				obj.style.zIndex = "-1";
+				obj.style.display = "none";
+			}, 2000)
+		}
+	}
+
+	function post(path, params, method) {
+		method = method || "post"; // Set method to post by default if not specified.
+
+		// The rest of this code assumes you are not using a library.
+		// It can be made less wordy if you use one.
+		var form = document.createElement("form");
+		form.setAttribute("method", method);
+		form.setAttribute("action", path);
+		form.setAttribute("id", "UpdateDB");
+
+		for(var key in params) {
+			if(params.hasOwnProperty(key)) {
+				var hiddenField = document.createElement("input");
+				hiddenField.setAttribute("type", "hidden");
+				hiddenField.setAttribute("name", key);
+				hiddenField.setAttribute("value", params[key]);
+
+				form.appendChild(hiddenField);
+			}
+		}
+
+		document.body.appendChild(form);
+		form.submit();
+		document.body.removeChild(form);
+	}
+
+	function delList() {
+		//alert(distroArrayx[distroIdx] + ' ' + testid);
+		//alert(document.URL);
+		var path = document.URL;
+		var path2 = path.replace(/index.tml/, "deltest.tml");
+		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/deltest.tml?");
+
+		var testlist = ""
+		var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
+		for (var i=0; i<chkItem.length; i++) {
+			if (chkItem[i].checked == true) {
+				var testobj = chkItem[i].id.split(" ");
+				testid = testobj[0];
+				j = testobj[1];
+				testlist += testid + ' ' + distroArrayx[j] + "&";
+			}
+		}
+		//var r = confirm(path2+"\nAre you sure delete these test?\n"+testlist);
+		var r = confirm("Are you sure delete these test?\n"+testlist);
+		if (r != true) {
+			return 0;
+		}
+		post(path2, {testlist: testlist});
+	}
+
+	function reSubmitList() {
+		//alert(distroArrayx[distroIdx] + ' ' + testid);
+		//alert(document.URL);
+		var path = document.URL;
+		var path2 = path.replace(/index.tml/, "resubmit-list.tml");
+		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/resubmit-list.tml?");
+
+		var testlist = "";
+		var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
+		for (var i=0; i<chkItem.length; i++) {
+			if (chkItem[i].checked == true) {
+				var testobj = chkItem[i].id.split(" ");
+				testid = testobj[0];
+				j = testobj[1];
+				testlist += testid + ' ' + distroArrayx[j] + "\n";
+			}
+		}
+		//var r = confirm(path2+"\nAre you sure resubmit these test?\n"+testlist);
+		var r = confirm("Are you sure resubmit these test?\n"+testlist);
+		if (r != true) {
+			return 0;
+		}
+		post(path2, {testlist: testlist});
+	}
+
+	function cloneToNewRun() {
+		//alert(distroArrayx[distroIdx] + ' ' + testid);
+		//alert(document.URL);
+		var path = document.URL;
+		var path2 = path.replace(/index.tml/, "clone.tml");
+		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/clone.tml?");
+
+		var testlist = "";
+		var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
+		for (var i=0; i<chkItem.length; i++) {
+			if (chkItem[i].checked == true) {
+				var testobj = chkItem[i].id.split(" ");
+				testid = testobj[0];
+				testlist += testid + ';';
+			}
+		}
+		var name = prompt("============> Input the distro and params, e.g <============\nRHEL-7.2  kernel-3.10.0-282.el7 -dbgk -cc=k@r.com\nRHEL-7.6 -alone -random -kdump=  info:kernel,nfs-utils", "");
+		if (!name) {
+			return 0;
+		}
+		post(path2, {testlist: testlist, distro: name});
+	}
+
+	function delTestCase() {
+		//alert(document.URL);
+		var path = document.URL;
+		var path2 = path.replace(/index.tml/, "delTestCase.tml");
+		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/delTestCase.tml?");
+
+		var testlist = ""
+		var chkItem = document.getElementsByClassName('selectTestCase');
+		for (var i=0; i<chkItem.length; i++) {
+			if (chkItem[i].checked == true) {
+				var testid = chkItem[i].id;
+				testlist += testid + ';';
+			}
+		}
+		if (testlist == "") {
+			return 0;
+		}
+		//var r = confirm(path2+"\nAre you sure delete these test?\n"+testlist);
+		var r = confirm("Are you sure delete these test cases?\n"+testlist);
+		if (r != true || testlist == "") {
+			return 0;
+		}
+		post(path2, {testlist: testlist});
+	}
 
         // 初始化界面
         function initializeInterface() {
