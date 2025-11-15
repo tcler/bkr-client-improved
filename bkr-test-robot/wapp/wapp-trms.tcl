@@ -90,12 +90,12 @@ proc wapp-default {} {
 
         .pkg-select {
             display: none;
-            z-Index: -1;
+            z-index: -1;
         }
 
         .pkg-select.show {
             width: 100%;
-            z-Index: 110;
+            z-index: 110;
             display: block;
         }
 
@@ -107,6 +107,21 @@ proc wapp-default {} {
             border-radius: 0px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: relative;
+        }
+
+        .detail-div {
+            position: absolute;
+            top: 88px;
+            left: 10px;
+            width: 96%;
+            flex: 1; /* 占据剩余空间 */
+            background-color: #f3e5ab; /* 温暖的米色 */
+            color: #2c2c2c;
+            padding: 10px;
+            border: 2px solid #ff6b6b;
+            max-height: 80vh; /* 限制最大高度 */
+            min-height: 60vh; /* 限制最大高度 */
+            overflow: auto; /* 启用滚动 */
         }
 
         table {
@@ -256,7 +271,6 @@ proc wapp-default {} {
             }
         };
 
-        // 模拟测试结果数据
         let qresults = testruninfo.qresults;
 
         const getParam = (name) => new URLSearchParams(window.location.search).get(name);
@@ -291,16 +305,28 @@ proc wapp-default {} {
             }
         }
 
+        function showDetail(id) {
+            const divid = `div${id}`;
+            const div = document.getElementById(divid);
+            div.style.zIndex = "500";
+            div.style.display = "block";
+        }
+
+        function hideDetail(id) {
+            const div = document.getElementById(id);
+            div.style.zIndex = "-1";
+            div.style.display = "none";
+        }
+
         // 初始化界面
         function initializeInterface() {
             // 创建组件/包的radio控件
             createRadioButtons();
 
-            // 初始化测试结果数据
-            initializeTestResults();
-
             // 渲染表格
             renderTable();
+
+            createResultDetailDivs();
         }
 
         // 创建radio按钮
@@ -367,36 +393,6 @@ proc wapp-default {} {
                     select.classList.remove('show');
                 }
             });
-        }
-
-        function showDetail(id) {
-            var cell = document.getElementById(id);
-            var testid = cell.getAttribute("id");
-            var divid = "div" + testid;
-            var div = document.getElementById(divid);
-            div.style.zIndex="100";
-            div.style.display="block";
-        }
-
-        // 初始化测试结果数据
-        function initializeTestResults() {
-            if (qresults.results.length > 0) {
-                return;
-            }
-            // 生成随机测试结果
-	    const nrow = 5;
-            const ncol = qresults.qruns.length;
-            for (let i = 0; i < nrow; i++) {
-                const resobj = {
-                    testid: "abcdefg12345",
-                    test: "test case foo, param foo",
-		}
-                for (let j = 0; j < ncol; j++) {
-                    resobj['res'+j] = "pass pass 19867391#task204745781 19867391#task204745782";
-                    resobj['resd'+j] = "stepa: pass\nstepb: pass\nstepc: pass";
-		}
-                qresults.results[i] = resobj;
-            }
         }
 
         // Truncate string to max length with ellipsis
@@ -482,7 +478,7 @@ proc wapp-default {} {
                 const testId = resObj.testid;
                 const testName = keepLastTwo(resObj.test);
                 row.id = testId;
-                row.ondbclick = function() { showDetail(testId); };
+                row.ondblclick = function() { showDetail(testId); };
 
                 const testCell = document.createElement('td');
                 testCell.textContent = `${rowIdx}. ${testName}`;
@@ -522,7 +518,6 @@ proc wapp-default {} {
                 var nrun = qresults.qruns.length;
                 for (let k = 0; k < nrun; k++) {
                     var res = resObj['res'+k];
-                    const resd = resObj['resd'+k];
                     const cell = document.createElement('td');
                     cell.id = `${testId} ${k}`;
 
@@ -569,6 +564,56 @@ proc wapp-default {} {
                 }
 
                 tableBody.appendChild(row);
+            });
+        }
+
+        function createResultDetailDivs() {
+            const nheaderRow = document.createElement('tr');
+            const maxHeader = 40;
+            qresults.qruns.forEach((run, index) => {
+                const td = document.createElement('td');
+                td.textContent = truncateString(run, maxHeader);
+                td.title = run;
+                nheaderRow.appendChild(td);
+            });
+            qresults.results.forEach((resObj, rowIdx) => {
+                const resdDiv = document.createElement('div');
+                resdDiv.className = 'detail-div';
+                resdDiv.id = `div${resObj.testid}`;
+
+                const resdSpan = document.createElement('span');
+		resdSpan.textContent = ' - [Close me]';
+                const resdXBtn = document.createElement('button');
+                resdXBtn.textContent = 'X';
+                resdXBtn.addEventListener('click', function(e) {
+                    hideDetail(resdDiv.id);
+                });
+                resdDiv.prepend(resdXBtn);
+		resdDiv.appendChild(resdSpan);
+
+                const br = document.createElement('br');
+                const p = document.createElement('p');
+                p.textContent = resObj.test;
+                resdDiv.appendChild(br);
+                resdDiv.appendChild(p);
+
+                const resdTable = document.createElement('table');
+                resdTable.appendChild(nheaderRow.cloneNode(true));
+
+                const resdRow = document.createElement('tr');
+                var nrun = qresults.qruns.length;
+                for (let k = 0; k < nrun; k++) {
+                    const cell = document.createElement('td');
+                    var resd = resObj['resd'+k];
+		    if (!resd) { resd = ''; }
+		    cell.innerHTML = resd.replace(/\n/g, '<br>');
+		    resdRow.appendChild(cell);
+                }
+                resdTable.appendChild(resdRow);
+		resdDiv.appendChild(resdTable);
+                resdDiv.style.zIndex = "-1";
+                resdDiv.style.display = "none";
+                document.body.appendChild(resdDiv);
             });
         }
 
