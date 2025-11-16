@@ -6,6 +6,24 @@ namespace import ::runtestlib::*
 
 source /usr/local/lib/wapp.tcl
 
+proc common-footer {} {
+  wapp-trim {
+    <br>
+    <footer>
+        <div style="text-align: center;">
+          <strong>
+            Powered by <a href="https://github.com/tcler/bkr-client-improved">bkr-client-improved</a> and
+            <a href="https://wapp.tcl-lang.org">wapp</a>
+          </strong>
+          |
+          <a href="mailto:yin-jianhong@163.com">@JianhongYin</a>
+          <a href="mailto:nzjachen@gmail.com">@ZhenjieChen</a>
+        </div>
+    </footer>
+    </html>
+  }
+}
+
 proc wapp-default {} {
   wapp-allow-xorigin-params
   wapp-content-security-policy {
@@ -815,8 +833,8 @@ proc wapp-default {} {
         });
     </script>
 </body>
-</html>
   }
+  common-footer
 }
 
 proc wapp-page-resjson {} {
@@ -936,8 +954,8 @@ proc wapp-page-main {} {
   wapp {<br><br><br><br>
     </font>
 <body>
-</html>
   }
+  common-footer
 }
 
 proc wapp-page-resubmit-list {} {
