@@ -300,6 +300,33 @@ proc wapp-default {} {
             left: 0;
             z-index: 5;
         }
+
+        /* 添加加载提示样式 */
+        .loading-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #666;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -333,6 +360,11 @@ proc wapp-default {} {
         </div>
 
         <div class="table-container">
+            <!-- 添加加载提示 -->
+            <div class="loading-message" id="loadingMessage">
+                <div class="loading-spinner"></div>
+                <div>loading data test result ...</div>
+            </div>
             <table id="resultsTable">
                 <thead id="tableHeader">
                     <!-- Table header will be generated here -->
@@ -547,6 +579,8 @@ proc wapp-default {} {
 
         // 初始化界面
         function initializeInterface() {
+            document.getElementById('loadingMessage').style.display = 'none';
+
             // 创建组件/包的radio控件
             createRadioButtons();
 
@@ -846,6 +880,8 @@ proc wapp-default {} {
 
         // after page loaded
         document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('loadingMessage').style.display = 'block';
+
             const cururl = new URL(window.location.href);
             cururl.pathname += "resjson";
             var resurl = cururl.toString();
@@ -860,6 +896,9 @@ proc wapp-default {} {
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    // 如果加载失败，也隐藏加载提示
+                    document.getElementById('loadingMessage').style.display = 'none';
+                    document.getElementById('loadingMessage').innerHTML = '<div style="color: red;">loading data fail, please refresh the page and try again.</div>';
                 });
 
             // Query button event
