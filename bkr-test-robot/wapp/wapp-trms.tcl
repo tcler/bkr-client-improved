@@ -1,3 +1,4 @@
+#!/usr/bin/env tclsh
 #package require wapp
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require sqlite3
@@ -6,21 +7,57 @@ namespace import ::runtestlib::*
 
 source /usr/local/lib/wapp.tcl
 
-proc common-footer {} {
+proc common-footer {{user ""}} {
+  wapp {<footer>}
+  if {$user == {}} {
+    wapp {<br>}
+  } else {
+    wapp-subst {
+    <div id="hostUsage" style="
+      background: #f0f8ff;
+      font-family: monospace;
+      text-align: center;">
+    </div>
+
+    <script>
+    function updateHostUsage() {
+        const username = "%unsafe($user)";
+        const url = `${window.location.origin}/host-usage?user=${username}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                const hostUsage = data.hostusage || 'N/A';
+                const servAddr = data.servaddr || 'N/A';
+                const clntIp = data.clntip || 'N/A';
+                const displayText = `{RecipeUse(${hostUsage}) - clnt(${clntIp}) serv(${servAddr})}`;
+                document.getElementById('hostUsage').textContent = displayText;
+            })
+            .catch(error => {
+                document.getElementById('hostUsage').textContent = 
+                    'get host-usage fail:' + error.message;
+            });
+    }
+
+    updateHostUsage();
+
+    //update every 5m
+    setInterval(updateHostUsage, 5 * 60 * 1000);
+    </script>
+    }
+  }
   wapp-trim {
-    <br>
-    <footer>
-        <div style="text-align: center;">
-          <strong>
-            Powered by <a href="https://github.com/tcler/bkr-client-improved">bkr-client-improved</a> and
-            <a href="https://wapp.tcl-lang.org">wapp</a>
-          </strong>
-          |
-          <a href="mailto:yin-jianhong@163.com">@JianhongYin</a>
-          <a href="mailto:nzjachen@gmail.com">@ZhenjieChen</a>
-        </div>
-    </footer>
-    </html>
+      <div style="text-align: center;">
+        <strong>
+          Powered by <a href="https://github.com/tcler/bkr-client-improved">bkr-client-improved</a> and
+          <a href="https://wapp.tcl-lang.org">wapp</a>
+        </strong>
+        |
+        <a href="mailto:yin-jianhong@163.com">@JianhongYin</a>
+        <a href="mailto:nzjachen@gmail.com">@ZhenjieChen</a>
+      </div>
+      </footer>
+      </html>
   }
 }
 
@@ -834,7 +871,7 @@ proc wapp-default {} {
     </script>
 </body>
   }
-  common-footer
+  common-footer $user
 }
 
 proc wapp-page-resjson {} {
@@ -1163,6 +1200,19 @@ proc wapp-page-delTestCase {} {
 	<body></body>
 	</html>
   }
+}
+
+proc wapp-page-host-usage {} {
+  wapp-allow-xorigin-params
+  set user [lindex [wapp-param user] end]
+  set hostinfo [::runtestlib::hostUsed $user]
+  set serveraddr [wapp-param HTTP_HOST]
+  set clientip [wapp-param REMOTE_ADDR]
+  wapp-subst {{
+    "hostusage": "%unsafe($hostinfo)",
+    "servaddr": "%unsafe($serveraddr)",
+    "clntip": "%unsafe($clientip)"
+  }}
 }
 
 wapp-start $argv
