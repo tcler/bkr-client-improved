@@ -449,9 +449,8 @@ proc wapp-default {} {
 	}
 
 	function cloneToNewRun() {
-		var path = document.URL;
-		var path2 = path.replace(/index.tml/, "clone.tml");
-		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/clone.tml?");
+		const nurl = new URL(window.location.href);
+		nurl.pathname = "clone";
 
 		var testlist = "";
 		var chkItem = document.querySelectorAll("input.selectTestRun, input.selectTestNil");
@@ -466,7 +465,7 @@ proc wapp-default {} {
 		if (!name) {
 			return 0;
 		}
-		post(path2, {testlist: testlist, distro: name});
+		post(nurl.toString(), {testlist: testlist, distro: name});
 	}
 
 	function delTestCase() {
@@ -1023,6 +1022,90 @@ proc wapp-page-deltest {} {
   wapp-subst {
 	<head>
 	<META HTTP-EQUIV="Refresh" CONTENT="1; URL=%unsafe($defaultUrl)">
+	</head>
+	<body></body>
+	</html>
+  }
+}
+
+proc wapp-page-clone {} {
+  wapp-allow-xorigin-params
+  set permission yes
+
+  set user [lindex [wapp-param user] end]
+  set dbfile [dbroot $user]/testrun.db
+  if {[string match {localhost:*} [wapp-param HTTP_HOST]]} { ""; }
+
+  wapp {<html>}
+  set testList [lindex [wapp-param testlist] 0]
+  set distro_gset [wapp-param distro]
+  if {$permission != yes} {
+	wapp {<span style="font-size:400%;">You have no permission to do this!<br></span>}
+  } elseif {![file exists $dbfile]} {
+	wapp {<span style="font-size:400%;">There is not dbfile, something is wrong!<br></span>}
+  } elseif {$testList != "" && $distro_gset != ""} {
+	set distro [lindex $distro_gset 0]
+	set gset {}
+	set infohead {info:}
+
+	if {[lsearch -regexp $distro_gset ^$infohead] == -1} {
+		lappend distro_gset info:kernel
+	}
+
+	foreach v [lrange $distro_gset 1 end] {
+		if [regexp -- {^-} $v] {
+			lappend gset $v
+			continue
+		} elseif [regexp -- "^$infohead" $v] {
+			set infoheadlen [string length $infohead]
+			set pkglist [split [string range $v $infoheadlen end] ,]
+			if {[lsearch -regexp $pkglist ^kernel$] == -1} {
+				set pkglist [linsert $pkglist 0 kernel]
+			}
+			set info {}
+			if [regexp -- "family" $distro] {
+				set info [clock format [clock second] -format %Y-%m-%d]
+			} else {
+				foreach pkg $pkglist {
+					append info "[exec bash -c "distro-compose -p ^$pkg-\[0-9] -d ^$distro$|sed -n 2p"],"
+				}
+			}
+			lappend gset -info=$info
+		} else {
+			if {[regexp -- {^kernel-} $v]} {
+				lappend gset -nvr=$v
+			} else {
+				lappend gset -install=$v
+			}
+		}
+	}
+	set distro_gset_ [concat $distro $gset]
+
+	sqlite3 db $dbfile
+	db timeout 6000
+	db transaction {
+		foreach testid_ [split $testList ";"] {
+			if {$testid_ == ""} continue
+			set sql {
+				UPDATE OR IGNORE testrun
+				    set jobid='', testStat='', res='o', rstat='', taskuri='', abortedCnt=0, resdetail=''
+				    WHERE testid = $testid_ and distro_rgset = $distro_gset_;
+				INSERT OR IGNORE INTO testrun (testid, distro_rgset, abortedCnt, res, testStat)
+				    VALUES($testid_, $distro_gset_, 0, '-', '')
+			}
+			db eval $sql
+		}
+	}
+	wapp {<span style="font-size:400%;">Update ... Done!<br></span>}
+  }
+
+  set newRunQuery "run-[wapp-param pkg]=[string map {= %3D { } +} $distro_gset_]"
+  set ourl "[wapp-param BASE_URL]?[wapp-param QUERY_STRING]"
+  set nurl "$ourl&$newRunQuery"
+  wapp-subst {return to %unsafe($nurl)}
+  wapp-subst {
+	<head>
+	<META HTTP-EQUIV="Refresh" CONTENT="1; URL=%unsafe($nurl)">
 	</head>
 	<body></body>
 	</html>
