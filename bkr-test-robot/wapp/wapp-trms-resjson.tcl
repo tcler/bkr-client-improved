@@ -67,6 +67,7 @@ foreach pkg $pkgList {
 		where ti.pkgName LIKE '$pkg' and trun.res != ''
 	"
 	set distroList [db eval $distroQ]
+	if {$distroList == ""} { continue; }
 	set distroList [lsort -decreasing $distroList]
 	set distroListFedora [lsearch -all -inline $distroList Fedora-*]
 	set distroListFamily [lsearch -all -inline $distroList family*]
@@ -92,7 +93,7 @@ puts "},"
 if {$distroGsetList == ""} {
 	set distroGsetList $RUN($qpkg)
 	set columNum [llength $distroGsetList]
-	if {$columNum > 5} { set columNum 5 }
+	if {$columNum > 4} { set columNum 4 }
 	set distroGsetList [lrange $distroGsetList 0 [expr $columNum-1]]
 }
 

@@ -603,6 +603,7 @@ proc wapp-default {} {
             queryField.insertBefore(userform, radioGroup);
 
             testruninfo.components.forEach(pkg => {
+                if (!(pkg in testruninfo['test-run'])) { return; }
                 const radioItem = document.createElement('div');
                 radioItem.className = 'radio-item';
 
