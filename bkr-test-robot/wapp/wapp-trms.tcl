@@ -469,9 +469,8 @@ proc wapp-default {} {
 	}
 
 	function delTestCase() {
-		var path = document.URL;
-		var path2 = path.replace(/index.tml/, "delTestCase.tml");
-		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/delTestCase.tml?");
+		const nurl = new URL(window.location.href);
+		nurl.pathname = "delTestCase";
 
 		var testlist = ""
 		var chkItem = document.getElementsByClassName('selectTestCase');
@@ -484,12 +483,11 @@ proc wapp-default {} {
 		if (testlist == "") {
 			return 0;
 		}
-		//var r = confirm(path2+"\nAre you sure delete these test?\n"+testlist);
 		var r = confirm("Are you sure delete these test cases?\n"+testlist);
 		if (r != true || testlist == "") {
 			return 0;
 		}
-		post(path2, {testlist: testlist});
+		post(nurl.toString(), {testlist: testlist});
 	}
 
         // 初始化界面
@@ -1106,6 +1104,43 @@ proc wapp-page-clone {} {
   wapp-subst {
 	<head>
 	<META HTTP-EQUIV="Refresh" CONTENT="1; URL=%unsafe($nurl)">
+	</head>
+	<body></body>
+	</html>
+  }
+}
+
+proc wapp-page-delTestCase {} {
+  wapp-allow-xorigin-params
+  set permission yes
+
+  set user [lindex [wapp-param user] end]
+  set dbfile [dbroot $user]/testrun.db
+  if {[string match {localhost:*} [wapp-param HTTP_HOST]]} { ""; }
+
+  wapp {<html>}
+  set testList [wapp-param testlist]
+  if {$permission != yes} {
+	wapp {<span style="font-size:400%;">You have no permission to do this!<br></span>}
+  } elseif {![file exists $dbfile]} {
+	wapp {<span style="font-size:400%;">There is not dbfile, something is wrong!<br></span>}
+  } elseif {$testList != ""} {
+	sqlite3 db $dbfile
+	db timeout 6000
+	db transaction {
+		foreach testid [split $testList ";"] {
+			if {$testid == ""} continue
+			db eval "DELETE FROM testrun WHERE testid = '$testid'"
+		}
+	}
+	wapp {<span style="font-size:400%;">Update ... Done!<br></span>}
+  }
+
+  set defaultUrl "[wapp-param BASE_URL]?[wapp-param QUERY_STRING]"
+  wapp-subst {return to %unsafe($defaultUrl)}
+  wapp-subst {
+	<head>
+	<META HTTP-EQUIV="Refresh" CONTENT="1; URL=%unsafe($defaultUrl)">
 	</head>
 	<body></body>
 	</html>
