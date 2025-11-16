@@ -579,8 +579,6 @@ proc wapp-default {} {
 
         // 初始化界面
         function initializeInterface() {
-            document.getElementById('loadingMessage').style.display = 'none';
-
             // 创建组件/包的radio控件
             createRadioButtons();
 
@@ -893,6 +891,7 @@ proc wapp-default {} {
                 .then(data => {
                     testruninfo = data;
                     qresults = testruninfo.qresults;
+                    document.getElementById('loadingMessage').style.display = 'none';
                     initializeInterface();
                 })
                 .catch(error => {
