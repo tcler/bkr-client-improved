@@ -89,15 +89,15 @@ _isroot:
 	@test `id -u` = 0 || { echo "[Warn] need root permission" >&2; exit 1; }
 
 _firewall:
-	 - { firewall-cmd --permanent --add-port={8080,9090}/tcp; \
-	 	firewall-cmd --permanent --add-service=http; \
-	 	firewall-cmd --permanent --add-service=https; \
-	 	firewall-cmd --permanent --add-service=ftp; \
-	 	firewall-cmd --reload; }
-	 - { firewall-cmd --permanent --add-service=nfs; \
-	 	firewall-cmd --permanent --add-service=mountd; \
-	 	firewall-cmd --permanent --add-service=rpc-bind; \
-	 	firewall-cmd --reload; }
+	- { firewall-cmd --permanent --add-port={8080,9090}/tcp; \
+		firewall-cmd --permanent --add-service=http; \
+		firewall-cmd --permanent --add-service=https; \
+		firewall-cmd --permanent --add-service=ftp; \
+		firewall-cmd --reload; }
+	- { firewall-cmd --permanent --add-service=nfs; \
+		firewall-cmd --permanent --add-service=mountd; \
+		firewall-cmd --permanent --add-service=rpc-bind; \
+		firewall-cmd --reload; }
 
 _web_require: _firewall
 	@test `rpm -E %fedora` != %fedora || test `rpm -E '%rhel'` -ge 9 || \
