@@ -407,9 +407,8 @@ proc wapp-default {} {
 	}
 
 	function delList() {
-		var path = document.URL;
-		var path2 = path.replace(/index.tml/, "deltest.tml");
-		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/deltest.tml?");
+		const nurl = new URL(window.location.href);
+		nurl.pathname = "deltest";
 
 		var testlist = ""
 		var chkItem = document.querySelectorAll("input.selectTestRun, input.selectTestNil");
@@ -425,7 +424,7 @@ proc wapp-default {} {
 		if (r != true) {
 			return 0;
 		}
-		post(path2, {testlist: testlist});
+		post(nurl.toString(), {testlist: testlist});
 	}
 
 	function reSubmitList() {
@@ -974,6 +973,46 @@ proc wapp-page-resubmit-list {} {
 					VALUES($testid_, $distro_gset_, 0, '-', '')
 			}
 			db eval $sql
+		}
+	}
+	wapp {<span style="font-size:400%;">Update ... Done!<br></span>}
+  }
+
+  set defaultUrl "[wapp-param BASE_URL]?[wapp-param QUERY_STRING]"
+  wapp-subst {return to %unsafe($defaultUrl)}
+  wapp-subst {
+	<head>
+	<META HTTP-EQUIV="Refresh" CONTENT="1; URL=%unsafe($defaultUrl)">
+	</head>
+	<body></body>
+	</html>
+  }
+}
+
+proc wapp-page-deltest {} {
+  wapp-allow-xorigin-params
+  set permission yes
+
+  set user [lindex [wapp-param user] end]
+  set dbfile [dbroot $user]/testrun.db
+  if {[string match {localhost:*} [wapp-param HTTP_HOST]]} { ""; }
+
+  wapp {<html>}
+  set testList [wapp-param testlist]
+  if {$permission != yes} {
+	wapp {<span style="font-size:400%;">You have no permission to do this!<br></span>}
+  } elseif {![file exists $dbfile]} {
+	wapp {<span style="font-size:400%;">There is not dbfile, something is wrong!<br></span>}
+  } elseif {$testList != ""} {
+	sqlite3 db $dbfile
+	db timeout 6000
+	db transaction {
+		foreach test [split $testList "&"] {
+			if {$test == ""} continue
+			set testid_ [lindex $test 0]
+			set distro_gset_ [lrange $test 1 end]
+
+			db eval "DELETE FROM testrun WHERE testid = '$testid_' and distro_rgset = '$distro_gset_'"
 		}
 	}
 	wapp {<span style="font-size:400%;">Update ... Done!<br></span>}
