@@ -592,7 +592,12 @@ proc wapp-default {} {
         function createRadioButtons() {
             const queryField = document.getElementById('queryFieldset');
             const radioGroup = document.getElementById('pkgRadioGroup');
+
             radioGroup.innerHTML = '';
+            const allSelects = queryField.querySelectorAll('.pkg-select');
+            if (allSelects) {
+                allSelects.forEach(select => { select.remove(); });
+            }
 
             const userform = document.createElement('input');
             userform.name = "user";
@@ -640,6 +645,14 @@ proc wapp-default {} {
 
                 queryField.appendChild(select);
                 radioGroup.appendChild(radioItem);
+            });
+        }
+
+        // hide all .pkg-select
+        function hideAllPkgSelects() {
+            const selects = document.querySelectorAll('.pkg-select');
+            selects.forEach(select => {
+                select.classList.remove('show');
             });
         }
 
@@ -877,6 +890,48 @@ proc wapp-default {} {
             });
         }
 
+        function handleQuerySubmit(e) {
+            hideAllPkgSelects();
+            e.preventDefault();
+
+            // 显示加载提示
+            document.getElementById('loadingMessage').style.display = 'block';
+
+            // 收集表单数据
+            const formData = new FormData(document.getElementById('queryForm'));
+            const params = new URLSearchParams(formData);
+
+            // 构建查询URL
+            const cururl = new URL(window.location.href);
+            cururl.pathname += "resjson";
+            cururl.search = params.toString();
+
+            // 发送请求获取新数据
+            fetch(cururl.toString())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // 更新全局数据
+                    testruninfo = data;
+                    qresults = testruninfo.qresults;
+
+                    // 隐藏加载提示
+                    document.getElementById('loadingMessage').style.display = 'none';
+
+                    // 重新渲染界面
+                    initializeInterface();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('loadingMessage').style.display = 'none';
+                    document.getElementById('loadingMessage').innerHTML = '<div style="color: red;">Query fail, please try again.</div>';
+                });
+        }
+
         // after page loaded
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('loadingMessage').style.display = 'block';
@@ -902,10 +957,7 @@ proc wapp-default {} {
                 });
 
             // Query button event
-            /*document.getElementById('queryForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                alert('queryForm has been clicked!!');
-            });*/
+	    document.getElementById('queryForm').addEventListener('submit', handleQuerySubmit);
         });
     </script>
 </body>
