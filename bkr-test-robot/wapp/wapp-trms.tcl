@@ -1,4 +1,9 @@
 #package require wapp
+lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
+package require sqlite3
+package require runtestlib 1.1
+namespace import ::runtestlib::*
+
 source /usr/local/lib/wapp.tcl
 
 proc wapp-default {} {
@@ -21,6 +26,9 @@ proc wapp-default {} {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>🎃▦bkr-test-robot▦🎃</title>
     <style>
         body {
@@ -399,23 +407,20 @@ proc wapp-default {} {
 	}
 
 	function delList() {
-		//alert(distroArrayx[distroIdx] + ' ' + testid);
-		//alert(document.URL);
 		var path = document.URL;
 		var path2 = path.replace(/index.tml/, "deltest.tml");
 		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/deltest.tml?");
 
 		var testlist = ""
-		var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
+		var chkItem = document.querySelectorAll("input.selectTestRun, input.selectTestNil");
 		for (var i=0; i<chkItem.length; i++) {
 			if (chkItem[i].checked == true) {
 				var testobj = chkItem[i].id.split(" ");
 				testid = testobj[0];
 				j = testobj[1];
-				testlist += testid + ' ' + distroArrayx[j] + "&";
+				testlist += `${testid} ${qresults.qruns[j]}&`;
 			}
 		}
-		//var r = confirm(path2+"\nAre you sure delete these test?\n"+testlist);
 		var r = confirm("Are you sure delete these test?\n"+testlist);
 		if (r != true) {
 			return 0;
@@ -424,39 +429,33 @@ proc wapp-default {} {
 	}
 
 	function reSubmitList() {
-		//alert(distroArrayx[distroIdx] + ' ' + testid);
-		//alert(document.URL);
-		var path = document.URL;
-		var path2 = path.replace(/index.tml/, "resubmit-list.tml");
-		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/resubmit-list.tml?");
+		const nurl = new URL(window.location.href);
+		nurl.pathname = "resubmit-list";
 
 		var testlist = "";
-		var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
+		var chkItem = document.querySelectorAll("input.selectTestRun, input.selectTestNil");
 		for (var i=0; i<chkItem.length; i++) {
 			if (chkItem[i].checked == true) {
 				var testobj = chkItem[i].id.split(" ");
 				testid = testobj[0];
 				j = testobj[1];
-				testlist += testid + ' ' + distroArrayx[j] + "\n";
+				testlist += `${testid} ${qresults.qruns[j]}\n`;
 			}
 		}
-		//var r = confirm(path2+"\nAre you sure resubmit these test?\n"+testlist);
-		var r = confirm("Are you sure resubmit these test?\n"+testlist);
+		var r = confirm(`Are you sure resubmit these test?\n${testlist}`);
 		if (r != true) {
 			return 0;
 		}
-		post(path2, {testlist: testlist});
+		post(nurl.toString(), {testlist: testlist});
 	}
 
 	function cloneToNewRun() {
-		//alert(distroArrayx[distroIdx] + ' ' + testid);
-		//alert(document.URL);
 		var path = document.URL;
 		var path2 = path.replace(/index.tml/, "clone.tml");
 		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/clone.tml?");
 
 		var testlist = "";
-		var chkItem = document.querySelectorAll("input.selectTest, input.selectTestNil");
+		var chkItem = document.querySelectorAll("input.selectTestRun, input.selectTestNil");
 		for (var i=0; i<chkItem.length; i++) {
 			if (chkItem[i].checked == true) {
 				var testobj = chkItem[i].id.split(" ");
@@ -472,7 +471,6 @@ proc wapp-default {} {
 	}
 
 	function delTestCase() {
-		//alert(document.URL);
 		var path = document.URL;
 		var path2 = path.replace(/index.tml/, "delTestCase.tml");
 		var path2 = path2.replace(/trms\/{1,}($|\?)/, "trms/delTestCase.tml?");
@@ -728,7 +726,7 @@ proc wapp-default {} {
                             } else if (recipeStat === "Warn") {
                                 linkA.style.color = "green";
                             } else if (recipeStat === "Panic") {
-                                linkA.style.color = "dark";
+                                linkA.style.color = "darkcyan";
                             } else {
                                 linkA.style.color = "gray";
                             }
@@ -943,6 +941,52 @@ proc wapp-page-main {} {
     </font>
 <body>
 </html>
+  }
+}
+
+proc wapp-page-resubmit-list {} {
+  wapp-allow-xorigin-params
+  set permission yes
+
+  set user [lindex [wapp-param user] end]
+  set dbfile [dbroot $user]/testrun.db
+  if {[string match {localhost:*} [wapp-param HTTP_HOST]]} { ""; }
+
+  wapp {<html>}
+  set testList [wapp-param testlist]
+  if {$permission != yes} {
+	wapp {<span style="font-size:400%;">You have no permission to do this!<br></span>}
+  } elseif {![file exists $dbfile]} {
+	wapp {<span style="font-size:400%;">There is not dbfile, something is wrong!<br></span>}
+  } elseif {$testList != ""} {
+	sqlite3 db $dbfile
+	db timeout 6000
+	db transaction {
+		foreach test [split $testList "\n"] {
+			if {$test == ""} continue
+			set testid_ [lindex $test 0]
+			set distro_gset_ [lrange $test 1 end]
+			set sql {
+				UPDATE OR IGNORE testrun
+					set jobid='', testStat='', res='o', rstat='', taskuri='', abortedCnt=0, resdetail=''
+					WHERE testid = $testid_ and distro_rgset = $distro_gset_;
+				INSERT OR IGNORE INTO testrun (testid, distro_rgset, abortedCnt, res, testStat)
+					VALUES($testid_, $distro_gset_, 0, '-', '')
+			}
+			db eval $sql
+		}
+	}
+	wapp {<span style="font-size:400%;">Update ... Done!<br></span>}
+  }
+
+  set defaultUrl "[wapp-param BASE_URL]?[wapp-param QUERY_STRING]"
+  wapp-subst {return to %unsafe($defaultUrl)}
+  wapp-subst {
+	<head>
+	<META HTTP-EQUIV="Refresh" CONTENT="1; URL=%unsafe($defaultUrl)">
+	</head>
+	<body></body>
+	</html>
   }
 }
 
