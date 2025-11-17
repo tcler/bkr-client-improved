@@ -387,10 +387,11 @@ proc wapp-default {} {
         <div class="controls">
             <form class="query-form" id="queryForm">
             <fieldset class="fieldset" id="queryFieldset">
+                <input type="hidden" name="user" id="userInput" value="">
                 <div class="radio-group" id="pkgRadioGroup">
                     <!-- Radio buttons will be generated here -->
                 </div>
-                <input type="submit" value="Query" id="queryButton">
+                <input type="submit" value="Query/Refresh" id="queryButton">
             </fieldset>
             </form>
         </div>
@@ -628,18 +629,16 @@ proc wapp-default {} {
         function createRadioButtons() {
             const queryField = document.getElementById('queryFieldset');
             const radioGroup = document.getElementById('pkgRadioGroup');
+            const userInput = document.getElementById('userInput');
+            if (userInput) {
+                userInput.value = getParam('user') || '';
+            }
 
             radioGroup.innerHTML = '';
             const allSelects = queryField.querySelectorAll('.pkg-select');
             if (allSelects) {
                 allSelects.forEach(select => { select.remove(); });
             }
-
-            const userform = document.createElement('input');
-            userform.name = "user";
-            userform.type = 'hidden';
-            userform.value = getParam('user');
-            queryField.insertBefore(userform, radioGroup);
 
             testruninfo.components.forEach(pkg => {
                 if (!(pkg in testruninfo['test-run'])) { return; }
@@ -964,8 +963,32 @@ proc wapp-default {} {
 
             // 构建查询URL
             const cururl = new URL(window.location.href);
-            cururl.pathname += "resjson";
-            cururl.search = params.toString();
+            cururl.pathname = "resjson";
+
+            const currentSearchParams = cururl.searchParams;
+            let hasOtherParams = false;
+            for (let [key, value] of params) {
+                if (key !== 'user' && value.trim() !== '') {
+                    if (key === 'pkg') {
+                        const currentValue = currentSearchParams.get(key);
+                        if (currentValue !== value) {
+                            hasOtherParams = true;
+                            break;
+                        }
+                    } else {
+                        hasOtherParams = true;
+                        break;
+                    }
+                }
+            }
+            if (hasOtherParams) {
+                alert(params.toString());
+                // Update browser address bar URL (without refreshing the page)
+                const newUrl = new URL(window.location.href);
+                newUrl.search = params.toString();
+                window.history.pushState({}, '', newUrl.toString());
+                cururl.search = params.toString();
+            }
 
             // 发送请求获取新数据
             fetch(cururl.toString())
