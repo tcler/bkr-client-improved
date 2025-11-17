@@ -982,7 +982,7 @@ proc wapp-default {} {
                 }
             }
             if (hasOtherParams) {
-                alert(params.toString());
+                //alert(params.toString());
                 // Update browser address bar URL (without refreshing the page)
                 const newUrl = new URL(window.location.href);
                 newUrl.search = params.toString();
