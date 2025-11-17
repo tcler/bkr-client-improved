@@ -213,6 +213,42 @@ proc wapp-default {} {
             overflow: auto; /* 启用滚动 */
         }
 
+        .detail-header {
+            position: sticky;
+            top: 0;
+            left: 0;
+            background-color: #f3e5ab;
+            z-index: 550;
+            border-bottom: 1px solid #ddd;
+        }
+        .close-section {
+            position: fixed;
+            z-index: 600;
+            display: flex;
+            align-items: left;
+            background-color: #f3e5ab;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .detail-close-btn {
+            background-color: #ff6b6b;
+            color: white;
+            width: 25px;
+            height: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            top: 0;
+        }
+        .detail-close-btn:hover {
+            background-color: #ff4757;
+        }
+        .close-prompt {
+            font-family: monospace;
+            font-weight: bold;
+            color: #333;
+        }
+
         table {
             border-collapse: collapse;
             width: 99%;
@@ -841,6 +877,10 @@ proc wapp-default {} {
         }
 
         function createResultDetailDivs() {
+            const allDetails = document.body.querySelectorAll('.detail-div');
+            if (allDetails) {
+                allDetails.forEach(detail => { detail.remove(); });
+            }
             const nheaderRow = document.createElement('tr');
             const maxHeader = 40;
             qresults.qruns.forEach((run, index) => {
@@ -854,15 +894,36 @@ proc wapp-default {} {
                 resdDiv.className = 'detail-div';
                 resdDiv.id = `div${resObj.testid}`;
 
-                const resdSpan = document.createElement('span');
-		resdSpan.textContent = ' - [Close me]';
+                // create header container
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'detail-header';
+
+                // create close section container
+                const closeSection = document.createElement('div');
+                closeSection.className = 'close-section';
+
+                // create close button
                 const resdXBtn = document.createElement('button');
+                resdXBtn.className = 'detail-close-btn';
                 resdXBtn.textContent = 'X';
                 resdXBtn.addEventListener('click', function(e) {
                     hideDetail(resdDiv.id);
                 });
-                resdDiv.prepend(resdXBtn);
-		resdDiv.appendChild(resdSpan);
+
+                // create close prompt text
+                const closePrompt = document.createElement('span');
+                closePrompt.textContent = ' - [Close me]';
+                closePrompt.className = 'close-prompt';
+
+                // add close-btn and close-prompt to close-section
+                closeSection.appendChild(resdXBtn);
+                closeSection.appendChild(closePrompt);
+
+                // append close-section to header container
+                headerDiv.appendChild(closeSection);
+
+                // append header to top div
+                resdDiv.appendChild(headerDiv);
 
                 const br = document.createElement('br');
                 const p = document.createElement('p');
