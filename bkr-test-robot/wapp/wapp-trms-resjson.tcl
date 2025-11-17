@@ -58,6 +58,14 @@ if {$qpkg == "" || $qpkg ni $pkgList} {
 	set qpkg [lindex $pkgList 0]
 }
 
+proc build_date {distro} {
+	regexp -- {-(\d{8})\.} $distro -> date
+	if ![info exists date] {
+		regexp -- {RHEL-(\d+\.\d+)} $distro -> date
+	}
+	return $date
+}
+
 foreach pkg $pkgList {
 	set distroQ "
 		select DISTINCT trun.distro_rgset
@@ -68,11 +76,16 @@ foreach pkg $pkgList {
 	"
 	set distroList [db eval $distroQ]
 	if {$distroList == ""} { continue; }
-	set distroList [lsort -decreasing $distroList]
 	set distroListFedora [lsearch -all -inline $distroList Fedora-*]
 	set distroListFamily [lsearch -all -inline $distroList family*]
 	set distroList [concat $distroListFamily $distroListFedora [lsearch -regexp -all -inline $distroList RHEL\[0-9\]?-\[0-9\]*]]
 	if ![info exists RUN($pkg)] {set RUN($pkg) {}}
+
+	set distroList [lsort -decreasing -command {apply {{a b} {
+	    set dateA [build_date $a]
+	    set dateB [build_date $b]
+	    return [package vcompare $dateA $dateB]
+	}}} $distroList]
 	lappend RUN($pkg) {*}$distroList
 }
 
