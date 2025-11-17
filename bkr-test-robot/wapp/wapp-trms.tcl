@@ -116,7 +116,7 @@ proc wapp-default {} {
             left: 0pt;
             background-color: #454;
             background-color: #CD7F32;
-            filter:alpha(Opacity=80); -moz-opacity:0.8; opacity: 0.8;
+            opacity: 0.8;
             border: solid 3px;
             border-color: #D9D919;
             border-color: #cd7f32;
@@ -129,7 +129,7 @@ proc wapp-default {} {
             left: 0pt;
             background-color: #454;
             background-color: #CD7F32;
-            filter:alpha(Opacity=96); -moz-opacity:0.96; opacity: 0.96;
+            opacity: 0.96;
             border: solid 3px;
             border-color: #D9D919;
             border-color: #cd7f32;
@@ -443,6 +443,7 @@ proc wapp-default {} {
         };
 
         let qresults = testruninfo.qresults;
+        let sortedResults = qresults.results;
 
         const getParam = (name) => new URLSearchParams(window.location.search).get(name);
         function car(sequence) {
@@ -620,6 +621,7 @@ proc wapp-default {} {
             createRadioButtons();
 
             // 渲染表格
+            sortedResults = sortTestResults(qresults.results);
             renderTable();
 
             createResultDetailDivs();
@@ -711,7 +713,7 @@ proc wapp-default {} {
             return str.substring(0, maxLength - 3) + '...';
         }
 
-	keepLastTwo = (path) => path.replace(/^\/+|\/+$/g, '').split('/').slice(-2).join('/');
+        keepLastTwo = (path) => path.replace(/^\/+|\/+$/g, '').split('/').slice(-2).join('/');
 
         // Create tooltip element
         function createTooltip() {
@@ -719,6 +721,34 @@ proc wapp-default {} {
             tooltip.className = 'tooltip';
             document.body.appendChild(tooltip);
             return tooltip;
+        }
+
+        function calculateWeight(resObj) {
+            const WEIGHTS = { 'Panic': 5, 'Fail': 4, 'Warn': 3, 'Pass': 2, '': 1, null: 1 };
+
+            return Math.max(...Object.keys(resObj)
+                .filter(key => /^res\d+$/.test(key))
+                .map(key => {
+                    const value = resObj[key];
+                    if (value === null) { return 0; }
+                    const foundKey = Object.keys(WEIGHTS).find(keyword => value.includes(keyword));
+                    return foundKey ? WEIGHTS[foundKey] : 6;
+                }), 0);
+        }
+        function sortTestResults(testResults, order = 'desc') {
+            // Precompute weights for better performance
+            const resultsWithWeights = testResults.map(obj => ({
+                data: obj,
+                weight: calculateWeight(obj)
+            }));
+
+            if (order === 'desc') {
+                // Descending order: higher weights first
+                return resultsWithWeights.sort((a, b) => b.weight - a.weight).map(item => item.data);
+            } else {
+                // Ascending order: lower weights first
+                return resultsWithWeights.sort((a, b) => a.weight - b.weight).map(item => item.data);
+            }
         }
 
         // 渲染表格
@@ -779,7 +809,7 @@ proc wapp-default {} {
             const maxTestcase = 40;
             tableBody.innerHTML = '';
 
-            qresults.results.forEach((resObj, rowIdx) => {
+            sortedResults.forEach((resObj, rowIdx) => {
                 const row = document.createElement('tr');
 
                 // 第一列 - 测试用例
@@ -852,16 +882,17 @@ proc wapp-default {} {
                             const statSpan = document.createElement('span');
                             const linkA = document.createElement('a');
                             if (recipeStat === "Pass") {
-                                linkA.style.color = "skyblue";
+                                linkA.style.color = "Blue";
                             } else if (recipeStat === "Fail") {
-                                linkA.style.color = "red";
+                                linkA.style.color = "Red";
                             } else if (recipeStat === "Warn") {
-                                linkA.style.color = "green";
+                                linkA.style.color = "LimeGreen";
                             } else if (recipeStat === "Panic") {
-                                linkA.style.color = "darkcyan";
+                                linkA.style.color = "Navy";
                             } else {
-                                linkA.style.color = "gray";
+                                linkA.style.color = "Gray";
                             }
+                            linkA.style.fontWeight = "Bold";
                             linkA.href = `https://beaker.engineering.redhat.com/recipes/${recipeId}`;
                             linkA.textContent = recipeStat + " ";
                             statSpan.appendChild(linkA);
@@ -888,7 +919,7 @@ proc wapp-default {} {
                 td.title = run;
                 nheaderRow.appendChild(td);
             });
-            qresults.results.forEach((resObj, rowIdx) => {
+            sortedResults.forEach((resObj, rowIdx) => {
                 const resdDiv = document.createElement('div');
                 resdDiv.className = 'detail-div';
                 resdDiv.id = `div${resObj.testid}`;
