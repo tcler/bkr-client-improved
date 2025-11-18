@@ -9,7 +9,9 @@ completion_path=/usr/share/bash-completion/completions
 HTTP_PROXY := $(shell grep -q redhat.com /etc/resolv.conf && echo "squid.redhat.com:8080")
 IGN := $(shell rm -f ~/bin/distro-compose ~/bin/brewinstall.sh)
 
-install install_runtest: _isroot _rh_intranet yqinstall install_kiss_vm_ns
+install: install_robot
+
+install_runtest: _isroot _rh_intranet yqinstall install_kiss_vm_ns
 	@if [[ $$(rpm -E %rhel) != "%rhel" ]]; then \
 	  if ! rpm -q epel-release; then \
 	    rpm -i https://dl.fedoraproject.org/pub/epel/epel-release-latest-$$(rpm -E %rhel).noarch.rpm; :; \
@@ -51,16 +53,16 @@ yqinstall: _isroot
 install_kiss_vm_ns: _isroot
 	-command -v kiss-update.sh && kiss-update.sh || ./utils/kiss-vm-ns_install.sh
 
-install_all: install_robot _install_web
-
-install_robot: _isroot install_runtest _install_require
+install_robot: _isroot install_runtest _install_require _web_require
 	#install test robot
 	cd bkr-test-robot; for f in *; do [ -d $$f ] && continue; cp -fd $$f $(_bin)/$$f; done
-
-_install_web: _isroot _web_require
 	#install wapp-trms
 	cp -f bkr-test-robot/wapp/wapp.tcl /usr/local/lib/.
 	cp -f bkr-test-robot/wapp/wapp-trms{,-resjson}.tcl /usr/local/libexec/.
+
+_web_require: _firewall
+	@test `rpm -E %fedora` != %fedora || test `rpm -E '%rhel'` -ge 9 || \
+		{ echo "[Warn] only support Fedora and RHEL-9+" >&2; exit 1; }
 
 _install_require: _isroot _rh_intranet
 	@sed -i '/^Defaults *secure_path/{/.usr.local.bin/! {s; *$$;:$(_bin);}}' /etc/sudoers
@@ -93,15 +95,11 @@ _firewall:
 		firewall-cmd --permanent --add-service=http; \
 		firewall-cmd --permanent --add-service=https; \
 		firewall-cmd --permanent --add-service=ftp; \
-		firewall-cmd --reload; }
+		firewall-cmd --reload; } 2>/dev/null
 	- { firewall-cmd --permanent --add-service=nfs; \
 		firewall-cmd --permanent --add-service=mountd; \
 		firewall-cmd --permanent --add-service=rpc-bind; \
-		firewall-cmd --reload; }
-
-_web_require: _firewall
-	@test `rpm -E %fedora` != %fedora || test `rpm -E '%rhel'` -ge 9 || \
-		{ echo "[Warn] only support Fedora and RHEL-9+" >&2; exit 1; }
+		firewall-cmd --reload; } 2>/dev/null
 
 rpm: _isroot
 	./build_rpm.sh
