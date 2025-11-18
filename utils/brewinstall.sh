@@ -366,7 +366,7 @@ gen_rpmfilter_options() {
 # parse options
 builds=()
 for Arg; do
- for arg in ${Arg//;/ }; do
+ for arg in ${Arg//[;#]/ }; do
 	case "$arg" in
 	-koji)           KOJI=koji;;
 	-debuginfo)      DEBUG_INFO_OPT=--debuginfo; DEBUG_INFO=yes;;
