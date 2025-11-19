@@ -267,7 +267,7 @@ batch_download() {
 	[[ "$1" = -p ]] && dtype=parallel
 	if command -v wget2 &>/dev/null; then
 		cat | xargs wget2
-		exit $?
+		return $?
 	fi
 
 	if [[ "$dtype" = parallel ]]; then
