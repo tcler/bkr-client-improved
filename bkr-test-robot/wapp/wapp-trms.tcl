@@ -3,13 +3,406 @@
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require sqlite3
 package require runtestlib 1.1
+package require json ;# Add JSON package for parsing
+
 namespace import ::runtestlib::*
 
 source /usr/local/lib/wapp.tcl
 
-proc common-footer {{user ""}} {
+# User authentication and session management
+namespace eval auth {
+    variable sessions [dict create]
+    variable users [dict create]
+    variable session_expiry 3600 ;# 1 hour expiration
+
+    # Initialize sample users (should be loaded from database or config file in production)
+    proc init_users {} {
+        variable users
+        # Sample users: username/password
+        dict set users "admin" "admin123"
+    }
+
+    # Generate random session ID
+    proc generate_session_id {} {
+        return [string map {" " ""} [exec uuidgen]]
+    }
+
+    # Create new session
+    proc create_session {username} {
+        variable sessions
+        set session_id [generate_session_id]
+        set expiry [expr {[clock seconds] + $::auth::session_expiry}]
+
+        dict set sessions $session_id [dict create \
+            username $username \
+            created [clock seconds] \
+            expiry $expiry]
+
+        return $session_id
+    }
+
+    # Validate session
+    proc validate_session {session_id} {
+        variable sessions
+
+        if {![dict exists $sessions $session_id]} {
+            return 0
+        }
+
+        set session [dict get $sessions $session_id]
+        set expiry [dict get $session expiry]
+
+        # Check if session has expired
+        if {[clock seconds] > $expiry} {
+            dict unset sessions $session_id
+            return 0
+        }
+
+        # Update expiration time
+        dict set sessions $session_id expiry [expr {[clock seconds] + $::auth::session_expiry}]
+        return 1
+    }
+
+    # Get session username
+    proc get_username {session_id} {
+        variable sessions
+        if {[dict exists $sessions $session_id]} {
+            return [dict get $sessions $session_id username]
+        }
+        return ""
+    }
+
+    # Delete session (logout)
+    proc delete_session {session_id} {
+        variable sessions
+        dict unset sessions $session_id
+    }
+
+    # Validate user credentials
+    proc authenticate {username password} {
+        variable users
+        set home "/home/$username"
+        if [file isdirectory $home] {
+            return [expr [exec stat -c %i /home/jiyin] eq $password]
+        } elseif {[dict exists $users $username]} {
+            return [expr {[dict get $users $username] eq $password}]
+        } else {
+            return 0
+        }
+    }
+
+    # Get session ID from request
+    proc get_session_id_from_request {cookie_header} {
+        if {$cookie_header eq ""} { return "" }
+
+        foreach cookie_pair [split $cookie_header ";"] {
+            set cookie_pair [string trim $cookie_pair]
+            set parts [split $cookie_pair "="]
+            if {[llength $parts] == 2} {
+                lassign $parts name value
+                if {$name eq "session_id"} {
+                    return $value
+                }
+            }
+        }
+        return ""
+    }
+
+    # Check if user is logged in
+    proc is_logged_in {cookie_header} {
+        set session_id [get_session_id_from_request $cookie_header]
+        if {$session_id eq ""} { return 0 }
+        return [validate_session $session_id]
+    }
+
+    # Get current logged in username
+    proc get_logged_user {cookie_header} {
+        set session_id [get_session_id_from_request $cookie_header]
+        if {$session_id eq ""} { return "" }
+        return [get_username $session_id]
+    }
+}
+
+# Initialize user data
+auth::init_users
+
+proc get_session_id {} {
+    set cookie [wapp-param HTTP_COOKIE]
+    return [auth::get_session_id_from_request $cookie]
+}
+proc is_logged_in {cookie_header} {
+    set cookie [wapp-param HTTP_COOKIE]
+    return [auth::is_logged_in $cookie]
+}
+proc get_logged_user {} {
+    set cookie [wapp-param HTTP_COOKIE]
+    return [auth::get_logged_user $cookie]
+}
+
+proc get_query_user {} {
+  set quser [lindex [wapp-param user] end]
+  if {$quser == {}} {
+    set quser [get_logged_user]
+  }
+  return $quser
+}
+
+proc common-header {logged_user} {
+  wapp {
+    <title>🎃▦bkr-test-robot▦🎃</title>
+    <style>
+    /* Login dialog styles */
+    .login-dialog {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        z-index: 1000;
+        min-width: 300px;
+    }
+
+    .login-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 999;
+    }
+
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .login-input {
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .logout-button, .login-button {
+        background: #3498db;
+        color: white;
+        border: none;
+        padding: 0, 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 18px;
+        font-family: cursive;
+    }
+
+    .login-button:hover {
+        background: #2980b9;
+    }
+
+    .close-login {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: white;
+    }
+
+    .logout-button:hover {
+        background: #c0392b;
+    }
+
+    .header {
+        background-color: #2c3e50;
+        padding: 10px 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo a {
+        font-size: 20px;
+        font-weight: bold;
+        text-decoration: none;
+        color: white;
+        //font-family: cursive;
+        font-family: monospace;
+    }
+    </style>
+
+    <!-- Login Dialog -->
+    <div class="login-overlay" id="loginOverlay"></div>
+    <div class="login-dialog" id="loginDialog">
+        <button class="close-login" onclick="hideLogin()"> X </button>
+        <h3>User Login</h3>
+        <form class="login-form" id="loginForm">
+            <input type="text" name="username" placeholder="Username" class="login-input" required>
+            <input type="password" name="password" placeholder="Password" class="login-input" required>
+            <button type="submit" class="login-button">Login</button>
+        </form>
+        <div id="loginMessage" style="margin-top: 10px; color: red;"></div>
+    </div>
+
+    <div class="header">
+        <div class="logo"><a style="color: white;" href="/main">🎃bkr-test-robot🎃</a></div>
+        <div class="user-info" id="userInfo">
+  }
+
+  if {$logged_user ne ""} {
+      wapp-subst {<span>Welcome, %html($logged_user)</span>}
+      wapp {<button class="logout-button" onclick="logout()">Logout</button>}
+  } else {
+      wapp {<button class="login-button" onclick="showLogin()">Login</button>}
+  }
+  wapp {</div></div>
+    <script>
+    // Login dialog functions
+    function showLogin() {
+        document.getElementById('loginOverlay').style.display = 'block';
+        document.getElementById('loginDialog').style.display = 'block';
+    }
+
+    function hideLogin() {
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('loginDialog').style.display = 'none';
+        document.getElementById('loginMessage').textContent = '';
+        // Clear form fields
+        document.querySelector('input[name="username"]').value = '';
+        document.querySelector('input[name="password"]').value = '';
+    }
+
+    // Handle login form submission
+    function handleLoginSubmit(e) {
+        e.preventDefault();
+
+        const username = document.querySelector('input[name="username"]').value;
+        const password = document.querySelector('input[name="password"]').value;
+
+        // Create JSON payload instead of form data
+        const loginData = {
+            username: username,
+            password: password
+        };
+
+        fetch('/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(loginData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Login successful - update UI without page reload
+                hideLogin();
+                updateUserInterface(username);
+            } else {
+                // Show error message
+                document.getElementById('loginMessage').textContent = data.message || 'Login failed';
+            }
+        })
+        .catch(error => {
+            document.getElementById('loginMessage').textContent = 'Login request failed: ' + error.message;
+        });
+    }
+
+    // Handle logout
+    function logout() {
+        fetch('/logout', {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Logout successful - update UI without page reload
+                updateUserInterface(null);
+            } else {
+                alert('Logout failed: ' + (data.message || 'Unknown error'));
+            }
+        })
+        .catch(error => {
+            alert('Logout request failed: ' + error.message);
+        });
+    }
+
+    // Update UI based on login status - 完全不改变URL
+    function updateUserInterface(username) {
+        const userInfoDiv = document.getElementById('userInfo');
+        if (userInfoDiv) {
+            if (username) {
+                // User is logged in
+                userInfoDiv.innerHTML = `
+                    <span>Welcome, ${escapeHtml(username)}</span>
+                    <button class="logout-button" onclick="logout()">Logout</button>
+                `;
+            } else {
+                // User is logged out
+                userInfoDiv.innerHTML = `<button class="login-button" onclick="showLogin()">Login</button>`;
+            }
+        }
+    }
+
+    // Helper function to escape HTML
+    function escapeHtml(unsafe) {
+        return unsafe
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Check authentication status on page load
+    function checkAuthStatus() {
+        fetch('/check-auth')
+            .then(response => response.json())
+            .then(data => {
+                if (data.logged_in) {
+                    updateUserInterface(data.username);
+                } else {
+                    updateUserInterface(null);
+                }
+            })
+            .catch(error => {
+                console.log('Auth check failed:', error);
+            });
+    }
+
+    // Close login dialog when clicking overlay
+    document.getElementById('loginOverlay').addEventListener('click', hideLogin);
+
+    // Attach event listener after DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', handleLoginSubmit);
+        }
+
+        // Check authentication status when page loads
+        checkAuthStatus();
+    });
+    </script>
+  }
+}
+
+proc common-footer {{quser ""}} {
+  if {$quser == ""} { set quser [get_query_user] }
   wapp {<footer>}
-  if {$user == {}} {
+  if {$quser == {}} {
     wapp {<br>}
   } else {
     wapp-subst {
@@ -21,7 +414,7 @@ proc common-footer {{user ""}} {
 
     <script>
     function updateHostUsage() {
-        const username = "%unsafe($user)";
+        const username = "%unsafe($quser)";
         const url = `${window.location.origin}/host-usage?user=${username}`;
 
         fetch(url)
@@ -61,6 +454,80 @@ proc common-footer {{user ""}} {
   }
 }
 
+# Login page handler
+proc wapp-page-login {} {
+    wapp-allow-xorigin-params
+    wapp-mimetype application/json
+
+    if {[wapp-param REQUEST_METHOD] ne "POST"} {
+        wapp {{"success": false, "message": "Invalid request method"}}
+        return
+    }
+
+    # Get JSON data from request body
+    set post_data [wapp-param CONTENT]
+    if {$post_data eq ""} {
+        wapp {{"success": false, "message": "No data received"}}
+        return
+    }
+
+    # Parse JSON data
+    if {[catch {set login_dict [json::json2dict $post_data]} error]} {
+        wapp {{"success": false, "message": "Invalid JSON data"}}
+        return
+    }
+
+    # Extract username and password from JSON
+    set username [dict get $login_dict username]
+    set password [dict get $login_dict password]
+
+    if {$username eq "" || $password eq ""} {
+        wapp {{"success": false, "message": "Username and password cannot be empty"}}
+        return
+    }
+
+    if {[auth::authenticate $username $password]} {
+        set session_id [auth::create_session $username]
+
+        # Set Cookie - fixed wapp-set-cookie usage (only key and value)
+        wapp-set-cookie session_id $session_id
+
+        wapp {{"success": true, "message": "Login successful"}}
+    } else {
+        wapp {{"success": false, "message": "Invalid username or password"}}
+    }
+}
+
+# Logout page handler
+proc wapp-page-logout {} {
+    wapp-allow-xorigin-params
+    wapp-mimetype application/json
+
+    set session_id [get_session_id]
+    if {$session_id ne ""} {
+        auth::delete_session $session_id
+    }
+
+    # Clear Cookie - fixed wapp-set-cookie usage
+    wapp-set-cookie session_id ""
+
+    wapp {{"success": true, "message": "Logout successful"}}
+}
+
+# Check authentication status page (for AJAX checks)
+proc wapp-page-check-auth {} {
+    wapp-allow-xorigin-params
+    wapp-mimetype application/json
+
+    set cookie [wapp-param HTTP_COOKIE]
+    if [auth::is_logged_in $cookie] {
+        set username [auth::get_logged_user $cookie]
+        wapp-subst {{"logged_in": true, "username": "%html($username)"}}
+    } else {
+        wapp {{"logged_in": false}}
+    }
+}
+
 proc wapp-default {} {
   wapp-allow-xorigin-params
   wapp-content-security-policy {
@@ -69,12 +536,16 @@ proc wapp-default {} {
     script-src 'self' 'unsafe-inline';
   }
 
-  set user [lindex [wapp-param user] end]
-  if {$user == {}} {
+  set logged_user [get_logged_user]
+  set quser [lindex [wapp-param user] end]
+  if {$quser == {}} { set quser $logged_user }
+
+  if {$quser == {}} {
     wapp-redirect main
-  } elseif {![file exists /home/${user}/.testrundb/testrun.db]} {
-    wapp-redirect [wapp-param BASE_URL]/main?user=${user}&notexist=1
+  } elseif {![file exists /home/${quser}/.testrundb/testrun.db]} {
+    wapp-redirect [wapp-param BASE_URL]/main?user=${quser}&notexist=1
   }
+
   wapp {<!-- vim: set sw=4 ts=4 et: -->
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -84,31 +555,12 @@ proc wapp-default {} {
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>🎃▦bkr-test-robot▦🎃</title>
+  }
+
+  common-header $logged_user
+
+  wapp-trim {
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-            height: 92vh;
-            overflow: hidden; /* 防止整个页面滚动 */
-        }
-
-        .header {
-            background-color: #2c3e50;
-            padding: 10px 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-size: 20px;
-            font-weight: bold;
-            color: white;
-        }
-
         div.controlPanelCall {
             position: fixed;
             z-index: 99;
@@ -139,7 +591,7 @@ proc wapp-default {} {
             padding: 5px;
             width: 99%;
             margin: 0 auto;
-            height: calc(92vh - 70px); /* 减去header高度 */
+            height: calc(92vh - 70px); /* Subtract header height */
             display: flex;
             flex-direction: column;
         }
@@ -167,8 +619,8 @@ proc wapp-default {} {
         }
 
         .radio-item {
-            display: inline; /* 保证控件都居中, inline-flex 会导致向上对齐 */
-	    gap: 5px;
+            display: inline; /* Ensure controls are centered, inline-flex would cause top alignment */
+            gap: 5px;
         }
 
         .query-form {
@@ -190,7 +642,7 @@ proc wapp-default {} {
 
         .table-container {
             overflow: auto;
-            flex: 1; /* 占据剩余空间 */
+            flex: 1; /* Take up remaining space */
             width: 100%;
             border: 1px solid #ddd;
             border-radius: 0px;
@@ -203,14 +655,14 @@ proc wapp-default {} {
             top: 88px;
             left: 10px;
             width: 96%;
-            flex: 1; /* 占据剩余空间 */
-            background-color: #f3e5ab; /* 温暖的米色 */
+            flex: 1; /* Take up remaining space */
+            background-color: #f3e5ab; /* Warm beige color */
             color: #2c2c2c;
             padding: 10px;
             border: 2px solid #ff6b6b;
-            max-height: 80vh; /* 限制最大高度 */
-            min-height: 60vh; /* 限制最大高度 */
-            overflow: auto; /* 启用滚动 */
+            max-height: 80vh; /* Limit maximum height */
+            min-height: 60vh; /* Limit maximum height */
+            overflow: auto; /* Enable scrolling */
         }
 
         .detail-header {
@@ -267,8 +719,8 @@ proc wapp-default {} {
             color: white;
             position: sticky;
             top: 0;
-            z-index: 20; /* 增加z-index确保表头在最上层 */
-            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4); /* 添加阴影增强层次感 */
+            z-index: 20; /* Increase z-index to ensure header is on top */
+            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4); /* Add shadow for better layering */
         }
 
         .first-column {
@@ -282,12 +734,12 @@ proc wapp-default {} {
         .first-head-column {
             position: sticky;
             left: 0;
-            z-index: 30; /* 确保第一列的表头在最上层 */
+            z-index: 30; /* Ensure first column header is on top */
             font-size: 20px;
             font-weight: bold;
             background-color: #fcf0f1;
             color: gray;
-            box-shadow: 2px 0 2px -1px rgba(0, 0, 0, 0.4); /* 添加阴影增强层次感 */
+            box-shadow: 2px 0 2px -1px rgba(0, 0, 0, 0.4); /* Add shadow for better layering */
         }
 
         .tooltip {
@@ -337,7 +789,7 @@ proc wapp-default {} {
             z-index: 5;
         }
 
-        /* 添加加载提示样式 */
+        /* Add loading message styles */
         .loading-message {
             position: absolute;
             top: 50%;
@@ -366,10 +818,9 @@ proc wapp-default {} {
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo"><a style="color: white;" href="/">🎃bkr-test-robot🎃</a></div>
-    </div>
+  }
 
+  wapp {
     <div class="container">
         <div class="controlPanelCall" onmouseover="controlPanelSwitch(1);">
             V<br>V<br>V
@@ -397,7 +848,7 @@ proc wapp-default {} {
         </div>
 
         <div class="table-container">
-            <!-- 添加加载提示 -->
+            <!-- Add loading message -->
             <div class="loading-message" id="loadingMessage">
                 <div class="loading-spinner"></div>
                 <div>loading data test result ...</div>
@@ -414,7 +865,7 @@ proc wapp-default {} {
     </div>
 
     <script>
-        // 全局变量
+        // Global variables
         let testruninfo = {
             "components": ["nfs", "cifs"],
             "test-run": {
@@ -461,7 +912,7 @@ proc wapp-default {} {
         function selectCol(id) {
             var col = document.getElementsByClassName("checkCol")[id];
             var chkRuns = document.querySelectorAll("input.selectTestRun");
-    
+
             for (var i=0; i < chkRuns.length; i++) {
                 var testid = chkRuns[i].id.split(" ");
                 if (testid[1] != col.id) {
@@ -615,24 +1066,25 @@ proc wapp-default {} {
 		post(nurl.toString(), {testlist: testlist});
 	}
 
-        // 初始化界面
+        // Initialize interface
         function initializeInterface() {
-            // 创建组件/包的radio控件
+            // Create component/package radio controls
             createRadioButtons();
 
-            // 渲染表格
+            // Render table
             sortedResults = sortTestResults(qresults.results);
             renderTable();
 
             createResultDetailDivs();
         }
 
-        // 创建radio按钮
+        // Create radio buttons
         function createRadioButtons() {
             const queryField = document.getElementById('queryFieldset');
             const radioGroup = document.getElementById('pkgRadioGroup');
             const userInput = document.getElementById('userInput');
             if (userInput) {
+                // 直接从URL参数获取user值，不依赖登录状态
                 userInput.value = getParam('user') || '';
             }
 
@@ -664,7 +1116,7 @@ proc wapp-default {} {
                 radioItem.appendChild(radio);
                 radioItem.appendChild(label);
 
-                // 创建select控件
+                // Create select control
                 const select = document.createElement('select');
                 select.id = `run-${pkg}`;
                 select.name = `run-${pkg}`;
@@ -672,7 +1124,7 @@ proc wapp-default {} {
                 select.size = 5;
                 select.className = 'pkg-select';
 
-                // 添加选项
+                // Add options
                 testruninfo['test-run'][pkg].forEach(testrun => {
                     const option = document.createElement('option');
                     option.value = testrun;
@@ -693,7 +1145,7 @@ proc wapp-default {} {
             });
         }
 
-        // Radio切换时显示对应的select
+        // Radio switch to show corresponding select
         function pkgSelectSwitch(pkg) {
             const selects = document.querySelectorAll('.pkg-select');
             selects.forEach(select => {
@@ -751,9 +1203,9 @@ proc wapp-default {} {
             }
         }
 
-        // 渲染表格
+        // Render table
         function renderTable() {
-            // 渲染表头
+            // Render table header
             const tableHeader = document.getElementById('tableHeader');
             tableHeader.innerHTML = '';
 
@@ -769,7 +1221,7 @@ proc wapp-default {} {
                 const th = document.createElement('th');
                 th.textContent = run;
                 th.title = run; // Default browser tooltip
-                // 如果长度超过maxHeader，截断并添加tooltip
+                // If length exceeds maxHeader, truncate and add tooltip
                 if (run.length > maxHeader) {
                     th.textContent = truncateString(run, maxHeader);
 
@@ -804,7 +1256,7 @@ proc wapp-default {} {
 
             tableHeader.appendChild(headerRow);
 
-            // 渲染表格主体
+            // Render table body
             const tableBody = document.getElementById('tableBody');
             const maxTestcase = 40;
             tableBody.innerHTML = '';
@@ -812,7 +1264,7 @@ proc wapp-default {} {
             sortedResults.forEach((resObj, rowIdx) => {
                 const row = document.createElement('tr');
 
-                // 第一列 - 测试用例
+                // First column - test case
                 const testId = resObj.testid;
                 const testName = keepLastTwo(resObj.test);
                 row.id = testId;
@@ -822,7 +1274,7 @@ proc wapp-default {} {
                 testCell.textContent = `${rowIdx}. ${testName}`;
                 testCell.className = 'first-column';
 
-                // 如果长度超过maxTestCase，截断并添加tooltip
+                // If length exceeds maxTestCase, truncate and add tooltip
                 if (testName.length > maxTestcase) {
                     testCell.textContent = truncateString(testCell.textContent, maxTestcase);
 
@@ -852,7 +1304,7 @@ proc wapp-default {} {
                 testCell.appendChild(testChkbox);
                 row.appendChild(testCell);
 
-                // 其他列 - 测试结果
+                // Other columns - test results
                 var nrun = qresults.qruns.length;
                 for (let k = 0; k < nrun; k++) {
                     var res = resObj['res'+k];
@@ -878,7 +1330,7 @@ proc wapp-default {} {
                         const nrecipe = resarr.length/2;
                         for (var i = 0; i < nrecipe; i++) {
                             const recipeStat = resarr[i];
-			    const recipeId = resarr[i+nrecipe]
+                            const recipeId = resarr[i+nrecipe]
                             const statSpan = document.createElement('span');
                             const linkA = document.createElement('a');
                             if (recipeStat === "Pass") {
@@ -969,12 +1421,12 @@ proc wapp-default {} {
                 for (let k = 0; k < nrun; k++) {
                     const cell = document.createElement('td');
                     var resd = resObj['resd'+k];
-		    if (!resd) { resd = ''; }
-		    cell.innerHTML = resd.replace(/\n/g, '<br>');
-		    resdRow.appendChild(cell);
+                    if (!resd) { resd = ''; }
+                    cell.innerHTML = resd.replace(/\n/g, '<br>');
+                    resdRow.appendChild(cell);
                 }
                 resdTable.appendChild(resdRow);
-		resdDiv.appendChild(resdTable);
+                resdDiv.appendChild(resdTable);
                 resdDiv.style.zIndex = "-1";
                 resdDiv.style.display = "none";
                 document.body.appendChild(resdDiv);
@@ -985,14 +1437,14 @@ proc wapp-default {} {
             hideAllPkgSelects();
             e.preventDefault();
 
-            // 显示加载提示
+            // Show loading message
             document.getElementById('loadingMessage').style.display = 'block';
 
-            // 收集表单数据
+            // Collect form data
             const formData = new FormData(document.getElementById('queryForm'));
             const params = new URLSearchParams(formData);
 
-            // 构建查询URL
+            // Build query URL
             const cururl = new URL(window.location.href);
             cururl.pathname = "resjson";
 
@@ -1021,7 +1473,7 @@ proc wapp-default {} {
                 cururl.search = params.toString();
             }
 
-            // 发送请求获取新数据
+            // Send request to get new data
             fetch(cururl.toString())
                 .then(response => {
                     if (!response.ok) {
@@ -1030,14 +1482,14 @@ proc wapp-default {} {
                     return response.json();
                 })
                 .then(data => {
-                    // 更新全局数据
+                    // Update global data
                     testruninfo = data;
                     qresults = testruninfo.qresults;
 
-                    // 隐藏加载提示
+                    // Hide loading message
                     document.getElementById('loadingMessage').style.display = 'none';
 
-                    // 重新渲染界面
+                    // Re-render interface
                     initializeInterface();
                 })
                 .catch(error => {
@@ -1066,28 +1518,28 @@ proc wapp-default {} {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    // 如果加载失败，也隐藏加载提示
+                    // If loading fails, also hide loading message
                     document.getElementById('loadingMessage').style.display = 'none';
                     document.getElementById('loadingMessage').innerHTML = '<div style="color: red;">loading data fail, please refresh the page and try again.</div>';
                 });
 
             // Query button event
-	    document.getElementById('queryForm').addEventListener('submit', handleQuerySubmit);
+            document.getElementById('queryForm').addEventListener('submit', handleQuerySubmit);
         });
     </script>
 </body>
   }
-  common-footer $user
+  common-footer $quser
 }
 
 proc wapp-page-resjson {} {
   wapp-allow-xorigin-params
   wapp-mimetype application/json
-  set user [lindex [wapp-param user] 0]
+  set quser [get_query_user]
   set qpkg [lindex [wapp-param pkg] 0]
   set runList [wapp-param run-$qpkg]
   set resgenfile "/usr/local/libexec/wapp-trms-resjson.tcl"
-  set json [exec expect $resgenfile $user $qpkg $runList]
+  set json [exec expect $resgenfile $quser $qpkg $runList]
   wapp $json; return
   wapp {{
       "components": ["nfs", "cifs"],
@@ -1131,12 +1583,18 @@ proc wapp-page-main {} {
   }
 
   set uri [wapp-param BASE_URL]
+  set logged_user [get_logged_user]
+
   wapp {<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🎃▦bkr-test-robot▦🎃</title>
+  }
+  common-header $logged_user
+  wapp-trim {
+</head>
+<body>
   <style>
     #p2 {
       text-indent: 2em;
@@ -1144,29 +1602,11 @@ proc wapp-page-main {} {
     .warn {
       color: red;
     }
-    .header {
-      background-color: #2c3e50;
-      padding: 10px 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .logo {
-      font-size: 20px;
-      font-weight: bold;
-      color: white;
-    }
   </style>
-</head>
-<body>
-    <div class="header">
-        <div class="logo"><a style="color: white;" href="/">🎃bkr-test-robot🎃</a></div>
-    </div>
   }
-  set user [lindex [wapp-param user] end]
-  wapp-subst {query.param.user = %html($user) </p>}
-  set users [exec bash -c {ls /home/*/.testrundb/testrun.db 2>/dev/null|awk -F/ '{print $3}'}]
+
   wapp {<font size="+1">}
+  set users [exec bash -c {ls /home/*/.testrundb/testrun.db 2>/dev/null|awk -F/ '{print $3}'}]
   if {[llength $users] > 0} {
     wapp {<p id="p2">Now available test run robot instance[s]:<br></p>}
     foreach u $users {
@@ -1205,9 +1645,13 @@ proc wapp-page-resubmit-list {} {
   wapp-allow-xorigin-params
   set permission yes
 
-  set user [lindex [wapp-param user] end]
-  set dbfile [dbroot $user]/testrun.db
-  if {[string match {localhost:*} [wapp-param HTTP_HOST]]} { ""; }
+  set logged_user [get_logged_user]
+  set quser [lindex [wapp-param user] end]
+  if {$quser == {}} { set quser $logged_user }
+  set dbfile [dbroot $quser]/testrun.db
+  if {$logged_user == "" || $logged_user != $quser} {
+    set permission no
+  }
 
   wapp {<html>}
   set testList [wapp-param testlist]
@@ -1251,9 +1695,13 @@ proc wapp-page-deltest {} {
   wapp-allow-xorigin-params
   set permission yes
 
-  set user [lindex [wapp-param user] end]
-  set dbfile [dbroot $user]/testrun.db
-  if {[string match {localhost:*} [wapp-param HTTP_HOST]]} { ""; }
+  set logged_user [get_logged_user]
+  set quser [lindex [wapp-param user] end]
+  if {$quser == {}} { set quser $logged_user }
+  set dbfile [dbroot $quser]/testrun.db
+  if {$logged_user == "" || $logged_user != $quser} {
+    set permission no
+  }
 
   wapp {<html>}
   set testList [wapp-param testlist]
@@ -1291,9 +1739,13 @@ proc wapp-page-clone {} {
   wapp-allow-xorigin-params
   set permission yes
 
-  set user [lindex [wapp-param user] end]
-  set dbfile [dbroot $user]/testrun.db
-  if {[string match {localhost:*} [wapp-param HTTP_HOST]]} { ""; }
+  set logged_user [get_logged_user]
+  set quser [lindex [wapp-param user] end]
+  if {$quser == {}} { set quser $logged_user }
+  set dbfile [dbroot $quser]/testrun.db
+  if {$logged_user == "" || $logged_user != $quser} {
+    set permission no
+  }
 
   wapp {<html>}
   set testList [lindex [wapp-param testlist] 0]
@@ -1375,9 +1827,13 @@ proc wapp-page-delTestCase {} {
   wapp-allow-xorigin-params
   set permission yes
 
-  set user [lindex [wapp-param user] end]
-  set dbfile [dbroot $user]/testrun.db
-  if {[string match {localhost:*} [wapp-param HTTP_HOST]]} { ""; }
+  set logged_user [get_logged_user]
+  set quser [lindex [wapp-param user] end]
+  if {$quser == {}} { set quser $logged_user }
+  set dbfile [dbroot $quser]/testrun.db
+  if {$logged_user == "" || $logged_user != $quser} {
+    set permission no
+  }
 
   wapp {<html>}
   set testList [wapp-param testlist]
@@ -1410,8 +1866,8 @@ proc wapp-page-delTestCase {} {
 
 proc wapp-page-host-usage {} {
   wapp-allow-xorigin-params
-  set user [lindex [wapp-param user] end]
-  set hostinfo [::runtestlib::hostUsed $user]
+  set quser [get_query_user]
+  set hostinfo [::runtestlib::hostUsed $quser]
   set serveraddr [wapp-param HTTP_HOST]
   set clientip [wapp-param REMOTE_ADDR]
   wapp-subst {{
