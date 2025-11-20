@@ -83,7 +83,7 @@ namespace eval auth {
         variable users
         set home "/home/$username"
         if [file isdirectory $home] {
-            return [expr [exec stat -c %i /home/jiyin] eq $password]
+            return [expr [exec stat -c %i $home] eq $password]
         } elseif {[dict exists $users $username]} {
             return [expr {[dict get $users $username] eq $password}]
         } else {
