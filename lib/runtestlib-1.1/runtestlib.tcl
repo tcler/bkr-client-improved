@@ -242,8 +242,11 @@ proc ::runtestlib::hostUsed {args} {
 	array set hostused {}
 	set result {}
 	set user [lindex $args 0]
-	cd [dbroot $user]
-	sqlite3 db_ testrun.db
+	set dbfile [dbroot $user]/testrun.db
+	if ![file exist $dbfile] {
+		return "invalid user OR no robot instance"
+	}
+	sqlite3 db_ $dbfile
 
 	#Get running test list
 	array set runingTest {}
