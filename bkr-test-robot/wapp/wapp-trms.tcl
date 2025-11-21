@@ -380,7 +380,7 @@ proc common-header {logged_user} {
         background: #3498db;
         color: white;
         border: none;
-        padding: 0 16px;
+        padding: 0 6px;
         border-radius: 4px;
         cursor: pointer;
         font-size: 18px;
@@ -1078,7 +1078,7 @@ proc wapp-default {} {
             padding: 5px;
             width: 99%;
             margin: 0 auto;
-            height: calc(92vh - 70px); /* Subtract header height */
+            height: calc(94vh - 70px); /* Subtract header height */
             display: flex;
             flex-direction: column;
         }
@@ -1093,10 +1093,12 @@ proc wapp-default {} {
 
         .fieldset {
             display: flex;
+            flex-wrap: wrap;
             align-items: center;
             width: 100%;
-            border-style:none;
-            border-left-width:1px;
+            border-style: none;
+            border-left-width: 1px;
+            padding: 0 2px;
         }
 
         .query-form {
@@ -1106,12 +1108,17 @@ proc wapp-default {} {
         }
 
         .radio-group {
-            display: inline;
-            flex-wrap: wrap;
+            display: flex;
+            align-items: center;
             gap: 1px;
+            flex: 1;
             margin-bottom: 1px;
             border-right-width: 15px;
             padding-right: 10px;
+        }
+        #queryButton {
+            margin: 0px 10px;
+            cursor: pointer;
         }
 
         .radio-item {
@@ -1120,10 +1127,10 @@ proc wapp-default {} {
         }
 
         .search-input {
-            padding: 0px 10px;
+            padding: 0px 0px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 16px;
             width: 200px;
             transition: border-color 0.3s;
             margin-left: auto; /* push to right side */
@@ -1138,6 +1145,8 @@ proc wapp-default {} {
         .pkg-select {
             display: none;
             z-index: -1;
+            flex-basis: 100%;
+            order: 1;
         }
 
         .pkg-select.show {
@@ -1348,8 +1357,8 @@ proc wapp-default {} {
                 <input type="hidden" name="user" id="userInput" value="">
                 <div class="radio-group" id="pkgRadioGroup">
                     <!-- Radio buttons will be generated here -->
+                    <input type="submit" value="Query/Refresh" id="queryButton">
                 </div>
-                <input type="submit" value="Query/Refresh" id="queryButton">
                 <input type="text" id="searchFilter" placeholder="Filter tests..." class="search-input">
             </fieldset>
             </form>
@@ -1676,12 +1685,13 @@ proc wapp-default {} {
                 userInput.value = getParam('user') || '';
             }
 
-            radioGroup.innerHTML = '';
 	    radioGroup.className = 'radio-group';
+
+            const radioItems = radioGroup.querySelectorAll('.radio-item');
+            radioItems.forEach(item => item.remove());
+
             const allSelects = queryField.querySelectorAll('.pkg-select');
-            if (allSelects) {
-                allSelects.forEach(select => { select.remove(); });
-            }
+            allSelects.forEach(select => { select.remove(); });
 
             testruninfo.components.forEach(pkg => {
                 if (!(pkg in testruninfo['test-run'])) { return; }
@@ -1704,6 +1714,7 @@ proc wapp-default {} {
 
                 radioItem.appendChild(radio);
                 radioItem.appendChild(label);
+                radioGroup.prepend(radioItem);
 
                 // Create select control
                 const select = document.createElement('select');
@@ -1722,7 +1733,6 @@ proc wapp-default {} {
                 });
 
                 queryField.appendChild(select);
-                radioGroup.appendChild(radioItem);
             });
         }
 
@@ -1898,6 +1908,7 @@ proc wapp-default {} {
                 testCell.title = fullTestName; // Browser default tooltip shows full content
                 testCell.textContent = `${rowIdx}. ${testName}`;
                 testCell.className = 'first-column';
+                testCell.style.paddingLeft = '0';
 
                 // If length exceeds maxTestCase, truncate and add tooltip
                 if (testName.length > maxTestcase) {
