@@ -380,7 +380,7 @@ proc common-header {logged_user} {
         background: #3498db;
         color: white;
         border: none;
-        padding: 0, 16px;
+        padding: 0 16px;
         border-radius: 4px;
         cursor: pointer;
         font-size: 18px;
@@ -414,7 +414,7 @@ proc common-header {logged_user} {
 
     .header {
         background-color: #2c3e50;
-        padding: 10px 10px;
+        padding: 0 10px;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -425,7 +425,6 @@ proc common-header {logged_user} {
         font-weight: bold;
         text-decoration: none;
         color: white;
-        //font-family: cursive;
         font-family: monospace;
     }
 
@@ -741,7 +740,7 @@ proc common-header {logged_user} {
         });
     }
 
-    // Update UI based on login status - 完全不改变URL
+    // Update UI based on login status - without changing URL
     function updateUserInterface(username) {
         const userInfoDiv = document.getElementById('userInfo');
         if (userInfoDiv) {
@@ -1005,6 +1004,50 @@ proc wapp-default {} {
 
   wapp-trim {
     <style>
+        /* Copy button styles */
+        .copy-btn {
+            display: none;
+            position: absolute;
+            background: #f5f5f5;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+        }
+
+        .copy-btn:hover {
+            background: #2980b9;
+            transform: scale(1.05);
+        }
+
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+
+        .copy-btn.success {
+            background: #27ae60;
+        }
+
+        .copy-btn.error {
+            background: #e74c3c;
+        }
+
+        /* Header cell and first column hover effects */
+        .header-cell:hover .copy-btn,
+        .first-column:hover .copy-btn {
+            display: inline-block;
+        }
+
+        /* Ensure cells have relative positioning for absolute positioned buttons */
+        .header-cell, .first-column {
+            position: relative;
+        }
+
         div.controlPanelCall {
             position: fixed;
             z-index: 99;
@@ -1340,6 +1383,85 @@ proc wapp-default {} {
         let qresults = testruninfo.qresults;
         let sortedResults = qresults.results;
 
+        // Copy text to clipboard function
+        function copyToClipboard(text, button) {
+            // Save original text and style
+            const originalText = button.innerHTML;
+            const originalClass = button.className;
+
+            // Use modern Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    // Success feedback
+                    button.innerHTML = '✓';
+                    button.className = 'copy-btn success';
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.className = originalClass;
+                    }, 2000);
+                }).catch(err => {
+                    // Error feedback
+                    console.error('Failed to copy: ', err);
+                    button.innerHTML = '✗';
+                    button.className = 'copy-btn error';
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.className = originalClass;
+                    }, 2000);
+                });
+            } else {
+                // Fallback: use textarea method
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                textArea.style.top = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    // Success feedback
+                    button.innerHTML = '✓';
+                    button.className = 'copy-btn success';
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.className = originalClass;
+                    }, 2000);
+                } catch (err) {
+                    // Error feedback
+                    console.error('Fallback: Failed to copy: ', err);
+                    button.innerHTML = '✗';
+                    button.className = 'copy-btn error';
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.className = originalClass;
+                    }, 2000);
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+
+        // Create copy button
+        function createCopyButton(element, textToCopy) {
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'copy-btn';
+            copyBtn.innerHTML = '📋⧉';
+            copyBtn.title = 'Copy full text';
+            
+            // Position button in top-right corner of element
+            copyBtn.style.top = '2px';
+            copyBtn.style.right = '2px';
+            
+            copyBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent event bubbling
+                copyToClipboard(textToCopy, copyBtn);
+            });
+            
+            element.appendChild(copyBtn);
+            return copyBtn;
+        }
+
         const getParam = (name) => new URLSearchParams(window.location.search).get(name);
         function car(sequence) {
             if (Array.isArray(sequence)) return sequence[0];
@@ -1528,7 +1650,7 @@ proc wapp-default {} {
             const radioGroup = document.getElementById('pkgRadioGroup');
             const userInput = document.getElementById('userInput');
             if (userInput) {
-                // 直接从URL参数获取user值，不依赖登录状态
+                // Get user value from URL parameters, not dependent on login status
                 userInput.value = getParam('user') || '';
             }
 
@@ -1663,29 +1785,16 @@ proc wapp-default {} {
             const tooltip = createTooltip();
             qresults.qruns.forEach((run, index) => {
                 const th = document.createElement('th');
+                th.className = 'header-cell';
                 th.textContent = run;
                 th.title = run; // Default browser tooltip
                 // If length exceeds maxHeader, truncate and add tooltip
                 if (run.length > maxHeader) {
                     th.textContent = truncateString(run, maxHeader);
-
-                    // Create custom tooltip
-                    th.addEventListener('mouseenter', function(e) {
-                        tooltip.textContent = run;
-                        tooltip.style.left = (e.pageX + 10) + 'px';
-                        tooltip.style.top = (e.pageY - 10) + 'px';
-                        tooltip.classList.add('show');
-                    });
-
-                    th.addEventListener('mousemove', function(e) {
-                        tooltip.style.left = (e.pageX + 10) + 'px';
-                        tooltip.style.top = (e.pageY - 10) + 'px';
-                    });
-
-                    th.addEventListener('mouseleave', function() {
-                        tooltip.classList.remove('show');
-                    });
                 }
+
+                // Create copy button - copies full content
+                createCopyButton(th, run);
 
                 //add selectCol checkbox to thead <th>
                 const colChkbox = document.createElement('input');
@@ -1711,34 +1820,22 @@ proc wapp-default {} {
                 // First column - test case
                 const testId = resObj.testid;
                 const testName = keepLastTwo(resObj.test);
+                const fullTestName = resObj.test; // Full test name
                 row.id = testId;
                 row.ondblclick = function() { showDetail(testId); };
 
                 const testCell = document.createElement('td');
+                testCell.title = fullTestName; // Browser default tooltip shows full content
                 testCell.textContent = `${rowIdx}. ${testName}`;
                 testCell.className = 'first-column';
 
                 // If length exceeds maxTestCase, truncate and add tooltip
                 if (testName.length > maxTestcase) {
                     testCell.textContent = truncateString(testCell.textContent, maxTestcase);
-
-                    // Create custom tooltip
-                    testCell.addEventListener('mouseenter', function(e) {
-                        tooltip.textContent = testName;
-                        tooltip.style.left = (e.pageX + 10) + 'px';
-                        tooltip.style.top = (e.pageY - 10) + 'px';
-                        tooltip.classList.add('show');
-                    });
-
-                    testCell.addEventListener('mousemove', function(e) {
-                        tooltip.style.left = (e.pageX + 10) + 'px';
-                        tooltip.style.top = (e.pageY - 10) + 'px';
-                    });
-
-                    testCell.addEventListener('mouseleave', function() {
-                        tooltip.classList.remove('show');
-                    });
                 }
+
+                // Create copy button - copies full test path
+                createCopyButton(testCell, fullTestName);
 
                 //add selectTest checkbox to test <td>
                 const testChkbox = document.createElement('input');
