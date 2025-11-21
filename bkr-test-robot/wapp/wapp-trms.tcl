@@ -13,13 +13,149 @@ source /usr/local/lib/wapp.tcl
 namespace eval auth {
     variable sessions [dict create]
     variable users [dict create]
-    variable session_expiry 3600 ;# 1 hour expiration
+    variable session_expiry 604800 ;# 7 days in seconds (7 * 24 * 60 * 60)
+    variable session_dir "/etc/trms/sessions"
+    variable session_file "/etc/trms/users.conf"
 
-    # Initialize sample users (should be loaded from database or config file in production)
+    # Initialize users from configuration file
     proc init_users {} {
         variable users
-        # Sample users: username/password
-        dict set users "admin" "admin123"
+        variable session_file
+
+        # Create session directory if it doesn't exist
+        if {![file exists $::auth::session_dir]} {
+            file mkdir $::auth::session_dir
+        }
+
+        # Load users from configuration file
+        if {[file exists $session_file]} {
+            set fd [open $session_file r]
+            while {[gets $fd line] >= 0} {
+                set line [string trim $line]
+                if {$line eq "" || [string match "#*" $line]} continue
+                set parts [split $line ":"]
+                if {[llength $parts] >= 2} {
+                    set username [string trim [lindex $parts 0]]
+                    set password [string trim [lindex $parts 1]]
+                    dict set users $username $password
+                }
+            }
+            close $fd
+        } else {
+            # Create default configuration file with sample users
+            set fd [open $session_file w]
+            puts $fd "# User configuration file for TRMS"
+            puts $fd "# Format: username:password"
+            puts $fd "#"
+            puts $fd "admin:admin123"
+            puts $fd "testuser:testpass"
+            close $fd
+            dict set users "admin" "admin123"
+            dict set users "testuser" "testpass"
+        }
+
+        # Load persistent sessions
+        load_persistent_sessions
+    }
+
+    # Load persistent sessions from disk
+    proc load_persistent_sessions {} {
+        variable sessions
+        variable session_dir
+
+        if {![file exists $session_dir]} {
+            return
+        }
+
+        set now [clock seconds]
+        foreach session_file [glob -nocomplain [file join $session_dir *.session]] {
+            if {[catch {
+                set fd [open $session_file r]
+                set session_data [read $fd]
+                close $fd
+
+                set session_dict [dict create {*}$session_data]
+                set expiry [dict get $session_dict expiry]
+
+                # Only load if not expired
+                if {$now < $expiry} {
+                    set session_id [file rootname [file tail $session_file]]
+                    dict set sessions $session_id $session_dict
+                } else {
+                    # Remove expired session file
+                    file delete $session_file
+                }
+            } error]} {
+                puts "Warning: Failed to load session file $session_file: $error"
+            }
+        }
+    }
+
+    # Save session to disk
+    proc save_session_to_disk {session_id session_data} {
+        variable session_dir
+
+        set session_file [file join $session_dir $session_id.session]
+        if {[catch {
+            set fd [open $session_file w]
+            foreach {key value} $session_data {
+                puts $fd "$key {$value}"
+            }
+            close $fd
+        } error]} {
+            puts "Error saving session $session_id: $error"
+        }
+    }
+
+    # Delete session from disk
+    proc delete_session_from_disk {session_id} {
+        variable session_dir
+
+        set session_file [file join $session_dir $session_id.session]
+        if {[file exists $session_file]} {
+            file delete $session_file
+        }
+    }
+
+    # Clean up expired sessions
+    proc cleanup_expired_sessions {} {
+        variable sessions
+        variable session_dir
+
+        set now [clock seconds]
+        set expired_sessions [list]
+
+        # Clean memory sessions
+        dict for {session_id session_data} $sessions {
+            set expiry [dict get $session_data expiry]
+            if {$now >= $expiry} {
+                lappend expired_sessions $session_id
+            }
+        }
+
+        foreach session_id $expired_sessions {
+            dict unset sessions $session_id
+        }
+
+        # Clean disk sessions
+        if {[file exists $session_dir]} {
+            foreach session_file [glob -nocomplain [file join $session_dir *.session]] {
+                if {[catch {
+                    set fd [open $session_file r]
+                    set session_data [read $fd]
+                    close $fd
+
+                    set session_dict [dict create {*}$session_data]
+                    set expiry [dict get $session_dict expiry]
+
+                    if {$now >= $expiry} {
+                        file delete $session_file
+                    }
+                } error]} {
+                    puts "Warning: Failed to check session file $session_file: $error"
+                }
+            }
+        }
     }
 
     # Generate random session ID
@@ -27,39 +163,78 @@ namespace eval auth {
         return [string map {" " ""} [exec uuidgen]]
     }
 
-    # Create new session
+    # Create new session with 7-day expiry
     proc create_session {username} {
         variable sessions
-        set session_id [generate_session_id]
-        set expiry [expr {[clock seconds] + $::auth::session_expiry}]
+        variable session_expiry
 
-        dict set sessions $session_id [dict create \
+        set session_id [generate_session_id]
+        set expiry [expr {[clock seconds] + $session_expiry}]
+
+        set session_data [dict create \
             username $username \
             created [clock seconds] \
-            expiry $expiry]
+            expiry $expiry \
+            last_access [clock seconds]]
+
+        dict set sessions $session_id $session_data
+
+        # Save to disk for persistence
+        save_session_to_disk $session_id $session_data
 
         return $session_id
     }
 
-    # Validate session
+    # Validate session and update last access time
     proc validate_session {session_id} {
         variable sessions
 
         if {![dict exists $sessions $session_id]} {
-            return 0
+            # Try to load from disk
+            set session_file [file join $::auth::session_dir $session_id.session]
+            if {[file exists $session_file]} {
+                if {[catch {
+                    set fd [open $session_file r]
+                    set session_data [read $fd]
+                    close $fd
+
+                    set session_dict [dict create {*}$session_data]
+                    set expiry [dict get $session_dict expiry]
+
+                    # Check if session has expired
+                    if {[clock seconds] > $expiry} {
+                        file delete $session_file
+                        return 0
+                    }
+
+                    dict set sessions $session_id $session_dict
+                } error]} {
+                    return 0
+                }
+            } else {
+                return 0
+            }
         }
 
-        set session [dict get $sessions $session_id]
-        set expiry [dict get $session expiry]
+        set session_data [dict get $sessions $session_id]
+        set expiry [dict get $session_data expiry]
 
         # Check if session has expired
         if {[clock seconds] > $expiry} {
             dict unset sessions $session_id
+            delete_session_from_disk $session_id
             return 0
         }
 
-        # Update expiration time
-        dict set sessions $session_id expiry [expr {[clock seconds] + $::auth::session_expiry}]
+        # Update last access time and extend expiry
+        dict set session_data last_access [clock seconds]
+        # Reset expiry to 7 days from now on each access
+        dict set session_data expiry [expr {[clock seconds] + $::auth::session_expiry}]
+        dict set sessions $session_id $session_data
+
+        # Update disk storage
+        save_session_to_disk $session_id $session_data
+
         return 1
     }
 
@@ -76,6 +251,7 @@ namespace eval auth {
     proc delete_session {session_id} {
         variable sessions
         dict unset sessions $session_id
+        delete_session_from_disk $session_id
     }
 
     # Validate user credentials
@@ -101,7 +277,7 @@ namespace eval auth {
             if {[llength $parts] == 2} {
                 lassign $parts name value
                 if {$name eq "session_id"} {
-                    return $value
+                    return [string trim $value]
                 }
             }
         }
@@ -121,17 +297,28 @@ namespace eval auth {
         if {$session_id eq ""} { return "" }
         return [get_username $session_id]
     }
+
+    # Periodic cleanup of expired sessions (called occasionally)
+    proc periodic_cleanup {} {
+        # Run cleanup with 10% probability on each call
+        if {rand() < 0.1} {
+            cleanup_expired_sessions
+        }
+    }
 }
 
-# Initialize user data
+# Initialize user data and run initial cleanup
 auth::init_users
+auth::cleanup_expired_sessions
 
+# Helper procedures for session management
 proc get_session_id {} {
     set cookie [wapp-param HTTP_COOKIE]
     return [auth::get_session_id_from_request $cookie]
 }
-proc is_logged_in {cookie_header} {
+proc is_logged_in {} {
     set cookie [wapp-param HTTP_COOKIE]
+    auth::periodic_cleanup
     return [auth::is_logged_in $cookie]
 }
 proc get_logged_user {} {
