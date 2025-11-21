@@ -649,7 +649,7 @@ proc common-header {logged_user} {
         // Set new timer to hide after 2 seconds
         dropdownTimers[dropdownId] = setTimeout(() => {
             hideDropdown(dropdownId);
-        }, 2000);
+        }, 1200);
     }
 
     // Initialize dropdown event listeners
@@ -1228,6 +1228,11 @@ proc wapp-default {} {
             z-index: 20; /* Increase z-index to ensure header is on top */
             box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4); /* Add shadow for better layering */
         }
+        .header-cell {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
 
         .first-column {
             font-family: monospace;
@@ -1275,10 +1280,6 @@ proc wapp-default {} {
             max-width: 64px;
         }
 
-        .header-cell {
-            position: relative;
-        }
-
         .header-cell:hover {
             opacity: 1;
         }
@@ -1286,7 +1287,7 @@ proc wapp-default {} {
         .scroll-header {
             position: sticky;
             top: 0;
-            z-index: 15;
+            z-index: 20;
         }
 
         .scroll-first-column {
@@ -1468,16 +1469,16 @@ proc wapp-default {} {
             copyBtn.className = 'copy-btn';
             copyBtn.innerHTML = '📋⧉';
             copyBtn.title = 'Copy full text';
-            
+
             // Position button in top-right corner of element
             copyBtn.style.top = '2px';
             copyBtn.style.right = '2px';
-            
+
             copyBtn.addEventListener('click', (e) => {
                 e.stopPropagation(); // Prevent event bubbling
                 copyToClipboard(textToCopy, copyBtn);
             });
-            
+
             element.appendChild(copyBtn);
             return copyBtn;
         }
@@ -1911,7 +1912,7 @@ proc wapp-default {} {
                 testChkbox.type = "checkbox";
                 testChkbox.className = "selectTestCase";
                 testChkbox.id = testId;
-                testCell.appendChild(testChkbox);
+                testCell.prepend(testChkbox);
                 row.appendChild(testCell);
 
                 // Other columns - test results
