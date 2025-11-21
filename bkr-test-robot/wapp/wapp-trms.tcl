@@ -1092,9 +1092,17 @@ proc wapp-default {} {
         }
 
         .fieldset {
+            display: flex;
+            align-items: center;
             width: 100%;
             border-style:none;
             border-left-width:1px;
+        }
+
+        .query-form {
+            display: flex;
+            gap: 2px;
+	    width: 100%;
         }
 
         .radio-group {
@@ -1102,7 +1110,8 @@ proc wapp-default {} {
             flex-wrap: wrap;
             gap: 1px;
             margin-bottom: 1px;
-            border-right-width:15px;
+            border-right-width: 15px;
+            padding-right: 10px;
         }
 
         .radio-item {
@@ -1110,10 +1119,20 @@ proc wapp-default {} {
             gap: 5px;
         }
 
-        .query-form {
-            display: inline-flex;
-            align-items: center;
-            gap: 2px;
+        .search-input {
+            padding: 0px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 200px;
+            transition: border-color 0.3s;
+            margin-left: auto; /* push to right side */
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
         }
 
         .pkg-select {
@@ -1330,6 +1349,7 @@ proc wapp-default {} {
                     <!-- Radio buttons will be generated here -->
                 </div>
                 <input type="submit" value="Query/Refresh" id="queryButton">
+                <input type="text" id="searchFilter" placeholder="Filter tests..." class="search-input">
             </fieldset>
             </form>
         </div>
@@ -1642,6 +1662,7 @@ proc wapp-default {} {
             renderTable();
 
             createResultDetailDivs();
+            setupSearchFilter();
         }
 
         // Create radio buttons
@@ -1655,6 +1676,7 @@ proc wapp-default {} {
             }
 
             radioGroup.innerHTML = '';
+	    radioGroup.className = 'radio-group';
             const allSelects = queryField.querySelectorAll('.pkg-select');
             if (allSelects) {
                 allSelects.forEach(select => { select.remove(); });
@@ -1767,6 +1789,53 @@ proc wapp-default {} {
                 // Ascending order: lower weights first
                 return resultsWithWeights.sort((a, b) => a.weight - b.weight).map(item => item.data);
             }
+        }
+
+        // 搜索过滤功能
+        function setupSearchFilter() {
+            const searchInput = document.getElementById('searchFilter');
+            if (!searchInput) return;
+
+            searchInput.addEventListener('input', function(e) {
+                const searchText = e.target.value.toLowerCase().trim();
+                filterTableRows(searchText);
+            });
+
+            // 添加清除搜索的快捷键
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    e.target.value = '';
+                    filterTableRows('');
+                    e.target.blur();
+                }
+            });
+        }
+
+        function filterTableRows(searchText) {
+            const tableBody = document.getElementById('tableBody');
+            if (!tableBody) return;
+
+            const rows = tableBody.querySelectorAll('tr');
+
+            if (!searchText) {
+                rows.forEach(row => {
+                    row.style.display = '';
+                });
+                return;
+            }
+
+            rows.forEach(row => {
+                let rowText = '';
+
+                // merge text in row
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    rowText += cell.textContent.toLowerCase() + ' ';
+                });
+
+                const isVisible = rowText.includes(searchText);
+                row.style.display = isVisible ? '' : 'none';
+            });
         }
 
         // Render table
@@ -1897,6 +1966,10 @@ proc wapp-default {} {
 
                 tableBody.appendChild(row);
             });
+
+            setTimeout(() => {
+                setupSearchFilter();
+            }, 0);
         }
 
         function createResultDetailDivs() {
