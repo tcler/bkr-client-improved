@@ -2120,7 +2120,8 @@ proc wapp-default {} {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    document.getElementById('loadingMessage').style.display = 'none';
+                    // If loading fails, also hide loading message
+                    //document.getElementById('loadingMessage').style.display = 'none';
                     document.getElementById('loadingMessage').innerHTML = '<div style="color: red;">Query fail, please try again.</div>';
                 });
         }
@@ -2132,10 +2133,30 @@ proc wapp-default {} {
             const cururl = new URL(window.location.href);
             cururl.pathname += "resjson";
             var resurl = cururl.toString();
-            fetch(resurl)
-                .then(response => {
-                    return response.json()
-                })
+
+            function fetchWithRetry(url, retries = 3, delay = 1000) {
+                return fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .catch(error => {
+                        if (retries > 0) {
+                            console.warn(`Fetch failed, ${retries} retries left. Retrying in ${delay}ms...`, error);
+                            return new Promise(resolve => {
+                                setTimeout(() => {
+                                    resolve(fetchWithRetry(url, retries - 1, delay * 1.5));
+                                }, delay);
+                            });
+                        } else {
+                            throw error;
+                        }
+                    });
+            }
+
+            fetchWithRetry(resurl, 3)
                 .then(data => {
                     testruninfo = data;
                     qresults = testruninfo.qresults;
@@ -2143,9 +2164,9 @@ proc wapp-default {} {
                     initializeInterface();
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    console.error('Error after all retries:', error);
                     // If loading fails, also hide loading message
-                    document.getElementById('loadingMessage').style.display = 'none';
+                    //document.getElementById('loadingMessage').style.display = 'none';
                     document.getElementById('loadingMessage').innerHTML = '<div style="color: red;">loading data fail, please refresh the page and try again.</div>';
                 });
 
