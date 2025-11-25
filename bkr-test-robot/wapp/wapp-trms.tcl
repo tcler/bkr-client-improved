@@ -1514,6 +1514,11 @@ proc wapp-default {} {
                 if (testid[1] != col.id) {
                     continue;
                 }
+                var row = chkRuns[i].closest('tr');
+                if (row && row.style.display === 'none') {
+                    continue;
+                }
+
                 if (col.checked == true) {
                     //chkRuns[i].style.visibility="visible";
                     chkRuns[i].checked=true;
