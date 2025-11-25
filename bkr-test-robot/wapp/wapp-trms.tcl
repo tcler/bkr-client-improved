@@ -1854,6 +1854,8 @@ proc wapp-default {} {
             // Render table header
             const tableHeader = document.getElementById('tableHeader');
             tableHeader.innerHTML = '';
+            const searchInput = document.getElementById('searchFilter');
+            searchInput.value = '';
 
             const headerRow = document.createElement('tr');
             const emptyHeader = document.createElement('th');
