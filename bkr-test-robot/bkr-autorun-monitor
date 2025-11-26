@@ -259,6 +259,22 @@ foreach {jobID taskList} [array get runningTest] {
 						append resdetailTail "$path\n"
 					}
 				}
+			} else {
+				set taskResults [$taskNode selectNodes results]
+				if {$taskResults != ""} {
+					foreach taskResNode [$taskResults childNodes] {
+						if [$taskResNode hasAttribute result] {
+							set _res [$taskResNode @result]
+						} else {
+							set _res [string map {( {} ) {}} [$taskResNode text]]
+						}
+						set _path [$taskResNode @path]
+						if [string match RESULT* $_path] {
+							set path "  $_path"
+							append resdetailTail "$path\n"
+						}
+					}
+				}
 			}
 
 			#if just avc fail, set res pass
