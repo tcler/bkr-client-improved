@@ -2002,8 +2002,9 @@ proc wapp-default {} {
             formatted = formatted.replace(/(Warn:)/g, '<span style="color: orange; font-weight: bold;">$1</span>');
             formatted = formatted.replace(/(Panic:)/g, '<span style="color: navy; font-weight: bold;">$1</span>');
 
-            formatted = formatted.replace(/(Fail<br>)/g, '<span style="color: red; font-weight: bold;">$1</span><br>');
-            formatted = formatted.replace(/(Warn<br>)/g, '<span style="color: orange; font-weight: bold;">$1</span><br>');
+            formatted = formatted.replace(/(Fail<br>)/g, '<span style="color: red; font-weight: bold;">$1</span>');
+            formatted = formatted.replace(/(Warn<br>)/g, '<span style="color: orange; font-weight: bold;">$1</span>');
+            formatted = formatted.replace(/(RESULT[^<]*<br>)/g, '<span style="font-weight: bold;">$1</span>');
             return formatted;
         }
 
