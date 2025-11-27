@@ -1991,6 +1991,22 @@ proc wapp-default {} {
             }, 0);
         }
 
+        function formatResdContent(content) {
+            if (!content) return '';
+
+            let formatted = content.replace(/\n/g, '<br>');
+            formatted = formatted.replace(/  /g, ' &nbsp;&nbsp;');
+            formatted = formatted.replace(/(New:)/g, '<span style="color: gray; font-weight: bold;">$1</span>');
+            formatted = formatted.replace(/(Pass-?:)/g, '<span style="color: blue; font-weight: bold;">$1</span>');
+            formatted = formatted.replace(/(Fail:)/g, '<span style="color: red; font-weight: bold;">$1</span>');
+            formatted = formatted.replace(/(Warn:)/g, '<span style="color: orange; font-weight: bold;">$1</span>');
+            formatted = formatted.replace(/(Panic:)/g, '<span style="color: navy; font-weight: bold;">$1</span>');
+
+            formatted = formatted.replace(/(Fail<br>)/g, '<span style="color: red; font-weight: bold;">$1</span><br>');
+            formatted = formatted.replace(/(Warn<br>)/g, '<span style="color: orange; font-weight: bold;">$1</span><br>');
+            return formatted;
+        }
+
         function createResultDetailDivs() {
             const allDetails = document.body.querySelectorAll('.detail-div');
             if (allDetails) {
@@ -2055,7 +2071,7 @@ proc wapp-default {} {
                     const cell = document.createElement('td');
                     var resd = resObj['resd'+k];
                     if (!resd) { resd = ''; }
-                    cell.innerHTML = resd.replace(/\n/g, '<br>');
+                    cell.innerHTML = formatResdContent(resd);
                     resdRow.appendChild(cell);
                 }
                 resdTable.appendChild(resdRow);
