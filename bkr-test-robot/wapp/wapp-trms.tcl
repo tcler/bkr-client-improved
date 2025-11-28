@@ -1604,26 +1604,79 @@ proc wapp-default {} {
 		post(nurl.toString(), {testlist: testlist});
 	}
 
-	function reSubmitList() {
-		const nurl = new URL(window.location.href);
-		nurl.pathname = "resubmit-list";
+        function reSubmitList() {
+            const nurl = new URL(window.location.href);
+            nurl.pathname = "resubmit-list";
 
-		var testlist = "";
-		var chkItem = document.querySelectorAll("input.selectTestRun, input.selectTestNil");
-		for (var i=0; i<chkItem.length; i++) {
-			if (chkItem[i].checked == true) {
-				var testobj = chkItem[i].id.split(" ");
-				testid = testobj[0];
-				j = testobj[1];
-				testlist += `${testid} ${qresults.qruns[j]}\n`;
-			}
-		}
-		var r = confirm(`Are you sure resubmit these test?\n${testlist}`);
-		if (r != true) {
-			return 0;
-		}
-		post(nurl.toString(), {testlist: testlist});
-	}
+            var testlist = "";
+            var chkItem = document.querySelectorAll("input.selectTestRun, input.selectTestNil");
+            for (var i = 0; i < chkItem.length; i++) {
+                if (chkItem[i].checked == true) {
+                    var testobj = chkItem[i].id.split(" ");
+                    testid = testobj[0];
+                    j = testobj[1];
+                    testlist += `${testid} ${qresults.qruns[j]}\n`;
+                }
+            }
+
+            var r = confirm(`Are you sure resubmit these test?\n${testlist}`);
+            if (r != true) {
+                return 0;
+            }
+
+            document.getElementById('loadingMessage').style.display = 'block';
+
+            fetch(nurl.toString(), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `testlist=${encodeURIComponent(testlist)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingMessage').style.display = 'none';
+
+                if (data.success) {
+                    refreshTableData();
+                } else {
+                    alert('Resubmit failed: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                document.getElementById('loadingMessage').style.display = 'none';
+                alert('Resubmit request failed: ' + error.message);
+            });
+        }
+
+        function refreshTableData() {
+            document.getElementById('loadingMessage').style.display = 'block';
+
+            const cururl = new URL(window.location.href);
+            cururl.pathname = "resjson";
+
+            fetch(cururl.toString())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    testruninfo = data;
+                    qresults = testruninfo.qresults;
+                    document.getElementById('loadingMessage').style.display = 'none';
+
+                    sortedResults = sortTestResults(qresults.results);
+                    renderTable();
+                    createResultDetailDivs();
+                    setupSearchFilter();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('loadingMessage').innerHTML = '<div style="color: red;">Refresh data failed, please try again.</div>';
+                });
+        }
 
 	function cloneToNewRun() {
 		const nurl = new URL(window.location.href);
@@ -2321,15 +2374,17 @@ proc wapp-page-resubmit-list {} {
   if {$quser == {}} { set quser $logged_user }
   set dbfile [dbroot $quser]/testrun.db
   if {$logged_user == "" || $logged_user != $quser} {
-    set permission no
+	set permission no
   }
 
-  wapp {<html>}
   set testList [wapp-param testlist]
+  set success 0
+  set message ""
+
   if {$permission != yes} {
-	wapp {<span style="font-size:400%;">You have no permission to do this!<br></span>}
+	set message "You have no permission to do this!"
   } elseif {![file exists $dbfile]} {
-	wapp {<span style="font-size:400%;">There is not dbfile, something is wrong!<br></span>}
+	set message "There is no dbfile, something is wrong!"
   } elseif {$testList != ""} {
 	sqlite3 db $dbfile
 	db timeout 6000
@@ -2340,26 +2395,25 @@ proc wapp-page-resubmit-list {} {
 			set distro_gset_ [lrange $test 1 end]
 			set sql {
 				UPDATE OR IGNORE testrun
-					set jobid='', testStat='', res='o', rstat='', taskuri='', abortedCnt=0, resdetail=''
-					WHERE testid = $testid_ and distro_rgset = $distro_gset_;
+				SET jobid='', testStat='', res='o', rstat='', taskuri='', abortedCnt=0, resdetail=''
+				WHERE testid = $testid_ AND distro_rgset = $distro_gset_;
 				INSERT OR IGNORE INTO testrun (testid, distro_rgset, abortedCnt, res, testStat)
-					VALUES($testid_, $distro_gset_, 0, '-', '')
+				VALUES($testid_, $distro_gset_, 0, '-', '')
 			}
 			db eval $sql
 		}
 	}
-	wapp {<span style="font-size:400%;">Update ... Done!<br></span>}
+	set success 1
+	set message "Update completed successfully"
+	db close
+  } else {
+	set message "No test list provided"
   }
 
-  set defaultUrl "[wapp-param BASE_URL]?[wapp-param QUERY_STRING]"
-  wapp-subst {return to %unsafe($defaultUrl)}
-  wapp-subst {
-	<head>
-	<META HTTP-EQUIV="Refresh" CONTENT="1; URL=%unsafe($defaultUrl)">
-	</head>
-	<body></body>
-	</html>
-  }
+  wapp-mimetype application/json
+  wapp-cache-control no-cache
+
+  wapp-subst {{"success": %unsafe($success), "message": "%unsafe($message)"}}
 }
 
 proc wapp-page-deltest {} {
