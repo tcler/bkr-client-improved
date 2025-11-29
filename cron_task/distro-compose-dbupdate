@@ -3,7 +3,7 @@
 
 dbRoot=/var/cache/distroInfoDB
 
-Prompt="[distro-compost-dbupdate]"
+Prompt="[distro-compose-dbupdate]"
 rpmdb=rpmsdata
 lockf=/tmp/distroDB.w.lock
 trap "sigproc" SIGINT SIGTERM SIGHUP SIGQUIT EXIT
