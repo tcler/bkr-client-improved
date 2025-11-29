@@ -176,7 +176,7 @@ rlPhaseStartSetup do-Setup-
 	run '"'echo \"\$expdir *(rw,no_root_squash)\" >/etc/exports'"'
 	run '"'service_nfs restart'"'
 	nfsvers=$NFS_VERS
-	[ -z "$nfsvers" ] && nfsvers=$(ls_nfsvers)
+	[ -z "$nfsvers" ] && nfsvers=$(sed s/+//g /proc/fs/nfsd/versions)
 rlPhaseEnd
 
 for V in ${VERS_LIST:-$nfsvers}; do

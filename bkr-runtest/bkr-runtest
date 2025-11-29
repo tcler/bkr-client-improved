@@ -123,14 +123,6 @@ if [info exist Opt(distro)] {
 	set TestArgList [lrange $Args 1 end]
 }
 
-#If Distro is a errata name, process it.
-if [regexp -- {^RH[A-Z]{2}-[0-9]{4}:[0-9]+} $Distro] {
-	lassign [exec errata2distro_and_pkg $Distro] Distro pkgBuild
-	set pkgOpt {--install}
-	if [regexp -- {^kernel-} $pkgBuild] {set pkgOpt {--Brew}}
-	lappend SubcmdOpt $pkgOpt=$pkgBuild
-}
-
 #If Distro is short format
 set bootc ""
 if [regexp -- {--bootc} $ForwardOpt] {

@@ -66,17 +66,12 @@ chmod u+s /usr/local/bin/trms-service.sh
 /usr/local/bin/distro-list.sh
 /usr/local/bin/downloadBrewBuild
 /usr/local/bin/downloadBrewScratch
-/usr/local/bin/errata2distro_and_pkg
-/usr/local/bin/errataInfo
-/usr/local/bin/fix_nfsvers
 /usr/local/bin/getLatestRHEL
 /usr/local/bin/installBrewPkg
 /usr/local/bin/install-docker-ce.sh
 /usr/local/bin/ircmsg.sh
 /usr/local/bin/klogin
-/usr/local/bin/ls_nfsvers
 /usr/local/bin/newcase.sh
-/usr/local/bin/nolimit.sh
 /usr/local/bin/packInstalledRpm.sh
 /usr/local/bin/pushcase.sh
 /usr/local/bin/recipe.sh
@@ -90,7 +85,6 @@ chmod u+s /usr/local/bin/trms-service.sh
 /usr/local/bin/tdom_install.sh
 /usr/local/bin/vercmp
 /usr/local/bin/work-stat
-/usr/local/bin/xmlrpc-client.sh
 /usr/local/bin/bkr-autorun-create
 /usr/local/bin/bkr-autorun-del
 /usr/local/bin/bkr-autorun-diff.sh
