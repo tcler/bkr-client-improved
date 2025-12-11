@@ -779,7 +779,7 @@ proc common-header {logged_user} {
                 }
             })
             .catch(error => {
-                console.log('Auth check failed:', error);
+                console.error('Auth check failed:', error);
             });
     }
 
@@ -1192,7 +1192,7 @@ proc wapp-default {} {
             position: fixed;
             z-index: 600;
             display: flex;
-            align-items: left;
+            align-items: flex-start;
             background-color: #f3e5ab;
             position: absolute;
             top: 0;
@@ -1413,6 +1413,57 @@ proc wapp-default {} {
         let qresults = testruninfo.qresults;
         let sortedResults = qresults.results;
 
+        // Generic retry function for fetch operations
+        // Parameters:
+        //   url - The URL to fetch
+        //   options - Fetch options (optional)
+        //   maxRetries - Maximum number of retry attempts (default: 3)
+        //   retryDelay - Base delay between retries in milliseconds (default: 1000)
+        //   retryMultiplier - Multiplier for exponential backoff (default: 1.5)
+        async function fetchWithRetry(url, options = {}, maxRetries = 3, retryDelay = 1000, retryMultiplier = 1.5) {
+            let lastError;
+
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, options);
+
+                    // If response is successful, return it
+                    if (response.ok) {
+                        return response;
+                    }
+
+                    // If response is not successful, throw an error
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+                } catch (error) {
+                    lastError = error;
+
+                    // If this is the last attempt, throw the error
+                    if (attempt === maxRetries) {
+                        throw error;
+                    }
+
+                    // Wait before retrying with exponential backoff
+                    const delay = retryDelay * Math.pow(retryMultiplier, attempt - 1);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+
+                    console.log(`Retry ${attempt}/${maxRetries} for: ${url}`);
+                }
+            }
+
+            throw lastError;
+        }
+
+        // Generic retry function for fetching JSON data
+        // Parameters:
+        //   url - The URL to fetch
+        //   options - Fetch options (optional)
+        //   maxRetries - Maximum number of retry attempts (default: 3)
+        async function fetchJsonWithRetry(url, options = {}, maxRetries = 3) {
+            const response = await fetchWithRetry(url, options, maxRetries);
+            return await response.json();
+        }
+
         // Copy text to clipboard function
         function copyToClipboard(text, button) {
             // Save original text and style
@@ -1626,13 +1677,14 @@ proc wapp-default {} {
 
             document.getElementById('loadingMessage').style.display = 'block';
 
-            fetch(nurl.toString(), {
+            // Use retry version of fetch for resubmit
+            fetchWithRetry(nurl.toString(), {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: `testlist=${encodeURIComponent(testlist)}`
-            })
+            }, 3, 1000, 1.5) // 3 retries with exponential backoff
             .then(response => response.json())
             .then(data => {
                 document.getElementById('loadingMessage').style.display = 'none';
@@ -1655,13 +1707,8 @@ proc wapp-default {} {
             const cururl = new URL(window.location.href);
             cururl.pathname = "resjson";
 
-            fetch(cururl.toString())
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
+            // Use retry version of fetch for refreshing table data
+            fetchJsonWithRetry(cururl.toString(), {}, 3)
                 .then(data => {
                     testruninfo = data;
                     qresults = testruninfo.qresults;
@@ -1674,7 +1721,7 @@ proc wapp-default {} {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    document.getElementById('loadingMessage').innerHTML = '<div style="color: red;">Refresh data failed, please try again.</div>';
+                    document.getElementById('loadingMessage').innerHTML = `<div style="color: red;">Refresh data failed: ${error}, please try again later.</div>`;
                 });
         }
 
@@ -1860,7 +1907,7 @@ proc wapp-default {} {
             }
         }
 
-        // 搜索过滤功能
+        // Search filter functionality
         function setupSearchFilter() {
             const searchInput = document.getElementById('searchFilter');
             if (!searchInput) return;
@@ -1870,7 +1917,7 @@ proc wapp-default {} {
                 filterTableRows(searchText);
             });
 
-            // 添加清除搜索的快捷键
+            // Add clear search shortcut
             searchInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     e.target.value = '';
@@ -1896,7 +1943,7 @@ proc wapp-default {} {
             rows.forEach(row => {
                 let rowText = '';
 
-                // merge text in row
+                // Merge text in row
                 const cells = row.querySelectorAll('td');
                 cells.forEach(cell => {
                     rowText += cell.textContent.toLowerCase() + ' ';
@@ -1934,7 +1981,7 @@ proc wapp-default {} {
                 // Create copy button - copies full content
                 createCopyButton(th, run);
 
-                //add selectCol checkbox to thead <th>
+                // Add selectCol checkbox to thead <th>
                 const colChkbox = document.createElement('input');
                 colChkbox.type = "checkbox";
                 colChkbox.className = "checkCol";
@@ -1976,7 +2023,7 @@ proc wapp-default {} {
                 // Create copy button - copies full test path
                 createCopyButton(testCell, fullTestName);
 
-                //add selectTest checkbox to test <td>
+                // Add selectTest checkbox to test <td>
                 const testChkbox = document.createElement('input');
                 testChkbox.type = "checkbox";
                 testChkbox.className = "selectTestCase";
@@ -2079,15 +2126,15 @@ proc wapp-default {} {
                 resdDiv.className = 'detail-div';
                 resdDiv.id = `div${resObj.testid}`;
 
-                // create header container
+                // Create header container
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'detail-header';
 
-                // create close section container
+                // Create close section container
                 const closeSection = document.createElement('div');
                 closeSection.className = 'close-section';
 
-                // create close button
+                // Create close button
                 const resdXBtn = document.createElement('button');
                 resdXBtn.className = 'detail-close-btn';
                 resdXBtn.textContent = 'X';
@@ -2095,19 +2142,19 @@ proc wapp-default {} {
                     hideDetail(resdDiv.id);
                 });
 
-                // create close prompt text
+                // Create close prompt text
                 const closePrompt = document.createElement('span');
                 closePrompt.textContent = ' - [Close me]';
                 closePrompt.className = 'close-prompt';
 
-                // add close-btn and close-prompt to close-section
+                // Add close-btn and close-prompt to close-section
                 closeSection.appendChild(resdXBtn);
                 closeSection.appendChild(closePrompt);
 
-                // append close-section to header container
+                // Append close-section to header container
                 headerDiv.appendChild(closeSection);
 
-                // append header to top div
+                // Append header to top div
                 resdDiv.appendChild(headerDiv);
 
                 const br = document.createElement('br');
@@ -2176,14 +2223,8 @@ proc wapp-default {} {
                 cururl.search = params.toString();
             }
 
-            // Send request to get new data
-            fetch(cururl.toString())
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
+            // Use retry version of fetch for query submission
+            fetchJsonWithRetry(cururl.toString(), {}, 3)
                 .then(data => {
                     // Update global data
                     testruninfo = data;
@@ -2199,11 +2240,11 @@ proc wapp-default {} {
                     console.error('Error:', error);
                     // If loading fails, also hide loading message
                     //document.getElementById('loadingMessage').style.display = 'none';
-                    document.getElementById('loadingMessage').innerHTML = '<div style="color: red;">Query fail, please try again.</div>';
+                    document.getElementById('loadingMessage').innerHTML = `<div style="color: red;">Query fail: ${error}, please try again later.</div>`;
                 });
         }
 
-        // after page loaded
+        // After page loaded
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('loadingMessage').style.display = 'block';
 
@@ -2211,29 +2252,8 @@ proc wapp-default {} {
             cururl.pathname += "resjson";
             var resurl = cururl.toString();
 
-            function fetchWithRetry(url, retries = 3, delay = 1000) {
-                return fetch(url)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .catch(error => {
-                        if (retries > 0) {
-                            console.warn(`Fetch failed, ${retries} retries left. Retrying in ${delay}ms...`, error);
-                            return new Promise(resolve => {
-                                setTimeout(() => {
-                                    resolve(fetchWithRetry(url, retries - 1, delay * 1.5));
-                                }, delay);
-                            });
-                        } else {
-                            throw error;
-                        }
-                    });
-            }
-
-            fetchWithRetry(resurl, 3)
+            // Use retry version of fetch for initial page load
+            fetchJsonWithRetry(resurl, {}, 3)
                 .then(data => {
                     testruninfo = data;
                     qresults = testruninfo.qresults;
@@ -2244,7 +2264,7 @@ proc wapp-default {} {
                     console.error('Error after all retries:', error);
                     // If loading fails, also hide loading message
                     //document.getElementById('loadingMessage').style.display = 'none';
-                    document.getElementById('loadingMessage').innerHTML = '<div style="color: red;">loading data fail, please refresh the page and try again.</div>';
+                    document.getElementById('loadingMessage').innerHTML = `<div style="color: red;">loading data fail: ${error}, please refresh the page and try again later.</div>`;
                 });
 
             // Query button event
