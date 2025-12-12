@@ -1998,8 +1998,13 @@ proc wapp-default {} {
 
                 // Merge text in row
                 const cells = row.querySelectorAll('td');
-                cells.forEach(cell => {
-                    rowText += cell.textContent.toLowerCase() + ' ';
+                cells.forEach((cell, index) => {
+                    // For first column (test case), use full name from title if available
+                    if (index === 0 && cell.title) {
+                        rowText += cell.title.toLowerCase() + ' ';
+                    } else {
+                        rowText += cell.textContent.toLowerCase() + ' ';
+                    }
                 });
 
                 const isVisible = rowText.includes(searchText);
