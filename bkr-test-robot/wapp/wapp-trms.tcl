@@ -1922,7 +1922,11 @@ proc wapp-default {} {
             return str.substring(0, maxLength - 3) + '...';
         }
 
-        keepLastTwo = (path) => path.replace(/^\/+|\/+$/g, '').split('/').slice(-2).join('/');
+        keepLastTwo = (path) => {
+            // Extract path before colon if present
+            const beforeColon = path.split(':')[0];
+            return beforeColon.replace(/^\/+|\/+$/g, '').split('/').slice(-2).join('/');
+        };
 
         // Create tooltip element
         function createTooltip() {
