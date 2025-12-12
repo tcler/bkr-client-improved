@@ -1357,6 +1357,7 @@ proc wapp-default {} {
                 <input type="hidden" name="user" id="userInput" value="">
                 <div class="radio-group" id="pkgRadioGroup">
                     <!-- Radio buttons will be generated here -->
+                    <input type="text" id="global-testrun-filter" placeholder="Filter TestRuns..." style="margin-right: 10px; display: none;">
                     <input type="submit" value="Query/Refresh" id="queryButton">
                 </div>
                 <input type="text" id="searchFilter" placeholder="Filter tests..." class="search-input">
@@ -1790,6 +1791,12 @@ proc wapp-default {} {
                 userInput.value = getParam('user') || '';
             }
 
+            // Clear global test-run filter after refresh
+            const globalFilter = document.getElementById('global-testrun-filter');
+            if (globalFilter) {
+                globalFilter.value = '';
+            }
+
 	    radioGroup.className = 'radio-group';
 
             const radioItems = radioGroup.querySelectorAll('.radio-item');
@@ -1829,13 +1836,38 @@ proc wapp-default {} {
                 select.size = 5;
                 select.className = 'pkg-select';
 
-                // Add options
-                testruninfo['test-run'][pkg].forEach(testrun => {
-                    const option = document.createElement('option');
-                    option.value = testrun;
-                    option.textContent = testrun;
-                    select.appendChild(option);
-                });
+                const allOptions = testruninfo['test-run'][pkg];
+
+                const filterOptions = (keyword) => {
+                    select.innerHTML = '';
+                    allOptions.filter(testrun =>
+                        testrun.toLowerCase().includes(keyword.toLowerCase())
+                    ).forEach(testrun => {
+                        const option = document.createElement('option');
+                        option.value = testrun;
+                        option.textContent = testrun;
+                        select.appendChild(option);
+                    });
+                };
+
+                // Connect global filter to this dropdown
+                const globalFilter = document.getElementById('global-testrun-filter');
+                globalFilter.oninput = (e) => {
+                    document.querySelectorAll('.pkg-select').forEach(select => {
+                        const pkg = select.id.replace('run-', '');
+                        const allOptions = testruninfo['test-run'][pkg];
+                        select.innerHTML = '';
+                        allOptions.filter(testrun =>
+                            testrun.toLowerCase().includes(e.target.value.toLowerCase())
+                        ).forEach(testrun => {
+                            const option = document.createElement('option');
+                            option.value = testrun;
+                            option.textContent = testrun;
+                            select.appendChild(option);
+                        });
+                    });
+                };
+                filterOptions('');
 
                 queryField.appendChild(select);
             });
@@ -1844,21 +1876,42 @@ proc wapp-default {} {
         // hide all .pkg-select
         function hideAllPkgSelects() {
             const selects = document.querySelectorAll('.pkg-select');
+            const globalFilter = document.getElementById('global-testrun-filter');
+
             selects.forEach(select => {
                 select.classList.remove('show');
             });
+
+            // Hide global filter when all dropdowns are hidden
+            if (globalFilter) {
+                globalFilter.style.display = 'none';
+            }
         }
 
         // Radio switch to show corresponding select
         function pkgSelectSwitch(pkg) {
             const selects = document.querySelectorAll('.pkg-select');
+            const globalFilter = document.getElementById('global-testrun-filter');
+            let hasVisibleDropdown = false;
+
             selects.forEach(select => {
                 if (select.id === `run-${pkg}`) {
                     select.classList.toggle('show');
+                    if (select.classList.contains('show')) {
+                        hasVisibleDropdown = true;
+                    }
                 } else {
                     select.classList.remove('show');
                 }
+                if (select.classList.contains('show')) {
+                    hasVisibleDropdown = true;
+                }
             });
+
+            // Show/hide global filter based on dropdown visibility
+            if (globalFilter) {
+                globalFilter.style.display = hasVisibleDropdown ? 'inline-block' : 'none';
+            }
         }
 
         // Truncate string to max length with ellipsis
