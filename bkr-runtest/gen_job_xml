@@ -982,7 +982,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 			# use as normal tasks
 			set partList ""
 			if {${current_bootc_mode} eq "fromPkgMode"} {
-				lappend partList {fs=ext4 name=/var/nfsshare size=5 type=part}
+				if {[regexp {/nfs(-utils)?/|=nfs} [join $TaskList " "]]} {
+					lappend partList {fs=ext4 name=/var/nfsshare size=5 type=part}
+				}
 			}
 			# below check also effected the # partitions ! 
 			if [info exist Opt(part)] {
