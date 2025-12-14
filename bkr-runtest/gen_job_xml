@@ -499,7 +499,9 @@ foreach role ${ROLE_LIST} {
 	if {$current_bootc_mode == "fromPkgMode"} {
 		set Switch2BootcTask $defaultSwitch2BootcFromPkgModeTask
 		set default-ksf "/dev/null"
-		append role_bootc_ksAppend "part /boot --fstype=ext4\n"
+		append role_bootc_ksAppend "part /boot --fstype=ext4 --recommended\n"
+		append role_bootc_ksAppend "part / --fstype=ext4 --grow\n"
+		append role_bootc_ksAppend "part /swap --fstype=ext4 --recommended\n"
 	} elseif {$current_bootc_mode == "fromImageMode"} {
 		set Switch2BootcTask $defaultSwitch2BootcFromImageModeTask
 		set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
@@ -962,12 +964,15 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 		foreach role ${ROLE_LIST} {
 			set current_bootcTo ""
 			set current_bootc_mode ""
+			append current_recipe_ks_meta $recipe_ks_meta
 			if {[info exist bootcToList]} {
 				set current_bootcTo [lindex $bootcToList $R]
 				set current_bootc_mode [lindex $bootc_mode_list $R]
 			}
 			if {$current_bootc_mode == "fromPkgMode"} {
 				set Switch2BootcTask $defaultSwitch2BootcFromPkgModeTask
+				# https://beaker-project.org/user-guide/customizing-partitions.html
+				append current_recipe_ks_meta " no_autopart "
 			} elseif {$current_bootc_mode == "fromImageMode"} {
 				set Switch2BootcTask $defaultSwitch2BootcFromImageModeTask
 			} elseif {${current_bootc_mode} == "fromImageModeDirect"} {
@@ -1051,7 +1056,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				}
 			}
 
-			recipe kernel_options=$KOPTS kernel_options_post=$KOPTS_POST whiteboard=$recipe_wb ks_meta=$recipe_ks_meta ! {
+			recipe kernel_options=$KOPTS kernel_options_post=$KOPTS_POST whiteboard=$recipe_wb ks_meta=$current_recipe_ks_meta ! {
 				set pick "false"
 				if [info exist Opt(random)] {set pick "true"}
 				doTag autopick random=$pick -
