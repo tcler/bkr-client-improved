@@ -501,7 +501,7 @@ foreach role ${ROLE_LIST} {
 		set default-ksf "/dev/null"
 		append role_bootc_ksAppend "part /boot --fstype=ext4 --recommended\n"
 		append role_bootc_ksAppend "part / --fstype=ext4 --grow\n"
-		append role_bootc_ksAppend "part /swap --fstype=ext4 --recommended\n"
+		append role_bootc_ksAppend "part /swap --recommended\n"
 	} elseif {$current_bootc_mode == "fromImageMode"} {
 		set Switch2BootcTask $defaultSwitch2BootcFromImageModeTask
 		set default-ksf "/etc/beaker/default-bootc-mode-ks.cfg"
