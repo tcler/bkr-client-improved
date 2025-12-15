@@ -1922,11 +1922,19 @@ proc wapp-default {} {
             return str.substring(0, maxLength - 3) + '...';
         }
 
-        keepLastTwo = (path) => {
-            // Extract path before colon if present
-            const beforeColon = path.split(':')[0];
-            return beforeColon.replace(/^\/+|\/+$/g, '').split('/').slice(-2).join('/');
-        };
+        function keepPathLastTwoAndEnv(test) {
+            const testPath = test.split(':')[0];
+            var testv = testPath.replace(/^\/+|\/+$/g, '').split('/').slice(-2).join('/');
+            if (test.includes('param:')) {
+                const paramMatch = test.match(/param:\s*\[\s*([^\]]+)\s*\]/);
+		if (paramMatch) { testv += ` ${paramMatch[1]}`; }
+            }
+            if (test.includes('setup:')) {
+                const setupMatch = test.match(/setup:\s*\[\s*([^\]]+)\s*\]/);
+		if (setupMatch) { testv += ` ${setupMatch[1]}`; }
+            }
+	    return testv;
+        }
 
         // Create tooltip element
         function createTooltip() {
@@ -2028,16 +2036,16 @@ proc wapp-default {} {
             emptyHeader.textContent = ' Test  \\  TestRun ';
             headerRow.appendChild(emptyHeader);
 
-            const maxHeader = 40;
+            const maxHeader = 24;
             const tooltip = createTooltip();
             qresults.qruns.forEach((run, index) => {
                 const th = document.createElement('th');
                 th.className = 'header-cell';
-                th.textContent = run;
                 th.title = run; // Default browser tooltip
+                th.textContent = run.replace(/-updates-/, '+');
                 // If length exceeds maxHeader, truncate and add tooltip
-                if (run.length > maxHeader) {
-                    th.textContent = truncateString(run, maxHeader);
+                if (th.textContent.length > maxHeader) {
+                    th.textContent = truncateString(th.textContent, maxHeader);
                 }
 
                 // Create copy button - copies full content
@@ -2058,7 +2066,7 @@ proc wapp-default {} {
 
             // Render table body
             const tableBody = document.getElementById('tableBody');
-            const maxTestcase = 40;
+            const maxTestcase = 56;
             tableBody.innerHTML = '';
 
             sortedResults.forEach((resObj, rowIdx) => {
@@ -2066,7 +2074,7 @@ proc wapp-default {} {
 
                 // First column - test case
                 const testId = resObj.testid;
-                const testName = keepLastTwo(resObj.test);
+                const testName = keepPathLastTwoAndEnv(resObj.test);
                 const fullTestName = resObj.test; // Full test name
                 row.id = testId;
                 row.ondblclick = function() { showDetail(testId); };
@@ -2176,7 +2184,7 @@ proc wapp-default {} {
                 allDetails.forEach(detail => { detail.remove(); });
             }
             const nheaderRow = document.createElement('tr');
-            const maxHeader = 40;
+            const maxHeader = 24;
             qresults.qruns.forEach((run, index) => {
                 const td = document.createElement('td');
                 td.textContent = truncateString(run, maxHeader);
@@ -2235,6 +2243,7 @@ proc wapp-default {} {
                     var resd = resObj['resd'+k];
                     if (!resd) { resd = ''; }
                     cell.innerHTML = formatResdContent(resd);
+                    cell.style.verticalAlign = 'top';
                     resdRow.appendChild(cell);
                 }
                 resdTable.appendChild(resdRow);
