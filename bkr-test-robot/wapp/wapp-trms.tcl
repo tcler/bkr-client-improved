@@ -1413,6 +1413,7 @@ proc wapp-default {} {
 
         let qresults = testruninfo.qresults;
         let sortedResults = qresults.results;
+        let focusedTestrunIndex = null;
 
         // Generic retry function for fetch operations
         // Parameters:
@@ -1708,6 +1709,9 @@ proc wapp-default {} {
             const cururl = new URL(window.location.href);
             cururl.pathname = "resjson";
 
+            // Clear testrun focus when refreshing data
+            focusedTestrunIndex = null;
+
             // Use retry version of fetch for refreshing table data
             fetchJsonWithRetry(cururl.toString(), {}, 3)
                 .then(data => {
@@ -1715,7 +1719,7 @@ proc wapp-default {} {
                     qresults = testruninfo.qresults;
                     document.getElementById('loadingMessage').style.display = 'none';
 
-                    sortedResults = sortTestResults(qresults.results);
+                    sortedResults = sortTestResults(qresults.results, 'desc', focusedTestrunIndex);
                     renderTable();
                     createResultDetailDivs();
                     setupSearchFilter();
@@ -1770,11 +1774,14 @@ proc wapp-default {} {
 
         // Initialize interface
         function initializeInterface() {
+            // Clear testrun focus when initializing new data
+            focusedTestrunIndex = null;
+
             // Create component/package radio controls
             createRadioButtons();
 
             // Render table
-            sortedResults = sortTestResults(qresults.results);
+            sortedResults = sortTestResults(qresults.results, 'desc', focusedTestrunIndex);
             renderTable();
 
             createResultDetailDivs();
@@ -1944,9 +1951,19 @@ proc wapp-default {} {
             return tooltip;
         }
 
-        function calculateWeight(resObj) {
+        function calculateWeight(resObj, testrunIndex = null) {
             const WEIGHTS = { 'Panic': 5, 'Fail': 4, 'Warn': 3, 'Pass': 2, '': 1, null: 1 };
 
+            if (testrunIndex !== null) {
+                // Focus on specific testrun only
+                const key = `res${testrunIndex}`;
+                const value = resObj[key];
+                if (value === null || value === undefined) { return 0; }
+                const foundKey = Object.keys(WEIGHTS).find(keyword => value.includes(keyword));
+                return foundKey ? WEIGHTS[foundKey] : 6;
+            }
+
+            // Default behavior: consider all testruns
             return Math.max(...Object.keys(resObj)
                 .filter(key => /^res\d+$/.test(key))
                 .map(key => {
@@ -1956,11 +1973,32 @@ proc wapp-default {} {
                     return foundKey ? WEIGHTS[foundKey] : 6;
                 }), 0);
         }
-        function sortTestResults(testResults, order = 'desc') {
+
+        function toggleTestrunFocus(testrunIndex) {
+            // Toggle focus: if clicking same column, unfocus it
+            if (focusedTestrunIndex === testrunIndex) {
+                focusedTestrunIndex = null;
+            } else {
+                focusedTestrunIndex = testrunIndex;
+            }
+
+            // Re-sort and render table with new focus (visual styling applied during render)
+            sortedResults = sortTestResults(qresults.results, 'desc', focusedTestrunIndex);
+            renderTable();
+            createResultDetailDivs();
+
+            // Reapply search filter if any
+            const searchInput = document.getElementById('searchFilter');
+            if (searchInput && searchInput.value) {
+                filterTableRows(searchInput.value);
+            }
+        }
+
+        function sortTestResults(testResults, order = 'desc', testrunIndex = null) {
             // Precompute weights for better performance
             const resultsWithWeights = testResults.map(obj => ({
                 data: obj,
-                weight: calculateWeight(obj)
+                weight: calculateWeight(obj, testrunIndex)
             }));
 
             if (order === 'desc') {
@@ -2043,6 +2081,15 @@ proc wapp-default {} {
                 th.className = 'header-cell';
                 th.title = run; // Default browser tooltip
                 th.textContent = run.replace(/-updates-/, '+');
+
+                // Apply focus styling if this column is focused
+                if (index === focusedTestrunIndex) {
+                    th.style.backgroundColor = '#e74c3c'; // Focused color (red)
+                    th.style.fontWeight = 'bold';
+                } else {
+                    th.style.backgroundColor = '#3498db'; // Default color (blue)
+                    th.style.fontWeight = 'normal';
+                }
                 // If length exceeds maxHeader, truncate and add tooltip
                 if (th.textContent.length > maxHeader) {
                     th.textContent = truncateString(th.textContent, maxHeader);
@@ -2058,6 +2105,15 @@ proc wapp-default {} {
                 colChkbox.id = index;
                 colChkbox.onclick = function() { selectCol(index); };
                 th.prepend(colChkbox);
+
+                // Make header clickable for testrun focus (exclude checkbox area)
+                th.style.cursor = 'pointer';
+                th.title = `Click to focus sorting on: ${run}`;
+                th.addEventListener('click', function(e) {
+                    // Don't trigger focus if clicking on checkbox
+                    if (e.target.type === 'checkbox') return;
+                    toggleTestrunFocus(index);
+                });
 
                 headerRow.appendChild(th);
             });
