@@ -195,6 +195,7 @@ set CommonOptionList {
 	cmd-and-reboot		{arg m	help {Add /distribution/command before test task, and reboot}}
 	cmdb			{arg m	help {Add /distribution/command before install kernel}}
 	cmd-end			{arg m	help {Add /distribution/command in the end of the recipe}}
+	leap			{arg n	help {Add leap task}}
 	leap-second		{arg n	help {Add leap-second task}}
 	reserve-if-fail		{arg o	help {Reserve the machine if test fail, specify RESERVETIME with s/m/h/d unit, max amount is 99h}}
 	reserve			{arg o	help {Reserve system at the end of the recipe}}

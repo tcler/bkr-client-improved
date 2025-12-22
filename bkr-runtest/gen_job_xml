@@ -1483,6 +1483,9 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 				if [info exist Opt(leap-second)] {
 					lappend insertTasks "/kernel/general/time/leap-second/ins_leap_sec"
 				}
+				if [info exist Opt(leap)] {
+					lappend insertTasks "/kernel/filesystems/leapp"
+				}
 
 				if [info exist Opt(insert-task)] {
 					lappend insertTasks {*}$Opt(insert-task)
