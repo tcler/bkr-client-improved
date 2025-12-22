@@ -1484,7 +1484,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 					lappend insertTasks "/kernel/general/time/leap-second/ins_leap_sec"
 				}
 				if [info exist Opt(leap)] {
-					lappend insertTasks "/kernel/filesystems/leapp"
+					lappend insertTasks "/kernel/filesystems/leapp AVC_ERROR=+no_avc_check"
 				}
 
 				if [info exist Opt(insert-task)] {
