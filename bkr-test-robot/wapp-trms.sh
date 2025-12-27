@@ -8,12 +8,14 @@ switchroot "$@"
 sname=wapp-trms
 logf=/tmp/wapp-trms.log
 wappf=/usr/local/libexec/wapp-trms.tcl
+port=9090
 
 start() {
+	semanage port -a -t http_port_t -p tcp $port
 	if tmux has-session -t $sname 2>/dev/null; then
 		echo "{info} wapp-trms has been started"
 	else
-  		run -as=root -tmux=$sname -logf=$logf tclsh $wappf -server 9090 -Dallow-multi-qp=yes
+		run -as=root -tmux=$sname -logf=$logf tclsh $wappf -server $port -Dallow-multi-qp=yes
 		while [[ ! -f $logf ]]; do sleep 1; done
 	fi
 	[[ -f $logf ]] && cat $logf
