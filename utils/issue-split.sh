@@ -10,6 +10,7 @@ get-component() { jq -r '.fields.components[0].name'; }
 get-qa() { jq -r '.fields.customfield_12315948.name'; }
 get-devel() { jq -r '.fields.assignee.name'; }
 get-team() { jq -r '.fields.customfield_12326540.value'; }
+get-stat() { jq -r .fields.status.name; }
 declare -A labelPrefix=(
 	[dev_task]="DEV Task"
 	[root_cause_analysis_task]="Root Cause Analysis Task"
@@ -38,7 +39,7 @@ issue-split2() {
 	local sp=${3:-3}
 	local priority=Normal
 	local reporter=rhel-process-autobot
-	local qe devel assigne team prefix issueJson splits summary component
+	local qe devel assigne team prefix issueJson splits summary component stat
 
 	read label prefix < <(label2Prefix $label)
 	issueJson=$(issue-view-json $fromid) || return 2
@@ -48,6 +49,11 @@ issue-split2() {
 	qe=$(echo "$issueJson"|get-qa) || return 3
 	devel=$(echo "$issueJson"|get-devel) || return 3
 	team=$(echo "$issueJson"|get-team) || return 3
+	stat=$(echo "$issueJson"|get-stat) || return 3
+	if [[ "$stat" = Closed ]]; then
+		echo "{error} issue $fromid has been closed" >&2
+		return 7
+	fi
 
 	case $label in (pre*|int*) assigne=$qe;; *) assigne=$devel;; esac
 	echo "{debug} devel:$devel, qe:$qe, assigne:$assigne, team:$team" >&2

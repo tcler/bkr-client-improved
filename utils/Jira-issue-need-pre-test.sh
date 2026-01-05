@@ -29,9 +29,11 @@ fi
 		-q"project = RHEL and 'Preliminary Testing' = Requested and 'QA Contact' in (${users})")
 }
 
-for issue in ${preTestIssues}; do
-	echo "{info} creating [Preliminary Testing Task] for $issue ..."
-	issue-split.sh $issue pre
-done
+[[ "$SPLIT" != no ]] && {
+	for issue in ${preTestIssues}; do
+		echo "{info} creating [Preliminary Testing Task] for $issue ..."
+		issue-split.sh $issue pre
+	done
+}
 
 issue-info.sh ${preTestIssues}
