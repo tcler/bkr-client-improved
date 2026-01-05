@@ -32,6 +32,6 @@ fi
 for issue in ${preTestIssues}; do
 	echo "{info} creating [Preliminary Testing Task] for $issue ..."
 	issue-split.sh $issue pre
-do
+done
 
 issue-info.sh ${preTestIssues}
