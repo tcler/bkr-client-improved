@@ -36,6 +36,8 @@ issue-split2() {
 	local fromid=$1
 	local label=$2
 	local sp=${3:-3}
+	local priority=Normal
+	local reporter=rhel-process-autobot
 	local qe devel assigne team prefix issueJson splits summary component
 
 	read label prefix < <(label2Prefix $label)
@@ -55,7 +57,7 @@ issue-split2() {
 		echo "$split"
 	else
 		local std=$(jira issue create -tTask -s"$prefix $summary" --no-input \
-		  -a"$assigne" -C"$component" -l"$label" -yNormal \
+		  -a"$assigne" -C"$component" -l"$label" -y"$priority" -r"$reporter" \
 		  --custom assignedteam=$team --custom story-points=${sp} |&
 			tee /dev/tty)
 		local issuelink=$(echo "$std"|tail -1)
