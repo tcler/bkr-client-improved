@@ -5,8 +5,24 @@ command -v jira &>/dev/null || {
 	exit 1
 }
 
-fsusers="yieli yoyang jiyin xzhou zlang xifeng kunwan bxue fs-qe"
+issue-view-json() { local id=$1; jira issue view "$id" --raw|jq; }
+get-summary() { jq -r '.fields.summary'; }
+get-component() { jq -r '.fields.components[0].name'; }
+get-qa() { jq -r '.fields.customfield_12315948.name'; }
+get-devel() { jq -r '.fields.assignee.name'; }
+get-stat() { jq -r '.fields.status.name'; }
+get-fixvers() { jq -r '.fields.fixVersions[].name'; }
+get-fixedbuild() { jq -r '.fields.customfield_12318450'; }
+
 maillist() { local list; for u; do list+="\"$u@redhat.com\", "; done; echo -n "${list%, }"; }
+fsusers="yieli yoyang jiyin xzhou zlang xifeng kunwan bxue fs-qe"
+
+_args=()
+for arg; do
+	case $arg in (-s*) SPLIT=yes;; (*) _args+=("$arg");; esac
+done
+set -- "${_args[@]}"
+
 users=${*}
 if [[ "$users" = fs || "$users" = all ]]; then
 	users=$(maillist $fsusers)
@@ -18,21 +34,27 @@ fi
 IssuesNeedVerify=$(jira issue list --plain --no-truncate --no-headers --columns KEY \
 	-q"issueFunction in issueFieldMatch('project = RHEL AND status = Integration AND \"QA Contact\" in (${users})', 'customfield_12318450', '.{3,}')")
 [[ $? != 0 && -z "$IssuesNeedVerify" ]] && {
-	echo "[WARN] getting issues fail, if you updated system version, might need re-install jira-cli:" >&2
-	echo "  pip install jiracli keyring ipython  #keyring,ipython is required by jirashell" >&2
+	echo "[WARN] getting issues fail, if you updated system version, might need re-install jira-cli" >&2
 }
 
 [[ ${#IssuesNeedVerify[@]} -gt 0 ]] &&
-	echo -e $'\E[0;33;44m'"{get-issue-info-by} jira-issue.py \${issue} Summary 'Fixed in Build' fixVersions components 'QA Contact'" $'\E[0m'>&2
-for issue in ${IssuesNeedVerify}; do
+	echo -e $'\E[0;33;44m'"{custom field list} jira-issue.py \${issue}" $'\E[0m' >&2
+for issue in RHEL-108924 ${IssuesNeedVerify}; do
 	echo "${issue} - https://issues.redhat.com/browse/${issue}"
-	issueInfo=$(jira-issue.py "${issue}" Summary 'Fixed in Build' fixVersions components 'QA Contact')
-	summary=$(echo "${issueInfo}" | sed -rn "/BEGIN Summary/,/END Summary/{/(BEGIN|END) /d;p}")
-	qacontact=$(echo "${issueInfo}" | sed -rn "/BEGIN QA.Con/,/END QA.Con/{/(BEGIN|END) /d;p}")
-	fixedBuild=$(echo "${issueInfo}" | sed -rn "/BEGIN Fixed.in.Build/,/END Fixed.in.Build/{/(BEGIN|END) /d;p}")
-	rhelVersion=$(echo "${issueInfo}" | sed -rn "/BEGIN fixVersions/,/END fixVersions/{/^.*name='([^']+)'.*$/{s//\\1/;p}}")
+	issueJson=$(issue-view-json $issue)
+	[[ -z "$issueJson" ]] && continue
+
+	summary=$(echo "$issueJson"|get-summary)
+	qe=$(echo "$issueJson"|get-qa)
+	component=$(echo "${issueJson}" | get-component); component=${component// /};
+	[[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
+	stat=$(echo "$issueJson"|get-stat)
+	fixedBuild=$(echo "${issueJson}" | get-fixedbuild)
+	rhelVersion=$(echo "${issueJson}" | get-fixvers)
 	rhelVersion=${rhelVersion#*-}
-	component=$(echo "${issueInfo}" | sed -rn "/BEGIN components/,/END components/{/^.*name='([^']+)'.*$/{s//\\1/;p}}")
-	component=${component// /}; [[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
-	echo -e "  ${fixedBuild}  $qacontact  #${rhelVersion}  ${component}  [$summary]"
+	echo -e "  ${fixedBuild} $qe #${rhelVersion} ${component} [$summary] - $stat"
+	[[ "$SPLIT" = yes ]] && {
+		echo "{info} creating [Integration Testing Task] for $issue ..."
+		issue-split.sh $issue int
+	}
 done
