@@ -8,8 +8,9 @@ command -v jira &>/dev/null || {
 _args=()
 for arg; do
 	case $arg in
-	-i*|-i=*)  arg=${arg#-i}; preTestIssues=${arg#*=};;
-	*)  _args+=("$arg");;
+	-i*|-i=*) arg=${arg#-i}; preTestIssues=${arg#*=};;
+	-s*) SPLIT=yes;;
+	*) _args+=("$arg");;
 	esac
 done
 set -- "${_args[@]}"
@@ -29,7 +30,7 @@ fi
 		-q"project = RHEL and 'Preliminary Testing' = Requested and 'QA Contact' in (${users})")
 }
 
-[[ "$SPLIT" != no ]] && {
+[[ "$SPLIT" = yes ]] && {
 	for issue in ${preTestIssues}; do
 		echo "{info} creating [Preliminary Testing Task] for $issue ..."
 		issue-split.sh $issue pre
