@@ -1,30 +1,51 @@
 #!/bin/bash
 
+issue-view-json() { local id=$1; jira issue view "$id" --raw|jq; }
+get-summary() { jq -r '.fields.summary'; }
+get-component() { jq -r '.fields.components[0].name'; }
+get-qa() { jq -r '.fields.customfield_12315948.name'; }
+get-devel() { jq -r '.fields.assignee.name'; }
+get-team() { jq -r '.fields.customfield_12326540.value'; }
+get-stat() { jq -r '.fields.status.name'; }
+get-fixvers() { jq -r '.fields.fixVersions[].name'; }
+get-fixedbuild() { jq -r '.fields.customfield_12318450'; }
+get-mrbuilds() {
+	jq -r '.fields.customfield_12321740' | awk -v RS= '
+	/Downstream.Pipeline.Name:/ { pipel=$4; }
+	/^[0-9]+\..*Repo.URL:/ {
+		key = $1 pipel
+		repo[key] = repo[key] (repo[key] ? " " : "") $NF
+	}
+	END {
+		for (k in repo) { if (k !~ /.*CENTOS.*/) {print k, repo[k]} } 
+	}' | sort
+}
+
 for issue; do
-	echo -e $'\E[0;33;44m'"{get-mr-builds-by} jira-issue.py ${issue} Summary 'Testable Builds' fixVersions components 'QA Contact'" $'\E[0m' >&2
-	issueInfo=$(jira-issue.py "${issue}" Summary 'Testable Builds' fixVersions components 'QA Contact' 'Fixed in Build')
-	[[ -z "$issueInfo" ]] && continue
-	summary=$(echo "${issueInfo}" | sed -rn "/BEGIN Summary/,/END Summary/{/(BEGIN|END) /d;p}")
-	qacontact=$(echo "${issueInfo}" | sed -rn "/BEGIN QA.Con/,/END QA.Con/{/(BEGIN|END) /d;p}")
-	repos=$(echo "${issueInfo}" | awk '/Repo.URL:/{print $NF}')
-	if [[ -n "${repos}" ]]; then
-		rhelVersion=$(echo "${issueInfo}" | sed -rn "/BEGIN fixVersions/,/END fixVersions/{/^.*name='([^']+)'.*$/{s//\\1/;p}}")
+	echo -e $'\E[0;33;44m'"{custom field list} jira-issue.py ${issue}" $'\E[0m' >&2
+	issueJson=$(issue-view-json $issue)
+	[[ -z "$issueJson" ]] && continue
+
+	summary=$(echo "$issueJson"|get-summary)
+	qe=$(echo "$issueJson"|get-qa)
+	component=$(echo "${issueJson}" | get-component)
+	stat=$(echo "$issueJson"|get-stat)
+	mr_repos=$(echo "${issueJson}" | get-mrbuilds)
+	if [[ -n "${mr_repos}" ]]; then
+		rhelVersion=$(echo "${issueJson}" | get-fixvers)
 		rhelVersion=${rhelVersion#*-}
-		component=$(echo "${issueInfo}" | sed -rn "/BEGIN components/,/END components/{/^.*name='([^']+)'.*$/{s//\\1/;p}}")
 		component=${component// /}; [[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
-		echo -e "${issue}  $qacontact  ${rhelVersion}  #${component}  [$summary] \n\`- https://issues.redhat.com/browse/${issue}"
-		for repo in $repos; do
-			dbgkOpt=
-			[[ $repo = *_debug* ]] && dbgkOpt+=' -debugk'
-			[[ $repo = *x86_64* ]] && yum-repo-query.sh $repo |& grep -q kernel-rt && dbgkOpt+=' rtk'
-			echo -e "\t$repo$dbgkOpt"
-		done
+		echo -e "${issue}  $qe  ${rhelVersion}  #${component}  [$summary] $stat \n\`- https://issues.redhat.com/browse/${issue}"
+		while read build repos; do
+			echo -e "\n  $build"
+			for repo in $repos; do echo "    $repo"; done
+		done <<<"$mr_repos"
 	else
-		echo -e "${issue}  $qacontact  ${rhelVersion}  #${component}  [$summary] \n\`- https://issues.redhat.com/browse/${issue}"
+		echo -e "${issue}  $qe  ${rhelVersion}  #${component}  [$summary] $stat \n\`- https://issues.redhat.com/browse/${issue}"
 		echo -e "\t#No MR-build-repo found, maybe a user-space package. https://issues.redhat.com/browse/${issue}"
-		fixedBuild=$(echo "${issueInfo}" | sed -rn "/BEGIN Fixed.in.Build/,/END Fixed.in.Build/{/(BEGIN|END) /d;p}")
+		fixedBuild=$(echo "${issueJson}" | get-fixedbuild)
 		echo -e "\tFixed.in.Build: $fixedBuild"
-		if [[ "$fixedBuild" = None ]]; then
+		if [[ "$fixedBuild" = null ]]; then
 			echo -e $'\E[0;31m'"\t{Error} There is neither kernel MR-build nor user-space fixedBuild, IMO 'Preliminary Testing' value should not be 'Requested' here" $'\E[0m'>&2
 		fi
 	fi
