@@ -28,21 +28,21 @@ for issue; do
 
 	summary=$(echo "$issueJson"|get-summary)
 	qe=$(echo "$issueJson"|get-qa)
-	component=$(echo "${issueJson}" | get-component)
+	component=$(echo "${issueJson}" | get-component); component=${component// /};
 	stat=$(echo "$issueJson"|get-stat)
 	mr_repos=$(echo "${issueJson}" | get-mrbuilds)
 	if [[ -n "${mr_repos}" ]]; then
 		rhelVersion=$(echo "${issueJson}" | get-fixvers)
 		rhelVersion=${rhelVersion#*-}
-		component=${component// /}; [[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
-		echo -e "${issue}  $qe  ${rhelVersion}  #${component}  [$summary] $stat \n\`- https://issues.redhat.com/browse/${issue}"
+		[[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
+		echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://issues.redhat.com/browse/${issue}"
 		while read build repos; do
 			echo -e "\n  $build"
 			for repo in $repos; do echo "    $repo"; done
 		done <<<"$mr_repos"
 	else
-		echo -e "${issue}  $qe  ${rhelVersion}  #${component}  [$summary] $stat \n\`- https://issues.redhat.com/browse/${issue}"
-		echo -e "\t#No MR-build-repo found, maybe a user-space package. https://issues.redhat.com/browse/${issue}"
+		echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://issues.redhat.com/browse/${issue}"
+		echo -e "\t#No MR-build-repo found, Maybe: user-space pkg. Or: the developer didn't follow the agreed workflow"
 		fixedBuild=$(echo "${issueJson}" | get-fixedbuild)
 		echo -e "\tFixed.in.Build: $fixedBuild"
 		if [[ "$fixedBuild" = null ]]; then
