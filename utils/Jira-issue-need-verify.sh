@@ -56,5 +56,6 @@ for issue in ${IssuesNeedVerify}; do
 	[[ "$SPLIT" = yes ]] && {
 		echo "{info} creating [Integration Testing Task] for $issue ..."
 		issue-split.sh $issue int
+		echo
 	}
 done
