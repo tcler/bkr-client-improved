@@ -21,6 +21,17 @@ get-mrbuilds() {
 	}' | sort
 }
 
+_args=()
+for arg; do
+	case $arg in
+	-mr=*) arg=${arg#-mr=}; mrbuild_pat=${arg,,};;
+	*) _args+=("$arg");;
+	esac
+done
+set -- "${_args[@]}"
+
+mrbuild_pat=${mrbuild_pat:-'x86_64.*(realtime|rhel)'}
+echo "{debug} mrbuild pattern: ${mrbuild_pat}" >&2
 for issue; do
 	echo -e $'\E[0;33;44m'"{custom field list} jira-issue.py ${issue}" $'\E[0m' >&2
 	issueJson=$(issue-view-json $issue)
@@ -37,6 +48,7 @@ for issue; do
 		[[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
 		echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://issues.redhat.com/browse/${issue}"
 		while read build repos; do
+			[[ "${build,,}" =~ $mrbuild_pat ]] || continue
 			echo -e "\n  $build"
 			for repo in $repos; do echo "    $repo"; done
 		done <<<"$mr_repos"

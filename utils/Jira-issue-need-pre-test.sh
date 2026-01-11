@@ -10,6 +10,7 @@ for arg; do
 	case $arg in
 	-i*|-i=*) arg=${arg#-i}; preTestIssues=${arg#*=};;
 	-s*) SPLIT=yes;;
+	-mr=*) arg=${arg#-mr=}; mrbuild_pat=${arg};;
 	*) _args+=("$arg");;
 	esac
 done
@@ -37,4 +38,4 @@ fi
 	done
 }
 
-issue-info.sh ${preTestIssues}
+issue-info.sh ${preTestIssues} -mr=${mrbuild_pat}
