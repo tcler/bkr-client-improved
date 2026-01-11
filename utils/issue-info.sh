@@ -1,6 +1,7 @@
 #!/bin/bash
 
 issue-view-json() { local id=$1; jira issue view "$id" --raw|jq; }
+get-split-tasks() { jq -r '.fields.issuelinks[] | select(.type.outward == "split to") | .outwardIssue | [.key, .fields.summary] | join(" ")'; }
 get-summary() { jq -r '.fields.summary'; }
 get-component() { jq -r '.fields.components[0].name'; }
 get-qa() { jq -r '.fields.customfield_12315948.name'; }
@@ -25,6 +26,7 @@ _args=()
 for arg; do
 	case $arg in
 	-mr=*) arg=${arg#-mr=}; mrbuild_pat=${arg,,};;
+	-sp*) showSplit=yes;;
 	*) _args+=("$arg");;
 	esac
 done
@@ -60,5 +62,9 @@ for issue; do
 		if [[ "$fixedBuild" = null ]]; then
 			echo -e $'\E[0;31m'"\t{Error} There is neither kernel MR-build nor user-space fixedBuild, IMO 'Preliminary Testing' value should not be 'Requested' here" $'\E[0m'>&2
 		fi
+	fi
+	if [[ "${showSplit}" ]]; then
+		splits=$(echo "$issueJson"|get-split-tasks)
+		[[ -n "$splits" ]] && echo -e "\nSplits:\n$splits"
 	fi
 done
