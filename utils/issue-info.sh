@@ -65,6 +65,6 @@ for issue; do
 	fi
 	if [[ "${showSplit}" ]]; then
 		splits=$(echo "$issueJson"|get-split-tasks)
-		[[ -n "$splits" ]] && echo -e "\nSplits:\n$splits"
+		[[ -n "$splits" ]] && echo -e "\nSplit-to:\n$splits"
 	fi
 done
