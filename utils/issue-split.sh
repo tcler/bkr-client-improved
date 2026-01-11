@@ -4,7 +4,7 @@ issue-view-plain() { local id=$1; jira issue view "$id" --plain; }
 #get-split-tasks() { sed -rn '/SPLIT.TO/,/----/p' | sed -e '1d;/^ *$/d;$d' -e 's/ *\n*$//'; }
 
 issue-view-json() { local id=$1; jira issue view "$id" --raw|jq; }
-get-split-tasks() { jq -r '.fields.issuelinks[].outwardIssue | [.key, .fields.summary] | join(" ")'; }
+get-split-tasks() { jq -r '.fields.issuelinks[] | select(.type.outward == "split to") | .outwardIssue | [.key, .fields.summary] | join(" ")'; }
 get-summary() { jq -r '.fields.summary'; }
 get-component() { jq -r '.fields.components[0].name'; }
 get-qa() { jq -r '.fields.customfield_12315948.name'; }
