@@ -16,27 +16,33 @@ declare -A labelPrefix=(
 	[root_cause_analysis_task]="Root Cause Analysis Task"
 	[patch_review_task]="Patch Review Task"
 	[upstream_task]="Upstream"
+	[qe_task]="QE Task"
+	[test_case]="Test Case Writing Task"
 	[preliminary_testing_task]="Preliminary Testing Task"
 	[integration_testing_task]="Integration Testing Task"
 )
 
 label2Prefix() {
 	local label=$1
+	read label desc <<<"${label/:/ }"
 	case $label in
 	dev*) label=dev_task;;
 	roo*) label=root_cause_analysis_task;;
 	pat*) label=patch_review_task;;
 	up*)  label=upstream_task;;
+	qe*)  label=qe_task;;
 	pre*) label=preliminary_testing_task;;
 	int*) label=integration_testing_task;;
+	test*) label=test_case_writing_task;;
 	esac
-	echo $label "[${labelPrefix[$label]}]:"
+	echo $label "[${labelPrefix[$label]}]:${desc}"
 }
 
 issue-split2() {
 	local fromid=$1
 	local label=$2
 	local sp=${3:-3}
+	local assignee=${4}
 	local priority=Normal
 	local reporter=rhel-process-autobot
 	local qe devel assigne team prefix issueJson splits summary component stat
@@ -55,7 +61,11 @@ issue-split2() {
 		return 7
 	fi
 
-	case $label in (pre*|int*) assigne=$qe;; *) assigne=$devel;; esac
+	if [[ -n "$assignee" ]]; then
+		assigne=$assignee
+	else
+		case $label in (pre*|int*|qe*|test*) assigne=$qe;; *) assigne=$devel;; esac
+	fi
 	echo "{debug} devel:$devel, qe:$qe, assigne:$assigne, team:$team" >&2
 
 	if split=$(grep -iF "$prefix" <<<"$splits"); then
@@ -75,7 +85,7 @@ issue-split2() {
 
 Usage() {
 	cat <<-EOF
-	Usage: $0 <issue-id> <label> [story-point]
+	Usage: $0 <issue-id> <label[:desc]> [story-point [assignee]]
 	Available label:
 	EOF
 	for K in "${!labelPrefix[@]}"; do echo "  $K"; done
