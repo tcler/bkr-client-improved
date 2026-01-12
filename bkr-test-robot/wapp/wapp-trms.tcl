@@ -1752,7 +1752,7 @@ proc wapp-default {} {
 
 	function delTestCase() {
 		const nurl = new URL(window.location.href);
-		nurl.pathname = "delTestCase";
+		nurl.pathname = "del-testcase";
 
 		var testlist = ""
 		var chkItem = document.getElementsByClassName('selectTestCase');
@@ -2695,7 +2695,7 @@ proc wapp-page-clone {} {
   }
 }
 
-proc wapp-page-delTestCase {} {
+proc wapp-page-del-testcase {} {
   wapp-allow-xorigin-params
   set permission yes
 
