@@ -39,7 +39,7 @@ install_runtest: _isroot _rh_intranet yqinstall install_kiss_vm_ns
 	cd utils; for f in *; do rm -fr $(_bin)/$$f; done
 	cd bkr-runtest; for f in *; do rm -fr $(_bin)/$$f; done
 	cp -rf -d lib/* $(_lib)/.
-	cp -f -d bkr-runtest/* utils/* $(_bin)/.
+	cp -f -d bkr-runtest/* utils/* jira-utils/* $(_bin)/.
 	mkdir -p $(_share) && cp -rf share/* $(_share)/.
 	@yum install -y bash-completion
 	cp -fd bash-completion/* ${completion_path}/.||cp -fd bash-completion/* $${completion_path/\/*/}/. || :
