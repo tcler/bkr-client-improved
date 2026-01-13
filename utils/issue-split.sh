@@ -72,6 +72,7 @@ issue-split2() {
 		echo "{warn} there has been split issue '$prefix *'" >&2
 		echo "$split"
 	else
+		summary=${summary/\[$team\]/}
 		local std=$(jira issue create -tTask -s"$prefix $summary" --no-input \
 		  -a"$assigne" -C"$component" -l"$label" -y"$priority" -r"$reporter" \
 		  --custom assignedteam=$team --custom story-points=${sp} |&
