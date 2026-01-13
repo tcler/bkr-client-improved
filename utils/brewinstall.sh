@@ -318,13 +318,15 @@ clean_old_kernel() {
 kernel_type_guess() {
 	local urls="${*}"; urls="${urls// /$'\n'}"
 	if ! grep -q kernel-core <<<"${urls}"; then
-		if grep -q kernel-debug-core <<<"${urls}"; then
+		if grep -qE "kernel-.*-debug-core" <<<"${urls}"; then
 			FLAG=debugkernel
-		elif grep -q kernel-rt-debug-core <<<"${urls}"; then
-			FLAG=debugkernel
+		fi
+		if grep -q kernel-rt-core <<<"${urls}"; then
 			builds+=(rtk)
-		elif grep -q kernel-rt-core <<<"${urls}"; then
-			builds+=(rtk)
+		elif grep -q kernel-64k-core <<<"${urls}"; then
+			builds+=(64k)
+		elif grep -q kernel-rt-64k-core <<<"${urls}"; then
+			builds+=(rtk 64k)
 		fi
 	fi
 }
@@ -355,6 +357,8 @@ gen_rpmfilter_options() {
 		kROpts+=(-Rkernel-rt*.rpm +Rkernel-64k*.rpm)
 	elif ! grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
 		kROpts+=(-Rkernel-64k*.rpm +Rkernel-rt*.rpm)
+	elif grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}" && grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
+		kROpts+=(-Rkernel-64k*.rpm -Rkernel-rt*.rpm +Rkernel-rt*.rpm)
 	fi
 	# selftest, tools, devel will used in network-qe team
 	# kernel-uki-virt - contains the Unified Kernel Image (UKI) of the RHEL kernel.
@@ -420,7 +424,11 @@ archList=($(arch) noarch)
 archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
 
 # if parameter as 'rtk kernel-rt-xxx', we assume you need target kernel is 'kernel-rt-xxx'
-if grep -E -w 'kernel-rt' <<<"${builds[*]}"; then
+if grep -E -w 'kernel-rt' <<<"${builds[*]}" ||  {
+	# assume kernel-rt-64k-5.14.0-611.24.1.aarch64.rpm
+	grep -E -w 'rtk' <<<"${builds[*]}" &&
+	grep -E -w '64k|kernel-64k' <<<"${builds[*]}"
+}; then
 	[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 	run "yum --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*"
 elif grep -E -w 'rtk' <<<"${builds[*]}"; then
@@ -433,7 +441,15 @@ elif grep -E -w 'rtk' <<<"${builds[*]}"; then
 fi
 
 # to aviod install debug kernel failed when 'rtk -debugk ${userspace_pakcages}'
-if grep -E -w 'rtk' <<<"${builds[*]}"; then
+if grep -E -w 'rtk' <<<"${builds[*]}" && grep -E -w '64k' <<<"${builds[*]}"; then
+	if [[ "$FLAG" == debugkernel ]]; then
+		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-64k-debug --exclude=kernel-rt-64k-debuginfo" -
+	fi
+	if [[ "$FLAG" == debugkernel ]] && [[ -n "${DEBUG_INFO_OPT}" ]]; then
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-64k-debuginfo --exclude=kernel-rt-64k-debug" -
+	fi
+elif grep -E -w 'rtk' <<<"${builds[*]}"; then
 	if [[ "$FLAG" == debugkernel ]]; then
 		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-debug --exclude=kernel-rt-debuginfo" -
