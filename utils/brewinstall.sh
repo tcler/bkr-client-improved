@@ -467,7 +467,10 @@ for build in "${builds[@]}"; do
 		run install_brew -
 		KOJI=koji
 		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-		build=$($KOJI list-builds --pattern=kernel-?.*eln* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet |
+		upkver=$(curl -s https://www.kernel.org/releases.json |
+			jq -r '.releases[].version'| head -1 |
+			sed -r 's/^([0-9]+\.[0-9]+).*/\1/')
+		build=$($KOJI list-builds --pattern=kernel-${upkver%%-*}* --state=COMPLETE --after=$(date -d"now-32 days" +%F) --quiet |
 			sort -Vr | awk '{print $1; exit}')
 	elif [[ "$build" = lstk ]]; then
 		run install_brew -
