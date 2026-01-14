@@ -32,10 +32,12 @@ fi
 }
 
 [[ "$SPLIT" = yes ]] && {
+	[[ -z ${preTestIssues} ]] && { echo "{info} there's not any issue that has Preliminary Request, for users: $users"; }
 	for issue in ${preTestIssues}; do
 		echo "{info} creating [Preliminary Testing Task] for $issue ..."
 		issue-split.sh $issue pre
 	done
+	exit
 }
 
 issue-info.sh ${preTestIssues} -mr=${mrbuild_pat}
