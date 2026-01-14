@@ -315,19 +315,27 @@ clean_old_kernel() {
 	sync -f
 }
 
+#exception
+# grep -Po 'kernel-(?!.*modules).*?-core' <<<"${urls}"
+# kernel-rt-64k-core
+# kernel-rt-64k-debug-core
+# kernel-rt-core
+# kernel-rt-debug-core
+# assume this function only deal with MR repo
 kernel_type_guess() {
 	local urls="${*}"; urls="${urls// /$'\n'}"
-	if ! grep -q kernel-core <<<"${urls}"; then
-		if grep -qE "kernel-.*-debug-core" <<<"${urls}"; then
-			FLAG=debugkernel
-		fi
-		if grep -q kernel-rt-core <<<"${urls}"; then
-			builds+=(rtk)
-		elif grep -q kernel-64k-core <<<"${urls}"; then
-			builds+=(64k)
-		elif grep -q kernel-rt-64k-core <<<"${urls}"; then
-			builds+=(rtk 64k)
-		fi
+	grep -q kernel-core <<<"${urls}" && return 0
+	if grep -q kernel-debug-core <<<"${urls}"; then
+		FLAG=debugkernel
+	elif grep -q kernel-rt-debug-core <<<"${urls}"; then
+		FLAG=debugkernel
+		builds+=(rtk)
+	elif grep -q kernel-rt-core <<<"${urls}"; then
+		builds+=(rtk)
+	elif grep -q kernel-64k-core <<<"${urls}"; then
+		builds+=(64k)
+	elif grep -q kernel-rt-64k-core <<<"${urls}"; then
+		builds+=(rtk 64k)
 	fi
 }
 
@@ -356,9 +364,9 @@ gen_rpmfilter_options() {
 	elif ! grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}"; then
 		kROpts+=(-Rkernel-rt*.rpm +Rkernel-64k*.rpm)
 	elif ! grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
-		kROpts+=(-Rkernel-64k*.rpm +Rkernel-rt*.rpm)
+		kROpts+=(-Rkernel-64k*.rpm -Rkernel-rt-64k*.rpm +Rkernel-rt*.rpm)
 	elif grep -E -w 'rtk|kernel-rt' <<<"${builds[*]}" && grep -E -w '64k|kernel-64k' <<<"${builds[*]}"; then
-		kROpts+=(-Rkernel-64k*.rpm -Rkernel-rt*.rpm +Rkernel-rt*.rpm)
+		kROpts+=(-Rkernel-64k*.rpm +Rkernel-rt-64k*.rpm)
 	fi
 	# selftest, tools, devel will used in network-qe team
 	# kernel-uki-virt - contains the Unified Kernel Image (UKI) of the RHEL kernel.
@@ -430,7 +438,7 @@ if grep -E -w 'kernel-rt' <<<"${builds[*]}" ||  {
 	grep -E -w '64k|kernel-64k' <<<"${builds[*]}"
 }; then
 	[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-	run "yum --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*"
+	run "yum --setopt=strict=0 install @RT @NFV -y kernel-rt-64k"
 elif grep -E -w 'rtk' <<<"${builds[*]}"; then
 	[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 	if grep -E -w 'kernel' <<<"${builds[*]}" || [[ "$FLAG" = debugkernel ]]; then
@@ -751,8 +759,10 @@ else
 
 	dbgpat="(.?debug|[+-]debug)"
 	[[ "$FLAG" =~ debugkernel ]] && { grepOpt='grep -E'; } || { grepOpt='grep -Ev'; }
-	if grep -E -w 'rtk' <<<"${builds[*]}"; then
-		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+rt|\.rt.*' | $grepOpt "$dbgpat" | head -1)
+	if grep -E -w 'rtk' <<<"${builds[*]}" && grep -E -w '64k' <<<"${builds[*]}"; then
+		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+rt-64k.*' | $grepOpt "$dbgpat" | head -1)
+	elif grep -E -w 'rtk' <<<"${builds[*]}"; then
+		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -P '\+rt(?!-64k)|\.rt.*' | $grepOpt "$dbgpat" | head -1)
 	elif grep -E -w '64k' <<<"${builds[*]}"; then
 		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+64k|\.64k.*' | $grepOpt "$dbgpat" | head -1)
 	elif rpm -qlp *.rpm | grep ^/boot/vmlinuz-; then
