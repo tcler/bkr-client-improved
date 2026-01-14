@@ -321,23 +321,21 @@ clean_old_kernel() {
 # kernel-rt-64k-debug-core
 # kernel-rt-core
 # kernel-rt-debug-core
+# assume this function only deal with MR repo
 kernel_type_guess() {
 	local urls="${*}"; urls="${urls// /$'\n'}"
-	if [[ $(grep -Pc 'kernel-(?!.*modules).*?-core' <<< "${urls}") -eq 1 ]]; then
-		if ! grep -q kernel-core <<<"${urls}"; then
-			if grep -q kernel-debug-core <<<"${urls}"; then
-				FLAG=debugkernel
-			elif grep -q kernel-rt-debug-core <<<"${urls}"; then
-				FLAG=debugkernel
-				builds+=(rtk)
-			elif grep -q kernel-rt-core <<<"${urls}"; then
-				builds+=(rtk)
-			elif grep -q kernel-64k-core <<<"${urls}"; then
-				builds+=(64k)
-			elif grep -q kernel-rt-64k-core <<<"${urls}"; then
-				builds+=(rtk 64k)
-			fi
-		fi
+	grep -q kernel-core <<<"${urls}" && return 0
+	if grep -q kernel-debug-core <<<"${urls}"; then
+		FLAG=debugkernel
+	elif grep -q kernel-rt-debug-core <<<"${urls}"; then
+		FLAG=debugkernel
+		builds+=(rtk)
+	elif grep -q kernel-rt-core <<<"${urls}"; then
+		builds+=(rtk)
+	elif grep -q kernel-64k-core <<<"${urls}"; then
+		builds+=(64k)
+	elif grep -q kernel-rt-64k-core <<<"${urls}"; then
+		builds+=(rtk 64k)
 	fi
 }
 
