@@ -57,7 +57,7 @@ issue-split2() {
 	team=$(echo "$issueJson"|get-team) || return 3
 	stat=$(echo "$issueJson"|get-stat) || return 3
 	if [[ "$stat" = Closed ]]; then
-		echo "{error} issue $fromid has been closed" >&2
+		echo "{warn} issue $fromid has been closed, ignore the split op" >&2
 		return 7
 	fi
 
