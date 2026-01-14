@@ -323,7 +323,17 @@ proc is_logged_in {} {
 }
 proc get_logged_user {} {
     set cookie [wapp-param HTTP_COOKIE]
-    return [auth::get_logged_user $cookie]
+    # Retry authentication check with exponential backoff.
+    for {set attempt 1} {$attempt <= 3} {incr attempt} {
+        set result [auth::get_logged_user $cookie]
+        if {$result != ""} {
+            return $result
+        }
+        # Wait before retrying (500ms, then 1000ms)
+        after [expr {500 * $attempt}]
+    }
+    # If fail in all attempts, return the empty result
+    return ""
 }
 
 proc get_query_user {} {
@@ -1419,10 +1429,10 @@ proc wapp-default {} {
         // Parameters:
         //   url - The URL to fetch
         //   options - Fetch options (optional)
-        //   maxRetries - Maximum number of retry attempts (default: 3)
-        //   retryDelay - Base delay between retries in milliseconds (default: 1000)
-        //   retryMultiplier - Multiplier for exponential backoff (default: 1.5)
-        async function fetchWithRetry(url, options = {}, maxRetries = 3, retryDelay = 1000, retryMultiplier = 1.5) {
+        //   maxRetries - Maximum number of retry attempts (default: 7)
+        //   retryDelay - Base delay between retries in milliseconds (default: 2000)
+        //   retryMultiplier - Multiplier for exponential backoff (default: 2.0)
+        async function fetchWithRetry(url, options = {}, maxRetries = 7, retryDelay = 2000, retryMultiplier = 2.0) {
             let lastError;
 
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -1460,8 +1470,8 @@ proc wapp-default {} {
         // Parameters:
         //   url - The URL to fetch
         //   options - Fetch options (optional)
-        //   maxRetries - Maximum number of retry attempts (default: 3)
-        async function fetchJsonWithRetry(url, options = {}, maxRetries = 3) {
+        //   maxRetries - Maximum number of retry attempts (default: 7)
+        async function fetchJsonWithRetry(url, options = {}, maxRetries = 7) {
             const response = await fetchWithRetry(url, options, maxRetries);
             return await response.json();
         }
@@ -1686,7 +1696,7 @@ proc wapp-default {} {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: `testlist=${encodeURIComponent(testlist)}`
-            }, 3, 1000, 1.5) // 3 retries with exponential backoff
+            }, 7, 2000, 2.0) // 7 retries with exponential backoff
             .then(response => response.json())
             .then(data => {
                 document.getElementById('loadingMessage').style.display = 'none';
@@ -1713,7 +1723,7 @@ proc wapp-default {} {
             focusedTestrunIndex = null;
 
             // Use retry version of fetch for refreshing table data
-            fetchJsonWithRetry(cururl.toString(), {}, 3)
+            fetchJsonWithRetry(cururl.toString(), {}, 7)
                 .then(data => {
                     testruninfo = data;
                     qresults = testruninfo.qresults;
@@ -2351,7 +2361,7 @@ proc wapp-default {} {
             }
 
             // Use retry version of fetch for query submission
-            fetchJsonWithRetry(cururl.toString(), {}, 3)
+            fetchJsonWithRetry(cururl.toString(), {}, 7)
                 .then(data => {
                     // Update global data
                     testruninfo = data;
@@ -2380,7 +2390,7 @@ proc wapp-default {} {
             var resurl = cururl.toString();
 
             // Use retry version of fetch for initial page load
-            fetchJsonWithRetry(resurl, {}, 3)
+            fetchJsonWithRetry(resurl, {}, 7)
                 .then(data => {
                     testruninfo = data;
                     qresults = testruninfo.qresults;
