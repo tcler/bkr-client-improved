@@ -420,7 +420,7 @@ IFS=" " read -r -a builds <<< "$(echo "${builds[@]}" | tr ' ' '\n' | sort -u | t
 
 if [[ ${#builds[@]} = 0 ]]; then
 	if [[ "$FLAG" = debugkernel || "$ONLY_DEBUG_INFO" = yes ]]; then
-		builds+=(kernel-$(uname -r|sed 's/\.[^.]*$//'))
+		yum install -y kernel-debug-core
 	else
 		Usage >&2
 		exit
@@ -699,7 +699,7 @@ if [[ $buildcnt -gt 0 ]]; then
 	}
 else
 	# just check if any kernel key existed.
-	if ! grep -E -w 'rtk|64k|kernel' <<<"${builds[*]}"; then
+	if ! grep -E -w 'rtk|64k|kernel|debugkernel' <<<"${builds[*]} ${FLAG}"; then
 		exit 0
 	fi
 fi
@@ -767,6 +767,9 @@ else
 		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}|grep -E '\+64k|\.64k.*' | $grepOpt "$dbgpat" | head -1)
 	elif rpm -qlp *.rpm | grep ^/boot/vmlinuz-; then
 		kernelpath=$(ls /boot/vmlinuz-*$(uname -m)* -t1 ${lsOpt:--u}| $grepOpt "$dbgpat" | head -1)
+	fi
+	if [[ $buildcnt -eq 0 && ${FLAG} = debugkernel ]]; then
+		kernelpath=$(ls /boot/vmlinuz-* -t1 ${lsOpt:--u}| $grepOpt "$dbgpat" | head -1)
 	fi
 
 	run "ls /boot/vmlinuz-*$(uname -m)* -tl ${lsOpt:--u}"
