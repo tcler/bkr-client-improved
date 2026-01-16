@@ -311,7 +311,7 @@ need_reboot() {
 
 clean_old_kernel() {
 	run "dnf remove --noautoremove -y 'kernel*' 'kernel-*' '*-kernel*' || : " -
-	run "rpm -qa | grep -i ^kernel | xargs -I {} rpm -e --nodeps {} || :" -
+	run "rpm -qa | grep -i ^kernel | xargs -I {} rpm -e --nodeps --noscripts {} || :" -
 	sync -f
 }
 
@@ -438,7 +438,7 @@ if grep -E -w 'kernel-rt' <<<"${builds[*]}" ||  {
 	grep -E -w '64k|kernel-64k' <<<"${builds[*]}"
 }; then
 	[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-	run "yum --setopt=strict=0 install @RT @NFV -y kernel-rt-64k"
+	run "yum --setopt=strict=0 install -y kernel-rt-64k"
 elif grep -E -w 'rtk' <<<"${builds[*]}"; then
 	[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 	if grep -E -w 'kernel' <<<"${builds[*]}" || [[ "$FLAG" = debugkernel ]]; then
