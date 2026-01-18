@@ -965,6 +965,7 @@ job retention_tag=$retentionTag $productkv user=$jobOwner group=$groupOwner $job
 		foreach role ${ROLE_LIST} {
 			set current_bootcTo ""
 			set current_bootc_mode ""
+			set current_recipe_ks_meta ""
 			append current_recipe_ks_meta $recipe_ks_meta
 			if {[info exist bootcToList]} {
 				set current_bootcTo [lindex $bootcToList $R]
