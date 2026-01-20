@@ -17,7 +17,13 @@ done
 set -- "${_args[@]}"
 
 fsusers="yieli yoyang jiyin xzhou zlang xifeng kunwan bxue fs-qe"
-maillist() { local list; for u; do list+="\"$u@redhat.com\", "; done; echo -n "${list%, }"; }
+maillist() {
+	local list;
+	for u; do
+		klist |& grep -q ${u}@ && list+='currentUser(), ' || list+="\"$u@redhat.com\", "
+	done
+	echo -n "${list%, }"
+}
 users=${*};
 if [[ "$users" = fs || "$users" = all ]]; then
 	users=$(maillist $fsusers)

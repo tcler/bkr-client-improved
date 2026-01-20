@@ -14,7 +14,13 @@ get-stat() { jq -r '.fields.status.name'; }
 get-fixvers() { jq -r '.fields.fixVersions[].name'; }
 get-fixedbuild() { jq -r '.fields.customfield_12318450'; }
 
-maillist() { local list; for u; do list+="\"$u@redhat.com\", "; done; echo -n "${list%, }"; }
+maillist() {
+	local list;
+	for u; do
+		klist |& grep -q ${u}@ && list+='currentUser(), ' || list+="\"$u@redhat.com\", "
+	done
+	echo -n "${list%, }"
+}
 fsusers="yieli yoyang jiyin xzhou zlang xifeng kunwan bxue fs-qe"
 
 _args=()
