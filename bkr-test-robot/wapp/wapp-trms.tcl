@@ -1175,6 +1175,17 @@ proc wapp-default {} {
             position: relative;
         }
 
+        .detail-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 499;
+            display: none;
+        }
+
         .detail-div {
             position: absolute;
             top: 88px;
@@ -1595,12 +1606,22 @@ proc wapp-default {} {
         function showDetail(id) {
             const divid = `div${id}`;
             const div = document.getElementById(divid);
+            const overlay = document.getElementById(`overlay${id}`);
+
+            if (overlay) {
+                overlay.style.display = "block";
+            }
             div.style.zIndex = "500";
             div.style.display = "block";
         }
 
         function hideDetail(id) {
             const div = document.getElementById(id);
+            const overlay = document.getElementById(id.replace('div', 'overlay'));
+
+            if (overlay) {
+                overlay.style.display = "none";
+            }
             div.style.zIndex = "-1";
             div.style.display = "none";
         }
@@ -2245,7 +2266,7 @@ proc wapp-default {} {
         }
 
         function createResultDetailDivs() {
-            const allDetails = document.body.querySelectorAll('.detail-div');
+            const allDetails = document.body.querySelectorAll('.detail-div, .detail-overlay');
             if (allDetails) {
                 allDetails.forEach(detail => { detail.remove(); });
             }
@@ -2258,6 +2279,15 @@ proc wapp-default {} {
                 nheaderRow.appendChild(td);
             });
             sortedResults.forEach((resObj, rowIdx) => {
+                // Create overlay for click-outside functionality
+                const overlay = document.createElement('div');
+                overlay.className = 'detail-overlay';
+                overlay.id = `overlay${resObj.testid}`;
+                overlay.addEventListener('click', function(e) {
+                    hideDetail(`div${resObj.testid}`);
+                });
+                document.body.appendChild(overlay);
+
                 const resdDiv = document.createElement('div');
                 resdDiv.className = 'detail-div';
                 resdDiv.id = `div${resObj.testid}`;
@@ -2380,6 +2410,26 @@ proc wapp-default {} {
                     document.getElementById('loadingMessage').innerHTML = `<div style="color: red;">Query fail: ${error}, please try again later.</div>`;
                 });
         }
+
+        // Global ESC key handler for closing pop-ups
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                // Close login dialog if visible
+                const loginDialog = document.getElementById('loginDialog');
+                if (loginDialog && loginDialog.style.display === 'block') {
+                    hideLogin();
+                }
+
+                // Close detail pop-ups if any are visible
+                const detailOverlays = document.querySelectorAll('.detail-overlay');
+                detailOverlays.forEach(overlay => {
+                    if (overlay.style.display === 'block') {
+                        const detailId = overlay.id.replace('overlay', 'div');
+                        hideDetail(detailId);
+                    }
+                });
+            }
+        });
 
         // After page loaded
         document.addEventListener('DOMContentLoaded', function() {
