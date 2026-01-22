@@ -2742,7 +2742,7 @@ proc wapp-page-clone {} {
 	wapp {<span style="font-size:400%;">Update ... Done!<br></span>}
   }
 
-  set newRunQuery "run-[wapp-param pkg]=[string map {= %3D { } +} $distro_gset_]"
+  set newRunQuery "run-[wapp-param pkg]=[string map {= %3D { } +} $distro_gset]"
   set ourl "[wapp-param BASE_URL]?[wapp-param QUERY_STRING]"
   set nurl "$ourl&$newRunQuery"
   wapp-subst {return to %unsafe($nurl)}
