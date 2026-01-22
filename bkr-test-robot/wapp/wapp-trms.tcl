@@ -1210,12 +1210,11 @@ proc wapp-default {} {
             border-bottom: 1px solid #ddd;
         }
         .close-section {
-            position: fixed;
+            position: absolute;
             z-index: 600;
             display: flex;
             align-items: flex-start;
             background-color: #f3e5ab;
-            position: absolute;
             top: 0;
             left: 0;
         }
@@ -1235,6 +1234,14 @@ proc wapp-default {} {
             font-family: monospace;
             font-weight: bold;
             color: #333;
+        }
+
+        .detail-div table th,
+        .detail-div table td {
+            max-width: 24ch;
+            white-space: normal;
+            overflow-wrap: normal;
+            line-height: 1.3;
         }
 
         table {
@@ -2271,10 +2278,9 @@ proc wapp-default {} {
                 allDetails.forEach(detail => { detail.remove(); });
             }
             const nheaderRow = document.createElement('tr');
-            const maxHeader = 24;
             qresults.qruns.forEach((run, index) => {
                 const td = document.createElement('td');
-                td.textContent = truncateString(run, maxHeader);
+                td.textContent = run;
                 td.title = run;
                 nheaderRow.appendChild(td);
             });
