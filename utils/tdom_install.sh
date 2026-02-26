@@ -1,7 +1,7 @@
 #!/bin/bash
 
 which gcc || yum install -y gcc
-pkg=tdom-0.9.2-src.tgz
+pkg=tdom-0.9.6-src.tgz
 curl -o $pkg -L http://tdom.org/downloads/$pkg
 [ -f "$pkg" ] || {
 	echo "$pkg not exist!" >&2
