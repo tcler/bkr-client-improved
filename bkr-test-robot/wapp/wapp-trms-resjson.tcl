@@ -1,6 +1,6 @@
-#!/usr/bin/expect
+#!/usr/bin/tclsh
 # The next line is executed by /bin/sh, but not tcl \
-exec expect "$0" ${1+"$@"}
+exec tclsh "$0" ${1+"$@"}
 
 lappend ::auto_path $::env(HOME)/lib /usr/local/lib /usr/lib64 /usr/lib
 package require sqlite3
@@ -8,7 +8,9 @@ package require runtestlib 1.1
 package require json::write
 namespace import ::runtestlib::*
 
-trap {send_user "Got SIGPIPE"; exit} SIGPIPE
+if {"trap" in [info commands trap]} {
+	trap {send_user "Got SIGPIPE"; exit} SIGPIPE
+}
 
 set user {}
 set qpkg {}

@@ -2476,7 +2476,7 @@ proc wapp-page-resjson {} {
   set qpkg [lindex [wapp-param pkg] 0]
   set runList [wapp-param run-$qpkg]
   set resgenfile "/usr/local/libexec/wapp-trms-resjson.tcl"
-  set json [exec expect $resgenfile $quser $qpkg $runList]
+  set json [exec tclsh $resgenfile $quser $qpkg $runList]
   wapp $json; return
   wapp {{
       "components": ["nfs", "cifs"],

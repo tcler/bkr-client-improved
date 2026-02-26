@@ -1,4 +1,4 @@
-#!/usr/bin/expect
+#!/usr/bin/tclsh
 # -*- tcl -*-
 # The next line is executed by /bin/sh, but not tcl \
 exec tclsh "$0" ${1+"$@"}
@@ -14,7 +14,7 @@ package require runtestlib 1.1
 package require getOpt 3.0
 namespace import ::getOpt::* ::runtestlib::*
 
-trap {send_user "Got SIGPIPE"; exit} SIGPIPE
+#trap {send_user "Got SIGPIPE"; exit} SIGPIPE
 
 # global var
 array set Opt {}
