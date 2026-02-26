@@ -21,7 +21,7 @@ install_runtest: _isroot _rh_intranet yqinstall install_kiss_vm_ns
 	@yum install -y restraint-client skopeo jq --allowerasing
 	@rpm -q expect >/dev/null || yum install -y expect #package that in default RHEL repo
 	@yum install -y tcllib #epel
-	@yum install -y tdom || yum-install-from-fedora.sh tdom || :
+	#@yum install -y tdom || yum-install-from-fedora.sh tdom || :
 	@-! tclsh <<<"lappend ::auto_path $(_lib) /usr/lib64; package require tdom" 2>&1|grep -q 'can.t find' || \
 		{ rpm -q tdom &>/dev/null || ./utils/tdom_install.sh; }
 	@rpm -q procmail >/dev/null || yum install -y procmail #package that in default RHEL repo
