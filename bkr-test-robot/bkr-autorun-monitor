@@ -168,7 +168,7 @@ sqlite3 db testrun.db
 db timeout 6000
 
 #Get running test list
-array set runingTest {}
+array set runningTest {}
 db eval {
     select
 	trun.jobid as jobid,
