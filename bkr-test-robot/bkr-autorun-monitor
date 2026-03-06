@@ -189,6 +189,7 @@ foreach {jobID taskList} [array get runningTest] {
 
 	#ifdebug
 	puts "==>$jobID"
+	if {$jobID == ""} { continue }
 	set XML [getXML $jobID]
 	set doc [dom parse $XML]
 	set root [$doc documentElement]
