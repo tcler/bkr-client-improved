@@ -21,6 +21,37 @@ get-mrbuilds() {
 		for (k in repo) { if (k !~ /.*CENTOS.*/) {print k, repo[k]} } 
 	}' | sort
 }
+get-mrbuilds() {
+	jq -r '
+  .fields.customfield_10894.content[]
+  | select(.type == "paragraph")
+  | .content as $content
+
+  # Downstream Pipeline Name
+  | if any($content[]; .type == "text" and (.text | startswith("Downstream Pipeline Name: "))) then
+      "\n" + ($content[] | select(.type == "text" and (.text | startswith("Downstream Pipeline Name: "))) | .text | sub("Downstream Pipeline Name: "; ""))
+
+  # get buildName and repoURLs, if content match "Repo URL:"
+  elif any($content[]; .type == "text" and .text == "Repo URL: ") then
+      ($content[0] | select(.type == "text") | .text | sub(":$"; "")) + " " +
+      (($content[] | select(.marks? // [] | map(.type == "link") | any) | .marks[0].attrs.href) // "")
+
+  else empty
+  end' | awk '
+        /\([a-z0-9_-]+\)/ { pipel=$1; }
+        /^[0-9]+\..*https:/ {
+                key = $1 "@" pipel
+                repo[key] = repo[key] (repo[key] ? " " : "") $NF
+        }
+        END {
+                for (k in repo) {
+			if (k !~ /.*CENTOS.*/) {
+				#printf("%s\n%s\n\n", k, gensub(/ /, "\n", "g", repo[k]));
+				printf("%s %s\n\n", k, repo[k]);
+			}
+		}
+        }'
+}
 
 _args=()
 for arg; do
@@ -50,6 +81,7 @@ for issue; do
 		[[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
 		echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://issues.redhat.com/browse/${issue}"
 		while read build repos; do
+			[[ -z "${build}" ]] && continue
 			[[ "${build,,}" =~ $mrbuild_pat ]] || continue
 			echo -e "\n  $build"
 			for repo in $repos; do echo "    $repo"; done

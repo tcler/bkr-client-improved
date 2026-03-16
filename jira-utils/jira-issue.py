@@ -8,11 +8,20 @@ from __future__ import annotations
 import os, sys
 from jira import JIRA
 
-jira = JIRA(server='https://issues.redhat.com', token_auth=os.environ.get('JIRA_API_TOKEN'))
+#for Local auth
+#serverUrl='https://issues.redhat.com'
+#jira = JIRA(server=serverUrl, token_auth=os.environ.get('JIRA_API_TOKEN'))
+
+#for Cloud auth
+serverUrl='https://redhat.atlassian.net'
+username = os.getlogin()
+email = f"{username}@redhat.com"
+jira = JIRA(server=serverUrl, basic_auth=(email, os.environ.get('JIRA_API_TOKEN')))
 allfields=jira.fields()
 nameMap = {field['name']:field['id'] for field in allfields}
 if len(sys.argv) < 3:
-    if sys.argv[1]:
+    issue = None
+    if len(sys.argv) > 1:
         issue = jira.issue(sys.argv[1])
 
     print(f"Usage: <{sys.argv[0]}> <issue-id> <field-name [field-name ...]> vvv")
