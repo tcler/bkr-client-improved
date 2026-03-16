@@ -7,10 +7,10 @@ issue-view-json() { local id=$1; jira issue view "$id" --raw|jq; }
 get-split-tasks() { jq -r '.fields.issuelinks[] | select(.type.outward == "split to") | .outwardIssue | [.key, .fields.summary] | join(" ")'; }
 get-summary() { jq -r '.fields.summary'; }
 get-component() { jq -r '.fields.components[0].name'; }
-get-team() { jq -r '.fields.customfield_12326540.value'; }
 get-stat() { jq -r .fields.status.name; }
 get-qa() { jq -r '.fields.customfield_10470.displayName'; }
 get-devel() { jq -r '.fields.assignee.displayName'; }
+get-assignedTeam() { jq -r '.fields.customfield_10606.value'; }
 declare -A labelPrefix=(
 	[dev_task]="DEV Task"
 	[root_cause_analysis_task]="Root Cause Analysis Task"
@@ -54,7 +54,7 @@ issue-split2() {
 	component=$(echo "$issueJson"|get-component) || return 3
 	qe=$(echo "$issueJson"|get-qa) || return 3
 	devel=$(echo "$issueJson"|get-devel) || return 3
-	team=$(echo "$issueJson"|get-team) || return 3
+	team=$(echo "$issueJson"|get-assignedTeam) || return 3
 	stat=$(echo "$issueJson"|get-stat) || return 3
 	if [[ "$stat" = Closed ]]; then
 		echo "{warn} issue $fromid has been closed, ignore the split op" >&2
