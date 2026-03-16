@@ -36,7 +36,7 @@ get-mrbuilds() {
       (($content[] | select(.marks? // [] | map(.type == "link") | any) | .marks[0].attrs.href) // "")
 
   else empty
-  end' | awk '
+  end' 2>/dev/null | awk '
         /\([a-z0-9_-]+\)/ { pipel=$1; }
         /^[0-9]+\..*https:/ {
                 key = $1 "@" pipel
