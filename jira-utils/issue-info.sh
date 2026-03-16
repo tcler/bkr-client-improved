@@ -4,12 +4,8 @@ issue-view-json() { local id=$1; jira issue view "$id" --raw|jq; }
 get-split-tasks() { jq -r '.fields.issuelinks[] | select(.type.outward == "split to") | .outwardIssue | [.key, .fields.summary] | join(" ")'; }
 get-summary() { jq -r '.fields.summary'; }
 get-component() { jq -r '.fields.components[0].name'; }
-get-qa() { jq -r '.fields.customfield_12315948.name'; }
-get-devel() { jq -r '.fields.assignee.name'; }
-get-team() { jq -r '.fields.customfield_12326540.value'; }
 get-stat() { jq -r '.fields.status.name'; }
 get-fixvers() { jq -r '.fields.fixVersions[].name'; }
-get-fixedbuild() { jq -r '.fields.customfield_12318450'; }
 get-mrbuilds() {
 	jq -r '.fields.customfield_12321740' | awk -v RS= '
 	/Downstream.Pipeline.Name:/ { pipel=$4; }
@@ -21,6 +17,9 @@ get-mrbuilds() {
 		for (k in repo) { if (k !~ /.*CENTOS.*/) {print k, repo[k]} } 
 	}' | sort
 }
+
+get-qa() { jq -r '.fields.customfield_10470.displayName'; }
+get-fixedbuild() { jq -r '.fields.customfield_10578'; }
 get-mrbuilds() {
 	jq -r '
   .fields.customfield_10894.content[]

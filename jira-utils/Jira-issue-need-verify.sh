@@ -8,11 +8,11 @@ command -v jira &>/dev/null || {
 issue-view-json() { local id=$1; jira issue view "$id" --raw|jq; }
 get-summary() { jq -r '.fields.summary'; }
 get-component() { jq -r '.fields.components[0].name'; }
-get-qa() { jq -r '.fields.customfield_12315948.name'; }
 get-devel() { jq -r '.fields.assignee.name'; }
 get-stat() { jq -r '.fields.status.name'; }
 get-fixvers() { jq -r '.fields.fixVersions[].name'; }
-get-fixedbuild() { jq -r '.fields.customfield_12318450'; }
+get-qa() { jq -r '.fields.customfield_10470.displayName'; }
+get-fixedbuild() { jq -r '.fields.customfield_10578'; }
 
 maillist() {
 	local list;

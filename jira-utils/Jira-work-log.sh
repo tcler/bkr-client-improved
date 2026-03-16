@@ -11,7 +11,7 @@ get-component() { jq -r '.fields.components[0].name'; }
 get-versions() { jq -r '.fields.versions|map(.name)|join(",")'; }
 get-fixvers() { jq -r '.fields.fixVersions[].name'; }
 get-reporter() { jq -r '.fields.reporter.name'; }
-get-qa() { jq -r '.fields.customfield_12315948.name'; }
+get-qa() { jq -r '.fields.customfield_10470.displayName'; }
 
 _args=()
 for arg; do
