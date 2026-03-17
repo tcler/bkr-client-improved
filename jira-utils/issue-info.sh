@@ -74,9 +74,9 @@ for issue; do
 	component=$(echo "${issueJson}" | get-component); component=${component// /};
 	stat=$(echo "$issueJson"|get-stat)
 	mr_repos=$(echo "${issueJson}" | get-mrbuilds)
+	rhelVersion=$(echo "${issueJson}" | get-fixvers)
+	rhelVersion=${rhelVersion#*-}
 	if [[ -n "${mr_repos}" ]]; then
-		rhelVersion=$(echo "${issueJson}" | get-fixvers)
-		rhelVersion=${rhelVersion#*-}
 		[[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
 		echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://issues.redhat.com/browse/${issue}"
 		while read build repos; do
