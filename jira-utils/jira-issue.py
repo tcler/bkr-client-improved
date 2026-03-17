@@ -9,7 +9,7 @@ import os, sys
 from jira import JIRA
 
 #for Local auth
-#serverUrl='https://issues.redhat.com'
+#serverUrl='https://redhat.atlassian.net'
 #jira = JIRA(server=serverUrl, token_auth=os.environ.get('JIRA_API_TOKEN'))
 
 #for Cloud auth

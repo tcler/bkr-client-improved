@@ -44,7 +44,7 @@ for issue in ${reportedIssues}; do
 	versions=$(echo "${issueJson}" | get-versions)
 	component=$(echo "${issueJson}" | get-component); component=${component// /};
 	reporter=$(echo "$issueJson"|get-reporter)
-	echo "- https://issues.redhat.com/browse/${issue} $reporter  $summary  /$versions"
+	echo "- https://redhat.atlassian.net/browse/${issue} $reporter  $summary  /$versions"
 done | sort -k3
 
 echo -e "\nPre-Verified:"
@@ -56,7 +56,7 @@ for issue in ${preVerifiedIssues}; do
 	summary=$(echo "$issueJson"|get-summary)
 	rhelVersion=$(echo "${issueJson}" | get-fixvers)
 	rhelVersion=${rhelVersion#*-}
-	echo "- https://issues.redhat.com/browse/${issue} $qacontact  $summary  /$rhelVersion"
+	echo "- https://redhat.atlassian.net/browse/${issue} $qacontact  $summary  /$rhelVersion"
 done | sort -k3
 
 echo -e "\nVerified:"
@@ -68,5 +68,5 @@ for issue in ${verifiedIssues}; do
 	summary=$(echo "$issueJson"|get-summary)
 	rhelVersion=$(echo "${issueJson}" | get-fixvers)
 	rhelVersion=${rhelVersion#*-}
-	echo "- https://issues.redhat.com/browse/${issue} $qacontact  $summary  /$rhelVersion"
+	echo "- https://redhat.atlassian.net/browse/${issue} $qacontact  $summary  /$rhelVersion"
 done | sort -k3

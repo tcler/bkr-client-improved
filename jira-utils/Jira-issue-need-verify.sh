@@ -46,7 +46,7 @@ IssuesNeedVerify=$(jira issue list --plain --no-truncate --no-headers --columns 
 [[ ${#IssuesNeedVerify[@]} -gt 0 ]] &&
 	echo -e $'\E[0;33;44m'"{custom field list} jira-issue.py \${issue}" $'\E[0m' >&2
 for issue in ${IssuesNeedVerify}; do
-	echo "${issue} - https://issues.redhat.com/browse/${issue}"
+	echo "${issue} - https://redhat.atlassian.net/browse/${issue}"
 	issueJson=$(issue-view-json $issue)
 	[[ -z "$issueJson" ]] && continue
 

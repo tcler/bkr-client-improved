@@ -78,7 +78,7 @@ for issue; do
 	rhelVersion=${rhelVersion#*-}
 	if [[ -n "${mr_repos}" ]]; then
 		[[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
-		echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://issues.redhat.com/browse/${issue}"
+		echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://redhat.atlassian.net/browse/${issue}"
 		while read build repos; do
 			[[ -z "${build}" ]] && continue
 			[[ "${build,,}" =~ $mrbuild_pat ]] || continue
@@ -86,7 +86,7 @@ for issue; do
 			for repo in $repos; do echo "    $repo"; done
 		done <<<"$mr_repos"
 	else
-		echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://issues.redhat.com/browse/${issue}"
+		echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://redhat.atlassian.net/browse/${issue}"
 		echo -e "\t#No MR-build-repo found, Maybe: user-space pkg. Or: the developer didn't follow the agreed workflow"
 		fixedBuild=$(echo "${issueJson}" | get-fixedbuild)
 		echo -e "\tFixed.in.Build: $fixedBuild"
