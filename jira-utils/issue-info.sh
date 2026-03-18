@@ -6,18 +6,6 @@ get-summary() { jq -r '.fields.summary'; }
 get-component() { jq -r '.fields.components[0].name'; }
 get-stat() { jq -r '.fields.status.name'; }
 get-fixvers() { jq -r '.fields.fixVersions[].name'; }
-get-mrbuilds() {
-	jq -r '.fields.customfield_12321740' | awk -v RS= '
-	/Downstream.Pipeline.Name:/ { pipel=$4; }
-	/^[0-9]+\..*Repo.URL:/ {
-		key = $1 pipel
-		repo[key] = repo[key] (repo[key] ? " " : "") $NF
-	}
-	END {
-		for (k in repo) { if (k !~ /.*CENTOS.*/) {print k, repo[k]} } 
-	}' | sort
-}
-
 get-qa() { jq -r '.fields.customfield_10470.displayName'; }
 get-fixedbuild() { jq -r '.fields.customfield_10578'; }
 get-mrbuilds() {
@@ -50,6 +38,17 @@ get-mrbuilds() {
 			}
 		}
         }'
+}
+get-mrbuilds() {
+	jq -r '.fields.customfield_10894.content[-1].content[-1].text | gsub("\\\\n"; "\n")' | awk -v RS= '
+	/Downstream.Pipeline.Name:/ { pipel=$4; }
+	/^[0-9]+\..*Repo.URL:/ {
+		key = $1 pipel
+		repo[key] = repo[key] (repo[key] ? " " : "") $NF
+	}
+	END {
+		for (k in repo) { if (k !~ /.*CENTOS.*/) {print k, repo[k]} } 
+	}' | sort
 }
 
 _args=()
