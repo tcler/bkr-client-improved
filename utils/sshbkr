@@ -3,7 +3,7 @@
 # Author: Zhenjie Chen <zhchen@redhat.com>
 
 set timeout 120
-set conf ~/.bkr_prefs.tcl
+set conf $env(HOME)/.bkr_prefs.tcl
 
 if ![file exist $conf] {
 	puts "Could not find config file to read password"
