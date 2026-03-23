@@ -8,7 +8,7 @@ get-stat() { jq -r '.fields.status.name'; }
 get-fixvers() { jq -r '.fields.fixVersions[].name'; }
 get-qa() { jq -r '.fields.customfield_10470.displayName'; }
 get-fixedbuild() { jq -r '.fields.customfield_10578'; }
-get-mrbuilds() {
+get-mrbuilds2() {
 	jq -r '
   .fields.customfield_10894.content[]
   | select(.type == "paragraph")
@@ -73,6 +73,8 @@ for issue; do
 	component=$(echo "${issueJson}" | get-component); component=${component// /};
 	stat=$(echo "$issueJson"|get-stat)
 	mr_repos=$(echo "${issueJson}" | get-mrbuilds)
+	[[ -z "$mr_repos" ]] &&
+		mr_repos=$(echo "${issueJson}" | get-mrbuilds2)
 	rhelVersion=$(echo "${issueJson}" | get-fixvers)
 	rhelVersion=${rhelVersion#*-}
 	if [[ -n "${mr_repos}" ]]; then
