@@ -751,9 +751,14 @@ if [[ -n ${rpmfiles} ]] && [[ $buildcnt -gt 0 ]]; then
 		for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
 		;;
 	*)
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 $rpmfiles" - ||
-			run "rpm -Uvh --force --nodeps $rpmfiles" - ||
-			for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
+		run "yum install -y --nogpgcheck --setopt=keepcache=1 $rpmfiles" -
+		if [[ $? -ne 0 ]]; then
+			run "rpm -Uvh --force --nodeps $rpmfiles" -
+			if [[ $? -ne 0 ]]; then
+				for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
+			fi
+		fi
+		;;
 	esac
 elif [[ -z ${rpmfiles} ]] && [[ $buildcnt -eq 0 ]]; then
 	rstrnt-report-result "No need use yum/rpm install" PASS
