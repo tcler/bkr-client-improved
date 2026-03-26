@@ -431,6 +431,13 @@ archList=($(arch) noarch)
 [[ -n "$_ARCH" ]] && archList=(${_ARCH//,/ })
 archPattern=$(echo "${archList[*]}"|sed 's/ /|/g')
 
+_disable_buildroot=()
+if [[ -f /etc/yum.repos.d/beaker-buildroot.repo ]] &&
+	grep -q '^\s*enabled\s*=\s*1' /etc/yum.repos.d/beaker-buildroot.repo; then
+	echo "$prompt [Info] Disabling beaker-buildroot repo to avoid pulling in stale kernel packages"
+	_disable_buildroot=(--disablerepo=beaker-buildroot)
+fi
+
 # if parameter as 'rtk kernel-rt-xxx', we assume you need target kernel is 'kernel-rt-xxx'
 if grep -E -w 'kernel-rt' <<<"${builds[*]}" ||  {
 	# assume kernel-rt-64k-5.14.0-611.24.1.aarch64.rpm
@@ -438,13 +445,16 @@ if grep -E -w 'kernel-rt' <<<"${builds[*]}" ||  {
 	grep -E -w '64k|kernel-64k' <<<"${builds[*]}"
 }; then
 	[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-	run "yum --setopt=strict=0 install -y kernel-rt-64k"
+	_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install -y kernel-rt-64k)
+	run "${_yum_cmd[*]}"
 elif grep -E -w 'rtk' <<<"${builds[*]}"; then
 	[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 	if grep -E -w 'kernel' <<<"${builds[*]}" || [[ "$FLAG" = debugkernel ]]; then
-		run "yum --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*"
+		_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*)
+		run "${_yum_cmd[*]}"
 	else
-		run "yum --setopt=strict=0 install @RT @NFV -y"
+		_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install @RT @NFV -y)
+		run "${_yum_cmd[*]}"
 	fi
 fi
 
@@ -452,27 +462,33 @@ fi
 if grep -E -w 'rtk' <<<"${builds[*]}" && grep -E -w '64k' <<<"${builds[*]}"; then
 	if [[ "$FLAG" == debugkernel ]]; then
 		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-64k-debug --exclude=kernel-rt-64k-debuginfo" -
+		_yum_cmd=(yum install -y "${_disable_buildroot[@]}" --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-64k-debug --exclude=kernel-rt-64k-debuginfo)
+		run "${_yum_cmd[*]}" -
 	fi
 	if [[ "$FLAG" == debugkernel ]] && [[ -n "${DEBUG_INFO_OPT}" ]]; then
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-64k-debuginfo --exclude=kernel-rt-64k-debug" -
+		_yum_cmd=(yum install -y "${_disable_buildroot[@]}" --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-64k-debuginfo --exclude=kernel-rt-64k-debug)
+		run "${_yum_cmd[*]}" -
 	fi
 elif grep -E -w 'rtk' <<<"${builds[*]}"; then
 	if [[ "$FLAG" == debugkernel ]]; then
 		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-debug --exclude=kernel-rt-debuginfo" -
+		_yum_cmd=(yum install -y "${_disable_buildroot[@]}" --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-debug --exclude=kernel-rt-debuginfo)
+		run "${_yum_cmd[*]}" -
 	fi
 	if [[ "$FLAG" == debugkernel ]] && [[ -n "${DEBUG_INFO_OPT}" ]]; then
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-debuginfo --exclude=kernel-rt-debug" -
+		_yum_cmd=(yum install -y "${_disable_buildroot[@]}" --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-rt-debuginfo --exclude=kernel-rt-debug)
+		run "${_yum_cmd[*]}" -
 	fi
 elif grep -E -w '64k' <<<"${builds[*]}"; then
 	if [[ "$FLAG" == debugkernel ]];then
 		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k-debug --exclude=kernel-64k-debuginfo" -
+		_yum_cmd=(yum install -y "${_disable_buildroot[@]}" --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k-debug --exclude=kernel-64k-debuginfo)
+		run "${_yum_cmd[*]}" -
 	fi
 	if [[ "$FLAG" == debugkernel ]] && [[ -n "${DEBUG_INFO_OPT}" ]]; then
 		[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k-debuginfo --exclude=kernel-64k-debug" -
+		_yum_cmd=(yum install -y "${_disable_buildroot[@]}" --nogpgcheck --setopt=keepcache=1 --skip-broken kernel-64k-debuginfo --exclude=kernel-64k-debug)
+		run "${_yum_cmd[*]}" -
 	fi
 fi
 
@@ -631,7 +647,7 @@ for build in "${builds[@]}"; do
 				find */ -name '*.rpm' | xargs -i mv {} ./
 			fi
 		done
-		if grep -q kenrel- ./ && [[ ${INSTALL_BOOTC} == 'yes' ]]; then
+		if ls *.rpm 2>/dev/null | grep -q kernel- && [[ ${INSTALL_BOOTC} == 'yes' ]]; then
 			clean_old_kernel
 		fi
 	else
@@ -710,7 +726,8 @@ fi
 
 #install possible dependencies
 ls -1 *.rpm | grep -q ^kernel-rt && {
-	run "yum --setopt=strict=0 install -y @RT @NFV --exclude=kernel-rt-*" -
+	_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install -y @RT @NFV --exclude=kernel-rt-*)
+	run "${_yum_cmd[*]}" -
 }
 
 rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
