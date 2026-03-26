@@ -446,6 +446,9 @@ else
 	_ls_time_opt='-u'
 fi
 
+# Record the newest kernel module version before installation (for bootc reboot check)
+_pre_install_kver=$(ls /usr/lib/modules -t1 ${_ls_time_opt} 2>/dev/null | head -1)
+
 # if parameter as 'rtk kernel-rt-xxx', we assume you need target kernel is 'kernel-rt-xxx'
 if grep -E -w 'kernel-rt' <<<"${builds[*]}" ||  {
 	# assume kernel-rt-64k-5.14.0-611.24.1.aarch64.rpm
@@ -829,4 +832,17 @@ if [[ -d "$workdir" && "$ONLY_DOWNLOAD" != yes ]]; then
 	cd / 2>/dev/null || true
 fi
 
-need_reboot && reboot || exit 0
+if [[ ${INSTALL_BOOTC} == 'yes' ]]; then
+	# bootc has no grubby; check if a new kernel module was installed
+	_post_install_kver=$(ls /usr/lib/modules -t1 ${_ls_time_opt} 2>/dev/null | head -1)
+	if [[ "$KREBOOT" = yes ]] && {
+		[[ "$_post_install_kver" != "$_pre_install_kver" ]] ||
+		echo "$rpmfiles" | grep -q '^kernel-'
+	}; then
+		reboot
+	else
+		exit 0
+	fi
+else
+	need_reboot && reboot || exit 0
+fi
