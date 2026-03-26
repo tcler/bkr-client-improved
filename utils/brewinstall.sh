@@ -439,6 +439,13 @@ if [[ -f /etc/yum.repos.d/beaker-buildroot.repo ]] &&
 	_disable_buildroot=(--disablerepo=beaker-buildroot)
 fi
 
+# Detect ls --time=birth support for consistent kernel version ordering
+if ls --help 2>&1 | grep -q 'time=birth'; then
+	_ls_time_opt='--time=birth'
+else
+	_ls_time_opt='-u'
+fi
+
 # if parameter as 'rtk kernel-rt-xxx', we assume you need target kernel is 'kernel-rt-xxx'
 if grep -E -w 'kernel-rt' <<<"${builds[*]}" ||  {
 	# assume kernel-rt-64k-5.14.0-611.24.1.aarch64.rpm
@@ -755,7 +762,7 @@ else
 fi
 
 if [[ ${INSTALL_BOOTC} == 'yes' ]]; then
-	kver=$(ls /usr/lib/modules -t1 --time=birth | head -1)
+	kver=$(ls /usr/lib/modules -t1 ${_ls_time_opt} | head -1)
 	cat > /usr/lib/dracut/dracut.conf.d/50-nfsv4.conf <<-'EOF'
 	add_dracutmodules+=" nfs network "
 	install_items+=" /sbin/mount.nfs4 /etc/nfsmount.conf "
