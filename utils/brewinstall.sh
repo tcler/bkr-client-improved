@@ -822,4 +822,11 @@ else
 	fi
 fi
 
+# Clean up downloaded RPM files to reclaim disk space
+if [[ -d "$workdir" && "$ONLY_DOWNLOAD" != yes ]]; then
+	echo "$prompt [Info] Cleaning up downloaded RPM files in $workdir"
+	rm -rf "$workdir"
+	cd / 2>/dev/null || true
+fi
+
 need_reboot && reboot || exit 0
