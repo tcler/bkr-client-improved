@@ -868,6 +868,15 @@ else
 	fi
 fi
 
+# Clean up downloaded RPM files to reclaim disk space
+# Note: this cleanup must remain after the grubby/rpm recovery block in the
+# non-bootc else path above, since that block references *.rpm files in $workdir.
+if [[ -d "$workdir" && "$ONLY_DOWNLOAD" != yes ]]; then
+	echo "$prompt [Info] Cleaning up downloaded RPM files in $workdir"
+	cd / 2>/dev/null || true
+	rm -rf "$workdir"
+fi
+
 if need_reboot "$rpmfiles"; then
 	reboot
 else
