@@ -451,7 +451,7 @@ if grep -E -w 'kernel-rt' <<<"${builds[*]}" ||  {
 elif grep -E -w 'rtk' <<<"${builds[*]}"; then
 	[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 	if grep -E -w 'kernel' <<<"${builds[*]}" || [[ "$FLAG" = debugkernel ]]; then
-		_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*)
+		_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-\*)
 		run "${_yum_cmd[*]}"
 	else
 		_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install @RT @NFV -y)
@@ -727,7 +727,7 @@ fi
 
 #install possible dependencies
 ls -1 *.rpm | grep -q ^kernel-rt && {
-	_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install -y @RT @NFV --exclude=kernel-rt-*)
+	_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install -y @RT @NFV --exclude=kernel-rt-\*)
 	run "${_yum_cmd[*]}" -
 }
 
