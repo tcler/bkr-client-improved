@@ -296,15 +296,30 @@ download_rpms_from_url() {
 }
 
 need_reboot() {
+	local _rpmfiles=$1
 	local _reboot=1
-	# need to check current kernel match default kernel, default kernel match target installed kernel.
-	default_kernel_index=$(grubby --info=DEFAULT | grep index | sed 's/index=//')
-	current_kernel_index=$(grubby --info="/boot/vmlinuz-$(uname -r)" | grep index | sed 's/index=//')
-	# if kernel use rpm install, it may remove original kernel.
-	if [[ -z ${current_kernel_index} ]]; then
-		[[ "$KREBOOT" = yes ]] && _reboot=0
-	elif [[ ${default_kernel_index} -ne ${current_kernel_index} ]]; then
-		[[ "$KREBOOT" = yes ]] && _reboot=0
+	if [[ ${INSTALL_BOOTC} == 'yes' ]]; then
+		# bootc has no grubby; compare pre/post install kernel module versions
+		local _post_modules _new_kver
+		_post_modules=$(ls /usr/lib/modules 2>/dev/null | sort)
+		_new_kver=$(comm -13 <(echo "$_pre_install_modules") <(echo "$_post_modules") | sort -V | tail -1)
+		if [[ -n "$_new_kver" ]] ||
+		   [[ "$_post_modules" != "$_pre_install_modules" ]] ||
+		   grep -qE '^kernel(-rt)?(-64k)?(-debug)?(-core|-modules|-uki-virt|-[0-9])' <<< "$_rpmfiles"; then
+			[[ -z "$_new_kver" && "$_post_modules" == "$_pre_install_modules" ]] && echo "$prompt [Info] Reboot triggered by kernel RPM filename match (in-place upgrade detected)"
+			[[ "$KREBOOT" = yes ]] && _reboot=0
+		fi
+	else
+		# need to check current kernel match default kernel, default kernel match target installed kernel.
+		local default_kernel_index current_kernel_index
+		default_kernel_index=$(grubby --info=DEFAULT | grep index | sed 's/index=//')
+		current_kernel_index=$(grubby --info="/boot/vmlinuz-$(uname -r)" | grep index | sed 's/index=//')
+		# if kernel use rpm install, it may remove original kernel.
+		if [[ -z ${current_kernel_index} ]]; then
+			[[ "$KREBOOT" = yes ]] && _reboot=0
+		elif [[ ${default_kernel_index} -ne ${current_kernel_index} ]]; then
+			[[ "$KREBOOT" = yes ]] && _reboot=0
+		fi
 	fi
 	return $_reboot
 }
@@ -843,4 +858,8 @@ else
 	fi
 fi
 
-need_reboot && reboot || exit 0
+if need_reboot "$rpmfiles"; then
+	reboot
+else
+	exit 0
+fi
