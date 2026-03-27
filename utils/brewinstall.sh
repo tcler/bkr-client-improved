@@ -344,6 +344,7 @@ gen_rpmfilter_options() {
 	AcceptOpts=()
 	autoAcceptOpts=()
 	autoRejectOpts=()
+	kROpts=()
 
 	#common Reject Filter Options
 	if [[ "$FLAG" = debugkernel ]]; then
