@@ -731,6 +731,9 @@ ls -1 *.rpm | grep -q ^kernel-rt && {
 	run "${_yum_cmd[*]}" -
 }
 
+# Snapshot the full directory listing so we can diff after install as a fallback
+_pre_install_modules=$(ls /usr/lib/modules 2>/dev/null | sort)
+
 rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 if [[ -n ${rpmfiles} ]] && [[ $buildcnt -gt 0 ]]; then
 	case $INSTALL_TYPE in
@@ -758,13 +761,40 @@ else
 fi
 
 if [[ ${INSTALL_BOOTC} == 'yes' ]]; then
-	kver=$(ls /usr/lib/modules -t1 --time=birth | head -1)
-	cat > /usr/lib/dracut/dracut.conf.d/50-nfsv4.conf <<-'EOF'
-	add_dracutmodules+=" nfs network "
-	install_items+=" /sbin/mount.nfs4 /etc/nfsmount.conf "
-	add_drivers+=" sunrpc nfsv4 rpcsec_gss_krb5 "
-	EOF
-	run "dracut -f /usr/lib/modules/$kver/initramfs.img $kver" -
+	# Determine newly installed kernel by diffing /usr/lib/modules before/after install
+	_post_install_modules=$(ls /usr/lib/modules 2>/dev/null | sort)
+	kver=$(comm -13 <(echo "$_pre_install_modules") <(echo "$_post_install_modules") | sort -V | tail -1)
+	# Fallback: if no new directory was added (in-place upgrade), query rpm for newest kernel-core
+	if [[ -z "$kver" ]]; then
+		_core_pkgs=(kernel-core)
+		if grep -E -w 'rtk' <<<"${builds[*]}" && grep -E -w '64k' <<<"${builds[*]}"; then
+			_core_pkgs=(kernel-rt-64k-core)
+			[[ "$FLAG" == debugkernel ]] && _core_pkgs=(kernel-rt-64k-debug-core)
+		elif grep -E -w 'rtk' <<<"${builds[*]}"; then
+			_core_pkgs=(kernel-rt-core)
+			[[ "$FLAG" == debugkernel ]] && _core_pkgs=(kernel-rt-debug-core)
+		elif grep -E -w '64k' <<<"${builds[*]}"; then
+			_core_pkgs=(kernel-64k-core)
+			[[ "$FLAG" == debugkernel ]] && _core_pkgs=(kernel-64k-debug-core)
+		else
+			[[ "$FLAG" == debugkernel ]] && _core_pkgs=(kernel-debug-core)
+		fi
+		kver=$(rpm -q "${_core_pkgs[@]}" --qf "%{VERSION}-%{RELEASE}.%{ARCH}\n" 2>/dev/null | grep -v 'is not installed' | sort -V | tail -1)
+	fi
+	if [[ -n "$kver" ]]; then
+		mkdir -p /usr/lib/dracut/dracut.conf.d
+		cat > /usr/lib/dracut/dracut.conf.d/50-nfsv4.conf <<-'EOF'
+		add_dracutmodules+=" nfs network "
+		install_items+=" /sbin/mount.nfs4 /etc/nfsmount.conf "
+		add_drivers+=" sunrpc nfsv4 rpcsec_gss_krb5 "
+		EOF
+		run "dracut -f /usr/lib/modules/$kver/initramfs.img $kver" -
+	else
+		echo "$prompt [WARN] No kernel modules found in /usr/lib/modules — skipping dracut initramfs generation"
+		rstrnt-report-result 'dracut-initramfs-generation-skipped' FAIL
+		let retcode++
+		KREBOOT=no
+	fi
 else
 	#mount /boot if not yet
 	mountpoint /boot || mount /boot
