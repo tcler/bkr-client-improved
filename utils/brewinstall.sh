@@ -296,15 +296,30 @@ download_rpms_from_url() {
 }
 
 need_reboot() {
+	local _rpmfiles=$1
 	local _reboot=1
-	# need to check current kernel match default kernel, default kernel match target installed kernel.
-	default_kernel_index=$(grubby --info=DEFAULT | grep index | sed 's/index=//')
-	current_kernel_index=$(grubby --info="/boot/vmlinuz-$(uname -r)" | grep index | sed 's/index=//')
-	# if kernel use rpm install, it may remove original kernel.
-	if [[ -z ${current_kernel_index} ]]; then
-		[[ "$KREBOOT" = yes ]] && _reboot=0
-	elif [[ ${default_kernel_index} -ne ${current_kernel_index} ]]; then
-		[[ "$KREBOOT" = yes ]] && _reboot=0
+	if [[ ${INSTALL_BOOTC} == 'yes' ]]; then
+		# bootc has no grubby; compare pre/post install kernel module versions
+		local _post_kernels _new_kver
+		_post_kernels=$(ls /usr/lib/modules 2>/dev/null | sort)
+		_new_kver=$(comm -13 <(echo "$_pre_kernels") <(echo "$_post_kernels") | sort -V | tail -1)
+		if [[ -n "$_new_kver" ]] ||
+		   [[ "$_post_kernels" != "$_pre_kernels" ]] ||
+		   grep -qE '^kernel(-rt)?(-64k)?(-debug)?(-core|-modules|-uki-virt|-[0-9])' <<< "$_rpmfiles"; then
+			[[ -z "$_new_kver" && "$_post_kernels" == "$_pre_kernels" ]] && echo "$prompt [Info] Reboot triggered by kernel RPM filename match (in-place upgrade detected)"
+			[[ "$KREBOOT" = yes ]] && _reboot=0
+		fi
+	else
+		# need to check current kernel match default kernel, default kernel match target installed kernel.
+		local default_kernel_index current_kernel_index
+		default_kernel_index=$(grubby --info=DEFAULT | grep index | sed 's/index=//')
+		current_kernel_index=$(grubby --info="/boot/vmlinuz-$(uname -r)" | grep index | sed 's/index=//')
+		# if kernel use rpm install, it may remove original kernel.
+		if [[ -z ${current_kernel_index} ]]; then
+			[[ "$KREBOOT" = yes ]] && _reboot=0
+		elif [[ ${default_kernel_index} -ne ${current_kernel_index} ]]; then
+			[[ "$KREBOOT" = yes ]] && _reboot=0
+		fi
 	fi
 	return $_reboot
 }
@@ -344,6 +359,7 @@ gen_rpmfilter_options() {
 	AcceptOpts=()
 	autoAcceptOpts=()
 	autoRejectOpts=()
+	kROpts=()
 
 	#common Reject Filter Options
 	if [[ "$FLAG" = debugkernel ]]; then
@@ -450,7 +466,7 @@ if grep -E -w 'kernel-rt' <<<"${builds[*]}" ||  {
 elif grep -E -w 'rtk' <<<"${builds[*]}"; then
 	[[ ${INSTALL_BOOTC} == 'yes' ]] && clean_old_kernel
 	if grep -E -w 'kernel' <<<"${builds[*]}" || [[ "$FLAG" = debugkernel ]]; then
-		_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-*)
+		_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install @RT @NFV -y --exclude=kernel-rt-\*)
 		run "${_yum_cmd[*]}"
 	else
 		_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install @RT @NFV -y)
@@ -726,9 +742,12 @@ fi
 
 #install possible dependencies
 ls -1 *.rpm | grep -q ^kernel-rt && {
-	_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install -y @RT @NFV --exclude=kernel-rt-*)
+	_yum_cmd=(yum "${_disable_buildroot[@]}" --setopt=strict=0 install -y @RT @NFV --exclude=kernel-rt-\*)
 	run "${_yum_cmd[*]}" -
 }
+
+# Snapshot installed kernel versions so we can diff after install
+_pre_kernels=$(ls /usr/lib/modules 2>/dev/null | sort)
 
 rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
 if [[ -n ${rpmfiles} ]] && [[ $buildcnt -gt 0 ]]; then
@@ -743,9 +762,12 @@ if [[ -n ${rpmfiles} ]] && [[ $buildcnt -gt 0 ]]; then
 		for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
 		;;
 	*)
-		run "yum install -y --nogpgcheck --setopt=keepcache=1 $rpmfiles" - ||
-			run "rpm -Uvh --force --nodeps $rpmfiles" - ||
-			for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
+		if ! run "yum install -y --nogpgcheck --setopt=keepcache=1 $rpmfiles" -; then
+			if ! run "rpm -Uvh --force --nodeps $rpmfiles" -; then
+				for rpm in $rpmfiles; do run "rpm -Uvh --force --nodeps $rpm" -; done
+			fi
+		fi
+		;;
 	esac
 elif [[ -z ${rpmfiles} ]] && [[ $buildcnt -eq 0 ]]; then
 	rstrnt-report-result "No need use yum/rpm install" PASS
@@ -754,13 +776,50 @@ else
 fi
 
 if [[ ${INSTALL_BOOTC} == 'yes' ]]; then
-	kver=$(ls /usr/lib/modules -t1 --time=birth | head -1)
-	cat > /usr/lib/dracut/dracut.conf.d/50-nfsv4.conf <<-'EOF'
-	add_dracutmodules+=" nfs network "
-	install_items+=" /sbin/mount.nfs4 /etc/nfsmount.conf "
-	add_drivers+=" sunrpc nfsv4 rpcsec_gss_krb5 "
-	EOF
-	run "dracut -f /usr/lib/modules/$kver/initramfs.img $kver" -
+	# Determine newly installed kernel by diffing /usr/lib/modules before/after install
+	_post_kernels=$(ls /usr/lib/modules 2>/dev/null | sort)
+	kver=$(comm -13 <(echo "$_pre_kernels") <(echo "$_post_kernels") | sort -V | tail -1)
+	# Fallback: if no new directory was added (in-place upgrade), query rpm for newest kernel-core
+	if [[ -z "$kver" ]]; then
+		_core_pkgs=(kernel-core)
+		if grep -E -w 'rtk' <<<"${builds[*]}" && grep -E -w '64k' <<<"${builds[*]}"; then
+			_core_pkgs=(kernel-rt-64k-core)
+			[[ "$FLAG" == debugkernel ]] && _core_pkgs=(kernel-rt-64k-debug-core)
+		elif grep -E -w 'rtk' <<<"${builds[*]}"; then
+			_core_pkgs=(kernel-rt-core)
+			[[ "$FLAG" == debugkernel ]] && _core_pkgs=(kernel-rt-debug-core)
+		elif grep -E -w '64k' <<<"${builds[*]}"; then
+			_core_pkgs=(kernel-64k-core)
+			[[ "$FLAG" == debugkernel ]] && _core_pkgs=(kernel-64k-debug-core)
+		else
+			[[ "$FLAG" == debugkernel ]] && _core_pkgs=(kernel-debug-core)
+		fi
+		kver=$(rpm -q "${_core_pkgs[@]}" --qf "%{VERSION}-%{RELEASE}.%{ARCH}\n" 2>/dev/null | grep -v 'is not installed' | sort -V | tail -1)
+	fi
+	if [[ -n "$kver" ]]; then
+		# Verify kernel image exists; modules-only install (kernel-core failed) must not proceed
+		_vmlinuz=/usr/lib/modules/$kver/vmlinuz
+		[[ ! -f "$_vmlinuz" ]] && _vmlinuz=/boot/vmlinuz-$kver
+		if [[ ! -f "$_vmlinuz" ]]; then
+			echo "$prompt [WARN] kernel modules $kver found but vmlinuz missing — kernel-core may have failed to install"
+			rstrnt-report-result "vmlinuz-missing-for-$kver" FAIL
+			let retcode++
+			KREBOOT=no
+		else
+			mkdir -p /usr/lib/dracut/dracut.conf.d
+			cat > /usr/lib/dracut/dracut.conf.d/50-nfsv4.conf <<-'EOF'
+			add_dracutmodules+=" nfs network "
+			install_items+=" /sbin/mount.nfs4 /etc/nfsmount.conf "
+			add_drivers+=" sunrpc nfsv4 rpcsec_gss_krb5 "
+			EOF
+			run "dracut -f /usr/lib/modules/$kver/initramfs.img $kver" -
+		fi
+	else
+		echo "$prompt [WARN] No kernel modules found in /usr/lib/modules — skipping dracut initramfs generation"
+		rstrnt-report-result 'dracut-initramfs-generation-skipped' FAIL
+		let retcode++
+		KREBOOT=no
+	fi
 else
 	#mount /boot if not yet
 	mountpoint /boot || mount /boot
@@ -809,4 +868,13 @@ else
 	fi
 fi
 
-need_reboot && reboot || exit 0
+# Clean up downloaded RPM files to reclaim disk space
+# Note: this cleanup must remain after the grubby/rpm recovery block in the
+# non-bootc else path above, since that block references *.rpm files in $workdir.
+if [[ -d "$workdir" && "$ONLY_DOWNLOAD" != yes ]]; then
+	echo "$prompt [Info] Cleaning up downloaded RPM files in $workdir"
+	cd / 2>/dev/null || true
+	rm -rf "$workdir"
+fi
+
+need_reboot "$rpmfiles" && reboot || exit 0
