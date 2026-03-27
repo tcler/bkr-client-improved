@@ -750,7 +750,7 @@ ls -1 *.rpm | grep -q ^kernel-rt && {
 _pre_kernels=$(ls /usr/lib/modules 2>/dev/null | sort)
 
 rpmfiles=$(ls *.rpm | rpmFilter "${autoRejectOpts[@]}" "${autoAcceptOpts[@]}" "${RejectOpts[@]}" "${AcceptOpts[@]}")
-if [[ -n ${rpmfiles} ]] && [[ $buildcnt -gt 0 ]]; then
+if [[ -n "${rpmfiles}" ]] && [[ $buildcnt -gt 0 ]]; then
 	case $INSTALL_TYPE in
 	rpms)
 		run "rpm -Uvh --force --nodeps $rpmfiles" -
@@ -769,7 +769,7 @@ if [[ -n ${rpmfiles} ]] && [[ $buildcnt -gt 0 ]]; then
 		fi
 		;;
 	esac
-elif [[ -z ${rpmfiles} ]] && [[ $buildcnt -eq 0 ]]; then
+elif [[ -z "${rpmfiles}" ]] && [[ $buildcnt -eq 0 ]]; then
 	rstrnt-report-result "No need use yum/rpm install" PASS
 else
 	rstrnt-report-result "download rpms failed" FAIL
