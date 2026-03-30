@@ -8,6 +8,7 @@ get-stat() { jq -r '.fields.status.name'; }
 get-fixvers() { jq -r '.fields.fixVersions[].name'; }
 get-qa() { jq -r '.fields.customfield_10470.displayName'; }
 get-fixedbuild() { jq -r '.fields.customfield_10578'; }
+get-preliminary() { jq -r '.fields.customfield_10879.value'; }
 get-mrbuilds2() {
 	jq -r '
   .fields.customfield_10894.content[]
@@ -72,27 +73,34 @@ for issue; do
 	qe=$(echo "$issueJson"|get-qa)
 	component=$(echo "${issueJson}" | get-component); component=${component// /};
 	stat=$(echo "$issueJson"|get-stat)
-	mr_repos=$(echo "${issueJson}" | get-mrbuilds)
-	[[ -z "$mr_repos" ]] &&
-		mr_repos=$(echo "${issueJson}" | get-mrbuilds2)
+	preliminaryStat=$(echo "${issueJson}" | get-preliminary)
+	[[ ${preliminaryStat,,} = requested ]] && {
+		mr_repos=$(echo "${issueJson}" | get-mrbuilds)
+		[[ -z "$mr_repos" ]] &&
+			mr_repos=$(echo "${issueJson}" | get-mrbuilds2)
+	}
 	rhelVersion=$(echo "${issueJson}" | get-fixvers)
 	rhelVersion=${rhelVersion#*-}
-	if [[ -n "${mr_repos}" ]]; then
-		[[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
-		echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://redhat.atlassian.net/browse/${issue}"
+	fixedBuild=$(echo "${issueJson}" | get-fixedbuild)
+	[[ "$component" = *kernel-rt* ]] && component=$'\E[0;33;45m'"$component"$'\E[0m'
+	echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://redhat.atlassian.net/browse/${issue} #Preliminary:${preliminaryStat}"
+	if [[ "${preliminaryStat,,}" =~ (requested|fail) ]]; then
+		[[ -z "${mr_repos}" ]] && {
+			echo -e "\t#No MR-build-repo found, Maybe: user-space pkg. Or: the developer didn't follow the agreed workflow"
+			if [[ "$fixedBuild" != null ]]; then
+				echo -e "\tFixed.in.Build: $fixedBuild"
+			fi
+		}
 		while read build repos; do
 			[[ -z "${build}" ]] && continue
 			[[ "${build,,}" =~ $mrbuild_pat ]] || continue
 			echo -e "\n  $build"
 			for repo in $repos; do echo "    $repo"; done
 		done <<<"$mr_repos"
-	else
-		echo -e "${issue} $qe ${rhelVersion} #${component} [$summary] - $stat \n\`- https://redhat.atlassian.net/browse/${issue}"
-		echo -e "\t#No MR-build-repo found, Maybe: user-space pkg. Or: the developer didn't follow the agreed workflow"
-		fixedBuild=$(echo "${issueJson}" | get-fixedbuild)
+	elif [[ "${preliminaryStat,,}" = pass ]]; then
 		echo -e "\tFixed.in.Build: $fixedBuild"
 		if [[ "$fixedBuild" = null ]]; then
-			echo -e $'\E[0;31m'"\t{Error} There is neither kernel MR-build nor user-space fixedBuild, IMO 'Preliminary Testing' value should not be 'Requested' here" $'\E[0m'>&2
+			echo -e $'\E[0;31m'"\t{Note} Fixed.in.Build is still null" $'\E[0m'>&2
 		fi
 	fi
 	if [[ "${showSplit}" ]]; then
