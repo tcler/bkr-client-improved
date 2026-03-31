@@ -34,7 +34,7 @@ else
 fi
 [[ -z "$preTestIssues" ]] && {
 	preTestIssues=$(jira issue list --plain --no-truncate --no-headers --columns KEY \
-		-q"project = RHEL and 'Preliminary Testing' = Requested and 'QA Contact' in (${users})")
+		-q"customfield_10470 in ($users) AND customfield_10879 = Requested")
 }
 
 [[ "$SPLIT" = yes ]] && {

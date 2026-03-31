@@ -37,8 +37,8 @@ elif [[ -n "$users" ]]; then
 else
 	users='currentUser()'
 fi
-IssuesNeedVerify=$(jira issue list --plain --no-truncate --no-headers --columns KEY \
-	-q"issueFunction in issueFieldMatch('project = RHEL AND status = Integration AND \"QA Contact\" in (${users})', 'customfield_10578', '.{3,}')")
+IssuesNeedVerify=$(jira issue list --plain --no-truncate --no-headers --columns KEY -s Integration \
+	-q"customfield_10470 in ($users)")
 [[ $? != 0 && -z "$IssuesNeedVerify" ]] && {
 	echo "[WARN] getting issues fail, if you updated system version, might need re-install jira-cli" >&2
 }
@@ -58,7 +58,7 @@ for issue in ${IssuesNeedVerify}; do
 	fixedBuild=$(echo "${issueJson}" | get-fixedbuild)
 	rhelVersion=$(echo "${issueJson}" | get-fixvers)
 	rhelVersion=${rhelVersion#*-}
-	echo -e "  ${fixedBuild} $qe #${rhelVersion} ${component} [$summary] - $stat"
+	echo -e "  ${fixedBuild} $qe #${rhelVersion} ${component} [$summary] - $stat\n"
 	[[ "$SPLIT" = yes ]] && {
 		echo "{info} creating [Integration Testing Task] for $issue ..."
 		issue-split.sh $issue int
