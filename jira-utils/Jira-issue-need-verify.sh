@@ -38,7 +38,7 @@ else
 	users='currentUser()'
 fi
 IssuesNeedVerify=$(jira issue list --plain --no-truncate --no-headers --columns KEY -s Integration \
-	-q"customfield_10470 in ($users)")
+	-q"'QA Contact' in (${users})")
 [[ $? != 0 && -z "$IssuesNeedVerify" ]] && {
 	echo "[WARN] getting issues fail, if you updated system version, might need re-install jira-cli" >&2
 }
