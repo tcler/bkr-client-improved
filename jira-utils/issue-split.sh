@@ -11,6 +11,9 @@ get-stat() { jq -r .fields.status.name; }
 get-qa() { jq -r '.fields.customfield_10470.displayName'; }
 get-devel() { jq -r '.fields.assignee.displayName'; }
 get-assignedTeam() { jq -r '.fields.customfield_10606.value'; }
+get-project() { jq -r '.fields.project.key'; }
+get-parent() { jq -r '.fields.parent.key'; }
+get-fixVersion() { jq -r '.fields.fixVersions[0].name'; }
 declare -A labelPrefix=(
 	[dev_task]="DEV Task"
 	[root_cause_analysis_task]="Root Cause Analysis Task"
@@ -45,7 +48,7 @@ issue-split2() {
 	local assignee=${4}
 	local priority=Normal
 	local reporter=rhel-process-autobot
-	local qe devel assigne team prefix issueJson splits summary component stat
+	local qe devel assigne team prefix issueJson splits summary component stat project parent fixVersion
 
 	read label prefix < <(label2Prefix $label)
 	issueJson=$(issue-view-json $fromid) || return 2
@@ -56,6 +59,9 @@ issue-split2() {
 	devel=$(echo "$issueJson"|get-devel) || return 3
 	team=$(echo "$issueJson"|get-assignedTeam) || return 3
 	stat=$(echo "$issueJson"|get-stat) || return 3
+	project=$(echo "$issueJson"|get-project) || return 3
+	parent=$(echo "$issueJson"|get-parent) || return 3
+	fixVersion=$(echo "$issueJson"|get-fixVersion) || return 3
 	if [[ "$stat" = Closed ]]; then
 		echo "{warn} issue $fromid has been closed, ignore the split op" >&2
 		return 7
@@ -68,20 +74,27 @@ issue-split2() {
 	fi
 	echo "{debug} devel:$devel, qe:$qe, assigne:$assigne, team:$team" >&2
 
-	if split=$(grep -iF "$prefix" <<<"$splits"); then
+	if [ $project != "RHELMISC" ] && split=$(grep -iF "$prefix" <<<"$splits"); then
 		echo "{warn} there has been split issue '$prefix *'" >&2
 		echo "$split"
-	else
-		summary=${summary/\[$team\]/}
+		exit
+	fi
+	summary=${summary/\[$team\]/}
+	if [ $project = "RHEL" ]; then
 		local std=$(jira issue create -tTask -s"$prefix $summary" --no-input \
 		  -a"$assigne" -C"$component" -l"$label" -y"$priority" -r"$reporter" \
 		  --custom assignedteam=$team --custom story-points=${sp} |&
 			tee /dev/tty)
-		local issuelink=$(echo "$std"|tail -1)
-		jira issue link "$fromid" "${issuelink##*/}" "Issue split"
-
-		issue-view-json "$fromid" | get-split-tasks | grep -iF "$prefix"
+	elif [ $project = "RHELMISC" ]; then
+		local std=$(jira issue create -tTask -s"$prefix $summary" --no-input \
+		  -a"$assigne" -l"$label" -y"$priority" -r"$reporter" -P"$parent" --fix-version "$fixVersion" \
+		  --custom assignedteam=$team --custom story-points=${sp} |&
+			tee /dev/tty)
 	fi
+	local issuelink=$(echo "$std"|tail -1)
+	jira issue link "$fromid" "${issuelink##*/}" "Issue split"
+
+	issue-view-json "$fromid" | get-split-tasks | grep -iF "$prefix"
 }
 
 Usage() {
