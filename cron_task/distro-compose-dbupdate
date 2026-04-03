@@ -191,6 +191,7 @@ UpdateDB() {
 
 mkdir -p $dbRoot/$rpmdb
 UpdateDB "$@"
+chcon --reference=/var/ftp/pub -R $dbRoot/$rpmdb
 
 # rsync to public server
 #_path=/export/engineering_qa/rhts/lookaside
