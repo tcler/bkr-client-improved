@@ -85,6 +85,7 @@ set CommonOptionList {
 	{topo}			{arg y	help {Include NUMBER server and client hosts for multi-host test. eg --topo=multiHost.1.1}}
 	{servers s}		{arg y	help {Include NUMBER server hosts for multi-host test}}
 	{clients c}		{arg y	help {Include NUMBER client hosts for multi-host test}}
+	{amd64v3}		{arg y	help {enable/disable amd64v3 filter, enable by default while test rhel-10+}}
 	{hr hostrequire}	{arg m	help {Additional <hostRequires><and/> for job, example:
 				--hr group=fs-qe
 				--hr pool=fs-qe
